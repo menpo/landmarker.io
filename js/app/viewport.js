@@ -153,11 +153,8 @@ exports.Viewport = Backbone.View.extend({
             that.$el.focus();
             downEvent = event;
             onMouseDownPosition.set(event.offsetX, event.offsetY);
-            if (event.button === 0 && event.shiftKey) {
-                shiftPressed();  // LMB + SHIFT
-            }
-            // All other interactions require interactions to
-            // distinguish - calculate here.
+
+            // All interactions require intersections to distinguish
             intersectionsWithLms = that.getIntersectsFromEvent(event, that.s_lms);
             intersectionsWithMesh = that.getIntersectsFromEvent(event, that.s_mesh);
             if (event.button === 0) {  // left mouse button
@@ -168,10 +165,18 @@ exports.Viewport = Backbone.View.extend({
                         intersectionsWithMesh[0].distance) {
                         landmarkPressed(event);
                     } else {
-                        meshPressed();
+                        // the mesh was pressed. Check for shift first though.
+                        if (event.shiftKey) {
+                            shiftPressed();
+                        } else {
+                            meshPressed();
+                        }
                     }
                 } else if (intersectionsWithLms.length > 0) {
                     landmarkPressed(event);
+                } else if (event.shiftKey) {
+                    // shift trumps all!
+                    shiftPressed();
                 } else if (intersectionsWithMesh.length > 0) {
                     meshPressed();
                 } else {
@@ -181,7 +186,11 @@ exports.Viewport = Backbone.View.extend({
 
             function meshPressed() {
                 console.log('mesh pressed!');
-                $(document).one('mouseup.viewportMesh', meshOnMouseUp);
+                if (event.button === 0 && event.shiftKey) {
+                    shiftPressed();  // LMB + SHIFT
+                } else {
+                    $(document).one('mouseup.viewportMesh', meshOnMouseUp);
+                }
             }
 
             function landmarkPressed() {
