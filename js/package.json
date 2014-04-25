@@ -15,6 +15,7 @@
     "license": "BSD",
     "dependencies": {
         "jquery": "~2.1.0",
+        "jquery-mousewheel": "~3.1.11",
         "backbone": "~1.1.2",
         "underscore": "~1.6.0",
         "browserify": "~3.44.2",
