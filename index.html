@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Landmarker.io</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width user-scalable=no">
+    <link href="css/landmarker.css" rel="stylesheet">
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r66/three.min.js"></script>
+    <!--<script type="text/javascript" src="js/vendor/three.min.js"></script>-->
+    <script src=bundle.js></script>
+</head>
+
+<body>
+
+<!-- MODAL OVERLAY (for filtering selected model) -->
+<div class="Overlay-Background"></div>
+<div class="Overlay">
+    <div class="Overlay-Sheet">
+        <label for="filter"></label>
+        <input type="text" class="text-input" id="filter" value="" />
+    </div>
+</div>
+
+<!-- MAIN LANDMARKER.IO UI -->
+<!-- App is a flexbox container -->
+<div class="App" style="height: 100%;">
+
+    <!-- VIEWPORT (WebGL window and related overlay toolbars) -->
+    <!-- 1/2 flexbox child of App -->
+    <div class="App-Viewport" id="viewportContainer">
+
+        <!-- A canvas (for 2D overlays, e.g. selection box) and the WebGL div -->
+        <canvas class="App-Viewport-Viewport" id="vpoverlay"></canvas>
+        <div class="App-Viewport-Viewport" id="viewport"></div>
+
+        <!-- The toolbar (for toggling various settings like texture) -->
+        <div class="App-Viewport-Toolbar">
+            <div class="Toolbar" id="toolbar">
+                <button class="Button-Toolbar"
+                        id="textureToggle">Texture</button>
+                <button class="Button-Toolbar"
+                        id="wireframeToggle">Wireframe</button>
+                <button class="Button-Toolbar">Numbering</button>
+            </div>
+            <!-- Spacer to push toolbox to bottom corner -->
+            <div class="Toolbar-Spacer"></div>
+        </div>
+    </div>
+
+    <!-- SIDEBAR (WebGL window and related overlay toolbars) -->
+    <!-- 2/2 flexbox child of App -->
+    <div class="App-Sidebar">
+        <!-- Sidebar is itself a flexbox container (Sidebar-x are children) -->
+        <div class="Sidebar">
+            <div class="Sidebar-row" id="meshInfo">
+                <button class="Sidebar-row-item MeshName" id="meshName">
+                    mesh_name
+                </button>
+                <button class="Sidebar-row-item MeshCount" id="meshIndex">
+                    001/999
+                </button>
+            </div>
+            <div class="Sidebar-row" id="saveRevert">
+                <div class="Sidebar-row-item">
+                    <button class="Button-Save"
+                            id="save">Save</button>
+                </div>
+                <div class="Sidebar-row-item">
+                    <button class="Button-Revert" id="revert">Revert</button>
+                </div>
+            </div>
+            <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
+            </div>
+            <div class="Sidebar-row" id="meshPager">
+                <div class="Sidebar-row-item">
+                    <button class="Button-Basic"
+                            id="previous">Previous</button>
+                </div>
+                <div class="Sidebar-row-item">
+                    <button class="Button-Basic" id="next">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- UNDERSCORE TEMPLATES -->
+
+<script id="trTemplate" type="text/template">
+    <tr id="lm<%= i %>">
+        <td class="Table-Cell Table-Cell-Count"><%= i %></td>
+        <td class="x"><%= x %></td>
+        <td class="y"><%= y %></td>
+        <td class="z"><%= z %></td>
+    </tr>
+</script>
+
+<script id="tableHeader" type="text/template">
+    <thead>
+    <tr>
+        <th class="Table-Cell Table-Cell-Header"></th>
+        <th class="Table-Cell Table-Cell-Header">x</th>
+        <th class="Table-Cell Table-Cell-Header">y</th>
+        <th class="Table-Cell Table-Cell-Header">z</th>
+    </tr>
+    </thead>
+</script>
+
+<script id="landmarkGroupLabel" type="text/template">
+    <button class="Button-LandmarkGroup" id="<%= label %>"><%= labelFormatted %></button>
+</script>
+
+</body>
+</html>
+
