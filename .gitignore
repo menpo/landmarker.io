@@ -1,3 +1,3 @@
 node_modules
-# On master - we don't want to check in every bundle we make!
-bundle.js
+# On gh-pages - store out the bundle
+# bundle.js
