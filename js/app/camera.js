@@ -22,9 +22,13 @@
  * property.
  */
 var $ = require('jquery');
+require('jquery-mousewheel')($);
 var _ = require('underscore');
 var Backbone = require('backbone');
 var THREE = require('three');
+
+var MOUSE_WHEEL_SENSITIVITY = 0.5;
+var ROTATION_SENSITIVITY = 0.005;
 
 "use strict";
 
@@ -34,7 +38,6 @@ exports.CameraController = function (camera, domElement) {
     _.extend(controller, Backbone.Events);
     var STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2 };
     var state = STATE.NONE;  // the current state of the Camera
-    var ROTATION_SENSITIVITY = 0.005;
 
     // internals
     var enabled = false; // note that we will enable on creation below!
@@ -43,7 +46,6 @@ exports.CameraController = function (camera, domElement) {
 
     var target = new THREE.Vector3();  // where the camera is looking
     var normalMatrix = new THREE.Matrix3();
-
 
     // mouse tracking variables
     var mouseDownPosition = new THREE.Vector2();
@@ -163,16 +165,10 @@ exports.CameraController = function (camera, domElement) {
     }
 
     function onMouseWheel(event) {
-        console.log('camera: wheel');
+        console.log('camera: mousewheel');
         if (!enabled) return;
-        var delta = 0;
-        if (event.originalEvent.wheelDelta) { // WebKit / Opera / Explorer 9
-            delta = -event.originalEvent.wheelDelta;
-        } else if (event.originalEvent.detail) { // Firefox
-            delta = event.originalEvent.detail * 10;
-        }
-        tinput.set(0, 0, (delta * 1.0 / 120));
-        console.log('wheel: ' + delta);
+        tinput.set(0, 0, (-event.deltaY * MOUSE_WHEEL_SENSITIVITY));
+        console.log('wheel: ' + event.deltaY);
         zoom(tinput);
     }
 
@@ -180,7 +176,7 @@ exports.CameraController = function (camera, domElement) {
         console.log('camera: disable');
         enabled = false;
         $(domElement).off('mousedown.camera');
-        $(domElement).off('wheel.camera');
+        $(domElement).off('mousewheel.camera');
         $(document).off('mousemove.camera');
     }
 
@@ -189,7 +185,7 @@ exports.CameraController = function (camera, domElement) {
             console.log('camera: enable');
             enabled = true;
             $(domElement).on('mousedown.camera', onMouseDown);
-            $(domElement).on('wheel.camera', onMouseWheel);
+            $(domElement).on('mousewheel.camera', onMouseWheel);
         }
     }
 
