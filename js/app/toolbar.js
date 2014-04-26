@@ -3,6 +3,7 @@ var Backbone = require('backbone');
 var $ = require('jquery');
 
 "use strict";
+// TODO this should be split for each item a-la sidebar.
 
 exports.Toolbar = Backbone.View.extend({
 
@@ -34,14 +35,12 @@ exports.Toolbar = Backbone.View.extend({
 
     render: function () {
         if (this.mesh) {
-            this.$el.find('#textureToggle').toggleClass('Button--Disabled',
+            this.$el.find('#textureRow').toggleClass('Toolbar-Row--Disabled',
                 !this.mesh.hasTexture());
-            this.$el.find('#textureToggle').toggleClass('Button-Toolbar-On',
-                this.mesh.isTextureOn());
-            this.$el.find('#wireframeToggle').toggleClass('Button-Toolbar-On',
-                this.mesh.isWireframeOn());
+            this.$el.find('#textureToggle')[0].checked = this.mesh.isTextureOn();
+            this.$el.find('#wireframeToggle')[0].checked = this.mesh.isWireframeOn();
         } else {
-            this.$el.find('#textureToggle').addClass('Button--Disabled');
+            this.$el.find('#textureRow').addClass('Toolbar-Row--Disabled');
         }
         return this;
     },
