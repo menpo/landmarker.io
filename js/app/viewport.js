@@ -330,7 +330,7 @@ exports.Viewport = Backbone.View.extend({
                 min_y = y2;
                 max_y = y1;
             }
-            // First, let's just find all the landamarks that in screen space
+            // First, let's just find all the landmarks in screen space that
             // are within our selection.
             var lms = that.lmViewsInSelectionBox(min_x, min_y,
                                                  max_x, max_y);
@@ -343,12 +343,37 @@ exports.Viewport = Backbone.View.extend({
                 }
             });
 
-            console.log(visibleLms.length);
+            var labelToGroup = that.model.landmarks().groups().labelsToGroups();
+            var labelToCount = {};
+            var label;
+            // build a count of each group label
+            _.each(visibleLms, function(lmView) {
+                label = lmView.model.get('group').get('label');
+               if (!labelToCount.hasOwnProperty(label)) {
+                   labelToCount[label] = 0;
+               }
+               labelToCount[label] += 1;
+            });
+
+            // find the highest count
+            var maxCountLabel = _.reduce(labelToCount,
+                function (maxCountLabel, count, label) {
+                    if (count > maxCountLabel[0]) {
+                        return [count, label];
+                    } else {
+                        return maxCountLabel;
+                    }
+                }, [0, '']);
+
+            // and activate that group
+            var  maxLabel = maxCountLabel[1];
+            labelToGroup[maxLabel].activate();
+
+            // we can safely select all the models that were visable (a no op
+            // on non-active group landmarks)
             _.each(visibleLms, function (lm) {
                 lm.model.select();
             });
-
-
 
             that.clearCanvas();
         };

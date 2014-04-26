@@ -16,6 +16,8 @@ var Landmark = Backbone.Model.extend({
     },
 
     initialize: function () {
+        _.bindAll(this, 'point', 'setPoint', 'select', 'deselect',
+            'isSelected', 'isEmpty', 'clear', 'group', 'toJSON');
         this.set('isEmpty', this.isEmpty());
     },
 
@@ -198,6 +200,14 @@ var LandmarkGroupList = Backbone.Collection.extend({
     },
 
     toJSON: function () {
+        var result = {};
+        this.each(function (group) {
+            result[group.label()] = group;
+        });
+        return result;
+    },
+
+    labelsToGroups: function () {
         var result = {};
         this.each(function (group) {
             result[group.label()] = group;
