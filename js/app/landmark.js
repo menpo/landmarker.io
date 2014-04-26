@@ -5,7 +5,6 @@ var THREE = require('three');
 
 "use strict";
 
-// TODO implement history
 var Landmark = Backbone.Model.extend({
 
     defaults: function () {
@@ -17,6 +16,8 @@ var Landmark = Backbone.Model.extend({
     },
 
     initialize: function () {
+        _.bindAll(this, 'point', 'setPoint', 'select', 'deselect',
+            'isSelected', 'isEmpty', 'clear', 'group', 'toJSON');
         this.set('isEmpty', this.isEmpty());
     },
 
@@ -48,16 +49,6 @@ var Landmark = Backbone.Model.extend({
         return this.get('selected');
     },
 
-//        validate: function(attrs, options) {
-//            var x  = 1;
-//            console.log(attrs);
-//            if (attrs.hasOwnProperty('point') &&
-//                attrs.point !== null &&
-//                !(attrs.point instanceof THREE.Vector3)) {
-//                return "didn't pass a valid point";
-//            }
-//        },
-
     isEmpty: function () {
         return !this.has('point');
     },
@@ -68,6 +59,10 @@ var Landmark = Backbone.Model.extend({
             selected: false,
             isEmpty: true
         });
+    },
+
+    group: function () {
+        this.get('group');
     },
 
     toJSON: function () {
@@ -212,6 +207,14 @@ var LandmarkGroupList = Backbone.Collection.extend({
         return result;
     },
 
+    labelsToGroups: function () {
+        var result = {};
+        this.each(function (group) {
+            result[group.label()] = group;
+        });
+        return result;
+    },
+
     initEmpty: function (labels, ns) {
         this.reset();  // clear any existing groups
         var group;
@@ -338,37 +341,38 @@ var LandmarkSet = Backbone.Model.extend({
             return;
         }
         var landmarkGroupList = new LandmarkGroupList(
-            _.map(json.groups, function (group, label) {
+            _.map(json.groups, function (json_group, label) {
+                // make the group so we can attach the landmarks
+                var group = new LandmarkGroup(
+                    {
+                        label: label,
+                        connectivity: json_group.connectivity
+                    });
                 var lmList = new LandmarkList(
-                    _.map(group.landmarks, function (lm) {
-                        var x, y, z;
-                        var index = _.indexOf(group.landmarks, lm);
-                        if (lm.point === null) {
+                    _.map(json_group.landmarks, function (json_lm) {
+                        var x, y, z, point;
+                        var index = _.indexOf(json_group.landmarks, json_lm);
+                        if (json_lm.point === null) {
                             return new Landmark({index: index});
-                        } else if (lm.point.length == 3) {
-                            x = lm.point[0];
-                            y = lm.point[1];
-                            z = lm.point[2];
-                            return new Landmark({
-                                point: new THREE.Vector3(x, y, z),
-                                index: index
-                            });
-                        } else if (lm.point.length == 2) {
-                            x = lm.point[0];
-                            y = lm.point[1];
-                            return new Landmark({
-                                point: new THREE.Vector2(x, y),
-                                index: index
-                            });
                         }
+                        x = json_lm.point[0];
+                        y = json_lm.point[1];
+                        if (json_lm.point.length == 3) {
+                            z = json_lm.point[2];
+                            point = new THREE.Vector3(x, y, z);
+                        } else if (json_lm.point.length == 2) {
+                            point = new THREE.Vector2(x, y);
+                        }
+                        return new Landmark({
+                            point: point,
+                            index: index,
+                            group: group,
+                        });
                     })
                 );
-                return new LandmarkGroup(
-                    {
-                        landmarks: lmList,
-                        label: label,
-                        connectivity: group.connectivity
-                    });
+                // now attach the landmark list to the group and return
+                group.set('landmarks', lmList);
+                return group;
             })
         );
         landmarkGroupList.at(0).activate();
