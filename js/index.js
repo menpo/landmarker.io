@@ -1,8 +1,3 @@
-var app;
-var sidebar;
-var viewport;
-var toolbar;
-
 document.addEventListener('DOMContentLoaded', function () {
     var $ = require('jquery');
     var Sidebar = require('./app/sidebar');
@@ -13,17 +8,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = "";
-    app = new App.App({apiURL: 'http://localhost:5000'});
-    sidebar = new Sidebar.Sidebar({model: app});
+    var app = new App.App({apiURL: 'http://localhost:5000'});
+    var sidebar = new Sidebar.Sidebar({model: app});
     // note that we provide the Viewport with the canvas overlay of
     // the viewport as requested.
-    viewport = new Viewport.Viewport(
+    var viewport = new Viewport.Viewport(
         {
             model: app,
             el: $('#vpoverlay')
         });
-    toolbar = new Toolbar.Toolbar({model: app.get('meshSource')});
+    var toolbar = new Toolbar.Toolbar({model: app});
 
+    // For debugging, attach to the window.
+    window.app = app;
+    window.toolbar = toolbar;
 
     // ----- KEYBOARD HANDLER ----- //
     $(window).keypress(function(e) {

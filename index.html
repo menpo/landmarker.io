@@ -36,11 +36,39 @@
         <!-- The toolbar (for toggling various settings like texture) -->
         <div class="App-Viewport-Toolbar">
             <div class="Toolbar" id="toolbar">
-                <button class="Button-Toolbar"
-                        id="textureToggle">Texture</button>
-                <button class="Button-Toolbar"
-                        id="wireframeToggle">Wireframe</button>
-                <button class="Button-Toolbar">Numbering</button>
+                <div class="Toolbar-Row" id="textureRow">
+                    <div class="Toolbar-Row-Item">Texture</div>
+                    <div class="Toolbar-Row-Item">
+                    <div class="onoffswitch">
+                        <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="textureToggle">
+                        <label class="onoffswitch-label" for="textureToggle">
+                            <div class="onoffswitch-inner"></div>
+                            <div class="onoffswitch-switch"></div>
+                        </label>
+                    </div>
+                    </div>
+                </div>
+                <div class="Toolbar-Row" id="wireframeRow">
+                <div class="Toolbar-Row-Item">Wireframe</div>
+                    <div class="Toolbar-Row-Item">
+                    <div class="onoffswitch">
+                        <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="wireframeToggle">
+                        <label class="onoffswitch-label" for="wireframeToggle">
+                            <div class="onoffswitch-inner"></div>
+                            <div class="onoffswitch-switch"></div>
+                        </label>
+                    </div>
+                    </div>
+                </div>
+                <div class="Toolbar-Row">&alpha;
+                    <input type="range" name="points" min="0" max="100" value="100" id="alphaSlider">
+                </div>
+                <div class="Toolbar-Row">&#9679;
+                    <input type="range" name="points" min="0" max="100" id="lmSizeSlider">
+                </div>
+                <div class="Toolbar-Row">&#8212;
+                    <input type="range" name="points" min="0" max="100">
+                </div>
             </div>
             <!-- Spacer to push toolbox to bottom corner -->
             <div class="Toolbar-Spacer"></div>

@@ -6,6 +6,10 @@ var Camera = require('./camera');
 
 "use strict";
 
+
+// the default scale for 1.0
+var LM_SCALE = 0.005;
+
 exports.Viewport = Backbone.View.extend({
 
     id: 'vpoverlay',
@@ -14,9 +18,6 @@ exports.Viewport = Backbone.View.extend({
 
         // ----- CONFIGURATION ----- //
         this.meshScale = 1.0;  // The radius of the mesh's bounding sphere
-        // the radius of the landmarks in the normalized scene
-        // TODO this should be on app not Viewport
-        this.landmarkScale = 0.01;
         var clearColor = 0xAAAAAA;
 
         // TODO bind all methods on the Viewport
@@ -452,7 +453,7 @@ exports.Viewport = Backbone.View.extend({
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
-        this.listenTo(this.model.get('meshSource'), "change:mesh", this.changeMesh);
+        this.listenTo(this.model, "change:mesh", this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
         this.listenTo(this.model.dispatcher(), "change:BATCH_RENDER", this.batchHandler);
 
@@ -657,17 +658,20 @@ exports.Viewport = Backbone.View.extend({
 var LandmarkTHREEView = Backbone.View.extend({
 
     initialize: function (options) {
+        _.bindAll(this, 'render', 'changeLandmarkSize');
         this.listenTo(this.model, "change", this.render);
         this.group = options.group;
         this.viewport = options.viewport;
+        this.app = this.viewport.model;
         this.listenTo(this.group, "change:active", this.render);
+        this.listenTo(this.app, "change:landmarkSize", this.changeLandmarkSize);
         this.symbol = null; // a THREE object that represents this landmark.
         // null if the landmark isEmpty
         this.render();
     },
 
     render: function () {
-        if (this.symbol !== null) {
+        if (this.symbol) {
             // this landmark already has an allocated representation..
             if (this.model.isEmpty()) {
                 // but it's been deleted.
@@ -683,7 +687,7 @@ var LandmarkTHREEView = Backbone.View.extend({
             if (!this.model.isEmpty()) {
                 // and there should be! Make it and update it
                 this.symbol = this.createSphere(this.model.get('point'),
-                    this.viewport.landmarkScale * this.viewport.meshScale, 1);
+                    this.viewport.meshScale * LM_SCALE, 1);
                 this.updateSymbol();
                 // and add it to the scene
                 this.viewport.s_lms.add(this.symbol);
@@ -716,6 +720,18 @@ var LandmarkTHREEView = Backbone.View.extend({
             this.symbol.material.color.setHex(0xff75ff);
         } else {
             this.symbol.material.color.setHex(0xffff00);
+        }
+    },
+
+    changeLandmarkSize: function () {
+        if (this.symbol) {
+            // have a symbol, and need to change it's size.
+            var radius = this.app.get('landmarkSize');
+            this.symbol.scale.x = radius;
+            this.symbol.scale.y = radius;
+            this.symbol.scale.z = radius;
+            // tell our viewport to update
+            this.viewport.update();
         }
     }
 });
@@ -764,7 +780,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
     createLine: function (start, end) {
         var material = new THREE.LineBasicMaterial({
             color: 0x0000ff,
-            linewidth: 5
+            linewidth: 3
         });
         var geometry = new THREE.Geometry();
         geometry.dynamic = true;

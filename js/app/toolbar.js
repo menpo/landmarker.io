@@ -3,15 +3,71 @@ var Backbone = require('backbone');
 var $ = require('jquery');
 
 "use strict";
+// TODO this should be split for each item a-la sidebar.
+
+var LandmarkSizeSlider = Backbone.View.extend({
+
+    el: '#lmSizeSlider',
+
+    initialize : function() {
+        _.bindAll(this, 'render', 'changeLandmarkSize');
+        this.listenTo(this.model, "change:landmarkSize", this.render);
+    },
+
+    events: {
+        input : "changeLandmarkSize"
+    },
+
+    render: function () {
+        this.$el[0].value = this.model.get("landmarkSize") * 50;
+    },
+
+    changeLandmarkSize: function (event) {
+        // turn on batch rendering before firing the change
+        this.model.dispatcher().enableBatchRender();
+        this.model.set("landmarkSize", (Number(event.target.value) / 50));
+        // all symbols will be updated - disable the batch
+        this.model.dispatcher().disableBatchRender();
+    }
+});
+
+
+var AlphaSlider = Backbone.View.extend({
+
+    el: '#alphaSlider',
+
+    initialize : function() {
+        _.bindAll(this, 'render', 'changeAlpha');
+        this.listenTo(this.model, "change:meshAlpha", this.render);
+    },
+
+    events: {
+        input : "changeAlpha"
+    },
+
+    render: function () {
+        console.log('slider:render');
+        this.$el[0].value = this.model.get("meshAlpha") * 100;
+    },
+
+    changeAlpha: function (event) {
+        console.log('slider:changeAlpha');
+        this.model.set("meshAlpha", (Number(event.target.value) / 100));
+    }
+});
+
 
 exports.Toolbar = Backbone.View.extend({
 
     el: '#toolbar',
 
     initialize : function() {
+        this.lmSizeSlider = new LandmarkSizeSlider({model: this.model});
+        this.alphaSlider = new AlphaSlider({model: this.model});
         _.bindAll(this, 'render', 'changeMesh',
             'textureToggle', 'wireframeToggle');
         this.listenTo(this.model, "change:mesh", this.changeMesh);
+        // there could already be a model we have missed
         if (this.model.mesh()) {
             this.changeMesh();
         }
@@ -34,14 +90,12 @@ exports.Toolbar = Backbone.View.extend({
 
     render: function () {
         if (this.mesh) {
-            this.$el.find('#textureToggle').toggleClass('Button--Disabled',
+            this.$el.find('#textureRow').toggleClass('Toolbar-Row--Disabled',
                 !this.mesh.hasTexture());
-            this.$el.find('#textureToggle').toggleClass('Button-Toolbar-On',
-                this.mesh.isTextureOn());
-            this.$el.find('#wireframeToggle').toggleClass('Button-Toolbar-On',
-                this.mesh.isWireframeOn());
+            this.$el.find('#textureToggle')[0].checked = this.mesh.isTextureOn();
+            this.$el.find('#wireframeToggle')[0].checked = this.mesh.isWireframeOn();
         } else {
-            this.$el.find('#textureToggle').addClass('Button--Disabled');
+            this.$el.find('#textureRow').addClass('Toolbar-Row--Disabled');
         }
         return this;
     },

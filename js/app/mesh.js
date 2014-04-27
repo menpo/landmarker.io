@@ -7,10 +7,21 @@ var THREE = require('three');
 "use strict";
 
 var basicMaterial = new THREE.MeshPhongMaterial();
+basicMaterial.transparent = true;
+
 
 var Mesh = Backbone.Model.extend({
 
+    defaults : {
+        alpha : 1
+    },
+
     urlRoot: "meshes",
+
+    initialize : function() {
+        _.bindAll(this, 'changeAlpha');
+        this.listenTo(this, "change:alpha", this.changeAlpha);
+    },
 
     url: function () {
         return this.get('server').map(this.urlRoot + '/' + this.id);
@@ -20,6 +31,9 @@ var Mesh = Backbone.Model.extend({
         return this.get('t_mesh');
     },
 
+    alpha: function () {
+        return this.get('alpha');
+    },
 
     hasTexture: function() {
         return this.has('texture');
@@ -44,6 +58,7 @@ var Mesh = Backbone.Model.extend({
         } else {
             this.wireframeOff();
         }
+        this.changeAlpha();
         this.set('textureOn', true);
     },
 
@@ -58,6 +73,7 @@ var Mesh = Backbone.Model.extend({
         } else {
             this.wireframeOff();
         }
+        this.changeAlpha();
         this.set('textureOn', false);
     },
 
@@ -75,6 +91,7 @@ var Mesh = Backbone.Model.extend({
         }
         this.t_mesh().material.wireframe = true;
         this.set('wireframeOn', true);
+        this.changeAlpha();
     },
 
     wireframeOff: function() {
@@ -83,6 +100,7 @@ var Mesh = Backbone.Model.extend({
         }
         this.t_mesh().material.wireframe = false;
         this.set('wireframeOn', false);
+        this.changeAlpha();
     },
 
     wireframeToggle: function () {
@@ -106,6 +124,10 @@ var Mesh = Backbone.Model.extend({
             points: points,
             trilist: trilist
         };
+    },
+
+    changeAlpha: function () {
+        this.t_mesh().material.opacity = this.get('alpha');
     },
 
     parse: function (response) {
@@ -132,6 +154,7 @@ var Mesh = Backbone.Model.extend({
                         } )
                 }
             );
+            material.transparent = true;
             // We expect per-vertex texture coords only. Three js has per
             // face tcoords, so we need to handle the conversion.
             // First - generate all the tcoords in a list
