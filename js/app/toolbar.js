@@ -46,10 +46,12 @@ var AlphaSlider = Backbone.View.extend({
     },
 
     render: function () {
-        this.$el[0].value = this.model.get("alpha") * 100;
+        console.log('slider:render');
+        this.$el[0].value = this.model.get("meshAlpha") * 100;
     },
 
     changeAlpha: function (event) {
+        console.log('slider:changeAlpha');
         this.model.set("meshAlpha", (Number(event.target.value) / 100));
     }
 });
@@ -61,6 +63,7 @@ exports.Toolbar = Backbone.View.extend({
 
     initialize : function() {
         this.lmSizeSlider = new LandmarkSizeSlider({model: this.model});
+        this.alphaSlider = new AlphaSlider({model: this.model});
         _.bindAll(this, 'render', 'changeMesh',
             'textureToggle', 'wireframeToggle');
         this.listenTo(this.model, "change:mesh", this.changeMesh);

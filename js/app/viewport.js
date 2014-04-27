@@ -453,7 +453,7 @@ exports.Viewport = Backbone.View.extend({
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
-        this.listenTo(this.model.get('meshSource'), "change:mesh", this.changeMesh);
+        this.listenTo(this.model, "change:mesh", this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
         this.listenTo(this.model.dispatcher(), "change:BATCH_RENDER", this.batchHandler);
 
@@ -780,7 +780,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
     createLine: function (start, end) {
         var material = new THREE.LineBasicMaterial({
             color: 0x0000ff,
-            linewidth: 5
+            linewidth: 3
         });
         var geometry = new THREE.Geometry();
         geometry.dynamic = true;

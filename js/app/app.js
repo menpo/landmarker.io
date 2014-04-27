@@ -52,6 +52,11 @@ exports.App = Backbone.Model.extend({
         // whenever our mesh source changes it's current mesh we need
         // to run the application logic.
         this.listenTo(meshSource, 'change:mesh', this.meshChanged);
+        this.listenTo(this, 'change:meshAlpha', this.changeMeshAlpha);
+    },
+
+    changeMeshAlpha: function () {
+        this.mesh().set('alpha', this.get('meshAlpha'));
     },
 
     dispatcher: function () {
@@ -61,6 +66,8 @@ exports.App = Backbone.Model.extend({
     meshChanged: function () {
         console.log('mesh has been changed on the meshSource!');
         this.set('mesh', this.get('meshSource').get('mesh'));
+        // make sure the new mesh has the right alpha setting
+        this.changeMeshAlpha();
         // build new landmarks - they need to know where to fetch from
         // so attach the server.
         var landmarks = new Landmark.LandmarkSet(
