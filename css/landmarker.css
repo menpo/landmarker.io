@@ -83,6 +83,7 @@ table {
 .Sidebar {
     display: flex;
     min-height: 100vh;
+    max-height: 100vh;
     flex-direction: column;
     text-align: center;
 }
@@ -93,9 +94,7 @@ table {
     display: flex;
     flex-direction: column;
     text-align: center;
-}
-
-.LandmarksPanel {
+    overflow: auto;
 }
 
 .Sidebar-button {
