@@ -12,7 +12,9 @@ exports.App = Backbone.Model.extend({
     defaults: function () {
         return {
             landmarkType: 'ibug68',
-            apiURL: ''
+            apiURL: '',
+            landmarkScale: 1,
+            meshAlpha: 1
         }
     },
 
@@ -21,7 +23,8 @@ exports.App = Backbone.Model.extend({
     },
 
     initialize: function () {
-        _.bindAll(this, 'meshChanged');
+        _.bindAll(this, 'meshChanged', 'dispatcher', 'mesh', 'meshSource',
+                        'landmarks');
         this.set('dispatcher', new Dispatcher.Dispatcher);
         // construct a new server to handle dynamic remapping of URLs
         this.set('server', new Server.Server(
@@ -38,9 +41,9 @@ exports.App = Backbone.Model.extend({
                 server:this.server()
             }
         ));
-        var meshes = this.get('meshSource');
+        var meshSource = this.get('meshSource');
         var that = this;
-        meshes.fetch({
+        meshSource.fetch({
             success: function () {
                 var meshSource = that.get('meshSource');
                 meshSource.setMesh(meshSource.get('meshes').at(0));
@@ -48,7 +51,7 @@ exports.App = Backbone.Model.extend({
         });
         // whenever our mesh source changes it's current mesh we need
         // to run the application logic.
-        this.listenTo(meshes, 'change:mesh', this.meshChanged);
+        this.listenTo(meshSource, 'change:mesh', this.meshChanged);
     },
 
     dispatcher: function () {
@@ -57,6 +60,7 @@ exports.App = Backbone.Model.extend({
 
     meshChanged: function () {
         console.log('mesh has been changed on the meshSource!');
+        this.set('mesh', this.get('meshSource').get('mesh'));
         // build new landmarks - they need to know where to fetch from
         // so attach the server.
         var landmarks = new Landmark.LandmarkSet(
@@ -89,7 +93,11 @@ exports.App = Backbone.Model.extend({
     },
 
     mesh: function () {
-        return this.get('meshSource').get('mesh');
+        return this.get('mesh');
+    },
+
+    meshSource: function () {
+        return this.get('meshSource');
     },
 
     landmarks: function () {

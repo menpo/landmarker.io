@@ -5,14 +5,66 @@ var $ = require('jquery');
 "use strict";
 // TODO this should be split for each item a-la sidebar.
 
+var LandmarkSizeSlider = Backbone.View.extend({
+
+    el: '#lmSizeSlider',
+
+    initialize : function() {
+        _.bindAll(this, 'render', 'changeLandmarkSize');
+        this.listenTo(this.model, "change:landmarkSize", this.render);
+    },
+
+    events: {
+        input : "changeLandmarkSize"
+    },
+
+    render: function () {
+        this.$el[0].value = this.model.get("landmarkSize") * 50;
+    },
+
+    changeLandmarkSize: function (event) {
+        // turn on batch rendering before firing the change
+        this.model.dispatcher().enableBatchRender();
+        this.model.set("landmarkSize", (Number(event.target.value) / 50));
+        // all symbols will be updated - disable the batch
+        this.model.dispatcher().disableBatchRender();
+    }
+});
+
+
+var AlphaSlider = Backbone.View.extend({
+
+    el: '#alphaSlider',
+
+    initialize : function() {
+        _.bindAll(this, 'render', 'changeAlpha');
+        this.listenTo(this.model, "change:meshAlpha", this.render);
+    },
+
+    events: {
+        input : "changeAlpha"
+    },
+
+    render: function () {
+        this.$el[0].value = this.model.get("alpha") * 100;
+    },
+
+    changeAlpha: function (event) {
+        this.model.set("meshAlpha", (Number(event.target.value) / 100));
+    }
+});
+
+
 exports.Toolbar = Backbone.View.extend({
 
     el: '#toolbar',
 
     initialize : function() {
+        this.lmSizeSlider = new LandmarkSizeSlider({model: this.model});
         _.bindAll(this, 'render', 'changeMesh',
             'textureToggle', 'wireframeToggle');
         this.listenTo(this.model, "change:mesh", this.changeMesh);
+        // there could already be a model we have missed
         if (this.model.mesh()) {
             this.changeMesh();
         }
