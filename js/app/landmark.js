@@ -366,7 +366,7 @@ var LandmarkSet = Backbone.Model.extend({
                         return new Landmark({
                             point: point,
                             index: index,
-                            group: group,
+                            group: group
                         });
                     })
                 );
