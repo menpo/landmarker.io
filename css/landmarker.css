@@ -73,8 +73,9 @@ table {
     flex: 4;
 }
 
+/* Make the Sidebar fixed width */
 .App-Sidebar {
-    flex: 1;
+    width: 300px;
     align-items: center;
 }
 

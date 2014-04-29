@@ -4,11 +4,15 @@ document.addEventListener('DOMContentLoaded', function () {
     var Toolbar = require('./app/toolbar');
     var Viewport = require('./app/viewport');
     var App = require('./app/app');
+    var Server = require('./app/server');
     var THREE = require('three');
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = "";
-    var app = new App.App({apiURL: 'http://localhost:5000'});
+    // point the server to the demo by default
+    //var server = new Server.Server({apiURL: 'http://localhost:5000'});
+    var server = new Server.Server({DEMO_MODE: true});
+    var app = new App.App({server: server});
     var sidebar = new Sidebar.Sidebar({model: app});
     // note that we provide the Viewport with the canvas overlay of
     // the viewport as requested.

@@ -3,7 +3,6 @@ var Backbone = require('backbone');
 var Landmark = require('./landmark');
 var Mesh = require('./mesh');
 var Dispatcher = require('./dispatcher');
-var Server = require('./server');
 
 "use strict";
 
@@ -12,7 +11,6 @@ exports.App = Backbone.Model.extend({
     defaults: function () {
         return {
             landmarkType: 'ibug68',
-            apiURL: '',
             landmarkScale: 1,
             meshAlpha: 1
         }
@@ -26,12 +24,6 @@ exports.App = Backbone.Model.extend({
         _.bindAll(this, 'meshChanged', 'dispatcher', 'mesh', 'meshSource',
                         'landmarks');
         this.set('dispatcher', new Dispatcher.Dispatcher);
-        // construct a new server to handle dynamic remapping of URLs
-        this.set('server', new Server.Server(
-            {
-                apiURL: this.get('apiURL')
-            }
-        ));
         // construct a mesh source (which can query for mesh information
         // from the server). Of course, we must pass the server in. The
         // mesh source will ensure that the meshes produced also get
@@ -47,6 +39,9 @@ exports.App = Backbone.Model.extend({
             success: function () {
                 var meshSource = that.get('meshSource');
                 meshSource.setMesh(meshSource.get('meshes').at(0));
+            },
+            error: function () {
+                console.log('Failed to talk to this api.')
             }
         });
         // whenever our mesh source changes it's current mesh we need
