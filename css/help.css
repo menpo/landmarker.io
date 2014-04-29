@@ -1,0 +1,37 @@
+
+/* GLOBAL STYLE */
+html {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    height: 100%;
+    margin: 0;
+    font-family: "HelveticaNeue-Light", "Helvetica Neue Light",
+        "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+    font-weight: 300;
+}
+
+td {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    cursor: pointer;
+}
+
+th {
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.Table-Cell-Key {
+    background: #0A4EB2;
+    color: white;
+    font-weight: bold;
+    text-align: right;
+}
