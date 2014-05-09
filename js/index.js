@@ -1,3 +1,8 @@
+function getURLParameter(name) {
+    return decodeURIComponent((new RegExp('[?|&]' + name + '=' +
+        '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     var $ = require('jquery');
     var Sidebar = require('./app/sidebar');
@@ -9,9 +14,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = "";
-    // point the server to the demo by default
-    //var server = new Server.Server({apiURL: 'http://localhost:5000'});
-    var server = new Server.Server({DEMO_MODE: true});
+    var server;
+    if (getURLParameter('mode') === 'demo') {
+        // put the server in demo mode
+        document.title = document.title + ' - demo mode';
+        $('.App-Viewport-UIText-TopLeft').toggle();
+        server = new Server.Server({DEMO_MODE: true});
+    } else {
+        server = new Server.Server({apiURL: 'http://localhost:5000'});
+    }
     var app = new App.App({server: server});
     var sidebar = new Sidebar.Sidebar({model: app});
     // note that we provide the Viewport with the canvas overlay of

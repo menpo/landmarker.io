@@ -41,7 +41,10 @@ exports.App = Backbone.Model.extend({
                 meshSource.setMesh(meshSource.get('meshes').at(0));
             },
             error: function () {
-                console.log('Failed to talk to this api.')
+                console.log('Failed to talk localhost:5000 (is landmarkerio' +
+                    'running from your command line?).');
+                console.log('Restarting in demo mode.');
+                window.location.href = window.location.href + '?mode=demo'
             }
         });
         // whenever our mesh source changes it's current mesh we need
