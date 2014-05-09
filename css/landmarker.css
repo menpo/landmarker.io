@@ -227,6 +227,20 @@ is itself a row flexbox */
     align-items: flex-start;
 }
 
+/* UITEXT (TOP LEFT) */
+.App-Viewport-UIText-TopLeft {
+    z-index: 2;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    display: none;
+}
+
+#demoWarning {
+    font-size: xx-large;
+    color: white;
+}
+
 /* Toolbar needs to be above the Three.js viewport and canvas overlay */
 .Toolbar {
     z-index: 2;

@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var server;
     if (getURLParameter('mode') === 'demo') {
         // put the server in demo mode
+        document.title = document.title + ' - demo mode';
+        $('.App-Viewport-UIText-TopLeft').toggle();
         server = new Server.Server({DEMO_MODE: true});
     } else {
         server = new Server.Server({apiURL: 'http://localhost:5000'});
