@@ -313,13 +313,13 @@ var AssetInfoView = Backbone.View.extend({
 
     initialize : function() {
         _.bindAll(this, 'render');
-        this.listenTo(this.model, "change:mesh", this.render);
+        this.listenTo(this.model, "change:asset", this.render);
     },
 
     render: function () {
-        console.log("AssetInfoView: meshSource:mesh has a change");
-        this.$el.find('#assetName').html(this.model.mesh().id);
-        var n_str = pad(this.model.meshes().length, 2);
+        console.log("AssetInfoView: assetSource:asset has changed");
+        this.$el.find('#assetName').html(this.model.asset().id);
+        var n_str = pad(this.model.assets().length, 2);
         var i_str = pad(this.model.assetIndex() + 1, 2);
         this.$el.find('#assetIndex').html(i_str + "/" + n_str);
         return this;
@@ -347,18 +347,18 @@ var AssetInfoView = Backbone.View.extend({
 var Sidebar = Backbone.View.extend({
 
     initialize : function() {
-        _.bindAll(this, "renderLandmarks", "renderMeshSrc");
-        this.listenTo(this.model, "change:landmarks", this.renderLandmarks);
-        this.listenTo(this.model, "change:meshSource", this.renderMeshSrc);
-        this.renderMeshSrc();
+        _.bindAll(this, "landmarksChange", "assetSourceChange");
+        this.listenTo(this.model, "change:landmarks", this.landmarksChange);
+        this.listenTo(this.model, "change:assetSource", this.assetSourceChange);
+        this.assetSourceChange();
     },
 
-    renderMeshSrc: function () {
-        new AssetPagerView({model: this.model.get('meshSource')});
-        new AssetInfoView({model: this.model.get('meshSource')});
+    assetSourceChange: function () {
+        new AssetPagerView({model: this.model.assetSource()});
+        new AssetInfoView({model: this.model.assetSource()});
     },
 
-    renderLandmarks: function () {
+    landmarksChange: function () {
         // TODO inconsistency in binding - manual or hardcoded? not both.
         new SaveRevertView({model: this.model.get('landmarks')});
         var lmView = new LandmarkGroupListView({

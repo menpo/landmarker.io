@@ -205,7 +205,7 @@ var MeshSource = Backbone.Model.extend({
 
     defaults: function () {
         return {
-            meshes: new MeshList
+            assets: new MeshList
         };
     },
 
@@ -223,43 +223,48 @@ var MeshSource = Backbone.Model.extend({
         });
         var meshList = new MeshList(meshes);
         return {
-            meshes: meshList
+            assets: meshList
         };
     },
 
     mesh: function () {
-        return this.get('mesh');
+        // For the mesh source, mesh === asset.
+        return this.asset();
     },
 
-    meshes: function () {
-        return this.get('meshes');
+    asset: function () {
+        return this.get('asset');
     },
 
-    nMeshes: function () {
-        return this.get('meshes').length;
+    assets: function () {
+        return this.get('assets');
+    },
+
+    nAssets: function () {
+        return this.get('assets').length;
     },
 
     next: function () {
         if (!this.hasSuccessor()) {
             return;
         }
-        this.setMesh(this.get('meshes').at(this.assetIndex() + 1));
+        this.setAsset(this.assets().at(this.assetIndex() + 1));
     },
 
     previous: function () {
         if (!this.hasPredecessor()) {
             return;
         }
-        this.setMesh(this.get('meshes').at(this.assetIndex() - 1));
+        this.setAsset(this.assets().at(this.assetIndex() - 1));
     },
 
-    setMesh: function (newMesh) {
+    setAsset: function (newMesh) {
         // TODO this should cache and not get every time
         var that = this;
         newMesh.fetch({
             success: function () {
                 console.log('grabbed new mesh');
-                that.set('mesh', newMesh);
+                that.set('asset', newMesh);
             }
         });
     },
@@ -269,12 +274,12 @@ var MeshSource = Backbone.Model.extend({
     },
 
     hasSuccessor: function () {
-        return this.nMeshes() - this.assetIndex() !== 1;
+        return this.nAssets() - this.assetIndex() !== 1;
     },
 
     // returns the index of the currently active mesh
     assetIndex: function () {
-        return this.get('meshes').indexOf(this.get('mesh'));
+        return this.assets().indexOf(this.get('asset'));
     }
 });
 

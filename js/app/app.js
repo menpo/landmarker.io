@@ -2,6 +2,7 @@ var _ = require('underscore');
 var Backbone = require('backbone');
 var Landmark = require('./landmark');
 var Mesh = require('./mesh');
+var Image = require('./image');
 var Dispatcher = require('./dispatcher');
 
 "use strict";
@@ -13,8 +14,17 @@ exports.App = Backbone.Model.extend({
             // TODO remove default landmarkType as ibug68
             landmarkType: 'ibug68',
             landmarkScale: 1,
-            meshAlpha: 1
+            meshAlpha: 1,
+            mode: 'mesh'
         }
+    },
+
+    imageMode: function () {
+        return this.get('mode') === 'image';
+    },
+
+    meshMode: function () {
+        return this.get('mode') === 'mesh';
     },
 
     server: function () {
@@ -22,24 +32,32 @@ exports.App = Backbone.Model.extend({
     },
 
     initialize: function () {
-        _.bindAll(this, 'meshChanged', 'dispatcher', 'mesh', 'meshSource',
+        _.bindAll(this, 'assetChanged', 'dispatcher', 'mesh', 'assetSource',
                         'landmarks');
         this.set('dispatcher', new Dispatcher.Dispatcher);
-        // construct a mesh source (which can query for mesh information
+        // Construct an asset source (which can query for asset information
         // from the server). Of course, we must pass the server in. The
-        // mesh source will ensure that the meshes produced also get
+        // asset source will ensure that the assets produced also get
         // attached to this server.
-        this.set('meshSource', new Mesh.MeshSource(
-            {
-                server:this.server()
-            }
-        ));
-        var meshSource = this.get('meshSource');
-        var that = this;
-        meshSource.fetch({
+        var assetSource;
+        if (this.imageMode()) {
+            // In image mode, the asset source is an ImageSource
+            // TODO this should be ImageSource
+            assetSource = new Mesh.MeshSource({ server: this.server() });
+        } else if (this.meshMode()){
+            // In mesh mode, the asset source is a MeshSource
+            assetSource = new Mesh.MeshSource({ server: this.server() });
+        } else {
+            console.error('WARNING - illegal mode setting on app! Must be' +
+                ' mesh or image');
+        }
+        this.set('assetSource', assetSource);
+        // whenever our asset source changes it's current asset we need
+        // to run the application logic.
+        this.listenTo(assetSource, 'change:asset', this.assetChanged);
+        assetSource.fetch({
             success: function () {
-                var meshSource = that.get('meshSource');
-                meshSource.setMesh(meshSource.get('meshes').at(0));
+                assetSource.setAsset(assetSource.assets().at(0));
             },
             error: function () {
                 console.log('Failed to talk localhost:5000 (is landmarkerio' +
@@ -48,9 +66,10 @@ exports.App = Backbone.Model.extend({
                 window.location.href = window.location.href + '?mode=demo'
             }
         });
-        // whenever our mesh source changes it's current mesh we need
-        // to run the application logic.
-        this.listenTo(meshSource, 'change:mesh', this.meshChanged);
+
+
+        // TODO this seems messy, do we need this message passing?
+        // whenever the user changes the meshAlpha, hit the callback
         this.listenTo(this, 'change:meshAlpha', this.changeMeshAlpha);
     },
 
@@ -62,9 +81,10 @@ exports.App = Backbone.Model.extend({
         return this.get('dispatcher');
     },
 
-    meshChanged: function () {
-        console.log('mesh has been changed on the meshSource!');
-        this.set('mesh', this.get('meshSource').get('mesh'));
+    assetChanged: function () {
+        console.log('asset has been changed on the assetSource!');
+        this.set('mesh', this.assetSource().mesh());
+        this.set('asset', this.assetSource().asset());
         // make sure the new mesh has the right alpha setting
         this.changeMeshAlpha();
         // build new landmarks - they need to know where to fetch from
@@ -98,15 +118,17 @@ exports.App = Backbone.Model.extend({
         });
     },
 
+    // returns the currently active Mesh.
     mesh: function () {
         return this.get('mesh');
     },
 
-    meshSource: function () {
-        return this.get('meshSource');
+    assetSource: function () {
+        return this.get('assetSource');
     },
 
     landmarks: function () {
         return this.get('landmarks');
     }
+
 });

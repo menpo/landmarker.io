@@ -75,6 +75,7 @@ exports.Viewport = Backbone.View.extend({
 
         // ----- SCENE: GENERAL LIGHTING ----- //
         // TODO make lighting customizable
+        // TODO no spot light for images
         this.s_lights = new THREE.Object3D();
         var pointLightLeft = new THREE.PointLight(0x404040, 1, 0);
         pointLightLeft.position.set(-100, 0, 100);
@@ -106,6 +107,7 @@ exports.Viewport = Backbone.View.extend({
         // make an empty list of landmark views
         this.landmarkViews = [];
         this.connectivityViews = [];
+        // TODO camera controls should be set based on mode
         this.cameraControls = Camera.CameraController(
             this.s_camera, this.el, true);
         // when the camera updates, render
@@ -548,6 +550,7 @@ exports.Viewport = Backbone.View.extend({
             this.stopListening(this.mesh);
         }
         console.log('listening to new mesh');
+        // TODO should this be an all?
         this.listenTo(this.model.mesh(), "all", this.update);
         this.mesh = this.model.mesh();
         // firstly, remove any existing mesh
