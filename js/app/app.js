@@ -42,10 +42,11 @@ exports.App = Backbone.Model.extend({
         var assetSource;
         if (this.imageMode()) {
             // In image mode, the asset source is an ImageSource
-            // TODO this should be ImageSource
-            assetSource = new Mesh.MeshSource({ server: this.server() });
+            console.log('App in image mode - creating image source');
+            assetSource = new Image.ImageSource({ server: this.server() });
         } else if (this.meshMode()){
             // In mesh mode, the asset source is a MeshSource
+            console.log('App in mesh mode - creating mesh source');
             assetSource = new Mesh.MeshSource({ server: this.server() });
         } else {
             console.error('WARNING - illegal mode setting on app! Must be' +

@@ -10,6 +10,9 @@ var Camera = require('./camera');
 // the default scale for 1.0
 var LM_SCALE = 0.005;
 
+var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.68, 0.35, 3.0);
+var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
+
 exports.Viewport = Backbone.View.extend({
 
     id: 'vpoverlay',
@@ -46,6 +49,12 @@ exports.Viewport = Backbone.View.extend({
         // ------ SCENE GRAPH CONSTRUCTION ----- //
         this.scene = new THREE.Scene();
 
+        // we use an initial top level to handle the absolute positioning of
+        // the mesh and landmarks. Rotation and scale are applied to the
+        // s_meshAndLms node directly.
+        this.s_scaleRotate = new THREE.Object3D();
+        this.s_translate = new THREE.Object3D();
+
         // ----- SCENE: MODEL AND LANDMARKS ----- //
         // s_meshAndLms stores the mesh and landmarks in the meshes original
         // coordinates. This is always transformed to the unit sphere for
@@ -64,13 +73,14 @@ exports.Viewport = Backbone.View.extend({
         // Child of s_meshAndLms
         this.s_mesh = new THREE.Object3D();
         this.s_meshAndLms.add(this.s_mesh);
-        this.scene.add(this.s_meshAndLms);
+        this.s_translate.add(this.s_meshAndLms);
+        this.s_scaleRotate.add(this.s_translate);
+        this.scene.add(this.s_scaleRotate);
 
         // ----- SCENE: CAMERA AND DIRECTED LIGHTS ----- //
         // s_camera holds the camera, and (optionally) any
         // lights that track with the camera as children
         this.s_camera = new THREE.PerspectiveCamera(50, 1, 0.02, 5000);
-        this.s_camera.position.set(1.68, 0.35, 3.0);
         this.resetCamera();
 
         // ----- SCENE: GENERAL LIGHTING ----- //
@@ -110,6 +120,7 @@ exports.Viewport = Backbone.View.extend({
         // TODO camera controls should be set based on mode
         this.cameraControls = Camera.CameraController(
             this.s_camera, this.el, true);
+        window.viewport = this;
         // when the camera updates, render
         this.cameraControls.on("change", this.update);
 
@@ -564,13 +575,13 @@ exports.Viewport = Backbone.View.extend({
         // First, the scale
         this.meshScale = t_mesh.geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
-        this.s_meshAndLms.scale.set(s, s, s);
-
-        // THREE.js applies translation AFTER scale, so need to calc
-        // appropriate translation
+        this.s_scaleRotate.scale.set(s, s, s);
+        this.s_scaleRotate.up = this.mesh.up().clone();
+        this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
+        // translation
         var t = t_mesh.geometry.boundingSphere.center.clone();
-        t.multiplyScalar(-1.0 * s);  // -1 as we want to centre
-        this.s_meshAndLms.position = t;
+        t.multiplyScalar(-1.0);
+        this.s_translate.position = t;
         this.resetCamera();
         this.update();
     },
@@ -627,7 +638,11 @@ exports.Viewport = Backbone.View.extend({
     },
 
     resetCamera: function () {
-        this.s_camera.position.set(1.68, 0.35, 3.0);
+        if (this.model.meshMode()) {
+            this.s_camera.position.copy(MESH_MODE_STARTING_POSITION);
+        } else {
+            this.s_camera.position.copy(IMAGE_MODE_STARTING_POSITION);
+        }
         this.s_camera.lookAt(this.scene.position);
         this.update();
     },

@@ -13,7 +13,8 @@ basicMaterial.transparent = true;
 var Mesh = Backbone.Model.extend({
 
     defaults : {
-        alpha : 1
+        alpha : 1,
+        up : new THREE.Vector3(0, 1, 0)
     },
 
     urlRoot: "meshes",
@@ -25,6 +26,10 @@ var Mesh = Backbone.Model.extend({
 
     url: function () {
         return this.get('server').map(this.urlRoot + '/' + this.id);
+    },
+
+    up: function () {
+        return this.get('up');
     },
 
     t_mesh: function () {

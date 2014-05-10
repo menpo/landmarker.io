@@ -2,6 +2,7 @@ var _ = require('underscore');
 var Backbone = require('backbone');
 Backbone.$ = require('jquery');
 var THREE = require('three');
+var Mesh = require('./mesh');
 
 "use strict";
 
@@ -14,16 +15,16 @@ var Image = Backbone.Model.extend({
         return this.get('server').map(this.urlRoot + '/' + this.id);
     },
 
-    t_mesh: function () {
-        return this.get('t_mesh');
+    mesh: function () {
+        return this.get('mesh');
     },
 
     load: function () {
         var geometry = new THREE.Geometry();
-        geometry.vertices.push(new THREE.Vector3(0, 0, 0));
         geometry.vertices.push(new THREE.Vector3(1, 0, 0));
         geometry.vertices.push(new THREE.Vector3(1, 1, 0));
         geometry.vertices.push(new THREE.Vector3(0, 1, 0));
+        geometry.vertices.push(new THREE.Vector3(0, 0, 0));
 
         geometry.faces.push(new THREE.Face3(0, 1, 2));
         geometry.faces.push(new THREE.Face3(2, 3, 0));
@@ -42,14 +43,14 @@ var Image = Backbone.Model.extend({
         material.transparent = true;
 
         var t0 = [];
-        t0.push(new THREE.Vector2(0, 0));
-        t0.push(new THREE.Vector2(1, 0));
-        t0.push(new THREE.Vector2(1, 1));
+        t0.push(new THREE.Vector2(0, 0)); // 1 0
+        t0.push(new THREE.Vector2(1, 0)); // 1 1
+        t0.push(new THREE.Vector2(1, 1)); // 0 1
 
         var t1 = [];
-        t1.push(new THREE.Vector2(1, 1));
-        t1.push(new THREE.Vector2(0, 1));
-        t1.push(new THREE.Vector2(0, 0));
+        t1.push(new THREE.Vector2(1, 1)); // 0 1
+        t1.push(new THREE.Vector2(0, 1)); // 0 0
+        t1.push(new THREE.Vector2(0, 0)); // 1 0
 
         geometry.faceVertexUvs[0].push(t0);
         geometry.faceVertexUvs[0].push(t1);
@@ -59,9 +60,13 @@ var Image = Backbone.Model.extend({
         geometry.computeFaceNormals();
         geometry.computeVertexNormals();
         geometry.computeBoundingSphere();
-
-        this.set('texture', material);
-        this.set('t_mesh', new THREE.Mesh(geometry, material));
+        var t_mesh = new THREE.Mesh(geometry, material);
+        this.set('mesh', new Mesh.Mesh(
+            {
+                t_mesh: t_mesh,
+                // Images point the other way
+                up: new THREE.Vector3(1, 0, 0)
+            }));
     }
 
 });
@@ -102,7 +107,7 @@ var ImageSource = Backbone.Model.extend({
 
     mesh: function () {
         // TODO this needs to return a real mesh object
-        return this.get('asset');
+        return this.asset().mesh();
     },
 
     asset: function () {
