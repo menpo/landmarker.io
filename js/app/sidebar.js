@@ -51,7 +51,7 @@ var LandmarkView = Backbone.View.extend({
                 };
             }
         }
-
+        // TODO handle 2D landmarks here
         var html = $(this.template(xyziForLandmark(this.model)));
         html.toggleClass("Table-Row-Odd", this.model.get('index') % 2 === 1);
         html.toggleClass("Table-Cell-Selected", this.model.isSelected());
@@ -244,9 +244,9 @@ var LandmarkGroupListView = Backbone.View.extend({
 });
 
 
-var MeshPagerView = Backbone.View.extend({
+var AssetPagerView = Backbone.View.extend({
 
-    el: '#meshPager',
+    el: '#assetPager',
 
     initialize : function() {
         _.bindAll(this, 'render');
@@ -307,9 +307,9 @@ var SaveRevertView = Backbone.View.extend({
     }
 });
 
-var MeshInfoView = Backbone.View.extend({
+var AssetInfoView = Backbone.View.extend({
 
-    el: '#meshInfo',
+    el: '#assetInfo',
 
     initialize : function() {
         _.bindAll(this, 'render');
@@ -317,25 +317,25 @@ var MeshInfoView = Backbone.View.extend({
     },
 
     render: function () {
-        console.log("MeshInfoView: meshSource:mesh has a change");
-        this.$el.find('#meshName').html(this.model.mesh().id);
+        console.log("AssetInfoView: meshSource:mesh has a change");
+        this.$el.find('#assetName').html(this.model.mesh().id);
         var n_str = pad(this.model.meshes().length, 2);
-        var i_str = pad(this.model.meshIndex() + 1, 2);
-        this.$el.find('#meshIndex').html(i_str + "/" + n_str);
+        var i_str = pad(this.model.assetIndex() + 1, 2);
+        this.$el.find('#assetIndex').html(i_str + "/" + n_str);
         return this;
     },
 
     events: {
-        "click #meshName" : "chooseMeshName",
-        'click #meshIndex' : "chooseMeshNumber"
+        "click #assetName" : "chooseAssetName",
+        'click #assetIndex' : "chooseMeshNumber"
     },
 
     chooseMeshNumber: function () {
         console.log('Sidebar:chooseMeshNumber called');
     },
 
-    chooseMeshName: function () {
-        console.log('Sidebar:chooseMeshName called');
+    chooseAssetName: function () {
+        console.log('Sidebar:chooseAssetName called');
     },
 
     revert: function () {
@@ -354,8 +354,8 @@ var Sidebar = Backbone.View.extend({
     },
 
     renderMeshSrc: function () {
-        new MeshPagerView({model: this.model.get('meshSource')});
-        new MeshInfoView({model: this.model.get('meshSource')});
+        new AssetPagerView({model: this.model.get('meshSource')});
+        new AssetInfoView({model: this.model.get('meshSource')});
     },
 
     renderLandmarks: function () {
@@ -374,6 +374,6 @@ exports.LandmarkListView = LandmarkListView;
 exports.LandmarkGroupButtonView = LandmarkGroupButtonView;
 exports.LandmarkGroupView = LandmarkGroupView;
 exports.LandmarkGroupListView = LandmarkGroupListView;
-exports.ModelPagerView = MeshPagerView;
+exports.AssetPagerView = AssetPagerView;
 exports.SaveRevertView = SaveRevertView;
 exports.Sidebar = Sidebar;

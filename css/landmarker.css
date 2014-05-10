@@ -157,7 +157,7 @@ is itself a row flexbox */
     background: #B91109;
 }
 
-.MeshName {
+.AssetName {
     color: #B91109;
     background: white;
     font-size: x-large;
@@ -168,7 +168,7 @@ is itself a row flexbox */
     text-align: left;
 }
 
-.MeshCount {
+.AssetCount {
     color: black;
     background: white;
     margin-right: 16px;

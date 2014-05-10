@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
         server = new Server.Server({apiURL: 'http://localhost:5000'});
     }
+    // By here let's say the mode of operation is decided - image or mesh
     var app = new App.App({server: server});
     var sidebar = new Sidebar.Sidebar({model: app});
     // note that we provide the Viewport with the canvas overlay of

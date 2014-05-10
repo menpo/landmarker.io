@@ -215,9 +215,9 @@ var MeshSource = Backbone.Model.extend({
 
     parse: function (response) {
         var that = this;
-        var meshes = _.map(response, function (meshId) {
+        var meshes = _.map(response, function (assetId) {
             return new Mesh({
-                id: meshId,
+                id: assetId,
                 server: that.get('server')
             })
         });
@@ -243,14 +243,14 @@ var MeshSource = Backbone.Model.extend({
         if (!this.hasSuccessor()) {
             return;
         }
-        this.setMesh(this.get('meshes').at(this.meshIndex() + 1));
+        this.setMesh(this.get('meshes').at(this.assetIndex() + 1));
     },
 
     previous: function () {
         if (!this.hasPredecessor()) {
             return;
         }
-        this.setMesh(this.get('meshes').at(this.meshIndex() - 1));
+        this.setMesh(this.get('meshes').at(this.assetIndex() - 1));
     },
 
     setMesh: function (newMesh) {
@@ -265,15 +265,15 @@ var MeshSource = Backbone.Model.extend({
     },
 
     hasPredecessor: function () {
-        return this.meshIndex() !== 0;
+        return this.assetIndex() !== 0;
     },
 
     hasSuccessor: function () {
-        return this.nMeshes() - this.meshIndex() !== 1;
+        return this.nMeshes() - this.assetIndex() !== 1;
     },
 
     // returns the index of the currently active mesh
-    meshIndex: function () {
+    assetIndex: function () {
         return this.get('meshes').indexOf(this.get('mesh'));
     }
 });
