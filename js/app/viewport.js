@@ -107,7 +107,7 @@ exports.Viewport = Backbone.View.extend({
         this.landmarkViews = [];
         this.connectivityViews = [];
         this.cameraControls = Camera.CameraController(
-            this.s_camera, this.el);
+            this.s_camera, this.el, true);
         // when the camera updates, render
         this.cameraControls.on("change", this.update);
 

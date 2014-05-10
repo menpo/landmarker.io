@@ -32,7 +32,7 @@ var ROTATION_SENSITIVITY = 0.005;
 
 "use strict";
 
-exports.CameraController = function (camera, domElement) {
+exports.CameraController = function (camera, domElement, IMAGE_MODE) {
 
     var controller = {};
     _.extend(controller, Backbone.Events);
@@ -117,7 +117,11 @@ exports.CameraController = function (camera, domElement) {
         mouseCurrentPosition.copy(mousePrevPosition);
         switch(event.button) {
             case 0:
-                state = STATE.ROTATE;
+                if (IMAGE_MODE) {
+                    state = STATE.PAN;
+                } else {
+                    state = STATE.ROTATE;
+                }
                 break;
             case 1:
                 state = STATE.ZOOM;
