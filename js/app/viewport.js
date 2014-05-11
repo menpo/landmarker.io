@@ -124,8 +124,9 @@ exports.Viewport = Backbone.View.extend({
         this.landmarkViews = [];
         this.connectivityViews = [];
         // TODO camera controls should be set based on mode
+        this.model.imageMode();
         this.cameraControls = Camera.CameraController(
-            this.s_camera, this.el, true);
+            this.s_camera, this.el, this.model.imageMode());
         window.viewport = this;
         // when the camera updates, render
         this.cameraControls.on("change", this.update);
