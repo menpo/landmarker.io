@@ -80,7 +80,13 @@ exports.Viewport = Backbone.View.extend({
         // ----- SCENE: CAMERA AND DIRECTED LIGHTS ----- //
         // s_camera holds the camera, and (optionally) any
         // lights that track with the camera as children
-        this.s_camera = new THREE.PerspectiveCamera(50, 1, 0.02, 5000);
+        //this.s_camera = new THREE.PerspectiveCamera(50, 1, 0.02, 5000);
+//        this.s_camera = new THREE.CombinedCamera( 2, 2, 50, 0.02, 20, 0.02, 20);
+        this.s_camera = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20 );
+
+//        THREE.PerspectiveCamera( fov, width/height, near, far );
+//        THREE.OrthographicCamera( width / - 2, width / 2, height / 2, height / - 2, 	orthonear, orthofar );
+
         this.resetCamera();
 
         // ----- SCENE: GENERAL LIGHTING ----- //
@@ -652,10 +658,24 @@ exports.Viewport = Backbone.View.extend({
     },
 
     resize: function () {
-        var w, h;
+        var w, h, aspect;
         w = this.$container.width();
         h = this.$container.height();
-        this.s_camera.aspect = w / h;
+        aspect = w / h;
+        if (aspect > 1) {
+            // w > h
+            this.s_camera.left = -aspect;
+            this.s_camera.right = aspect;
+            this.s_camera.top = 1;
+            this.s_camera.bottom = -1;
+        } else {
+            // h > w
+            this.s_camera.left = -1;
+            this.s_camera.right = 1;
+            this.s_camera.top = 1/aspect;
+            this.s_camera.bottom = -1/aspect;
+        }
+//        this.s_camera.aspect = w / h;
         this.s_camera.updateProjectionMatrix();
         this.renderer.setSize(w, h);
         this.canvas.width = w;
