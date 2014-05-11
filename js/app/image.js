@@ -8,22 +8,28 @@ var Mesh = require('./mesh');
 
 var Image = Backbone.Model.extend({
 
-    // TODO change to images
-    urlRoot: "textures",
+    urlRoot: "images",
 
     url: function () {
         return this.get('server').map(this.urlRoot + '/' + this.id);
+    },
+
+    textureUrl: function () {
+        return this.get('server').map('textures/' + this.id);
     },
 
     mesh: function () {
         return this.get('mesh');
     },
 
-    load: function () {
+    parse: function (response) {
+        var w = response.width;
+        var h = response.height;
+
         var geometry = new THREE.Geometry();
-        geometry.vertices.push(new THREE.Vector3(1, 0, 0));
-        geometry.vertices.push(new THREE.Vector3(1, 1, 0));
-        geometry.vertices.push(new THREE.Vector3(0, 1, 0));
+        geometry.vertices.push(new THREE.Vector3(h, 0, 0));
+        geometry.vertices.push(new THREE.Vector3(h, w, 0));
+        geometry.vertices.push(new THREE.Vector3(0, w, 0));
         geometry.vertices.push(new THREE.Vector3(0, 0, 0));
 
         geometry.faces.push(new THREE.Face3(0, 1, 2));
@@ -34,7 +40,7 @@ var Image = Backbone.Model.extend({
         material = new THREE.MeshPhongMaterial(
             {
                 map: THREE.ImageUtils.loadTexture(
-                    that.url(), new THREE.UVMapping(),
+                    that.textureUrl(), new THREE.UVMapping(),
                     function() {
                         that.trigger("textureSet");
                     } )
@@ -61,12 +67,12 @@ var Image = Backbone.Model.extend({
         geometry.computeVertexNormals();
         geometry.computeBoundingSphere();
         var t_mesh = new THREE.Mesh(geometry, material);
-        this.set('mesh', new Mesh.Mesh(
+        return {'mesh': new Mesh.Mesh(
             {
                 t_mesh: t_mesh,
                 // Images point the other way
                 up: new THREE.Vector3(1, 0, 0)
-            }));
+            })};
     }
 
 });
@@ -87,8 +93,7 @@ var ImageSource = Backbone.Model.extend({
     },
 
     url: function () {
-        // TODO change to images
-        return this.get('server').map("textures");
+        return this.get('server').map("images");
     },
 
     parse: function (response) {
@@ -137,10 +142,14 @@ var ImageSource = Backbone.Model.extend({
     },
 
     setAsset: function (newImage) {
+        var that = this;
         // Trigger the loading of the texture
-        newImage.load();
-        console.log('loaded new image');
-        this.set('asset', newImage);
+        newImage.fetch({
+            success: function () {
+                console.log('grabbed new image');
+                that.set('asset', newImage);
+            }
+        });
     },
 
     hasPredecessor: function () {
