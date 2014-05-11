@@ -29,7 +29,7 @@ var THREE = require('three');
 
 var MOUSE_WHEEL_SENSITIVITY = 0.5;
 var ROTATION_SENSITIVITY = 0.005;
-var PIP_ZOOM_FACTOR = 10.0;
+var PIP_ZOOM_FACTOR = 20.0;
 
 "use strict";
 

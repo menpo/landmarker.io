@@ -435,19 +435,19 @@ exports.Viewport = Backbone.View.extend({
                 // landmark was dragged
                 var activeGroup = that.model.get('landmarks').get('groups').active();
                 var selectedLandmarks = activeGroup.landmarks().selected();
-                var camToLm;
+                var vWorld, vScreen;
                 for (var i = 0; i < selectedLandmarks.length; i++) {
                     lm = selectedLandmarks[i];
-                    camToLm = that.s_meshAndLms.localToWorld(lm.point().clone()).sub(
-                        that.s_camera.position).normalize();
-                    // make the ray points from camera to this point
-                    that.ray.set(that.s_camera.position, camToLm);
-                    intersectionsWithLms = that.ray.intersectObject(
-                        that.s_mesh, true);
-                    if (intersectionsWithLms.length > 0) {
+                    // convert to screen coordinates
+                    vWorld = that.s_meshAndLms.localToWorld(lm.point().clone());
+                    vScreen = that.worldToScreen(vWorld);
+                    // use the standard machinery to find intersections
+                    intersectionsWithMesh = that.getIntersects(vScreen.x,
+                        vScreen.y, that.s_mesh);
+                    if (intersectionsWithMesh.length > 0) {
                         // good, we're still on the mesh.
                         lm.setPoint(that.s_meshAndLms.worldToLocal(
-                            intersectionsWithLms[0].point.clone()));
+                            intersectionsWithMesh[0].point.clone()));
                         lm.set('isChanging', false);
                     } else {
                         console.log("fallen off mesh");
@@ -507,10 +507,18 @@ exports.Viewport = Backbone.View.extend({
         }
         var vector = new THREE.Vector3(
                 (x / this.$container.width()) * 2 - 1,
-                -(y / this.$container.height()) * 2 + 1, 0);
-        this.projector.unprojectVector(vector, this.s_camera);
-        this.ray.set(this.s_camera.position,
-            vector.sub(this.s_camera.position).normalize());
+                -(y / this.$container.height()) * 2 + 1, 0.5);
+
+        if (this.s_camera === this.s_pCam) {
+            // perspective selection
+            this.projector.unprojectVector(vector, this.s_camera);
+            this.ray.set(this.s_camera.position,
+                vector.sub(this.s_camera.position).normalize());
+        } else {
+            // orthographic selection
+            this.ray = this.projector.pickingRay(vector, this.s_camera);
+        }
+
         if (object instanceof Array) {
             return this.ray.intersectObjects(object, true);
         }
@@ -661,19 +669,30 @@ exports.Viewport = Backbone.View.extend({
         this.renderer.render(this.scene, this.s_camera);
         this.renderer.render(this.sceneHelpers, this.s_camera);
 
-        w = this.$container.width();
-        h = this.$container.height();
+        var minX, minY, pipW, pipH;
+        var bounds = this.pilBounds();
+        minX = bounds[0];
+        minY = bounds[1];
+        pipW = bounds[2];
+        pipH = bounds[3];
+
+        // 2. Render the PIP image
+        this.renderer.setViewport(minX, minY, pipW, pipH);
+        this.renderer.setScissor(minX, minY, pipW, pipH);
+        this.renderer.enableScissorTest(true);
+        this.renderer.render(this.scene, this.s_oCamZoom);
+        this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
+    },
+
+    pilBounds: function () {
+        var w = this.$container.width();
+        var h = this.$container.height();
         var maxX = w - PIP_MARGIN;
         var maxY = h - PIP_MARGIN;
         var pipWidth = Math.round(PIP_RATIO * w);
         var minX = maxX - pipWidth;
         var minY = maxY - pipWidth;
-        // 2. Render the PIP image
-        this.renderer.setViewport(minX, minY, pipWidth, pipWidth);
-        this.renderer.setScissor(minX, minY, pipWidth, pipWidth);
-        this.renderer.enableScissorTest(true);
-        this.renderer.render(this.scene, this.s_oCamZoom);
-        this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
+        return [minX, minY, pipWidth, pipWidth];
     },
 
     resetCamera: function () {
@@ -693,7 +712,30 @@ exports.Viewport = Backbone.View.extend({
     },
 
     clearCanvas: function () {
+        this.ctx.strokeStyle = '#ff0000';
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        var b = this.pilBounds();
+        var minX = b[0];
+        var minY = this.canvas.height - b[1] - b[3];
+        var width = b[2];
+        var height = b[3];
+        var maxX = minX + width;
+        var maxY = minY + height;
+        var midX = (2 * minX + width)/2;
+        var midY = (2 * minY + height) / 2;
+        // vertical line
+        this.ctx.strokeRect(minX, minY, width, height);
+        this.ctx.beginPath();
+        this.ctx.moveTo(midX, minY);
+        this.ctx.lineTo(midX, maxY);
+        this.ctx.closePath();
+        this.ctx.stroke();
+        // horizontal line
+        this.ctx.beginPath();
+        this.ctx.moveTo(minX, midY);
+        this.ctx.lineTo(maxX, midY);
+        this.ctx.closePath();
+        this.ctx.stroke();
     },
 
     resize: function () {
