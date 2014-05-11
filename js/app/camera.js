@@ -32,7 +32,7 @@ var ROTATION_SENSITIVITY = 0.005;
 
 "use strict";
 
-exports.CameraController = function (camera, domElement, IMAGE_MODE) {
+exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
 
     var controller = {};
     _.extend(controller, Backbone.Events);
@@ -55,34 +55,45 @@ exports.CameraController = function (camera, domElement, IMAGE_MODE) {
 
     function focus(newTarget) {
         target.copy(newTarget);
-        camera.lookAt(target);
+        pCam.lookAt(target);
         controller.trigger('change');
     }
 
     function pan(distance) {
-        normalMatrix.getNormalMatrix(camera.matrix);
+        normalMatrix.getNormalMatrix(pCam.matrix);
         distance.applyMatrix3(normalMatrix);
         distance.multiplyScalar(distanceToTarget() * 0.001);
-        camera.position.add(distance);
+        pCam.position.add(distance);
         target.add(distance);
         controller.trigger('change');
     }
 
     function zoom(distance) {
-        normalMatrix.getNormalMatrix(camera.matrix);
+        var scalar = distance.z * 0.0007;
+        // First, handling the perspective matrix
+        normalMatrix.getNormalMatrix(pCam.matrix);
         distance.applyMatrix3(normalMatrix);
         console.log("camera: zoom - dist: " + distance +
             "tgt: " + distanceToTarget());
         distance.multiplyScalar(distanceToTarget() * 0.001);
-        camera.position.add(distance);
+        pCam.position.add(distance);
+
+        // Then, the orthographic
+        var a = ((oCam.top - oCam.bottom)) / (oCam.right - oCam.left);
+        // And then the orthographic one
+        oCam.left   -= (scalar) / (a);
+        oCam.right  += (scalar) / (a);
+        oCam.top    += scalar;
+        oCam.bottom -= scalar;
+        oCam.updateProjectionMatrix();
         controller.trigger('change');
     }
 
     function distanceToTarget() {
-        return tvec.subVectors(target, camera.position).length();
+        return tvec.subVectors(target, pCam.position).length();
     }
 
-    function rotate(delta) {
+    function rotateCamera(delta, camera) {
         var theta, phi, radius;
         var EPS = 0.000001;
 
@@ -104,6 +115,12 @@ exports.CameraController = function (camera, domElement, IMAGE_MODE) {
 
         camera.position.copy(target).add(tvec);
         camera.lookAt(target);
+    }
+
+    function rotate(delta) {
+        rotateCamera(delta, pCam);
+        rotateCamera(delta, oCam);
+        rotateCamera(delta, oCamZoom);
         controller.trigger('change');
     }
 
@@ -115,7 +132,7 @@ exports.CameraController = function (camera, domElement, IMAGE_MODE) {
         mouseDownPosition.set(event.pageX, event.pageY);
         mousePrevPosition.copy(mouseDownPosition);
         mouseCurrentPosition.copy(mousePrevPosition);
-        switch(event.button) {
+        switch (event.button) {
             case 0:
                 if (IMAGE_MODE) {
                     state = STATE.PAN;
@@ -140,7 +157,7 @@ exports.CameraController = function (camera, domElement, IMAGE_MODE) {
         mouseCurrentPosition.set(event.pageX, event.pageY);
         mouseMouseDelta.subVectors(mouseCurrentPosition, mousePrevPosition);
 
-        switch(state) {
+        switch (state) {
             case STATE.ROTATE:
                 tinput.copy(mouseMouseDelta);
                 tinput.z = 0;
@@ -176,7 +193,7 @@ exports.CameraController = function (camera, domElement, IMAGE_MODE) {
         zoom(tinput);
     }
 
-    function disable () {
+    function disable() {
         console.log('camera: disable');
         enabled = false;
         $(domElement).off('mousedown.camera');
@@ -184,7 +201,7 @@ exports.CameraController = function (camera, domElement, IMAGE_MODE) {
         $(document).off('mousemove.camera');
     }
 
-    function enable () {
+    function enable() {
         if (!enabled) {
             console.log('camera: enable');
             enabled = true;
@@ -242,7 +259,33 @@ exports.CameraController = function (camera, domElement, IMAGE_MODE) {
     // enable everything on creation
     enable();
 
+    function resize (w, h) {
+        var aspect = w / h;
+
+        // 1. Update the orthographic camera
+        if (aspect > 1) {
+            // w > h
+            oCam.left = -aspect;
+            oCam.right = aspect;
+            oCam.top = 1;
+            oCam.bottom = -1;
+        } else {
+            // h > w
+            oCam.left = -1;
+            oCam.right = 1;
+            oCam.top = 1 / aspect;
+            oCam.bottom = -1 / aspect;
+        }
+        oCam.updateProjectionMatrix();
+
+        // 2. Update the perceptive camera
+        pCam.aspect = aspect;
+        pCam.updateProjectionMatrix();
+    }
+
     controller.enable = enable;
     controller.disable = disable;
+    controller.resize = resize;
+
     return controller;
 };

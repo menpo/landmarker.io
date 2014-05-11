@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 app.landmarks().deleteSelected();
                 break;
             case 32:  // space bar = reset camera
+                // TODO fix for multiple cameras (should be in camera controller)
                 viewport.resetCamera();
                 break;
             case 116:  // t = [T]exture toggle (mesh mode only)
@@ -70,6 +71,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
             case 97:  // a = select [A]ll
                 app.landmarks().selectAllInActiveGroup();
+                break;
+            case 99:  // a = toggle [C]amera mode
+                viewport.toggleCamera();
                 break;
         }
     });
