@@ -73,7 +73,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 app.landmarks().selectAllInActiveGroup();
                 break;
             case 99:  // a = toggle [C]amera mode
-                viewport.toggleCamera();
+                if (app.meshMode()) {
+                    viewport.toggleCamera();
+                }
                 break;
         }
     });

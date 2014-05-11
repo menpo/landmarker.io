@@ -87,7 +87,13 @@ exports.Viewport = Backbone.View.extend({
         this.s_oCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 5);
         this.s_oCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 5);
         this.s_pCam = new THREE.PerspectiveCamera(50, 1, 0.02, 5);
-        this.s_camera = this.s_pCam;
+        if (this.model.meshMode()) {
+            // meshes prefer perspective...
+            this.s_camera = this.s_pCam;
+        } else {
+            // but for images, default to orthographic camera
+            this.s_camera = this.s_oCam;
+        }
 
         this.resetCamera();
 
