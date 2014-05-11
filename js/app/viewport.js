@@ -631,8 +631,21 @@ exports.Viewport = Backbone.View.extend({
         if (this.model.dispatcher().isBatchRenderEnabled()) {
             return;
         }
-        //console.log('Viewport:update');
+        // 1. Render the main viewport
+        var w, h;
+        w = this.$container.width();
+        h = this.$container.height();
+        this.renderer.setViewport(0, 0, w, h);
+        this.renderer.setScissor(0, 0, w, h);
+        this.renderer.enableScissorTest (true);
         this.renderer.clear();
+        this.renderer.render(this.scene, this.s_camera);
+        this.renderer.render(this.sceneHelpers, this.s_camera);
+
+        // 2. Render the PIP image
+        this.renderer.setViewport(0, 0, 400, 400);
+        this.renderer.setScissor(0, 0, 400, 400);
+        this.renderer.enableScissorTest ( true );
         this.renderer.render(this.scene, this.s_camera);
         this.renderer.render(this.sceneHelpers, this.s_camera);
     },
