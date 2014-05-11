@@ -29,6 +29,7 @@ var THREE = require('three');
 
 var MOUSE_WHEEL_SENSITIVITY = 0.5;
 var ROTATION_SENSITIVITY = 0.005;
+var PIP_ZOOM_FACTOR = 10.0;
 
 "use strict";
 
@@ -178,6 +179,30 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         mousePrevPosition.copy(mouseCurrentPosition);
     }
 
+    function onMouseMovePip(event) {
+        mouseCurrentPosition.set(event.pageX, event.pageY);
+        var x = event.pageX / domElement.width;
+        var y = event.pageY / domElement.height;
+        console.log('mouse position: ' + x + ', ' + y);
+        var oH = oCam.right - oCam.left;
+        var oV = oCam.top - oCam.bottom;
+        var oRange = (oH + oV) / 2;
+        // so new oZoom ortho matrix is focused around
+        var oX = oCam.left + x * oH;
+        var oY = oCam.bottom + (1 - y) * oV;
+        // and new bounds are
+        var zH = oH / PIP_ZOOM_FACTOR;
+        // TODO this assumes square PIP image
+        var zV = zH;
+        // reconstructing bounds is easy...
+        oCamZoom.left = oX - (zH/2);
+        oCamZoom.right = oX + (zH/2);
+        oCamZoom.top = oY + (zV/2);
+        oCamZoom.bottom = oY - (zV/2);
+        oCamZoom.updateProjectionMatrix();
+        controller.trigger('change');
+    }
+
     function onMouseUp(event) {
         console.log('camera: up');
         event.preventDefault();
@@ -199,6 +224,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         $(domElement).off('mousedown.camera');
         $(domElement).off('mousewheel.camera');
         $(document).off('mousemove.camera');
+        $(domElement).off('mousemove.pip');
     }
 
     function enable() {
@@ -207,6 +233,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
             enabled = true;
             $(domElement).on('mousedown.camera', onMouseDown);
             $(domElement).on('mousewheel.camera', onMouseWheel);
+            $(domElement).on('mousemove.pip', onMouseMovePip);
         }
     }
 

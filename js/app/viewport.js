@@ -13,6 +13,10 @@ var LM_SCALE = 0.005;
 var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.68, 0.35, 3.0);
 var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
 
+
+var PIP_RATIO = 0.2;
+var PIP_MARGIN = 20;
+
 exports.Viewport = Backbone.View.extend({
 
     id: 'vpoverlay',
@@ -657,12 +661,19 @@ exports.Viewport = Backbone.View.extend({
         this.renderer.render(this.scene, this.s_camera);
         this.renderer.render(this.sceneHelpers, this.s_camera);
 
+        w = this.$container.width();
+        h = this.$container.height();
+        var maxX = w - PIP_MARGIN;
+        var maxY = h - PIP_MARGIN;
+        var pipWidth = Math.round(PIP_RATIO * w);
+        var minX = maxX - pipWidth;
+        var minY = maxY - pipWidth;
         // 2. Render the PIP image
-        this.renderer.setViewport(0, 0, 400, 400);
-        this.renderer.setScissor(0, 0, 400, 400);
-        this.renderer.enableScissorTest ( true );
-        this.renderer.render(this.scene, this.s_camera);
-        this.renderer.render(this.sceneHelpers, this.s_camera);
+        this.renderer.setViewport(minX, minY, pipWidth, pipWidth);
+        this.renderer.setScissor(minX, minY, pipWidth, pipWidth);
+        this.renderer.enableScissorTest(true);
+        this.renderer.render(this.scene, this.s_oCamZoom);
+        this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
     },
 
     resetCamera: function () {
