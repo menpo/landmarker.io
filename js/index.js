@@ -15,16 +15,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = "";
     var server;
-    if (getURLParameter('mode') === 'demo') {
+    // by default, we try mesh mode
+    var mode = 'mesh';
+    var modeParam;
+    if (getURLParameter('server') === 'demo') {
         // put the server in demo mode
         document.title = document.title + ' - demo mode';
         $('.App-Viewport-UIText-TopLeft').toggle();
         server = new Server.Server({DEMO_MODE: true});
+        // demo mode only supports meshes for now
+        mode = 'mesh';
     } else {
         server = new Server.Server({apiURL: 'http://localhost:5000'});
+        modeParam = getURLParameter('mode');
+        if (modeParam === 'image' || modeParam === 'mesh') {
+            mode = modeParam;
+        }
     }
     // By here let's say the mode of operation is decided - image or mesh
-    var app = new App.App({server: server, mode: 'image'});
+    var app = new App.App({server: server, mode: mode});
     var sidebar = new Sidebar.Sidebar({model: app});
     // note that we provide the Viewport with the canvas overlay of
     // the viewport as requested.
@@ -49,11 +58,15 @@ document.addEventListener('DOMContentLoaded', function () {
             case 32:  // space bar = reset camera
                 viewport.resetCamera();
                 break;
-            case 116:  // t = [T]exture toggle
-                app.mesh().textureToggle();
+            case 116:  // t = [T]exture toggle (mesh mode only)
+                if (app.meshMode()) {
+                    app.mesh().textureToggle();
+                }
                 break;
-            case 119:  // w = [W]ireframe toggle
-                app.mesh().wireframeToggle();
+            case 119:  // w = [W]ireframe toggle (mesh mode only)
+                if (app.meshMode()) {
+                    app.mesh().wireframeToggle();
+                }
                 break;
             case 97:  // a = select [A]ll
                 app.landmarks().selectAllInActiveGroup();
@@ -61,4 +74,3 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
-

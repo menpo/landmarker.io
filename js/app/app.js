@@ -40,6 +40,7 @@ exports.App = Backbone.Model.extend({
         // asset source will ensure that the assets produced also get
         // attached to this server.
         var assetSource;
+        var that = this;
         if (this.imageMode()) {
             // In image mode, the asset source is an ImageSource
             console.log('App in image mode - creating image source');
@@ -63,11 +64,15 @@ exports.App = Backbone.Model.extend({
             error: function () {
                 console.log('Failed to talk localhost:5000 (is landmarkerio' +
                     'running from your command line?).');
-                console.log('Restarting in demo mode.');
-                window.location.href = window.location.href + '?mode=demo'
+                if (that.meshMode()) {
+                    console.log('Restarting in image mode.');
+                    window.location.href = window.location.href + '?mode=image'
+                } else {
+                    console.log('Restarting in demo mode.');
+                    window.location.href = window.location.href + '?server=demo'
+                }
             }
         });
-
 
         // TODO this seems messy, do we need this message passing?
         // whenever the user changes the meshAlpha, hit the callback
