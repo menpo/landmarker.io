@@ -18,6 +18,10 @@ var Image = Backbone.Model.extend({
         return this.get('server').map('textures/' + this.id);
     },
 
+    thumbnailUrl: function () {
+        return this.get('server').map('thumbnails/' + this.id);
+    },
+
     mesh: function () {
         return this.get('mesh');
     },
@@ -37,16 +41,17 @@ var Image = Backbone.Model.extend({
 
         var material;
         var that = this;
+        // Load the thumbnail immediately.
         material = new THREE.MeshPhongMaterial(
             {
                 map: THREE.ImageUtils.loadTexture(
-                    that.textureUrl(), new THREE.UVMapping(),
+                    that.thumbnailUrl(), new THREE.UVMapping(),
                     function() {
+                        console.log('loaded thumbnail for ' + that.id);
                         that.trigger("textureSet");
                     } )
             }
         );
-        material.transparent = true;
 
         var t0 = [];
         t0.push(new THREE.Vector2(0, 0)); // 1 0
@@ -67,12 +72,36 @@ var Image = Backbone.Model.extend({
         geometry.computeVertexNormals();
         geometry.computeBoundingSphere();
         var t_mesh = new THREE.Mesh(geometry, material);
-        return {'mesh': new Mesh.Mesh(
+        return {
+            mesh: new Mesh.Mesh(
+                {
+                    t_mesh: t_mesh,
+                    // Set up vector so viewport can rotate
+                    up: new THREE.Vector3(1, 0, 0)
+                }),
+            thumbnailMaterial: material
+        };
+    },
+
+    loadTexture: function () {
+        if (this.get('material')) {
+            console.log(this.id + ' already has material. Skipping');
+            return;
+        }
+        var that = this;
+        // load the full texture for this image and set it on the mesh
+        var material = new THREE.MeshPhongMaterial(
             {
-                t_mesh: t_mesh,
-                // Images point the other way
-                up: new THREE.Vector3(1, 0, 0)
-            })};
+                map: THREE.ImageUtils.loadTexture(
+                    that.textureUrl(), new THREE.UVMapping(),
+                    function() {
+                        that.mesh().t_mesh().material = material;
+                        that.set('material', material);
+                        // trigger the textureSet causing the viewport to update
+                        that.trigger("textureSet");
+                    } )
+            }
+        );
     }
 
 });
@@ -98,11 +127,15 @@ var ImageSource = Backbone.Model.extend({
 
     parse: function (response) {
         var that = this;
+        var image;
         var images = _.map(response, function (assetId) {
-            return new Image({
+            image =  new Image({
                 id: assetId,
                 server: that.get('server')
-            })
+            });
+            // fetch the JSON info and thumbnail immediately.
+            image.fetch();
+            return image;
         });
         var imageList = new ImageList(images);
         return {
@@ -111,7 +144,6 @@ var ImageSource = Backbone.Model.extend({
     },
 
     mesh: function () {
-        // TODO this needs to return a real mesh object
         return this.asset().mesh();
     },
 
@@ -142,14 +174,9 @@ var ImageSource = Backbone.Model.extend({
     },
 
     setAsset: function (newImage) {
-        var that = this;
-        // Trigger the loading of the texture
-        newImage.fetch({
-            success: function () {
-                console.log('grabbed new image');
-                that.set('asset', newImage);
-            }
-        });
+        // trigger the loading of the full texture
+        newImage.loadTexture();
+        this.set('asset', newImage);
     },
 
     hasPredecessor: function () {
