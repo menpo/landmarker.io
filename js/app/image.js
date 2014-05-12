@@ -31,9 +31,9 @@ var Image = Backbone.Model.extend({
         var h = response.height;
 
         var geometry = new THREE.Geometry();
-        geometry.vertices.push(new THREE.Vector3(h, 0, 0));
-        geometry.vertices.push(new THREE.Vector3(h, w, 0));
-        geometry.vertices.push(new THREE.Vector3(0, w, 0));
+        geometry.vertices.push(new THREE.Vector3(0, h, 0));
+        geometry.vertices.push(new THREE.Vector3(w, h, 0));
+        geometry.vertices.push(new THREE.Vector3(w, 0, 0));
         geometry.vertices.push(new THREE.Vector3(0, 0, 0));
 
         geometry.faces.push(new THREE.Face3(0, 1, 2));
@@ -77,7 +77,7 @@ var Image = Backbone.Model.extend({
                 {
                     t_mesh: t_mesh,
                     // Set up vector so viewport can rotate
-                    up: new THREE.Vector3(1, 0, 0)
+                    up: new THREE.Vector3(0, -1, 0)
                 }),
             thumbnailMaterial: material
         };

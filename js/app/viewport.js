@@ -624,7 +624,15 @@ exports.Viewport = Backbone.View.extend({
         var s = 1.0 / this.meshScale;
         this.s_scaleRotate.scale.set(s, s, s);
         this.s_scaleRotate.up = this.mesh.up().clone();
-        this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
+        if (this.model.meshMode()) {
+            // Meshes point in the normal way
+            this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
+        } else {
+            // images have their z pointing away from the camera (in effect
+            // this emulates having a LHS coordinate system for images, which
+            // we want)
+            this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, -1));
+        }
         // translation
         var t = t_mesh.geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
