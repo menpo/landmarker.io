@@ -66,11 +66,26 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     }
 
     function pan(distance) {
+        // first, handle the pCam...
+        var oDist = distance.clone();
         normalMatrix.getNormalMatrix(pCam.matrix);
         distance.applyMatrix3(normalMatrix);
         distance.multiplyScalar(distanceToTarget() * 0.001);
         pCam.position.add(distance);
+        // TODO should the target change as this?!
         target.add(distance);
+
+        // second, the othoCam
+        var o = mousePositionInOrthographicView(oDist);
+        // relative x movement * otho width = how much to change horiz
+        var deltaH = o.xR * o.width;
+        oCam.left += deltaH;
+        oCam.right += deltaH;
+        // relative y movement * otho height = how much to change vert
+        var deltaV = o.yR * o.height;
+        oCam.top += deltaV;
+        oCam.bottom += deltaV;
+        oCam.updateProjectionMatrix();
         controller.trigger('change');
     }
 
