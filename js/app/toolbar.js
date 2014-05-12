@@ -12,6 +12,8 @@ var LandmarkSizeSlider = Backbone.View.extend({
     initialize : function() {
         _.bindAll(this, 'render', 'changeLandmarkSize');
         this.listenTo(this.model, "change:landmarkSize", this.render);
+        // set the size immediately.
+        this.render();
     },
 
     events: {

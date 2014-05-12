@@ -819,6 +819,8 @@ var LandmarkTHREEView = Backbone.View.extend({
                 this.symbol = this.createSphere(this.model.get('point'),
                     this.viewport.meshScale * LM_SCALE, 1);
                 this.updateSymbol();
+                // trigger changeLandmarkSize to make sure sizing is correct
+                this.changeLandmarkSize();
                 // and add it to the scene
                 this.viewport.s_lms.add(this.symbol);
             }

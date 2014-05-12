@@ -13,7 +13,7 @@ exports.App = Backbone.Model.extend({
         return {
             // TODO remove default landmarkType as ibug68
             landmarkType: 'ibug68',
-            landmarkScale: 1,
+            landmarkSize: 0.5,
             meshAlpha: 1,
             mode: 'mesh'
         }
