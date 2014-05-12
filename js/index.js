@@ -77,6 +77,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     viewport.toggleCamera();
                 }
                 break;
+            case 106:  // j = down, next asset
+                app.assetSource().next();
+                break;
+            case 107:  // k = up, previous asset
+                app.assetSource().previous();
+                break;
         }
     });
 });
