@@ -144,7 +144,7 @@ var ImageSource = Backbone.Model.extend({
     },
 
     mesh: function () {
-        return this.asset().mesh();
+        return this.get('mesh');
     },
 
     asset: function () {
@@ -177,6 +177,18 @@ var ImageSource = Backbone.Model.extend({
         // trigger the loading of the full texture
         newImage.loadTexture();
         this.set('asset', newImage);
+        if (newImage.mesh()) {
+            // image already has a mesh! set it immediately.
+            this.setMesh(newImage)
+        } else {
+            // keep our ear to the ground and update when there is a change.
+            this.listenToOnce(newImage, 'change:mesh', this.setMesh);
+        }
+    },
+
+    setMesh: function (newImage) {
+        // the image now has a mesh, set it.
+        this.set('mesh', newImage.mesh());
     },
 
     hasPredecessor: function () {

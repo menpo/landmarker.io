@@ -54,11 +54,13 @@ exports.App = Backbone.Model.extend({
                 ' mesh or image');
         }
         this.set('assetSource', assetSource);
-        // whenever our asset source changes it's current asset we need
-        // to run the application logic.
+        // whenever our asset source changes it's current asset and mesh we need
+        // to update the app state.
         this.listenTo(assetSource, 'change:asset', this.assetChanged);
+        this.listenTo(assetSource, 'change:mesh', this.meshChanged);
         assetSource.fetch({
             success: function () {
+                console.log('asset source finished - setting');
                 assetSource.setAsset(assetSource.assets().at(0));
             },
             error: function () {
@@ -89,15 +91,21 @@ exports.App = Backbone.Model.extend({
 
     assetChanged: function () {
         console.log('asset has been changed on the assetSource!');
-        this.set('mesh', this.assetSource().mesh());
         this.set('asset', this.assetSource().asset());
+    },
+
+    meshChanged: function () {
+        console.log('mesh has been changed on the assetSource!');
+        this.set('mesh', this.assetSource().mesh());
         // make sure the new mesh has the right alpha setting
         this.changeMeshAlpha();
-        // build new landmarks - they need to know where to fetch from
-        // so attach the server.
+        // now we have a mesh we can get landmarks - they need to know where
+        // to fetch from so attach the server.
+        // note that mesh changes are guaranteed to happen after asset changes,
+        // so we are safe that this.asset() contains the correct asset id
         var landmarks = new Landmark.LandmarkSet(
             {
-                id: this.mesh().id,
+                id: this.asset().id,
                 type: this.get('landmarkType'),
                 server: this.get('server')
             }
@@ -126,6 +134,13 @@ exports.App = Backbone.Model.extend({
 
     // returns the currently active Mesh.
     mesh: function () {
+        return this.get('mesh');
+    },
+
+    // returns the currently active Asset (Image or Mesh).
+    // changes independently of mesh() - care should be taken as to which one
+    // subclasses should listen to.
+    asset: function () {
         return this.get('mesh');
     },
 

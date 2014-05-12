@@ -266,10 +266,13 @@ var MeshSource = Backbone.Model.extend({
     setAsset: function (newMesh) {
         // TODO this should cache and not get every time
         var that = this;
+        // the asset advances immediately.
+        this.set('asset', newMesh);
         newMesh.fetch({
             success: function () {
                 console.log('grabbed new mesh');
-                that.set('asset', newMesh);
+                // once the mesh is downloaded, advance the mesh
+                that.set('mesh', newMesh);
             }
         });
     },
