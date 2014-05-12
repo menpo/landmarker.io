@@ -439,7 +439,7 @@ exports.Viewport = Backbone.View.extend({
             $(document).off('mousemove.landmarkDrag');
             var lm;
             onMouseUpPosition.set(event.offsetX, event.offsetY);
-            if (onMouseDownPosition.distanceTo(onMouseUpPosition) > 2) {
+            if (onMouseDownPosition.distanceTo(onMouseUpPosition) > 0) {
                 // landmark was dragged
                 var activeGroup = that.model.get('landmarks').get('groups').active();
                 var selectedLandmarks = activeGroup.landmarks().selected();
