@@ -51,7 +51,12 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     // mouse tracking variables
     var mouseDownPosition = new THREE.Vector2();
     var mousePrevPosition = new THREE.Vector2();
+
+    // Mouses position when in the middle of a click operation.
     var mouseCurrentPosition = new THREE.Vector2();
+
+    // Mouses position hovering over the surface
+    var mouseHoverPosition = new THREE.Vector2();
     var mouseMouseDelta = new THREE.Vector2();
 
     function focus(newTarget) {
@@ -74,18 +79,35 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         // First, handling the perspective matrix
         normalMatrix.getNormalMatrix(pCam.matrix);
         distance.applyMatrix3(normalMatrix);
-        console.log("camera: zoom - dist: " + distance +
-            "tgt: " + distanceToTarget());
         distance.multiplyScalar(distanceToTarget() * 0.001);
         pCam.position.add(distance);
 
-        // Then, the orthographic
+        // Then, the orthographic. In general, we are just going to squeeze in
+        // the bounds of the orthographic frustum to zoom.
+        console.log(scalar);
+        if (oCam.right - oCam.left < 0.001 && scalar < 0) {
+            // trying to zoom in and we are already tight. return.
+            return
+        }
+
+        // Difference must respect aspect ratio, otherwise we will distort
         var a = ((oCam.top - oCam.bottom)) / (oCam.right - oCam.left);
-        // And then the orthographic one
-        oCam.left   -= (scalar) / (a);
-        oCam.right  += (scalar) / (a);
-        oCam.top    += scalar;
-        oCam.bottom -= scalar;
+
+        // find out where the mouse currently is in the view.
+        var oM = mousePositionInOrthographicView(mouseHoverPosition);
+
+        // overall difference in height scale is scalar * 2, but we weight
+        // where this comes off based on mouse position
+        oCam.left   -= (scalar * oM.xR) / (a);
+        oCam.right  += (scalar * (1 - oM.xR)) / (a);
+        oCam.top    += scalar * oM.yR;
+        oCam.bottom -= scalar * (1 - oM.yR);
+        if (oCam.left > oCam.right) {
+            oCam.left = oCam.right - 0.0001;
+        }
+        if (oCam.bottom > oCam.top) {
+            oCam.bottom = oCam.top - (0.0001 * a);
+        }
         oCam.updateProjectionMatrix();
         controller.trigger('change');
     }
@@ -179,26 +201,41 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         mousePrevPosition.copy(mouseCurrentPosition);
     }
 
-    function onMouseMovePip(event) {
-        mouseCurrentPosition.set(event.pageX, event.pageY);
-        var x = event.pageX / domElement.width;
-        var y = event.pageY / domElement.height;
-        console.log('mouse position: ' + x + ', ' + y);
-        var oH = oCam.right - oCam.left;
-        var oV = oCam.top - oCam.bottom;
-        var oRange = (oH + oV) / 2;
-        // so new oZoom ortho matrix is focused around
-        var oX = oCam.left + x * oH;
-        var oY = oCam.bottom + (1 - y) * oV;
+    function mousePositionInOrthographicView(v) {
+        // convert into relative coordinates (0-1)
+        var x = v.x / domElement.width;
+        var y = v.y / domElement.height;
+        // get the current height and width of the orthographic
+        var oWidth = oCam.right - oCam.left;
+        var oHeight = oCam.top - oCam.bottom;
+
+        // so in this coordinate ortho matrix is focused around
+        var oX = oCam.left + x * oWidth;
+        var oY = oCam.bottom + (1 - y) * oHeight;
+
+        return {
+            x: oX,
+            y: oY,
+            xR: x,
+            yR: y,
+            width: oWidth,
+            height: oHeight
+        };
+    }
+
+    function onMouseMoveHover(event) {
+        mouseHoverPosition.set(event.pageX, event.pageY);
+        var oM = mousePositionInOrthographicView(mouseHoverPosition);
+
         // and new bounds are
-        var zH = oH / PIP_ZOOM_FACTOR;
+        var zH = oM.height / PIP_ZOOM_FACTOR;
         // TODO this assumes square PIP image
         var zV = zH;
         // reconstructing bounds is easy...
-        oCamZoom.left = oX - (zH/2);
-        oCamZoom.right = oX + (zH/2);
-        oCamZoom.top = oY + (zV/2);
-        oCamZoom.bottom = oY - (zV/2);
+        oCamZoom.left = oM.x - (zH/2);
+        oCamZoom.right = oM.x + (zH/2);
+        oCamZoom.top = oM.y + (zV/2);
+        oCamZoom.bottom = oM.y - (zV/2);
         oCamZoom.updateProjectionMatrix();
         controller.trigger('change');
     }
@@ -233,7 +270,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
             enabled = true;
             $(domElement).on('mousedown.camera', onMouseDown);
             $(domElement).on('mousewheel.camera', onMouseWheel);
-            $(domElement).on('mousemove.pip', onMouseMovePip);
+            $(domElement).on('mousemove.pip', onMouseMoveHover);
         }
     }
 
