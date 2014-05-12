@@ -71,6 +71,7 @@ table {
 
 .App-Viewport {
     flex: 4;
+    cursor: none;
 }
 
 /* Make the Sidebar fixed width */

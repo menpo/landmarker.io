@@ -10,6 +10,10 @@ var Camera = require('./camera');
 var CLEAR_COLOUR = 0xAAAAAA;
 var CLEAR_COLOUR_PIP = 0xCCCCCC;
 
+// size of the crosshair on the viewport
+var CROSSHAIR_SIZE = 30;
+var CROSSHAIR_GAP = 2;
+
 // the default scale for 1.0
 var LM_SCALE = 0.005;
 
@@ -31,7 +35,8 @@ exports.Viewport = Backbone.View.extend({
 
         // TODO bind all methods on the Viewport
         _.bindAll(this, 'resize', 'render', 'changeMesh',
-            'mousedownHandler', 'update', 'lmViewsInSelectionBox');
+            'mousedownHandler', 'update', 'lmViewsInSelectionBox',
+            'cursorUpdate');
 
         // ----- DOM ----- //
         // We have three DOM concerns:
@@ -488,6 +493,10 @@ exports.Viewport = Backbone.View.extend({
         return onMouseDown
         })();
 
+        // Mouses position hovering over the surface
+        this.mouseHoverPosition = new THREE.Vector2();
+        this.$el.on('mousemove.cursor', this.cursorUpdate);
+
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, "change:mesh", this.changeMesh);
@@ -505,6 +514,11 @@ exports.Viewport = Backbone.View.extend({
         function animate() {
             requestAnimationFrame(animate);
         }
+    },
+
+    cursorUpdate: function(event) {
+        this.mouseHoverPosition.set(event.pageX, event.pageY);
+        this.clearCanvas();
     },
 
     toggleCamera: function () {
@@ -746,6 +760,31 @@ exports.Viewport = Backbone.View.extend({
     clearCanvas: function () {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.strokeStyle = '#ff0000';
+        // always draw the crosshair
+        var hx = this.mouseHoverPosition.x;
+        var hy = this.mouseHoverPosition.y;
+        // vertical line
+        this.ctx.beginPath();
+        this.ctx.moveTo(hx, hy - CROSSHAIR_SIZE);
+        this.ctx.lineTo(hx, hy - CROSSHAIR_GAP);
+        this.ctx.closePath();
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(hx, hy + CROSSHAIR_GAP);
+        this.ctx.lineTo(hx, hy + CROSSHAIR_SIZE);
+        this.ctx.closePath();
+        this.ctx.stroke();
+        // horizontal line
+        this.ctx.beginPath();
+        this.ctx.moveTo(hx - CROSSHAIR_SIZE, hy);
+        this.ctx.lineTo(hx - CROSSHAIR_GAP, hy);
+        this.ctx.closePath();
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(hx + CROSSHAIR_GAP, hy);
+        this.ctx.lineTo(hx + CROSSHAIR_SIZE, hy);
+        this.ctx.closePath();
+        this.ctx.stroke();
         if (this.s_camera === this.s_oCam) {
             // orthographic means there is the PIP window. Draw the box and
             // target.
