@@ -124,7 +124,11 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
             oCam.bottom = oCam.top - (0.0001 * a);
         }
         oCam.updateProjectionMatrix();
-        controller.trigger('change');
+        // call the mouse hover callback manually, he will trigger a change
+        // for us. Little nasty, but we mock the event...
+        onMouseMoveHover({pageX: mouseHoverPosition.x,
+                          pageY: mouseHoverPosition.y});
+        //controller.trigger('change');
     }
 
     function distanceToTarget() {
@@ -276,7 +280,6 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         $(domElement).off('mousedown.camera');
         $(domElement).off('mousewheel.camera');
         $(document).off('mousemove.camera');
-        $(domElement).off('mousemove.pip');
     }
 
     function enable() {
@@ -285,7 +288,6 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
             enabled = true;
             $(domElement).on('mousedown.camera', onMouseDown);
             $(domElement).on('mousewheel.camera', onMouseWheel);
-            $(domElement).on('mousemove.pip', onMouseMoveHover);
         }
     }
 
@@ -337,6 +339,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
 
     // enable everything on creation
     enable();
+    $(domElement).on('mousemove.pip', onMouseMoveHover);
 
     function resize (w, h) {
         var aspect = w / h;
