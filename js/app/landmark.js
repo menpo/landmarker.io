@@ -315,7 +315,8 @@ var LandmarkSet = Backbone.Model.extend({
             insertedLandmark.set({
                 point: v.clone(),
                 selected: true,
-                isEmpty: false
+                isEmpty: false,
+                group: activeGroup
             });
             if (activeGroup.landmarks().empty().length === 0) {
                 // depleted this group! Auto-advance to the next if we can
