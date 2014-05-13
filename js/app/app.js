@@ -1,6 +1,7 @@
 var _ = require('underscore');
 var Backbone = require('backbone');
 var Landmark = require('./landmark');
+var Template = require('./template');
 var Mesh = require('./mesh');
 var Image = require('./image');
 var Dispatcher = require('./dispatcher');
@@ -11,8 +12,6 @@ exports.App = Backbone.Model.extend({
 
     defaults: function () {
         return {
-            // TODO remove default landmarkType as ibug68
-            landmarkType: 'ibug68',
             landmarkSize: 0.5,
             meshAlpha: 1,
             mode: 'mesh'
@@ -32,15 +31,37 @@ exports.App = Backbone.Model.extend({
     },
 
     initialize: function () {
+        var that = this;
+        var labels = null;
         _.bindAll(this, 'assetChanged', 'dispatcher', 'mesh', 'assetSource',
                         'landmarks');
         this.set('dispatcher', new Dispatcher.Dispatcher);
+        // firstly, we need to find out what template we will use.
+        // construct a template labels model to go grab the available labels.
+        var templateLabels = new Template.TemplateLabels({server: this.server()});
+        this.set('templateLabels', templateLabels);
+        templateLabels.fetch({
+            success: function () {
+                labels = templateLabels.get('labels');
+                console.log('Available templates are ' + labels + ' setting ' +
+                    labels[0] + ' to start');
+                that.set('landmarkType', labels[0]);
+            },
+            error: function () {
+                console.log('Failed to talk localhost:5000 (is landmarkerio' +
+                    'running from your command line?).');
+                console.log('Restarting in demo mode.');
+                // templates should be provided by both mesh and image -
+                // if this errors then we should just cut to the demo
+                window.location.href = window.location.origin + '/?demo=mesh'
+            }
+        });
+
         // Construct an asset source (which can query for asset information
         // from the server). Of course, we must pass the server in. The
         // asset source will ensure that the assets produced also get
         // attached to this server.
         var assetSource;
-        var that = this;
         if (this.imageMode()) {
             // In image mode, the asset source is an ImageSource
             console.log('App in image mode - creating image source');
@@ -58,6 +79,9 @@ exports.App = Backbone.Model.extend({
         // to update the app state.
         this.listenTo(assetSource, 'change:asset', this.assetChanged);
         this.listenTo(assetSource, 'change:mesh', this.meshChanged);
+        this.listenTo(this, 'change:landmarkType', this.reloadLandmarks);
+        this.listenTo(this, 'change:mesh', this.reloadLandmarks);
+
         assetSource.fetch({
             success: function () {
                 console.log('asset source finished - setting');
@@ -99,8 +123,15 @@ exports.App = Backbone.Model.extend({
         this.set('mesh', this.assetSource().mesh());
         // make sure the new mesh has the right alpha setting
         this.changeMeshAlpha();
-        // now we have a mesh we can get landmarks - they need to know where
-        // to fetch from so attach the server.
+    },
+
+    reloadLandmarks: function () {
+        if (!this.get('mesh') || !this.get('landmarkType')) {
+            // can only proceed with a mesh and a landmarkType...
+            return;
+        }
+        // now we have a mesh and landmarkType we can get landmarks -
+        // they need to know where to fetch from so attach the server.
         // note that mesh changes are guaranteed to happen after asset changes,
         // so we are safe that this.asset() contains the correct asset id
         var landmarks = new Landmark.LandmarkSet(
@@ -125,6 +156,10 @@ exports.App = Backbone.Model.extend({
                     success: function () {
                         console.log('got the template landmarks!');
                         that.set('landmarks', landmarks);
+                        landmarks.unset('from_template');
+                    },
+                    error: function () {
+                        console.log('FATAL ERROR:  could not get the template landmarks!');
                         landmarks.unset('from_template');
                     }
                 });

@@ -15,7 +15,6 @@ exports.Server = Backbone.Model.extend({
     },
 
     map: function (url) {
-        console.log('dynamically remapping');
         var mapping;
         if (this.get('DEMO_MODE')) {
             console.log('in demo mode');

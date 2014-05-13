@@ -30,8 +30,8 @@ var LandmarkView = Backbone.View.extend({
     },
 
     render: function () {
-        console.log("Landmark:render - " + this.model.get('index') +
-        "(" + this.cid + ", " + this.model.cid + ")");
+        //console.log("Landmark:render - " + this.model.get('index') +
+        //"(" + this.cid + ", " + this.model.cid + ")");
         function xyziForLandmark(lm) {
             var p;
             if (lm.isEmpty()) {
@@ -104,7 +104,7 @@ var LandmarkListView = Backbone.View.extend({
     },
 
     renderOne : function(model) {
-        console.log("NEW: LandmarkView (LandmarkList.renderOne())");
+        //console.log("NEW: LandmarkView (LandmarkList.renderOne())");
         var row = new LandmarkView({model:model});
         // reset the view's element to it's template
         this.$el.append(row.render().$el);
@@ -147,7 +147,7 @@ var LandmarkGroupButtonView = Backbone.View.extend({
     },
 
     render: function () {
-        console.log('GroupButton:render - ' + this.model.get('label'));
+        //console.log('GroupButton:render - ' + this.model.get('label'));
         var lms = this.model.get('landmarks');
         var nonempty_str = pad(lms.nonempty().length, 2);
         var lms_str = pad(lms.length, 2);
@@ -171,7 +171,7 @@ var LandmarkGroupView = Backbone.View.extend({
         _.bindAll(this, 'render');
         this.listenTo(this.model, "all", this.render);
         this.landmarkTable = null;
-        this.buton = null
+        this.button = null
     },
 
     render: function () {
@@ -180,7 +180,7 @@ var LandmarkGroupView = Backbone.View.extend({
         this.$el.empty();
         this.$el.append(this.button.render().$el);
         if (this.model.get('active')) {
-            console.log("NEW: LandmarkListView (LandmarkGroupView.render())");
+            //console.log("NEW: LandmarkListView (LandmarkGroupView.render())");
             this.landmarkTable = new LandmarkListView(
                 {collection: this.model.landmarks()});
             this.$el.append(this.landmarkTable.render().$el);
@@ -225,7 +225,7 @@ var LandmarkGroupListView = Backbone.View.extend({
     },
 
     renderOne : function(model) {
-        console.log("NEW: LandmarkGroupView (LandmarkGroupListView.renderOne())");
+        //console.log("NEW: LandmarkGroupView (LandmarkGroupListView.renderOne())");
         var group = new LandmarkGroupView({model:model});
         // reset the view's element to it's template
         this.$el.append(group.render().$el);
