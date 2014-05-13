@@ -18,7 +18,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // by default, we try mesh mode
     var mode = 'mesh';
     var modeParam;
-    if (getURLParameter('server') === 'demo') {
+    if (getURLParameter('mode') === null &&
+        getURLParameter('demo') === null) {
+        // reload in mesh mode by default.
+        window.location.href = window.location.origin + '/?mode=mesh'
+    }
+    if (getURLParameter('demo') === 'mesh') {
         // put the server in demo mode
         document.title = document.title + ' - demo mode';
         $('.App-Viewport-UIText-TopLeft').toggle();

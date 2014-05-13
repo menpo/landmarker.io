@@ -68,10 +68,10 @@ exports.App = Backbone.Model.extend({
                     'running from your command line?).');
                 if (that.meshMode()) {
                     console.log('Restarting in image mode.');
-                    window.location.href = window.location.href + '?mode=image'
+                    window.location.href = window.location.origin + '/?mode=image'
                 } else {
                     console.log('Restarting in demo mode.');
-                    window.location.href = window.location.href + '?server=demo'
+                    window.location.href = window.location.origin + '/?demo=mesh'
                 }
             }
         });
