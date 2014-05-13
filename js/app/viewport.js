@@ -495,7 +495,7 @@ exports.Viewport = Backbone.View.extend({
 
         // Mouses position hovering over the surface
         this.mouseHoverPosition = new THREE.Vector2();
-        this.$el.on('mousemove.cursor', this.cursorUpdate);
+        $(document).on('mousemove.cursor', this.cursorUpdate);
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
