@@ -135,7 +135,6 @@ var LandmarkList = Backbone.Collection.extend({
 
 var LandmarkGroup = Backbone.Model.extend({
 
-    // TODO check the list in here is OK
     defaults : function () {
         return {
             landmarks: new LandmarkList,
@@ -183,7 +182,8 @@ var LandmarkGroup = Backbone.Model.extend({
     toJSON: function () {
         return {
             landmarks: this.landmarks(),
-            connectivity: this.connectivity()
+            connectivity: this.connectivity(),
+            label: this.label()
         };
     }
 
@@ -201,13 +201,13 @@ var LandmarkGroupList = Backbone.Collection.extend({
         return this.findWhere({label: label});
     },
 
-    toJSON: function () {
-        var result = {};
-        this.each(function (group) {
-            result[group.label()] = group;
-        });
-        return result;
-    },
+//    toJSON: function () {
+//        var result = {};
+//        this.each(function (group) {
+//            result[group.label()] = group;
+//        });
+//        return result;
+//    },
 
     labelsToGroups: function () {
         var result = {};
@@ -317,7 +317,7 @@ var LandmarkSet = Backbone.Model.extend({
             insertedLandmark.set({
                 point: v.clone(),
                 selected: true,
-                isEmpty: false,
+                isEmpty: false
             });
             if (activeGroup.landmarks().empty().length === 0) {
                 // depleted this group! Auto-advance to the next if we can
@@ -343,12 +343,12 @@ var LandmarkSet = Backbone.Model.extend({
             return;
         }
         var landmarkGroupList = new LandmarkGroupList(
-            _.map(json.groups, function (json_group, label) {
+            _.map(json.groups, function (json_group) {
                 var ndims;
                 // make the group so we can attach the landmarks
                 var group = new LandmarkGroup(
                     {
-                        label: label,
+                        label: json_group.label,
                         connectivity: json_group.connectivity
                     });
                 var lmList = new LandmarkList(

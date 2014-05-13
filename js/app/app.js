@@ -141,7 +141,7 @@ exports.App = Backbone.Model.extend({
     // changes independently of mesh() - care should be taken as to which one
     // subclasses should listen to.
     asset: function () {
-        return this.get('mesh');
+        return this.get('asset');
     },
 
     assetSource: function () {
