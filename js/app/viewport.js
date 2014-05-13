@@ -74,11 +74,7 @@ exports.Viewport = Backbone.View.extend({
         // s_lms stores the scene landmarks. This is a useful container to
         // get at all landmarks in one go, and is a child of s_meshAndLms
         this.s_lms = new THREE.Object3D();
-        // s_lmsconnectivity is used to store the connectivity representation
-        // of the mesh
-        this.s_lmsconnectivity = new THREE.Object3D();
         this.s_meshAndLms.add(this.s_lms);
-        this.s_meshAndLms.add(this.s_lmsconnectivity);
         // s_mesh is the parent of the mesh itself in the THREE scene.
         // This will only ever have one child (the mesh).
         // Child of s_meshAndLms
@@ -125,8 +121,22 @@ exports.Viewport = Backbone.View.extend({
         this.$webglel.html(this.renderer.domElement);
 
         // we  build a second scene for various helpers we may need
-        // (intersection planes)
+        // (intersection planes) and for connectivity information (so it
+        // shows through)
         this.sceneHelpers = new THREE.Scene();
+
+        // s_lmsconnectivity is used to store the connectivity representation
+        // of the mesh. Note that we want
+        this.s_lmsconnectivity = new THREE.Object3D();
+        // we want to replicate the mesh scene graph in the scene helpers, so we can
+        // have show-though connectivity..
+        this.s_h_scaleRotate = new THREE.Object3D();
+        this.s_h_translate = new THREE.Object3D();
+        this.s_h_meshAndLms = new THREE.Object3D();
+        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
+        this.s_h_translate.add(this.s_h_meshAndLms);
+        this.s_h_scaleRotate.add(this.s_h_translate);
+        this.sceneHelpers.add(this.s_h_scaleRotate);
 
         // add mesh if there already is one present (we have missed a
         // backbone callback to changeMesh() otherwise).
@@ -637,20 +647,25 @@ exports.Viewport = Backbone.View.extend({
         this.meshScale = t_mesh.geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
         this.s_scaleRotate.scale.set(s, s, s);
+        this.s_h_scaleRotate.scale.set(s, s, s);
         this.s_scaleRotate.up = this.mesh.up().clone();
+        this.s_h_scaleRotate.up = this.mesh.up().clone();
         if (this.model.meshMode()) {
             // Meshes point in the normal way
             this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
+            this.s_h_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
         } else {
             // images have their z pointing away from the camera (in effect
             // this emulates having a LHS coordinate system for images, which
             // we want)
             this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, -1));
+            this.s_h_scaleRotate.lookAt(new THREE.Vector3(0, 0, -1));
         }
         // translation
         var t = t_mesh.geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
         this.s_translate.position = t;
+        this.s_h_translate.position = t;
         this.resetCamera();
         this.update();
     },
@@ -661,11 +676,11 @@ exports.Viewport = Backbone.View.extend({
         // 1. Clear the scene graph of all landmarks
         // TODO should this be a destructor on LandmarkView?
         this.s_meshAndLms.remove(this.s_lms);
-        this.s_meshAndLms.remove(this.s_lmsconnectivity);
+        this.s_h_meshAndLms.remove(this.s_lmsconnectivity);
         this.s_lms = new THREE.Object3D();
         this.s_lmsconnectivity = new THREE.Object3D();
         this.s_meshAndLms.add(this.s_lms);
-        this.s_meshAndLms.add(this.s_lmsconnectivity);
+        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
         // 2. Build a fresh set of views - clear any existing lms
         this.landmarkViews = [];
         this.connectivityViews = [];
@@ -724,8 +739,10 @@ exports.Viewport = Backbone.View.extend({
             this.renderer.setScissor(minX, minY, pipW, pipH);
             this.renderer.enableScissorTest(true);
             this.renderer.clear();
+            // render the PIP image
             this.renderer.render(this.scene, this.s_oCamZoom);
-            this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
+            // never render connectivity in the zoom view
+            //this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
             this.renderer.setClearColor(CLEAR_COLOUR, 1);
         }
     },
