@@ -74,6 +74,12 @@ var Landmark = Backbone.Model.extend({
                 pointJSON = [point.x, point.y];
             } else
             pointJSON = [point.x, point.y, point.z];
+        } else {
+            if (this.get('ndims') == 2) {
+                pointJSON = [null, null];
+            } else {
+                pointJSON = [null, null, null];
+            }
         }
         return {
             point: pointJSON
