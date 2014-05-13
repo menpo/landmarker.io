@@ -70,8 +70,10 @@ var Landmark = Backbone.Model.extend({
         var point;
         if (!this.isEmpty()) {
             point = this.point();
+            if (this.get('ndims') == 2) {
+                pointJSON = [point.x, point.y];
+            } else
             pointJSON = [point.x, point.y, point.z];
-            // TODO handle 2D case here
         }
         return {
             point: pointJSON
@@ -316,7 +318,6 @@ var LandmarkSet = Backbone.Model.extend({
                 point: v.clone(),
                 selected: true,
                 isEmpty: false,
-                group: activeGroup
             });
             if (activeGroup.landmarks().empty().length === 0) {
                 // depleted this group! Auto-advance to the next if we can
@@ -343,6 +344,7 @@ var LandmarkSet = Backbone.Model.extend({
         }
         var landmarkGroupList = new LandmarkGroupList(
             _.map(json.groups, function (json_group, label) {
+                var ndims;
                 // make the group so we can attach the landmarks
                 var group = new LandmarkGroup(
                     {
@@ -359,15 +361,33 @@ var LandmarkSet = Backbone.Model.extend({
                         x = json_lm.point[0];
                         y = json_lm.point[1];
                         if (json_lm.point.length == 3) {
-                            z = json_lm.point[2];
-                            point = new THREE.Vector3(x, y, z);
+                            ndims = 3;
+                            // if any value is null, the point is null
+                            if (json_lm.point[0] === null ||
+                                json_lm.point[1] === null ||
+                                json_lm.point[2] === null) {
+                                point = null;
+                            } else {
+                                // grab the z and go!
+                                z = json_lm.point[2];
+                                point = new THREE.Vector3(x, y, z);
+                            }
                         } else if (json_lm.point.length == 2) {
-                            point = new THREE.Vector2(x, y);
+                            ndims = 2;
+                            // if any value is null, the point is null
+                            if (json_lm.point[0] === null ||
+                                json_lm.point[1] === null) {
+                                point = null;
+                            } else {
+                                // 2D landmarks always have z == 0
+                                point = new THREE.Vector3(x, y, 0);
+                            }
                         }
                         return new Landmark({
                             point: point,
                             index: index,
-                            group: group
+                            group: group,
+                            ndims: ndims
                         });
                     })
                 );
