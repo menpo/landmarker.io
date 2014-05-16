@@ -188,7 +188,6 @@ var Mesh = Backbone.Model.extend({
         }
         // clean up the vertices
         geometry.mergeVertices();
-        geometry.computeCentroids();
         // needed for lighting to work
         geometry.computeFaceNormals();
         geometry.computeVertexNormals();
