@@ -6,9 +6,23 @@ var Camera = require('./camera');
 
 "use strict";
 
+// clear colour for both the main view and PictureInPicture
+var CLEAR_COLOUR = 0xAAAAAA;
+var CLEAR_COLOUR_PIP = 0xCCCCCC;
+
+// size of the crosshair on the viewport
+var CROSSHAIR_SIZE = 30;
+var CROSSHAIR_GAP = 2;
 
 // the default scale for 1.0
 var LM_SCALE = 0.005;
+
+var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.68, 0.35, 3.0);
+var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
+
+
+var PIP_RATIO = 0.25;
+var PIP_MARGIN = 20;
 
 exports.Viewport = Backbone.View.extend({
 
@@ -18,11 +32,11 @@ exports.Viewport = Backbone.View.extend({
 
         // ----- CONFIGURATION ----- //
         this.meshScale = 1.0;  // The radius of the mesh's bounding sphere
-        var clearColor = 0xAAAAAA;
 
         // TODO bind all methods on the Viewport
         _.bindAll(this, 'resize', 'render', 'changeMesh',
-            'mousedownHandler', 'update', 'lmViewsInSelectionBox');
+            'mousedownHandler', 'update', 'lmViewsInSelectionBox',
+            'cursorUpdate');
 
         // ----- DOM ----- //
         // We have three DOM concerns:
@@ -46,6 +60,12 @@ exports.Viewport = Backbone.View.extend({
         // ------ SCENE GRAPH CONSTRUCTION ----- //
         this.scene = new THREE.Scene();
 
+        // we use an initial top level to handle the absolute positioning of
+        // the mesh and landmarks. Rotation and scale are applied to the
+        // s_meshAndLms node directly.
+        this.s_scaleRotate = new THREE.Object3D();
+        this.s_translate = new THREE.Object3D();
+
         // ----- SCENE: MODEL AND LANDMARKS ----- //
         // s_meshAndLms stores the mesh and landmarks in the meshes original
         // coordinates. This is always transformed to the unit sphere for
@@ -54,27 +74,35 @@ exports.Viewport = Backbone.View.extend({
         // s_lms stores the scene landmarks. This is a useful container to
         // get at all landmarks in one go, and is a child of s_meshAndLms
         this.s_lms = new THREE.Object3D();
-        // s_lmsconnectivity is used to store the connectivity representation
-        // of the mesh
-        this.s_lmsconnectivity = new THREE.Object3D();
         this.s_meshAndLms.add(this.s_lms);
-        this.s_meshAndLms.add(this.s_lmsconnectivity);
         // s_mesh is the parent of the mesh itself in the THREE scene.
         // This will only ever have one child (the mesh).
         // Child of s_meshAndLms
         this.s_mesh = new THREE.Object3D();
         this.s_meshAndLms.add(this.s_mesh);
-        this.scene.add(this.s_meshAndLms);
+        this.s_translate.add(this.s_meshAndLms);
+        this.s_scaleRotate.add(this.s_translate);
+        this.scene.add(this.s_scaleRotate);
 
         // ----- SCENE: CAMERA AND DIRECTED LIGHTS ----- //
         // s_camera holds the camera, and (optionally) any
         // lights that track with the camera as children
-        this.s_camera = new THREE.PerspectiveCamera(50, 1, 0.02, 5000);
-        this.s_camera.position.set(1.68, 0.35, 3.0);
+        this.s_oCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 5);
+        this.s_oCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 5);
+        this.s_pCam = new THREE.PerspectiveCamera(50, 1, 0.02, 5);
+        if (this.model.meshMode()) {
+            // meshes prefer perspective...
+            this.s_camera = this.s_pCam;
+        } else {
+            // but for images, default to orthographic camera
+            this.s_camera = this.s_oCam;
+        }
+
         this.resetCamera();
 
         // ----- SCENE: GENERAL LIGHTING ----- //
         // TODO make lighting customizable
+        // TODO no spot light for images
         this.s_lights = new THREE.Object3D();
         var pointLightLeft = new THREE.PointLight(0x404040, 1, 0);
         pointLightLeft.position.set(-100, 0, 100);
@@ -87,14 +115,28 @@ exports.Viewport = Backbone.View.extend({
         this.s_lights.add(new THREE.AmbientLight(0x404040));
 
         this.renderer = new THREE.WebGLRenderer({antialias: true, alpha: false});
-        this.renderer.setClearColor(clearColor, 1);
+        this.renderer.setClearColor(CLEAR_COLOUR, 1);
         this.renderer.autoClear = false;
         // attach the render on the element we picked out earlier
         this.$webglel.html(this.renderer.domElement);
 
         // we  build a second scene for various helpers we may need
-        // (intersection planes)
+        // (intersection planes) and for connectivity information (so it
+        // shows through)
         this.sceneHelpers = new THREE.Scene();
+
+        // s_lmsconnectivity is used to store the connectivity representation
+        // of the mesh. Note that we want
+        this.s_lmsconnectivity = new THREE.Object3D();
+        // we want to replicate the mesh scene graph in the scene helpers, so we can
+        // have show-though connectivity..
+        this.s_h_scaleRotate = new THREE.Object3D();
+        this.s_h_translate = new THREE.Object3D();
+        this.s_h_meshAndLms = new THREE.Object3D();
+        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
+        this.s_h_translate.add(this.s_h_meshAndLms);
+        this.s_h_scaleRotate.add(this.s_h_translate);
+        this.sceneHelpers.add(this.s_h_scaleRotate);
 
         // add mesh if there already is one present (we have missed a
         // backbone callback to changeMesh() otherwise).
@@ -106,8 +148,12 @@ exports.Viewport = Backbone.View.extend({
         // make an empty list of landmark views
         this.landmarkViews = [];
         this.connectivityViews = [];
+        // TODO camera controls should be set based on mode
+        this.model.imageMode();
         this.cameraControls = Camera.CameraController(
-            this.s_camera, this.el);
+            this.s_pCam, this.s_oCam, this.s_oCamZoom,
+            this.el, this.model.imageMode());
+        window.viewport = this;
         // when the camera updates, render
         this.cameraControls.on("change", this.update);
 
@@ -134,16 +180,19 @@ exports.Viewport = Backbone.View.extend({
         // vector difference in one time step
         var deltaLmDrag = new THREE.Vector3();
 
-        // where we store the intersection plane
-        var intersectionPlanePosition = new THREE.Vector3();
-        var intersectionsWithLms, intersectionsWithMesh,
-            intersectionsOnPlane;
+        // where we store the intersection plane. Note that it will not be
+        // moved if in image mode, so we set it exactly as we want for images.
+        // In mesh mode the position will be updated constantly.
+        var intersectPlanePos = new THREE.Vector3(0, 0, 0);
+        var intersectsWithLms, intersectsWithMesh,
+            intersectSOnPlane;
 
         // ----- OBJECT PICKING  ----- //
-        var intersectionPlane = new THREE.Mesh(
-            new THREE.PlaneGeometry(100, 100));
-        intersectionPlane.visible = false;
-        that.sceneHelpers.add(intersectionPlane);
+        var intersectPlane = new THREE.Mesh(new THREE.PlaneGeometry(10, 10));
+        intersectPlane.position.copy(intersectPlanePos);
+        intersectPlane.lookAt(new THREE.Vector3(0, 0, 1));
+        intersectPlane.visible = false;
+        that.sceneHelpers.add(intersectPlane);
 
 
         // Catch all for mouse interaction. This is what is bound on the canvas
@@ -156,14 +205,14 @@ exports.Viewport = Backbone.View.extend({
             onMouseDownPosition.set(event.offsetX, event.offsetY);
 
             // All interactions require intersections to distinguish
-            intersectionsWithLms = that.getIntersectsFromEvent(event, that.s_lms);
-            intersectionsWithMesh = that.getIntersectsFromEvent(event, that.s_mesh);
+            intersectsWithLms = that.getIntersectsFromEvent(event, that.s_lms);
+            intersectsWithMesh = that.getIntersectsFromEvent(event, that.s_mesh);
             if (event.button === 0) {  // left mouse button
-                if (intersectionsWithLms.length > 0 &&
-                    intersectionsWithMesh.length > 0) {
+                if (intersectsWithLms.length > 0 &&
+                    intersectsWithMesh.length > 0) {
                     // degenerate case - which is closer?
-                    if (intersectionsWithLms[0].distance <
-                        intersectionsWithMesh[0].distance) {
+                    if (intersectsWithLms[0].distance <
+                        intersectsWithMesh[0].distance) {
                         landmarkPressed(event);
                     } else {
                         // the mesh was pressed. Check for shift first though.
@@ -173,12 +222,12 @@ exports.Viewport = Backbone.View.extend({
                             meshPressed();
                         }
                     }
-                } else if (intersectionsWithLms.length > 0) {
+                } else if (intersectsWithLms.length > 0) {
                     landmarkPressed(event);
                 } else if (event.shiftKey) {
                     // shift trumps all!
                     shiftPressed();
-                } else if (intersectionsWithMesh.length > 0) {
+                } else if (intersectsWithMesh.length > 0) {
                     meshPressed();
                 } else {
                     nothingPressed();
@@ -200,7 +249,7 @@ exports.Viewport = Backbone.View.extend({
                 // before anything else, disable the camera
                 that.cameraControls.disable();
                 // the clicked on landmark
-                var landmarkSymbol = intersectionsWithLms[0].object;
+                var landmarkSymbol = intersectsWithLms[0].object;
                 var group;
                 // hunt through the landmarkViews for the right symbol
                 for (var i = 0; i < that.landmarkViews.length; i++) {
@@ -235,17 +284,20 @@ exports.Viewport = Backbone.View.extend({
 //                    landmark.collection.deselectAll();
 //                    landmark.select();
 //                }
-                // now we've selected the landmark, we want to enable dragging.
-                // Fix the intersection plane to be where we clicked, only a
-                // little nearer to the camera.
-                positionLmDrag.copy(intersectionsWithLms[0].point);
-                intersectionPlanePosition.subVectors(that.s_camera.position,
-                    positionLmDrag);
-                intersectionPlanePosition.divideScalar(10.0);
-                intersectionPlanePosition.add(positionLmDrag);
-                intersectionPlane.position.copy(intersectionPlanePosition);
-                intersectionPlane.lookAt(that.s_camera.position);
-                intersectionPlane.updateMatrixWorld();
+                // record the position of where the drag started.
+                positionLmDrag.copy(that.s_meshAndLms.localToWorld(
+                    lmPressed.point().clone()));
+                if (that.model.meshMode()) {
+                    // in 3D mode, we need to change the intersection plane
+                    // to be normal to the camera and budge it a little closer
+                    intersectPlanePos.subVectors(that.s_camera.position,
+                        positionLmDrag);
+                    intersectPlanePos.divideScalar(10.0);
+                    intersectPlanePos.add(positionLmDrag);
+                    intersectPlane.position.copy(intersectPlanePos);
+                    intersectPlane.lookAt(that.s_camera.position);
+                    intersectPlane.updateMatrixWorld();
+                }
                 // start listening for dragging landmarks
                 $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
                 $(document).one('mouseup.viewportLandmark', landmarkOnMouseUp);
@@ -267,17 +319,17 @@ exports.Viewport = Backbone.View.extend({
 
         var landmarkOnDrag = function (event) {
             console.log("drag");
-            intersectionsOnPlane = that.getIntersectsFromEvent(event,
-                intersectionPlane);
-            if (intersectionsOnPlane.length > 0) {
-                var intersectMeshSpace = intersectionsOnPlane[0].point.clone();
+            intersectSOnPlane = that.getIntersectsFromEvent(event,
+                intersectPlane);
+            if (intersectSOnPlane.length > 0) {
+                var intersectMeshSpace = intersectSOnPlane[0].point.clone();
                 var prevIntersectInMeshSpace = positionLmDrag.clone();
                 that.s_meshAndLms.worldToLocal(intersectMeshSpace);
                 that.s_meshAndLms.worldToLocal(prevIntersectInMeshSpace);
                 // change in this step in mesh space
                 deltaLmDrag.subVectors(intersectMeshSpace, prevIntersectInMeshSpace);
                 // update the position
-                positionLmDrag.copy(intersectionsOnPlane[0].point);
+                positionLmDrag.copy(intersectSOnPlane[0].point);
                 var activeGroup = that.model.get('landmarks').get('groups').active();
                 var selectedLandmarks = activeGroup.landmarks().selected();
                 var lm, lmP;
@@ -385,7 +437,7 @@ exports.Viewport = Backbone.View.extend({
             onMouseUpPosition.set(event.offsetX, event.offsetY);
             if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
                 //  a click on the mesh
-                p = intersectionsWithMesh[0].point.clone();
+                p = intersectsWithMesh[0].point.clone();
                 // Convert the point back into the mesh space
                 that.s_meshAndLms.worldToLocal(p);
                 that.model.get('landmarks').insertNew(p);
@@ -408,23 +460,23 @@ exports.Viewport = Backbone.View.extend({
             $(document).off('mousemove.landmarkDrag');
             var lm;
             onMouseUpPosition.set(event.offsetX, event.offsetY);
-            if (onMouseDownPosition.distanceTo(onMouseUpPosition) > 2) {
+            if (onMouseDownPosition.distanceTo(onMouseUpPosition) > 0) {
                 // landmark was dragged
                 var activeGroup = that.model.get('landmarks').get('groups').active();
                 var selectedLandmarks = activeGroup.landmarks().selected();
-                var camToLm;
+                var vWorld, vScreen;
                 for (var i = 0; i < selectedLandmarks.length; i++) {
                     lm = selectedLandmarks[i];
-                    camToLm = that.s_meshAndLms.localToWorld(lm.point().clone()).sub(
-                        that.s_camera.position).normalize();
-                    // make the ray points from camera to this point
-                    that.ray.set(that.s_camera.position, camToLm);
-                    intersectionsWithLms = that.ray.intersectObject(
-                        that.s_mesh, true);
-                    if (intersectionsWithLms.length > 0) {
+                    // convert to screen coordinates
+                    vWorld = that.s_meshAndLms.localToWorld(lm.point().clone());
+                    vScreen = that.worldToScreen(vWorld);
+                    // use the standard machinery to find intersections
+                    intersectsWithMesh = that.getIntersects(vScreen.x,
+                        vScreen.y, that.s_mesh);
+                    if (intersectsWithMesh.length > 0) {
                         // good, we're still on the mesh.
                         lm.setPoint(that.s_meshAndLms.worldToLocal(
-                            intersectionsWithLms[0].point.clone()));
+                            intersectsWithMesh[0].point.clone()));
                         lm.set('isChanging', false);
                     } else {
                         console.log("fallen off mesh");
@@ -451,19 +503,43 @@ exports.Viewport = Backbone.View.extend({
         return onMouseDown
         })();
 
+        // Mouses position hovering over the surface
+        this.mouseHoverPosition = new THREE.Vector2();
+        $(document).on('mousemove.cursor', this.cursorUpdate);
+
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, "change:mesh", this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
         this.listenTo(this.model.dispatcher(), "change:BATCH_RENDER", this.batchHandler);
 
-        // trigger resize, and register for the animation loop
+        // trigger resize to initially size the viewport
+        // this will also clearCanvas (will draw context box if needed)
+
         this.resize();
+
+        // register for the animation loop
         animate();
 
         function animate() {
             requestAnimationFrame(animate);
         }
+    },
+
+    cursorUpdate: function(event) {
+        this.mouseHoverPosition.set(event.pageX, event.pageY);
+        this.clearCanvas();
+    },
+
+    toggleCamera: function () {
+        if (this.s_camera === this.s_pCam) {
+            this.s_camera = this.s_oCam;
+        } else {
+            this.s_camera = this.s_pCam;
+        }
+        // clear the canvas to make
+        this.clearCanvas();
+        this.update();
     },
 
     // ----- EVENTS ----- //
@@ -475,10 +551,18 @@ exports.Viewport = Backbone.View.extend({
         }
         var vector = new THREE.Vector3(
                 (x / this.$container.width()) * 2 - 1,
-                -(y / this.$container.height()) * 2 + 1, 0);
-        this.projector.unprojectVector(vector, this.s_camera);
-        this.ray.set(this.s_camera.position,
-            vector.sub(this.s_camera.position).normalize());
+                -(y / this.$container.height()) * 2 + 1, 0.5);
+
+        if (this.s_camera === this.s_pCam) {
+            // perspective selection
+            this.projector.unprojectVector(vector, this.s_camera);
+            this.ray.set(this.s_camera.position,
+                vector.sub(this.s_camera.position).normalize());
+        } else {
+            // orthographic selection
+            this.ray = this.projector.pickingRay(vector, this.s_camera);
+        }
+
         if (object instanceof Array) {
             return this.ray.intersectObjects(object, true);
         }
@@ -548,6 +632,7 @@ exports.Viewport = Backbone.View.extend({
             this.stopListening(this.mesh);
         }
         console.log('listening to new mesh');
+        // TODO should this be an all?
         this.listenTo(this.model.mesh(), "all", this.update);
         this.mesh = this.model.mesh();
         // firstly, remove any existing mesh
@@ -561,13 +646,26 @@ exports.Viewport = Backbone.View.extend({
         // First, the scale
         this.meshScale = t_mesh.geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
-        this.s_meshAndLms.scale.set(s, s, s);
-
-        // THREE.js applies translation AFTER scale, so need to calc
-        // appropriate translation
+        this.s_scaleRotate.scale.set(s, s, s);
+        this.s_h_scaleRotate.scale.set(s, s, s);
+        this.s_scaleRotate.up = this.mesh.up().clone();
+        this.s_h_scaleRotate.up = this.mesh.up().clone();
+        if (this.model.meshMode()) {
+            // Meshes point in the normal way
+            this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
+            this.s_h_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
+        } else {
+            // images have their z pointing away from the camera (in effect
+            // this emulates having a LHS coordinate system for images, which
+            // we want)
+            this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, -1));
+            this.s_h_scaleRotate.lookAt(new THREE.Vector3(0, 0, -1));
+        }
+        // translation
         var t = t_mesh.geometry.boundingSphere.center.clone();
-        t.multiplyScalar(-1.0 * s);  // -1 as we want to centre
-        this.s_meshAndLms.position = t;
+        t.multiplyScalar(-1.0);
+        this.s_translate.position = t;
+        this.s_h_translate.position = t;
         this.resetCamera();
         this.update();
     },
@@ -578,11 +676,11 @@ exports.Viewport = Backbone.View.extend({
         // 1. Clear the scene graph of all landmarks
         // TODO should this be a destructor on LandmarkView?
         this.s_meshAndLms.remove(this.s_lms);
-        this.s_meshAndLms.remove(this.s_lmsconnectivity);
+        this.s_h_meshAndLms.remove(this.s_lmsconnectivity);
         this.s_lms = new THREE.Object3D();
         this.s_lmsconnectivity = new THREE.Object3D();
         this.s_meshAndLms.add(this.s_lms);
-        this.s_meshAndLms.add(this.s_lmsconnectivity);
+        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
         // 2. Build a fresh set of views - clear any existing lms
         this.landmarkViews = [];
         this.connectivityViews = [];
@@ -617,31 +715,133 @@ exports.Viewport = Backbone.View.extend({
         if (this.model.dispatcher().isBatchRenderEnabled()) {
             return;
         }
-        //console.log('Viewport:update');
+        // 1. Render the main viewport
+        var w, h;
+        w = this.$container.width();
+        h = this.$container.height();
+        this.renderer.setViewport(0, 0, w, h);
+        this.renderer.setScissor(0, 0, w, h);
+        this.renderer.enableScissorTest (true);
         this.renderer.clear();
         this.renderer.render(this.scene, this.s_camera);
         this.renderer.render(this.sceneHelpers, this.s_camera);
+
+        // 2. Render the PIP image if in orthographic mode
+        if (this.s_camera === this.s_oCam) {
+            var minX, minY, pipW, pipH;
+            var bounds = this.pilBounds();
+            minX = bounds[0];
+            minY = bounds[1];
+            pipW = bounds[2];
+            pipH = bounds[3];
+            this.renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
+            this.renderer.setViewport(minX, minY, pipW, pipH);
+            this.renderer.setScissor(minX, minY, pipW, pipH);
+            this.renderer.enableScissorTest(true);
+            this.renderer.clear();
+            // render the PIP image
+            this.renderer.render(this.scene, this.s_oCamZoom);
+            // never render connectivity in the zoom view
+            //this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
+            this.renderer.setClearColor(CLEAR_COLOUR, 1);
+        }
+    },
+
+    pilBounds: function () {
+        var w = this.$container.width();
+        var h = this.$container.height();
+        var maxX = w - PIP_MARGIN;
+        var maxY = h - PIP_MARGIN;
+        var pipWidth = Math.round(PIP_RATIO * w);
+        var minX = maxX - pipWidth;
+        var minY = maxY - pipWidth;
+        return [minX, minY, pipWidth, pipWidth];
     },
 
     resetCamera: function () {
-        this.s_camera.position.set(1.68, 0.35, 3.0);
-        this.s_camera.lookAt(this.scene.position);
+        if (this.model.meshMode()) {
+            this.s_pCam.position.copy(MESH_MODE_STARTING_POSITION);
+            this.s_oCam.position.copy(MESH_MODE_STARTING_POSITION);
+            this.s_oCamZoom.position.copy(MESH_MODE_STARTING_POSITION);
+        } else {
+            this.s_pCam.position.copy(IMAGE_MODE_STARTING_POSITION);
+            this.s_oCam.position.copy(IMAGE_MODE_STARTING_POSITION);
+            this.s_oCamZoom.position.copy(IMAGE_MODE_STARTING_POSITION);
+        }
+        this.s_pCam.lookAt(this.scene.position);
+        this.s_oCam.lookAt(this.scene.position);
+        this.s_oCamZoom.lookAt(this.scene.position);
         this.update();
     },
 
     clearCanvas: function () {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.strokeStyle = '#ff0000';
+        // always draw the crosshair
+        var hx = this.mouseHoverPosition.x;
+        var hy = this.mouseHoverPosition.y;
+        // vertical line
+        this.ctx.beginPath();
+        this.ctx.moveTo(hx, hy - CROSSHAIR_SIZE);
+        this.ctx.lineTo(hx, hy - CROSSHAIR_GAP);
+        this.ctx.closePath();
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(hx, hy + CROSSHAIR_GAP);
+        this.ctx.lineTo(hx, hy + CROSSHAIR_SIZE);
+        this.ctx.closePath();
+        this.ctx.stroke();
+        // horizontal line
+        this.ctx.beginPath();
+        this.ctx.moveTo(hx - CROSSHAIR_SIZE, hy);
+        this.ctx.lineTo(hx - CROSSHAIR_GAP, hy);
+        this.ctx.closePath();
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(hx + CROSSHAIR_GAP, hy);
+        this.ctx.lineTo(hx + CROSSHAIR_SIZE, hy);
+        this.ctx.closePath();
+        this.ctx.stroke();
+        if (this.s_camera === this.s_oCam) {
+            // orthographic means there is the PIP window. Draw the box and
+            // target.
+            var b = this.pilBounds();
+            var minX = b[0];
+            var minY = this.canvas.height - b[1] - b[3];
+            var width = b[2];
+            var height = b[3];
+            var maxX = minX + width;
+            var maxY = minY + height;
+            var midX = (2 * minX + width)/2;
+            var midY = (2 * minY + height) / 2;
+            // vertical line
+            this.ctx.strokeRect(minX, minY, width, height);
+            this.ctx.beginPath();
+            this.ctx.moveTo(midX, minY);
+            this.ctx.lineTo(midX, maxY);
+            this.ctx.closePath();
+            this.ctx.stroke();
+            // horizontal line
+            this.ctx.beginPath();
+            this.ctx.moveTo(minX, midY);
+            this.ctx.lineTo(maxX, midY);
+            this.ctx.closePath();
+            this.ctx.stroke();
+        }
     },
 
     resize: function () {
         var w, h;
         w = this.$container.width();
         h = this.$container.height();
-        this.s_camera.aspect = w / h;
-        this.s_camera.updateProjectionMatrix();
+        // ask the camera controller to update the cameras appropriately
+        this.cameraControls.resize(w, h);
+        // update the size of the renderer and the canvas
         this.renderer.setSize(w, h);
         this.canvas.width = w;
         this.canvas.height = h;
+        // clear the canvas to make sure the PIP box is correct
+        this.clearCanvas();
         this.update();
     },
 
@@ -689,6 +889,8 @@ var LandmarkTHREEView = Backbone.View.extend({
                 this.symbol = this.createSphere(this.model.get('point'),
                     this.viewport.meshScale * LM_SCALE, 1);
                 this.updateSymbol();
+                // trigger changeLandmarkSize to make sure sizing is correct
+                this.changeLandmarkSize();
                 // and add it to the scene
                 this.viewport.s_lms.add(this.symbol);
             }

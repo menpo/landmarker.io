@@ -30,8 +30,8 @@ var LandmarkView = Backbone.View.extend({
     },
 
     render: function () {
-        console.log("Landmark:render - " + this.model.get('index') +
-        "(" + this.cid + ", " + this.model.cid + ")");
+        //console.log("Landmark:render - " + this.model.get('index') +
+        //"(" + this.cid + ", " + this.model.cid + ")");
         function xyziForLandmark(lm) {
             var p;
             if (lm.isEmpty()) {
@@ -51,7 +51,7 @@ var LandmarkView = Backbone.View.extend({
                 };
             }
         }
-
+        // TODO handle 2D landmarks here
         var html = $(this.template(xyziForLandmark(this.model)));
         html.toggleClass("Table-Row-Odd", this.model.get('index') % 2 === 1);
         html.toggleClass("Table-Cell-Selected", this.model.isSelected());
@@ -104,7 +104,7 @@ var LandmarkListView = Backbone.View.extend({
     },
 
     renderOne : function(model) {
-        console.log("NEW: LandmarkView (LandmarkList.renderOne())");
+        //console.log("NEW: LandmarkView (LandmarkList.renderOne())");
         var row = new LandmarkView({model:model});
         // reset the view's element to it's template
         this.$el.append(row.render().$el);
@@ -147,7 +147,7 @@ var LandmarkGroupButtonView = Backbone.View.extend({
     },
 
     render: function () {
-        console.log('GroupButton:render - ' + this.model.get('label'));
+        //console.log('GroupButton:render - ' + this.model.get('label'));
         var lms = this.model.get('landmarks');
         var nonempty_str = pad(lms.nonempty().length, 2);
         var lms_str = pad(lms.length, 2);
@@ -171,7 +171,7 @@ var LandmarkGroupView = Backbone.View.extend({
         _.bindAll(this, 'render');
         this.listenTo(this.model, "all", this.render);
         this.landmarkTable = null;
-        this.buton = null
+        this.button = null
     },
 
     render: function () {
@@ -180,7 +180,7 @@ var LandmarkGroupView = Backbone.View.extend({
         this.$el.empty();
         this.$el.append(this.button.render().$el);
         if (this.model.get('active')) {
-            console.log("NEW: LandmarkListView (LandmarkGroupView.render())");
+            //console.log("NEW: LandmarkListView (LandmarkGroupView.render())");
             this.landmarkTable = new LandmarkListView(
                 {collection: this.model.landmarks()});
             this.$el.append(this.landmarkTable.render().$el);
@@ -225,7 +225,7 @@ var LandmarkGroupListView = Backbone.View.extend({
     },
 
     renderOne : function(model) {
-        console.log("NEW: LandmarkGroupView (LandmarkGroupListView.renderOne())");
+        //console.log("NEW: LandmarkGroupView (LandmarkGroupListView.renderOne())");
         var group = new LandmarkGroupView({model:model});
         // reset the view's element to it's template
         this.$el.append(group.render().$el);
@@ -244,9 +244,9 @@ var LandmarkGroupListView = Backbone.View.extend({
 });
 
 
-var MeshPagerView = Backbone.View.extend({
+var AssetPagerView = Backbone.View.extend({
 
-    el: '#meshPager',
+    el: '#assetPager',
 
     initialize : function() {
         _.bindAll(this, 'render');
@@ -307,35 +307,35 @@ var SaveRevertView = Backbone.View.extend({
     }
 });
 
-var MeshInfoView = Backbone.View.extend({
+var AssetInfoView = Backbone.View.extend({
 
-    el: '#meshInfo',
+    el: '#assetInfo',
 
     initialize : function() {
         _.bindAll(this, 'render');
-        this.listenTo(this.model, "change:mesh", this.render);
+        this.listenTo(this.model, "change:asset", this.render);
     },
 
     render: function () {
-        console.log("MeshInfoView: meshSource:mesh has a change");
-        this.$el.find('#meshName').html(this.model.mesh().id);
-        var n_str = pad(this.model.meshes().length, 2);
-        var i_str = pad(this.model.meshIndex() + 1, 2);
-        this.$el.find('#meshIndex').html(i_str + "/" + n_str);
+        console.log("AssetInfoView: assetSource:asset has changed");
+        this.$el.find('#assetName').html(this.model.asset().id);
+        var n_str = pad(this.model.assets().length, 2);
+        var i_str = pad(this.model.assetIndex() + 1, 2);
+        this.$el.find('#assetIndex').html(i_str + "/" + n_str);
         return this;
     },
 
     events: {
-        "click #meshName" : "chooseMeshName",
-        'click #meshIndex' : "chooseMeshNumber"
+        "click #assetName" : "chooseAssetName",
+        'click #assetIndex' : "chooseMeshNumber"
     },
 
     chooseMeshNumber: function () {
         console.log('Sidebar:chooseMeshNumber called');
     },
 
-    chooseMeshName: function () {
-        console.log('Sidebar:chooseMeshName called');
+    chooseAssetName: function () {
+        console.log('Sidebar:chooseAssetName called');
     },
 
     revert: function () {
@@ -347,18 +347,18 @@ var MeshInfoView = Backbone.View.extend({
 var Sidebar = Backbone.View.extend({
 
     initialize : function() {
-        _.bindAll(this, "renderLandmarks", "renderMeshSrc");
-        this.listenTo(this.model, "change:landmarks", this.renderLandmarks);
-        this.listenTo(this.model, "change:meshSource", this.renderMeshSrc);
-        this.renderMeshSrc();
+        _.bindAll(this, "landmarksChange", "assetSourceChange");
+        this.listenTo(this.model, "change:landmarks", this.landmarksChange);
+        this.listenTo(this.model, "change:assetSource", this.assetSourceChange);
+        this.assetSourceChange();
     },
 
-    renderMeshSrc: function () {
-        new MeshPagerView({model: this.model.get('meshSource')});
-        new MeshInfoView({model: this.model.get('meshSource')});
+    assetSourceChange: function () {
+        new AssetPagerView({model: this.model.assetSource()});
+        new AssetInfoView({model: this.model.assetSource()});
     },
 
-    renderLandmarks: function () {
+    landmarksChange: function () {
         // TODO inconsistency in binding - manual or hardcoded? not both.
         new SaveRevertView({model: this.model.get('landmarks')});
         var lmView = new LandmarkGroupListView({
@@ -374,6 +374,6 @@ exports.LandmarkListView = LandmarkListView;
 exports.LandmarkGroupButtonView = LandmarkGroupButtonView;
 exports.LandmarkGroupView = LandmarkGroupView;
 exports.LandmarkGroupListView = LandmarkGroupListView;
-exports.ModelPagerView = MeshPagerView;
+exports.AssetPagerView = AssetPagerView;
 exports.SaveRevertView = SaveRevertView;
 exports.Sidebar = Sidebar;

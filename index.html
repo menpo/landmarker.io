@@ -5,8 +5,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="viewport" content="width=device-width user-scalable=no">
     <link href="css/landmarker.css" rel="stylesheet">
-    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r66/three.min.js"></script>
-    <!--<script type="text/javascript" src="js/vendor/three.min.js"></script>-->
+    <!--<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r66/three.min.js"></script>-->
+    <script type="text/javascript" src="three.min.js"></script>
     <script src=bundle.js></script>
 </head>
 
@@ -60,14 +60,11 @@
                     </div>
                     </div>
                 </div>
-                <div class="Toolbar-Row">&alpha;
+                <div class="Toolbar-Row" id="alphaRow">&alpha;
                     <input type="range" name="points" min="0" max="100" value="100" id="alphaSlider">
                 </div>
-                <div class="Toolbar-Row">&#9679;
+                <div class="Toolbar-Row" id="lmSizeRow">&#9679;
                     <input type="range" name="points" min="0" max="100" id="lmSizeSlider">
-                </div>
-                <div class="Toolbar-Row">&#8212;
-                    <input type="range" name="points" min="0" max="100">
                 </div>
             </div>
             <!-- Spacer to push toolbox to bottom corner -->
@@ -85,11 +82,11 @@
     <div class="App-Sidebar">
         <!-- Sidebar is itself a flexbox container (Sidebar-x are children) -->
         <div class="Sidebar">
-            <div class="Sidebar-row" id="meshInfo">
-                <button class="Sidebar-row-item MeshName" id="meshName">
+            <div class="Sidebar-row" id="assetInfo">
+                <button class="Sidebar-row-item AssetName" id="assetName">
                     mesh_name
                 </button>
-                <button class="Sidebar-row-item MeshCount" id="meshIndex">
+                <button class="Sidebar-row-item AssetCount" id="assetIndex">
                     001/999
                 </button>
             </div>
@@ -104,7 +101,7 @@
             </div>
             <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
             </div>
-            <div class="Sidebar-row" id="meshPager">
+            <div class="Sidebar-row" id="assetPager">
                 <div class="Sidebar-row-item">
                     <button class="Button-Basic"
                             id="previous">Previous</button>

@@ -15,15 +15,30 @@ document.addEventListener('DOMContentLoaded', function () {
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = "";
     var server;
-    if (getURLParameter('mode') === 'demo') {
+    // by default, we try mesh mode
+    var mode = 'mesh';
+    var modeParam;
+    if (getURLParameter('mode') === null &&
+        getURLParameter('demo') === null) {
+        // reload in mesh mode by default.
+        window.location.href = window.location.origin + '/?mode=mesh'
+    }
+    if (getURLParameter('demo') === 'mesh') {
         // put the server in demo mode
         document.title = document.title + ' - demo mode';
         $('.App-Viewport-UIText-TopLeft').toggle();
         server = new Server.Server({DEMO_MODE: true});
+        // demo mode only supports meshes for now
+        mode = 'mesh';
     } else {
         server = new Server.Server({apiURL: 'http://localhost:5000'});
+        modeParam = getURLParameter('mode');
+        if (modeParam === 'image' || modeParam === 'mesh') {
+            mode = modeParam;
+        }
     }
-    var app = new App.App({server: server});
+    // By here let's say the mode of operation is decided - image or mesh
+    var app = new App.App({server: server, mode: mode});
     var sidebar = new Sidebar.Sidebar({model: app});
     // note that we provide the Viewport with the canvas overlay of
     // the viewport as requested.
@@ -46,18 +61,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 app.landmarks().deleteSelected();
                 break;
             case 32:  // space bar = reset camera
+                // TODO fix for multiple cameras (should be in camera controller)
                 viewport.resetCamera();
                 break;
-            case 116:  // t = [T]exture toggle
-                app.mesh().textureToggle();
+            case 116:  // t = [T]exture toggle (mesh mode only)
+                if (app.meshMode()) {
+                    app.mesh().textureToggle();
+                }
                 break;
-            case 119:  // w = [W]ireframe toggle
-                app.mesh().wireframeToggle();
+            case 119:  // w = [W]ireframe toggle (mesh mode only)
+                if (app.meshMode()) {
+                    app.mesh().wireframeToggle();
+                }
                 break;
             case 97:  // a = select [A]ll
                 app.landmarks().selectAllInActiveGroup();
                 break;
+            case 99:  // a = toggle [C]amera mode
+                if (app.meshMode()) {
+                    viewport.toggleCamera();
+                }
+                break;
+            case 106:  // j = down, next asset
+                app.assetSource().next();
+                break;
+            case 107:  // k = up, previous asset
+                app.assetSource().previous();
+                break;
         }
     });
 });
-
