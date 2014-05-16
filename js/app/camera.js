@@ -22,7 +22,8 @@
  * property.
  */
 var $ = require('jquery');
-require('jquery-mousewheel')($);
+// Doesn't seem to be helping us...
+//require('jquery-mousewheel')($);
 var _ = require('underscore');
 var Backbone = require('backbone');
 var THREE = require('three');
@@ -269,8 +270,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     function onMouseWheel(event) {
         console.log('camera: mousewheel');
         if (!enabled) return;
-        tinput.set(0, 0, (-event.deltaY * MOUSE_WHEEL_SENSITIVITY));
-        console.log('wheel: ' + event.deltaY);
+        tinput.set(0, 0, (-event.originalEvent.deltaY * MOUSE_WHEEL_SENSITIVITY));
         zoom(tinput);
     }
 
@@ -278,7 +278,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         console.log('camera: disable');
         enabled = false;
         $(domElement).off('mousedown.camera');
-        $(domElement).off('mousewheel.camera');
+        $(domElement).off('wheel.camera');
         $(document).off('mousemove.camera');
     }
 
@@ -287,7 +287,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
             console.log('camera: enable');
             enabled = true;
             $(domElement).on('mousedown.camera', onMouseDown);
-            $(domElement).on('mousewheel.camera', onMouseWheel);
+            $(domElement).on('wheel.camera', onMouseWheel);
         }
     }
 
