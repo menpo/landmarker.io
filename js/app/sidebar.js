@@ -307,9 +307,9 @@ var SaveRevertView = Backbone.View.extend({
     }
 });
 
-var AssetInfoView = Backbone.View.extend({
+var AssetNameView = Backbone.View.extend({
 
-    el: '#assetInfo',
+    el: '#assetName',
 
     initialize : function() {
         _.bindAll(this, 'render');
@@ -317,21 +317,13 @@ var AssetInfoView = Backbone.View.extend({
     },
 
     render: function () {
-        console.log("AssetInfoView: assetSource:asset has changed");
-        this.$el.find('#assetName').html(this.model.asset().id);
-        var n_str = pad(this.model.assets().length, 2);
-        var i_str = pad(this.model.assetIndex() + 1, 2);
-        this.$el.find('#assetIndex').html(i_str + "/" + n_str);
+        console.log("AssetNameView: assetSource:asset has changed");
+        this.$el.html(this.model.asset().id);
         return this;
     },
 
     events: {
-        "click #assetName" : "chooseAssetName",
-        'click #assetIndex' : "chooseMeshNumber"
-    },
-
-    chooseMeshNumber: function () {
-        console.log('Sidebar:chooseMeshNumber called');
+        click : "chooseAssetName",
     },
 
     chooseAssetName: function () {
@@ -343,6 +335,35 @@ var AssetInfoView = Backbone.View.extend({
     }
 });
 
+var AssetIndexView = Backbone.View.extend({
+
+    el: '#assetIndex',
+
+    initialize : function() {
+        _.bindAll(this, 'render');
+        this.listenTo(this.model, "change:asset", this.render);
+    },
+
+    render: function () {
+        console.log("AssetIndexView: assetSource:asset has changed");
+        var n_str = pad(this.model.assets().length, 2);
+        var i_str = pad(this.model.assetIndex() + 1, 2);
+        this.$el.html(i_str + "/" + n_str);
+        return this;
+    },
+
+    events: {
+        click : "chooseAssetNumber"
+    },
+
+    chooseAssetNumber: function () {
+        console.log('Sidebar:chooseAssetNumber called');
+    },
+
+    revert: function () {
+        console.log('Sidebar:revert called');
+    }
+});
 
 var Sidebar = Backbone.View.extend({
 
@@ -355,7 +376,8 @@ var Sidebar = Backbone.View.extend({
 
     assetSourceChange: function () {
         new AssetPagerView({model: this.model.assetSource()});
-        new AssetInfoView({model: this.model.assetSource()});
+        new AssetNameView({model: this.model.assetSource()});
+        new AssetIndexView({model: this.model.assetSource()});
     },
 
     landmarksChange: function () {

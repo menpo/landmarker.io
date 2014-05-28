@@ -1,5 +1,4 @@
-
-/* GLOBAL STYLE */
+/* ------------------------------ GLOBAL STYLE ----------------------------  */
 html {
     height: 100%;
     overflow: hidden;
@@ -62,6 +61,8 @@ table {
     border-collapse: collapse;
 }
 
+
+/* ----------------------------- CONTAINER STYING ------------------------- */
 /* APP (VIEWPORT + SIDEBAR) - ROW FLEXBOX */
 .App {
     display: flex;
@@ -117,80 +118,6 @@ is itself a row flexbox */
     flex: 1;
 }
 
-.Button-Basic {
-    background: #0A4EB2;
-    color: white;
-    width: 100%;
-}
-
-.Button--Disabled {
-    opacity: 0.33;
-}
-
-.Button-LandmarkGroup {
-    background: #2D77C2;
-    color: white;
-}
-
-.Button-LandmarkGroup-Active {
-    font-weight: bold;
-    background: #0A4EB2;
-}
-
-.Button-Toolbar {
-    background: #2D77C2;
-    color: white;
-}
-
-.Button-Toolbar-On {
-    font-weight: bold;
-    background: #0A4EB2;
-}
-
-
-.Button-Save {
-    color: white;
-    background: #5FB632;
-}
-
-.Button-Revert {
-    color: white;
-    background: #B91109;
-}
-
-.AssetName {
-    color: #B91109;
-    background: white;
-    font-size: x-large;
-    font-weight: bold;
-    margin-top: 8px;
-    margin-bottom: 8px;
-    margin-left: 16px;
-    text-align: left;
-}
-
-.AssetCount {
-    color: black;
-    background: white;
-    margin-right: 16px;
-    font-size: x-large;
-    text-align: right;
-}
-
-.LabelName {
-    color: #B91109;
-    font-size: large;
-    font-weight: bold;
-    margin-left: 16px;
-    text-align: left;
-}
-
-.LabelCount {
-    margin-right: 16px;
-    font-size: large;
-    text-align: right;
-}
-
 .Table-Cell-Count {
     background: #0A4EB2;
     color: white;
@@ -221,11 +148,12 @@ is itself a row flexbox */
 
 
 /* TOOLBAR (BOTTOM LEFT) COLUMN FLEXBOX */
-.App-Viewport-Toolbar {
+.App-Viewport-Left {
     display: flex;
     min-height: 100vh;
-    flex-direction: column-reverse;
+    flex-direction: column;
     align-items: flex-start;
+    justify-content: space-between;
 }
 
 /* UITEXT (TOP LEFT) */
@@ -235,11 +163,6 @@ is itself a row flexbox */
     top: 10px;
     left: 10px;
     display: none;
-}
-
-#demoWarning {
-    font-size: xx-large;
-    color: white;
 }
 
 /* Toolbar needs to be above the Three.js viewport and canvas overlay */
@@ -273,6 +196,132 @@ is itself a row flexbox */
     flex: 1;
 }
 
+.Toolbar-Row--Disabled{
+    pointer-events: none;
+    opacity: 0.3;
+}
+
+/* Black transparent overlay used when model sheets are up */
+.Overlay-Background {
+    position: fixed;
+    background: rgba(54, 25, 25, .5);
+    z-index: 3;
+    top:0;
+    left:0;
+    width: 100%;
+    height: 100%;
+    visibility: hidden;
+}
+
+/* OVERLAY ROW FLEXBOX */
+.Overlay {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    flex-direction: row;
+    z-index: 4;
+    position: absolute;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+}
+
+/* The overlay sheet itself */
+.Overlay-Sheet {
+    flex: 1;
+    height: 80vh;
+    max-width: 50vw;
+    text-align: center;
+    background: white;
+}
+
+#demoWarning {
+    font-size: xx-large;
+    color: white;
+}
+
+#assetInfo {
+    z-index: 2;
+}
+
+
+/* ----------------------- INDIVIDUAL ITEM STYLING ------------------------- */
+.Button-Basic {
+    background: #0A4EB2;
+    color: white;
+    width: 100%;
+}
+
+.Button--Disabled {
+    opacity: 0.33;
+}
+
+.Button-LandmarkGroup {
+    background: #2D77C2;
+    color: white;
+}
+
+.Button-LandmarkGroup-Active {
+    font-weight: bold;
+    background: #0A4EB2;
+}
+
+.Button-Save {
+    color: white;
+    background: #5FB632;
+}
+
+.Button-Revert {
+    color: white;
+    background: #B91109;
+}
+
+.Button-Toolbar {
+    background: #2D77C2;
+    color: white;
+}
+
+.Button-Toolbar-On {
+    font-weight: bold;
+    background: #0A4EB2;
+}
+
+#assetName {
+    color: #B91109;
+    background: white;
+    font-size: x-large;
+    font-weight: bold;
+    text-align: left;
+    margin: 0;
+    width: inherit;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+#assetIndex {
+    color: black;
+    background: white;
+    font-size: x-large;
+    text-align: left;
+    margin: 0;
+    width: inherit;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.LabelName {
+    color: #B91109;
+    font-size: large;
+    font-weight: bold;
+    margin-left: 16px;
+    text-align: left;
+}
+
+.   LabelCount {
+    margin-right: 16px;
+    font-size: large;
+    text-align: right;
+}
 
 /* from http://proto.io/freebies/onoff/ */
 .onoffswitch {
@@ -330,44 +379,4 @@ is itself a row flexbox */
 
 .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
     right: 0px;
-}
-
-.Toolbar-Row--Disabled{
-    pointer-events: none;
-    opacity: 0.3;
-}
-
-
-/* Black transparent overlay used when model sheets are up */
-.Overlay-Background {
-    position: fixed;
-    background: rgba(54, 25, 25, .5);
-    z-index: 3;
-    top:0;
-    left:0;
-    width: 100%;
-    height: 100%;
-    visibility: hidden;
-}
-
-/* OVERLAY ROW FLEXBOX */
-.Overlay {
-    display: flex;
-    height: 100%;
-    width: 100%;
-    flex-direction: row;
-    z-index: 4;
-    position: absolute;
-    align-items: center;
-    justify-content: center;
-    visibility: hidden;
-}
-
-/* The overlay sheet itself */
-.Overlay-Sheet {
-    flex: 1;
-    height: 80vh;
-    max-width: 50vw;
-    text-align: center;
-    background: white;
 }
