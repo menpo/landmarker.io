@@ -32,47 +32,55 @@
         <!-- A canvas (for 2D overlays, e.g. selection box) and the WebGL div -->
         <canvas class="App-Viewport-Viewport" id="vpoverlay"></canvas>
         <div class="App-Viewport-Viewport" id="viewport"></div>
-        <div class="App-Viewport-Left">
-            <!-- Asset information  (top left) -->
-            <button id="assetName">
-                mesh_name
-            </button>
-            <button id="assetIndex">
-                001/999
-            </button>
-            <!-- Spacer to push toolbox to bottom corner -->
-            <div class="Toolbar-Spacer"></div>
-            <!-- Toolbox itself (bottom left) -->
-            <div class="Toolbar" id="toolbar">
-                <div class="Toolbar-Row" id="textureRow">
-                    <div class="Toolbar-Row-Item">Texture</div>
-                    <div class="Toolbar-Row-Item">
-                    <div class="onoffswitch">
-                        <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="textureToggle">
-                        <label class="onoffswitch-label" for="textureToggle">
-                            <div class="onoffswitch-inner"></div>
-                            <div class="onoffswitch-switch"></div>
-                        </label>
+        <div class="App-Viewport-Flex-Horizontal">
+            <div class="App-Viewport-Flex-Left-Column">
+                <!-- Asset information  (top left) -->
+                <button id="assetName">mesh_name</button>
+                <button id="assetIndex">001/999</button>
+                <!-- Spacer to push toolbox to bottom corner -->
+                <div class="Toolbar-Spacer"></div>
+                <!-- Toolbox itself (bottom left) -->
+                <div class="Toolbar" id="toolbar">
+                    <div class="Toolbar-Row" id="textureRow">
+                        <div class="Toolbar-Row-Item">Texture</div>
+                        <div class="Toolbar-Row-Item">
+                        <div class="onoffswitch">
+                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="textureToggle">
+                            <label class="onoffswitch-label" for="textureToggle">
+                                <div class="onoffswitch-inner"></div>
+                                <div class="onoffswitch-switch"></div>
+                            </label>
+                        </div>
+                        </div>
                     </div>
+                    <div class="Toolbar-Row" id="wireframeRow">
+                    <div class="Toolbar-Row-Item">Wireframe</div>
+                        <div class="Toolbar-Row-Item">
+                        <div class="onoffswitch">
+                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="wireframeToggle">
+                            <label class="onoffswitch-label" for="wireframeToggle">
+                                <div class="onoffswitch-inner"></div>
+                                <div class="onoffswitch-switch"></div>
+                            </label>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="Toolbar-Row" id="alphaRow">&alpha;
+                        <input type="range" name="points" min="0" max="100" value="100" id="alphaSlider">
+                    </div>
+                    <div class="Toolbar-Row" id="lmSizeRow">&#9679;
+                        <input type="range" name="points" min="0" max="100" id="lmSizeSlider">
                     </div>
                 </div>
-                <div class="Toolbar-Row" id="wireframeRow">
-                <div class="Toolbar-Row-Item">Wireframe</div>
-                    <div class="Toolbar-Row-Item">
-                    <div class="onoffswitch">
-                        <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="wireframeToggle">
-                        <label class="onoffswitch-label" for="wireframeToggle">
-                            <div class="onoffswitch-inner"></div>
-                            <div class="onoffswitch-switch"></div>
-                        </label>
-                    </div>
-                    </div>
+            </div>
+            <!-- Prev/Next  (bottom centre) -->
+            <div class="Pager-Flex" id="assetPager">
+                <div class="Pager-Flex-Item">
+                    <button class="Button-Basic-Fixed"
+                            id="previous">Previous</button>
                 </div>
-                <div class="Toolbar-Row" id="alphaRow">&alpha;
-                    <input type="range" name="points" min="0" max="100" value="100" id="alphaSlider">
-                </div>
-                <div class="Toolbar-Row" id="lmSizeRow">&#9679;
-                    <input type="range" name="points" min="0" max="100" id="lmSizeSlider">
+                <div class="Pager-Flex-Item">
+                    <button class="Button-Basic-Fixed" id="next">Next</button>
                 </div>
             </div>
         </div>
@@ -88,6 +96,8 @@
     <div class="App-Sidebar">
         <!-- Sidebar is itself a flexbox container (Sidebar-x are children) -->
         <div class="Sidebar">
+            <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
+            </div>
             <div class="Sidebar-row" id="saveRevert">
                 <div class="Sidebar-row-item">
                     <button class="Button-Save"
@@ -95,17 +105,6 @@
                 </div>
                 <div class="Sidebar-row-item">
                     <button class="Button-Revert" id="revert">Revert</button>
-                </div>
-            </div>
-            <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
-            </div>
-            <div class="Sidebar-row" id="assetPager">
-                <div class="Sidebar-row-item">
-                    <button class="Button-Basic"
-                            id="previous">Previous</button>
-                </div>
-                <div class="Sidebar-row-item">
-                    <button class="Button-Basic" id="next">Next</button>
                 </div>
             </div>
         </div>
@@ -141,4 +140,3 @@
 
 </body>
 </html>
-

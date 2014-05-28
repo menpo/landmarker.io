@@ -147,14 +147,31 @@ is itself a row flexbox */
 }
 
 
-/* TOOLBAR (BOTTOM LEFT) COLUMN FLEXBOX */
-.App-Viewport-Left {
+/* ASSET INFO AND TOOLBAR - LEFT COLUMN - FLEXBOX */
+.App-Viewport-Flex-Left-Column {
     display: flex;
     min-height: 100vh;
     flex-direction: column;
     align-items: flex-start;
     justify-content: space-between;
 }
+
+/* PAGER - BOTTOM ROW - FLEXBOX */
+.App-Viewport-Flex-Horizontal {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+
+/*.App-Viewport-Bottom-Flex {*/
+    /*display: flex;*/
+    /*min-height: 100vh;*/
+    /*flex-direction: row;*/
+    /*align-items: flex-start;*/
+    /*justify-content: space-around;*/
+/*}*/
 
 /* UITEXT (TOP LEFT) */
 .App-Viewport-UIText-TopLeft {
@@ -163,6 +180,16 @@ is itself a row flexbox */
     top: 10px;
     left: 10px;
     display: none;
+}
+
+/* Container for Prev/Next buttons */
+.Pager-Flex {
+    display: flex;
+    flex-direction: row;
+    text-align: center;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 2;
 }
 
 /* Toolbar needs to be above the Three.js viewport and canvas overlay */
@@ -250,6 +277,12 @@ is itself a row flexbox */
     background: #0A4EB2;
     color: white;
     width: 100%;
+}
+
+.Button-Basic-Fixed {
+    background: #0A4EB2;
+    color: white;
+    width: 140px;
 }
 
 .Button--Disabled {
