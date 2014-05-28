@@ -83,30 +83,30 @@
                     <button class="Button-Basic-Fixed" id="next">Next</button>
                 </div>
             </div>
+            <!-- SIDEBAR (WebGL window and related overlay toolbars) -->
+            <!-- 2/2 flexbox child of App -->
+            <div class="App-Sidebar">
+                <!-- Sidebar is itself a flexbox container (Sidebar-x are children) -->
+                <div class="Sidebar">
+                    <div class="Sidebar-Spacer"></div>
+                    <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
+                    </div>
+                    <div class="Sidebar-row" id="saveRevert">
+                        <div class="Sidebar-row-item">
+                            <button class="Button-Save"
+                                    id="save">Save</button>
+                        </div>
+                        <div class="Sidebar-row-item">
+                            <button class="Button-Revert" id="revert">Revert</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- The toolbar (for toggling various settings like texture) -->
         <div class="App-Viewport-UIText-TopLeft">
             <div id="demoWarning">DEMO MODE</div>
             <div><a href="http://www.landmarker.io/help/demo" target="_blank">what does this mean?</a></div>
-        </div>
-    </div>
-
-    <!-- SIDEBAR (WebGL window and related overlay toolbars) -->
-    <!-- 2/2 flexbox child of App -->
-    <div class="App-Sidebar">
-        <!-- Sidebar is itself a flexbox container (Sidebar-x are children) -->
-        <div class="Sidebar">
-            <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
-            </div>
-            <div class="Sidebar-row" id="saveRevert">
-                <div class="Sidebar-row-item">
-                    <button class="Button-Save"
-                            id="save">Save</button>
-                </div>
-                <div class="Sidebar-row-item">
-                    <button class="Button-Revert" id="revert">Revert</button>
-                </div>
-            </div>
         </div>
     </div>
 </div>

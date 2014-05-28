@@ -79,6 +79,7 @@ table {
 .App-Sidebar {
     width: 300px;
     align-items: center;
+    z-index: 2;
 }
 
 
@@ -89,6 +90,11 @@ table {
     max-height: 100vh;
     flex-direction: column;
     text-align: center;
+}
+
+/* Make the Sidebar fixed width */
+.Sidebar-Spacer {
+    height: 300px;
 }
 
 /* The Landmarks panel takes up the rest of the room */

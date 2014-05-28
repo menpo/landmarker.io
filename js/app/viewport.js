@@ -21,8 +21,9 @@ var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.68, 0.35, 3.0);
 var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
 
 
-var PIP_RATIO = 0.25;
-var PIP_MARGIN = 20;
+var PIP_WIDTH = 300;
+var PIP_HEIGHT = 300;
+var PIP_MARGIN = 0;
 
 exports.Viewport = Backbone.View.extend({
 
@@ -752,10 +753,9 @@ exports.Viewport = Backbone.View.extend({
         var h = this.$container.height();
         var maxX = w - PIP_MARGIN;
         var maxY = h - PIP_MARGIN;
-        var pipWidth = Math.round(PIP_RATIO * w);
-        var minX = maxX - pipWidth;
-        var minY = maxY - pipWidth;
-        return [minX, minY, pipWidth, pipWidth];
+        var minX = maxX - PIP_WIDTH;
+        var minY = maxY - PIP_HEIGHT;
+        return [minX, minY, PIP_WIDTH, PIP_HEIGHT];
     },
 
     resetCamera: function () {
