@@ -287,6 +287,11 @@ is itself a row flexbox */
     background: #5FB632;
 }
 
+
+.Lm-NextAvailable {
+    background: black;
+}
+
 /* ----------------------- INDIVIDUAL ITEM STYLING ------------------------- */
 .Button-Basic {
     background: #0A4EB2;

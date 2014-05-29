@@ -18,7 +18,8 @@ var LandmarkView = Backbone.View.extend({
     tagName: "div",
 
     events: {
-        "click": "select"
+        click: "select",
+        dblclick: "selectAll"
     },
 
     id: function () {
@@ -38,6 +39,8 @@ var LandmarkView = Backbone.View.extend({
         html.toggleClass("Lm-Empty", this.model.isEmpty());
         html.toggleClass("Lm-Value", !this.model.isEmpty());
         html.toggleClass("Lm-Selected", this.model.isSelected());
+        html.toggleClass("Lm-NextAvailable", this.model.isNextAvailable());
+
 
         // in case our element is already live replace the content
         this.$el.replaceWith(html);
@@ -61,6 +64,11 @@ var LandmarkView = Backbone.View.extend({
             this.model.get('group').activate();
             this.model.select();
         }
+    },
+
+    selectAll: function (event) {
+        this.model.get('group').activate();
+        this.model.collection.selectAll();
     }
 });
 

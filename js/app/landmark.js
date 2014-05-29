@@ -11,7 +11,24 @@ var Landmark = Backbone.Model.extend({
         return {
             point: null,
             selected: false,
-            index: 0
+            index: 0,
+            nextAvailable: false
+        }
+    },
+
+    isNextAvailable: function () {
+        return this.get('nextAvailable');
+    },
+
+    setNextAvailable: function () {
+        if (!this.isNextAvailable()) {
+            this.set('nextAvailable', true);
+        }
+    },
+
+    clearNextAvailable: function () {
+        if (this.isNextAvailable()) {
+            this.set('nextAvailable', false);
         }
     },
 
@@ -59,6 +76,8 @@ var Landmark = Backbone.Model.extend({
             selected: false,
             isEmpty: true
         });
+        // reactivate the group to reset next available.
+        this.get('group').collection.resetNextAvailable();
     },
 
     group: function () {
@@ -131,6 +150,12 @@ var LandmarkList = Backbone.Collection.extend({
         });
     },
 
+    clearAllNextAvailable: function () {
+        this.forEach(function(landmark) {
+            landmark.clearNextAvailable();
+        });
+    },
+
     deselectAll: function () {
         this.forEach(function(landmark) {
             landmark.deselect();
@@ -164,6 +189,7 @@ var LandmarkGroup = Backbone.Model.extend({
             this.collection.deactivateAll();
             this.set('active', true);
             this.landmarks().deselectAll();
+            this.collection.resetNextAvailable();
         }
     },
 
@@ -246,6 +272,20 @@ var LandmarkGroupList = Backbone.Collection.extend({
         });
     },
 
+    resetNextAvailable: function () {
+        this.clearAllNextAvailable();
+        var next = this.nextAvailable();
+        if (next) {
+            next.setNextAvailable();
+        }
+    },
+
+    clearAllNextAvailable: function () {
+        this.each(function(group) {
+            group.landmarks().clearAllNextAvailable();
+        });
+    },
+
     deselectAll: function () {
         this.each(function(group) {
             group.landmarks().deselectAll();
@@ -276,11 +316,26 @@ var LandmarkGroupList = Backbone.Collection.extend({
         this.withLabel(label).set('active', true);
     },
 
-    advanceActiveGroup: function () {
-        var activeIndex = this.indexOf(this.active());
-        if (activeIndex < this.length - 1) {
-            // we can advance!
-            this.activeIndex(activeIndex + 1);
+    nextAvailable: function () {
+        var group, lms, lm, i, j;
+        var activeGroup = this.active();
+        if (activeGroup.landmarks().empty().length !== 0) {
+            // The active group has a space left - next for insertion is
+            // highest of these
+            return activeGroup.landmarks().empty()[0];
+        } else {
+            // no space in active group - hunt through for a space in all groups
+            for(i = 0; i < this.length; i++) {
+                group = this.at(i);
+                lms = group.landmarks();
+                for(j = 0; j < lms.length; j++) {
+                    lm = lms.at(j);
+                    if (lm.isEmpty()) {
+                        return lm;
+                    }
+                }
+            }
+            return null;
         }
     }
 
@@ -313,26 +368,28 @@ var LandmarkSet = Backbone.Model.extend({
     },
 
     insertNew: function (v) {
-        var activeGroup = this.groups().active();
-        var insertedLandmark = null;
-        if (activeGroup.landmarks().empty().length !== 0) {
-            // get rid of current selection
-            activeGroup.landmarks().deselectAll();
-            // get the first empty landmark and set it
-            insertedLandmark = activeGroup.landmarks().empty()[0];
-            // TODO this is explicit for efficiency - does it help?
-            insertedLandmark.set({
-                point: v.clone(),
-                selected: true,
-                isEmpty: false
-            });
-            if (activeGroup.landmarks().empty().length === 0) {
-                // depleted this group! Auto-advance to the next if we can
-                insertedLandmark.deselect();
-                this.groups().advanceActiveGroup();
-            }
+        var lm = this.groups().nextAvailable();
+        if (!lm) {
+            // nothing left to insert!
+            return null;
         }
-        return insertedLandmark;
+        if (!lm.isNextAvailable()) {
+            console.log('ERROR: nextAvailable is incorrectly set!');
+        }
+        // we are definitely inserting.
+        lm.get('group').activate();
+        lm.collection.deselectAll();
+        lm.set({
+            point: v.clone(),
+            selected: true,
+            isEmpty: false,
+            nextAvailable: false
+        });
+        var nextLm = this.groups().nextAvailable();
+        if (nextLm) {
+            nextLm.setNextAvailable();
+        }
+        return lm;
     },
 
     deleteSelected: function () {
@@ -405,6 +462,7 @@ var LandmarkSet = Backbone.Model.extend({
             })
         );
         landmarkGroupList.at(0).activate();
+        landmarkGroupList.at(0).landmarks().at(0).setNextAvailable();
         return {groups: landmarkGroupList};
     },
 
