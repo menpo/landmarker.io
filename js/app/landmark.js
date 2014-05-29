@@ -462,7 +462,7 @@ var LandmarkSet = Backbone.Model.extend({
             })
         );
         landmarkGroupList.at(0).activate();
-        landmarkGroupList.at(0).landmarks().at(0).setNextAvailable();
+        landmarkGroupList.resetNextAvailable();
         return {groups: landmarkGroupList};
     },
 
