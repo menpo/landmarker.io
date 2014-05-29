@@ -17,6 +17,7 @@ button {
     background: white;
     outline: none;
     width: 100%;
+    min-height: 40px;
     height: 40px;
     font-weight: 300;
     font-size: larger;
@@ -71,18 +72,17 @@ input, textarea, select{
     display: flex;
     min-height: 100vh;
     max-height: 100vh;
-    flex-direction: column;
+    flex-direction: column-reverse;
     text-align: center;
 }
 
 /* Make the Sidebar fixed width */
-.Sidebar-Spacer {
-    height: 300px;
+.Sidebar-Spacer--ForPip {
+    min-height: 300px;
 }
 
 /* The Landmarks panel takes up the rest of the room */
 .Sidebar-LandmarksPanel {
-    flex: 1;
     display: flex;
     flex-direction: column;
     text-align: center;
@@ -102,6 +102,7 @@ is itself a row flexbox */
     text-align: center;
     justify-content: space-around;
     align-items: center;
+    min-height: 40px;
 }
 
 .Sidebar-row-item {
@@ -265,6 +266,7 @@ is itself a row flexbox */
     display: flex;
     align-items: center;
     height: inherit;
+    opacity: 0.5;
 }
 
 .Lm {
