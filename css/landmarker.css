@@ -45,23 +45,6 @@ input, textarea, select{
     user-select: none;
 }
 
-td {
-    padding-top: 6px;
-    padding-bottom: 6px;
-    cursor: pointer;
-}
-
-th {
-    padding-top: 6px;
-    padding-bottom: 6px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-
 /* ----------------------------- CONTAINER STYING ------------------------- */
 /* APP (VIEWPORT + SIDEBAR) - ROW FLEXBOX */
 .App {
@@ -104,6 +87,7 @@ table {
     flex-direction: column;
     text-align: center;
     overflow: auto;
+    cursor: pointer;
 }
 
 .Sidebar-button {
@@ -122,26 +106,6 @@ is itself a row flexbox */
 
 .Sidebar-row-item {
     flex: 1;
-}
-
-.Table-Cell-Count {
-    background: #0A4EB2;
-    color: white;
-    font-weight: bold;
-    width: 50px;
-}
-
-.Table-Row-Odd {
-    background: #DCDEE2;
-}
-
-.Table-Cell-Selected {
-    font-weight: bold;
-}
-
-.Table-Cell-Header {
-    background: #0A4EB2;
-    color: white;
 }
 
 .App-Viewport-Viewport {
@@ -277,6 +241,48 @@ is itself a row flexbox */
     z-index: 2;
 }
 
+.LmGroup {
+    height: 50px;
+    position: relative;
+}
+
+.LmGroup-Label {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: inherit;
+    z-index: 1;
+    pointer-events: none;
+    font-size: larger;
+    color: white;
+}
+
+.LmGroup-Flex {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    height: inherit;
+}
+
+.Lm {
+    flex: 1;
+    height: inherit;
+}
+
+.Lm-Empty {
+    background: #2D77C2;
+}
+
+.Lm-Value {
+    background: #0A4EB2;
+}
+
+.Lm-Selected {
+    background: #5FB632;
+}
 
 /* ----------------------- INDIVIDUAL ITEM STYLING ------------------------- */
 .Button-Basic {
@@ -293,16 +299,6 @@ is itself a row flexbox */
 
 .Button--Disabled {
     opacity: 0.33;
-}
-
-.Button-LandmarkGroup {
-    background: #2D77C2;
-    color: white;
-}
-
-.Button-LandmarkGroup-Active {
-    font-weight: bold;
-    background: #0A4EB2;
 }
 
 .Button-Save {
@@ -356,7 +352,7 @@ is itself a row flexbox */
     text-align: left;
 }
 
-.   LabelCount {
+.LabelCount {
     margin-right: 16px;
     font-size: large;
     text-align: right;

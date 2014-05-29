@@ -15,7 +15,7 @@ function pad(n, width, z) {
 // updates and that's it.
 var LandmarkView = Backbone.View.extend({
 
-    template: _.template($("#trTemplate").html()),
+    tagName: "div",
 
     events: {
         "click": "select"
@@ -32,29 +32,12 @@ var LandmarkView = Backbone.View.extend({
     render: function () {
         //console.log("Landmark:render - " + this.model.get('index') +
         //"(" + this.cid + ", " + this.model.cid + ")");
-        function xyziForLandmark(lm) {
-            var p;
-            if (lm.isEmpty()) {
-                return {
-                    x: '-',
-                    y: '-',
-                    z: '-',
-                    i: lm.get('index')
-                };
-            } else {
-                p = lm.point();
-                return {
-                    x: p.x.toPrecision(4),
-                    y: p.y.toPrecision(4),
-                    z: p.z.toPrecision(4),
-                    i: lm.get('index')
-                };
-            }
-        }
-        // TODO handle 2D landmarks here
-        var html = $(this.template(xyziForLandmark(this.model)));
-        html.toggleClass("Table-Row-Odd", this.model.get('index') % 2 === 1);
-        html.toggleClass("Table-Cell-Selected", this.model.isSelected());
+        var html = $("<div></div>");
+        html.addClass("Lm", this.model.isEmpty());
+
+        html.toggleClass("Lm-Empty", this.model.isEmpty());
+        html.toggleClass("Lm-Value", !this.model.isEmpty());
+        html.toggleClass("Lm-Selected", this.model.isSelected());
 
         // in case our element is already live replace the content
         this.$el.replaceWith(html);
@@ -85,9 +68,7 @@ var LandmarkView = Backbone.View.extend({
 // and de-activated)
 var LandmarkListView = Backbone.View.extend({
 
-    template: _.template($("#tableHeader").html()),
-
-    tagName: 'table',
+    tagName: 'div',
 
     initialize : function() {
         _.bindAll(this, 'render', 'renderOne');
@@ -98,17 +79,17 @@ var LandmarkListView = Backbone.View.extend({
     render: function() {
         this.cleanup();
         this.$el.empty();
-        this.$el.append(this.template());
+        this.$el.addClass('LmGroup-Flex');
         this.collection.each(this.renderOne);
         return this;
     },
 
     renderOne : function(model) {
         //console.log("NEW: LandmarkView (LandmarkList.renderOne())");
-        var row = new LandmarkView({model:model});
+        var lm = new LandmarkView({model:model});
         // reset the view's element to it's template
-        this.$el.append(row.render().$el);
-        this.lmViews.push(row);
+        this.$el.append(lm.render().$el);
+        this.lmViews.push(lm);
         return this;
     },
 
@@ -149,10 +130,8 @@ var LandmarkGroupButtonView = Backbone.View.extend({
     render: function () {
         //console.log('GroupButton:render - ' + this.model.get('label'));
         var lms = this.model.get('landmarks');
-        var nonempty_str = pad(lms.nonempty().length, 2);
-        var lms_str = pad(lms.length, 2);
         var label = this.model.label();
-        this.$el.html(label + " (" + nonempty_str + "/" + lms_str + ")");
+        this.$el.html(label);
         this.$el.toggleClass("Button-LandmarkGroup-Active",
             this.model.get("active"));
         return this;
@@ -164,36 +143,35 @@ var LandmarkGroupButtonView = Backbone.View.extend({
 // we render all the landmarks (LandmarkListView) as well as the header.
 var LandmarkGroupView = Backbone.View.extend({
 
-    // TODO make this a useful div
     tagName: 'div',
 
     initialize : function() {
         _.bindAll(this, 'render');
         this.listenTo(this.model, "all", this.render);
-        this.landmarkTable = null;
-        this.button = null
+        this.landmarkList = null;
     },
 
     render: function () {
         this.cleanup();
-        this.button = new LandmarkGroupButtonView({model:this.model});
         this.$el.empty();
-        this.$el.append(this.button.render().$el);
-        if (this.model.get('active')) {
-            //console.log("NEW: LandmarkListView (LandmarkGroupView.render())");
-            this.landmarkTable = new LandmarkListView(
-                {collection: this.model.landmarks()});
-            this.$el.append(this.landmarkTable.render().$el);
-        }
+        this.$el.addClass('LmGroup');
+        //console.log("NEW: LandmarkListView (LandmarkGroupView.render())");
+        this.landmarkList = new LandmarkListView(
+            {collection: this.model.landmarks()});
+        var label = $('<div></div>');
+        label.html(this.model.label());
+        label.addClass('LmGroup-Label');
+        this.$el.append(label);
+        this.$el.append(this.landmarkList.render().$el);
         return this;
     },
 
     cleanup: function () {
-        if (this.landmarkTable) {
+        if (this.landmarkList) {
             // already have a list view! clean it up + remove
-            this.landmarkTable.cleanup();
-            this.landmarkTable.remove();
-            this.landmarkTable = null;
+            this.landmarkList.cleanup();
+            this.landmarkList.remove();
+            this.landmarkList = null;
         }
         if (this.button) {
             // already have a button view! remove
