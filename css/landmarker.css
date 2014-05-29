@@ -243,18 +243,17 @@ is itself a row flexbox */
 }
 
 .LmGroup {
-    height: 50px;
     position: relative;
 }
 
 .LmGroup-Label {
     width: 100%;
+    height: 100%;
     position: absolute;
     top: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: inherit;
     z-index: 1;
     pointer-events: none;
     font-size: larger;
@@ -263,15 +262,17 @@ is itself a row flexbox */
 
 .LmGroup-Flex {
     width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
-    height: inherit;
     opacity: 0.5;
 }
 
 .Lm {
     flex: 1;
-    height: inherit;
+    height: 30px;
+    margin-left: 1px;
+    margin-bottom: 1px;
 }
 
 .Lm-Empty {
