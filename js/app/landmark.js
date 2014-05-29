@@ -160,6 +160,7 @@ var LandmarkGroup = Backbone.Model.extend({
 
     activate: function () {
         if (!this.isActive()) {
+            this.collection.deselectAll();
             this.collection.deactivateAll();
             this.set('active', true);
             this.landmarks().deselectAll();

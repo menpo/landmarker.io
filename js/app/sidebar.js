@@ -58,6 +58,7 @@ var LandmarkView = Backbone.View.extend({
             }
         } else {
             this.model.collection.deselectAll();
+            this.model.get('group').activate();
             this.model.select();
         }
     }
