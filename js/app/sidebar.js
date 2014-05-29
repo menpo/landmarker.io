@@ -110,43 +110,6 @@ var LandmarkListView = Backbone.View.extend({
 
 });
 
-// Renders the LandmarkGroup header. Needs to re-render on active change or
-// whenever a Landmark is filled in or not.
-var LandmarkGroupButtonView = Backbone.View.extend({
-
-    tagName: "button",
-
-    className: "Button-LandmarkGroup",
-
-    events: {
-        'click' : "activate"
-    },
-
-    activate: function () {
-        if (this.model.isActive()) {
-            this.model.landmarks().selectAll();
-        } else {
-            this.model.activate();
-        }
-    },
-
-    initialize : function() {
-        _.bindAll(this, 'render');
-        this.listenTo(this.model, "change:active", this.render);
-        this.listenTo(this.model.get('landmarks'), "change:isEmpty", this.render);
-    },
-
-    render: function () {
-        //console.log('GroupButton:render - ' + this.model.get('label'));
-        var lms = this.model.get('landmarks');
-        var label = this.model.label();
-        this.$el.html(label);
-        this.$el.toggleClass("Button-LandmarkGroup-Active",
-            this.model.get("active"));
-        return this;
-    }
-});
-
 // Renders a single LandmarkGroup. Either the view is closed and we just
 // render the header (LandmarkGroupButtonView) or this group is active and
 // we render all the landmarks (LandmarkListView) as well as the header.
@@ -380,7 +343,6 @@ var Sidebar = Backbone.View.extend({
 
 exports.LandmarkView = LandmarkView;
 exports.LandmarkListView = LandmarkListView;
-exports.LandmarkGroupButtonView = LandmarkGroupButtonView;
 exports.LandmarkGroupView = LandmarkGroupView;
 exports.LandmarkGroupListView = LandmarkGroupListView;
 exports.AssetPagerView = AssetPagerView;
