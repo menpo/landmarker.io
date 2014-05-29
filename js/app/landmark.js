@@ -327,6 +327,7 @@ var LandmarkSet = Backbone.Model.extend({
             });
             if (activeGroup.landmarks().empty().length === 0) {
                 // depleted this group! Auto-advance to the next if we can
+                insertedLandmark.deselect();
                 this.groups().advanceActiveGroup();
             }
         }
