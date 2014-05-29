@@ -471,6 +471,20 @@ var LandmarkSet = Backbone.Model.extend({
             groups: this.get('groups'),
             version: 1
         };
+    },
+
+    saveVerbose: function () {
+        console.log('save called');
+        this.save(null,
+            {
+                parse: false,
+                success: function () {
+                    console.log('successfully saved');
+                },
+                error: function () {
+                    console.log('could not save.');
+                }
+        });
     }
 });
 

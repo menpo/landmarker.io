@@ -248,8 +248,7 @@ var SaveRevertView = Backbone.View.extend({
     },
 
     save: function () {
-        console.log('save called');
-        this.model.save(null, {parse: false});
+        this.model.saveVerbose();
     },
 
     revert: function () {
