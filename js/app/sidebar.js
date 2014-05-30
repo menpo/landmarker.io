@@ -110,6 +110,27 @@ var LandmarkListView = Backbone.View.extend({
 
 });
 
+// Renders the LandmarkGroup label. Needs to re-render if group changes from
+// active to not
+var LandmarkGroupLabelView = Backbone.View.extend({
+
+    className: "LmGroup-Label",
+
+    initialize : function() {
+        _.bindAll(this, 'render');
+        this.listenTo(this.model, "change:active", this.render);
+    },
+
+    render: function () {
+        var label = this.model.label();
+        this.$el.html(label);
+        this.$el.toggleClass("LmGroup-Label--Active",
+            this.model.get("active"));
+        return this;
+    }
+});
+
+
 // Renders a single LandmarkGroup. Either the view is closed and we just
 // render the header (LandmarkGroupButtonView) or this group is active and
 // we render all the landmarks (LandmarkListView) as well as the header.
@@ -121,6 +142,7 @@ var LandmarkGroupView = Backbone.View.extend({
         _.bindAll(this, 'render');
         this.listenTo(this.model, "all", this.render);
         this.landmarkList = null;
+        this.label = null;
     },
 
     render: function () {
@@ -130,10 +152,8 @@ var LandmarkGroupView = Backbone.View.extend({
         //console.log("NEW: LandmarkListView (LandmarkGroupView.render())");
         this.landmarkList = new LandmarkListView(
             {collection: this.model.landmarks()});
-        var label = $('<div></div>');
-        label.html(this.model.label());
-        label.addClass('LmGroup-Label');
-        this.$el.append(label);
+        this.label = new LandmarkGroupLabelView({model: this.model});
+        this.$el.append(this.label.render().$el);
         this.$el.append(this.landmarkList.render().$el);
         return this;
     },
@@ -145,10 +165,10 @@ var LandmarkGroupView = Backbone.View.extend({
             this.landmarkList.remove();
             this.landmarkList = null;
         }
-        if (this.button) {
-            // already have a button view! remove
-            this.button.remove();
-            this.button = null;
+        if (this.label) {
+            // already have a label view! remove
+            this.label.remove();
+            this.label = null;
         }
     }
 });
@@ -253,6 +273,7 @@ var SaveRevertView = Backbone.View.extend({
 
     revert: function () {
         console.log('revert called');
+        this.model.fetch();
     }
 });
 

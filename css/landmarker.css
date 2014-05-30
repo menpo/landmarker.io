@@ -260,6 +260,10 @@ is itself a row flexbox */
     color: white;
 }
 
+.LmGroup-Label--Active {
+    font-weight: bold
+}
+
 .LmGroup-Flex {
     width: 100%;
     height: 100%;

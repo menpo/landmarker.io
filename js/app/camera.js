@@ -100,7 +100,6 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
 
         // Then, the orthographic. In general, we are just going to squeeze in
         // the bounds of the orthographic frustum to zoom.
-        console.log(scalar);
         if (oCam.right - oCam.left < 0.001 && scalar < 0) {
             // trying to zoom in and we are already tight. return.
             return
@@ -268,7 +267,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     }
 
     function onMouseWheel(event) {
-        console.log('camera: mousewheel');
+        //console.log('camera: mousewheel');
         if (!enabled) return;
         tinput.set(0, 0, (-event.originalEvent.deltaY * MOUSE_WHEEL_SENSITIVITY));
         zoom(tinput);
