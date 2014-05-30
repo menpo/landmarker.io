@@ -15,7 +15,7 @@ function resolveMode(u) {
 
 
 function resolveServer(u) {
-    var Server = require('./app/server');
+    var Server = require('./app/model/server');
     var apiUrl = DEFAULT_API_URL;
     if (u.query.hasOwnProperty('server')) {
         if (u.query.server === 'demo') {
@@ -35,10 +35,11 @@ function resolveServer(u) {
 
 document.addEventListener('DOMContentLoaded', function () {
     var $ = require('jquery');
-    var Sidebar = require('./app/sidebar');
-    var Toolbar = require('./app/toolbar');
-    var Viewport = require('./app/viewport');
-    var App = require('./app/app');
+    var SidebarView = require('./app/view/sidebar');
+    var AssetView = require('./app/view/asset');
+    var ToolbarView = require('./app/view/toolbar');
+    var ViewportView = require('./app/view/viewport');
+    var App = require('./app/model/app');
     var THREE = require('three');
     var url = require('url');
 
@@ -56,15 +57,16 @@ document.addEventListener('DOMContentLoaded', function () {
     // by this point definitely have a correctly set server.
 
     var app = new App.App({server: server, mode: mode});
-    var sidebar = new Sidebar.Sidebar({model: app});
+    var sidebar = new SidebarView.Sidebar({model: app});
+    var assetView = new AssetView.AssetView({model: app});
     // note that we provide the Viewport with the canvas overlay of
     // the viewport as requested.
-    var viewport = new Viewport.Viewport(
+    var viewport = new ViewportView.Viewport(
         {
             model: app,
             el: $('#vpoverlay')
         });
-    var toolbar = new Toolbar.Toolbar({model: app});
+    var toolbar = new ToolbarView.Toolbar({model: app});
 
     // For debugging, attach to the window.
     window.app = app;
