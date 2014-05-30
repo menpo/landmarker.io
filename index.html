@@ -5,7 +5,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="viewport" content="width=device-width user-scalable=no">
     <link href="css/landmarker.css" rel="stylesheet">
-    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r66/three.min.js"></script>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r67/three.min.js"></script>
     <!--<script type="text/javascript" src="three.min.js"></script>-->
     <script src=bundle.js></script>
 </head>
@@ -32,43 +32,76 @@
         <!-- A canvas (for 2D overlays, e.g. selection box) and the WebGL div -->
         <canvas class="App-Viewport-Viewport" id="vpoverlay"></canvas>
         <div class="App-Viewport-Viewport" id="viewport"></div>
-
-        <!-- The toolbar (for toggling various settings like texture) -->
-        <div class="App-Viewport-Toolbar">
-            <div class="Toolbar" id="toolbar">
-                <div class="Toolbar-Row" id="textureRow">
-                    <div class="Toolbar-Row-Item">Texture</div>
-                    <div class="Toolbar-Row-Item">
-                    <div class="onoffswitch">
-                        <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="textureToggle">
-                        <label class="onoffswitch-label" for="textureToggle">
-                            <div class="onoffswitch-inner"></div>
-                            <div class="onoffswitch-switch"></div>
-                        </label>
+        <div class="App-Viewport-Flex-Horizontal">
+            <div class="App-Viewport-Flex-Left-Column">
+                <!-- Asset information  (top left) -->
+                <button id="assetName">mesh_name</button>
+                <button id="assetIndex">001/999</button>
+                <!-- Spacer to push toolbox to bottom corner -->
+                <div class="Toolbar-Spacer"></div>
+                <!-- Toolbox itself (bottom left) -->
+                <div class="Toolbar" id="toolbar">
+                    <div class="Toolbar-Row" id="textureRow">
+                        <div class="Toolbar-Row-Item">Texture</div>
+                        <div class="Toolbar-Row-Item">
+                        <div class="onoffswitch">
+                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="textureToggle">
+                            <label class="onoffswitch-label" for="textureToggle">
+                                <div class="onoffswitch-inner"></div>
+                                <div class="onoffswitch-switch"></div>
+                            </label>
+                        </div>
+                        </div>
                     </div>
+                    <div class="Toolbar-Row" id="wireframeRow">
+                    <div class="Toolbar-Row-Item">Wireframe</div>
+                        <div class="Toolbar-Row-Item">
+                        <div class="onoffswitch">
+                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="wireframeToggle">
+                            <label class="onoffswitch-label" for="wireframeToggle">
+                                <div class="onoffswitch-inner"></div>
+                                <div class="onoffswitch-switch"></div>
+                            </label>
+                        </div>
+                        </div>
                     </div>
-                </div>
-                <div class="Toolbar-Row" id="wireframeRow">
-                <div class="Toolbar-Row-Item">Wireframe</div>
-                    <div class="Toolbar-Row-Item">
-                    <div class="onoffswitch">
-                        <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="wireframeToggle">
-                        <label class="onoffswitch-label" for="wireframeToggle">
-                            <div class="onoffswitch-inner"></div>
-                            <div class="onoffswitch-switch"></div>
-                        </label>
+                    <div class="Toolbar-Row" id="alphaRow">&alpha;
+                        <input type="range" name="points" min="0" max="100" value="100" id="alphaSlider">
                     </div>
+                    <div class="Toolbar-Row" id="lmSizeRow">&#9679;
+                        <input type="range" name="points" min="0" max="100" id="lmSizeSlider">
                     </div>
-                </div>
-                <div class="Toolbar-Row" id="alphaRow">&alpha;
-                    <input type="range" name="points" min="0" max="100" value="100" id="alphaSlider">
-                </div>
-                <div class="Toolbar-Row" id="lmSizeRow">&#9679;
-                    <input type="range" name="points" min="0" max="100" id="lmSizeSlider">
                 </div>
             </div>
-            <!-- Spacer to push toolbox to bottom corner -->
-            <div class="Toolbar-Spacer"></div>
+            <!-- Prev/Next  (bottom centre) -->
+            <div class="Pager-Flex" id="assetPager">
+                <div class="Pager-Flex-Item">
+                    <button class="Button-Basic-Fixed"
+                            id="previous">Previous</button>
+                </div>
+                <div class="Pager-Flex-Item">
+                    <button class="Button-Basic-Fixed" id="next">Next</button>
+                </div>
+            </div>
+            <!-- SIDEBAR (WebGL window and related overlay toolbars) -->
+            <!-- 2/2 flexbox child of App -->
+            <div class="App-Sidebar">
+                <!-- Sidebar is itself a flexbox container (Sidebar-x are children) -->
+                <div class="Sidebar">
+                    <div class="Sidebar-row" id="saveRevert">
+                        <div class="Sidebar-row-item">
+                            <button class="Button-Save"
+                                    id="save">Save</button>
+                        </div>
+                        <div class="Sidebar-row-item">
+                            <button class="Button-Revert" id="revert">Revert</button>
+                        </div>
+                    </div>
+                    <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
+                    </div>
+                    <div id="sidebarSpacer"></div>
+                </div>
+            </div>
         </div>
         <!-- The toolbar (for toggling various settings like texture) -->
         <div class="App-Viewport-UIText-TopLeft">
@@ -76,70 +109,7 @@
             <div><a href="http://www.landmarker.io/help/demo" target="_blank">what does this mean?</a></div>
         </div>
     </div>
-
-    <!-- SIDEBAR (WebGL window and related overlay toolbars) -->
-    <!-- 2/2 flexbox child of App -->
-    <div class="App-Sidebar">
-        <!-- Sidebar is itself a flexbox container (Sidebar-x are children) -->
-        <div class="Sidebar">
-            <div class="Sidebar-row" id="assetInfo">
-                <button class="Sidebar-row-item AssetName" id="assetName">
-                    mesh_name
-                </button>
-                <button class="Sidebar-row-item AssetCount" id="assetIndex">
-                    001/999
-                </button>
-            </div>
-            <div class="Sidebar-row" id="saveRevert">
-                <div class="Sidebar-row-item">
-                    <button class="Button-Save"
-                            id="save">Save</button>
-                </div>
-                <div class="Sidebar-row-item">
-                    <button class="Button-Revert" id="revert">Revert</button>
-                </div>
-            </div>
-            <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
-            </div>
-            <div class="Sidebar-row" id="assetPager">
-                <div class="Sidebar-row-item">
-                    <button class="Button-Basic"
-                            id="previous">Previous</button>
-                </div>
-                <div class="Sidebar-row-item">
-                    <button class="Button-Basic" id="next">Next</button>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-
-<!-- UNDERSCORE TEMPLATES -->
-
-<script id="trTemplate" type="text/template">
-    <tr id="lm<%= i %>">
-        <td class="Table-Cell Table-Cell-Count"><%= i %></td>
-        <td class="x"><%= x %></td>
-        <td class="y"><%= y %></td>
-        <td class="z"><%= z %></td>
-    </tr>
-</script>
-
-<script id="tableHeader" type="text/template">
-    <thead>
-    <tr>
-        <th class="Table-Cell Table-Cell-Header"></th>
-        <th class="Table-Cell Table-Cell-Header">x</th>
-        <th class="Table-Cell Table-Cell-Header">y</th>
-        <th class="Table-Cell Table-Cell-Header">z</th>
-    </tr>
-    </thead>
-</script>
-
-<script id="landmarkGroupLabel" type="text/template">
-    <button class="Button-LandmarkGroup" id="<%= label %>"><%= labelFormatted %></button>
-</script>
 
 </body>
 </html>
-
