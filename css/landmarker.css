@@ -47,20 +47,15 @@ input, textarea, select{
 }
 
 /* ----------------------------- CONTAINER STYING ------------------------- */
-/* APP (VIEWPORT + SIDEBAR) - ROW FLEXBOX */
 .App {
-    display: flex;
     min-height: 100vh;
-    flex-direction: row;
-}
-
-.App-Viewport {
-    flex: 4;
+    min-width: 100vw;
     cursor: none;
 }
 
+
 /* Make the Sidebar fixed width */
-.App-Sidebar {
+.App-Flex-Sidebar {
     width: 300px;
     align-items: center;
     z-index: 2;
@@ -109,17 +104,17 @@ is itself a row flexbox */
     flex: 1;
 }
 
-.App-Viewport-Viewport {
+.App-FullScreen {
     position: fixed
 }
 
-.App-Viewport-Viewport#vpoverlay {
+#canvas {
     z-index: 1;
 }
 
 
 /* ASSET INFO AND TOOLBAR - LEFT COLUMN - FLEXBOX */
-.App-Viewport-Flex-Left-Column {
+.App-Flex-LeftCol {
     display: flex;
     min-height: 100vh;
     flex-direction: column;
@@ -128,7 +123,7 @@ is itself a row flexbox */
 }
 
 /* PAGER - BOTTOM ROW - FLEXBOX */
-.App-Viewport-Flex-Horizontal {
+.App-Flex {
     display: flex;
     min-height: 100vh;
     flex-direction: row;
@@ -154,7 +149,7 @@ is itself a row flexbox */
 }
 
 /* Container for Prev/Next buttons */
-.Pager-Flex {
+.App-Flex-Pager {
     display: flex;
     flex-direction: row;
     text-align: center;

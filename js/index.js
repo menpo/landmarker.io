@@ -59,13 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var app = new App.App({server: server, mode: mode});
     var sidebar = new SidebarView.Sidebar({model: app});
     var assetView = new AssetView.AssetView({model: app});
-    // note that we provide the Viewport with the canvas overlay of
-    // the viewport as requested.
-    var viewport = new ViewportView.Viewport(
-        {
-            model: app,
-            el: $('#vpoverlay')
-        });
+    var viewport = new ViewportView.Viewport({model: app});
     var toolbar = new ToolbarView.Toolbar({model: app});
 
     // For debugging, attach to the window.
