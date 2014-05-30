@@ -109,19 +109,29 @@ is itself a row flexbox */
 /* ASSET INFO AND TOOLBAR - LEFT COLUMN - FLEXBOX */
 .App-Flex-LeftCol {
     display: flex;
-    min-height: 100vh;
     flex-direction: column;
     align-items: flex-start;
     justify-content: space-between;
 }
 
 /* PAGER - BOTTOM ROW - FLEXBOX */
-.App-Flex {
+.App-Flex-Horiz {
     display: flex;
-    min-height: 100vh;
+    flex: 1;
     flex-direction: row;
-    align-items: flex-end;
     justify-content: space-between;
+}
+
+.App-Flex-Vert {
+    display: flex;
+    min-width: 100vw;
+    min-height: 100vh;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.Notifications {
+    z-index: 4;
 }
 
 /*.App-Viewport-Bottom-Flex {*/
@@ -144,10 +154,7 @@ is itself a row flexbox */
 /* Container for Prev/Next buttons */
 .App-Flex-Pager {
     display: flex;
-    flex-direction: row;
-    text-align: center;
-    justify-content: space-around;
-    align-items: center;
+    align-items: flex-end;
     z-index: 2;
 }
 

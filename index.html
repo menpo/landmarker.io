@@ -26,80 +26,75 @@
         <!-- A canvas (for 2D overlays, e.g. selection box) and the WebGL div -->
         <canvas class="App-FullScreen" id="canvas"></canvas>
         <div class="App-FullScreen" id="viewport"></div>
-        <div class="App-Flex">
-            <div class="App-Flex-LeftCol">
-                <!-- Asset information  (top left) -->
-                <button id="assetName">mesh_name</button>
-                <button id="assetIndex">001/999</button>
-                <!-- Spacer to push toolbox to bottom corner -->
-                <div class="Toolbar-Spacer"></div>
-                <!-- Toolbox itself (bottom left) -->
-                <div class="Toolbar" id="toolbar">
-                    <div class="Toolbar-Row" id="textureRow">
-                        <div class="Toolbar-Row-Item">Texture</div>
-                        <div class="Toolbar-Row-Item">
-                        <div class="onoffswitch">
-                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="textureToggle">
-                            <label class="onoffswitch-label" for="textureToggle">
-                                <div class="onoffswitch-inner"></div>
-                                <div class="onoffswitch-switch"></div>
-                            </label>
+        <div class="App-Flex-Vert">
+            <div class="Notifications">Hello World</div>
+            <div class="App-Flex-Horiz">
+                <div class="App-Flex-LeftCol">
+                    <!-- Asset information  (top left) -->
+                    <div class="AssetInfo">
+                        <button id="assetName">mesh_name</button>
+                        <button id="assetIndex">001/999</button>
+                    </div>
+                    <!-- Toolbox itself (bottom left) -->
+                    <div class="Toolbar" id="toolbar">
+                        <div class="Toolbar-Row" id="textureRow">
+                            <div class="Toolbar-Row-Item">Texture</div>
+                            <div class="Toolbar-Row-Item">
+                            <div class="onoffswitch">
+                                <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="textureToggle">
+                                <label class="onoffswitch-label" for="textureToggle">
+                                    <div class="onoffswitch-inner"></div>
+                                    <div class="onoffswitch-switch"></div>
+                                </label>
+                            </div>
+                            </div>
                         </div>
+                        <div class="Toolbar-Row" id="wireframeRow">
+                        <div class="Toolbar-Row-Item">Wireframe</div>
+                            <div class="Toolbar-Row-Item">
+                            <div class="onoffswitch">
+                                <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="wireframeToggle">
+                                <label class="onoffswitch-label" for="wireframeToggle">
+                                    <div class="onoffswitch-inner"></div>
+                                    <div class="onoffswitch-switch"></div>
+                                </label>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="Toolbar-Row" id="alphaRow">&alpha;
+                            <input type="range" name="points" min="0" max="100" value="100" id="alphaSlider">
+                        </div>
+                        <div class="Toolbar-Row" id="lmSizeRow">&#9679;
+                            <input type="range" name="points" min="0" max="100" id="lmSizeSlider">
                         </div>
                     </div>
-                    <div class="Toolbar-Row" id="wireframeRow">
-                    <div class="Toolbar-Row-Item">Wireframe</div>
-                        <div class="Toolbar-Row-Item">
-                        <div class="onoffswitch">
-                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="wireframeToggle">
-                            <label class="onoffswitch-label" for="wireframeToggle">
-                                <div class="onoffswitch-inner"></div>
-                                <div class="onoffswitch-switch"></div>
-                            </label>
+                </div>
+                <!-- PREV/NEXT  (bottom centre) -->
+                <div class="App-Flex-Pager" id="assetPager">
+                    <div class="Pager-Item">
+                        <button class="Button-Basic-Fixed"
+                                id="previous">Previous</button>
+                    </div>
+                    <div class="Pager-Item">
+                        <button class="Button-Basic-Fixed" id="next">Next</button>
+                    </div>
+                </div>
+                <!-- SIDEBAR  -->
+                <div class="App-Flex-Sidebar">
+                    <div class="Sidebar-row" id="saveRevert">
+                        <div class="Sidebar-row-item">
+                            <button class="Button-Save"
+                                    id="save">Save</button>
                         </div>
+                        <div class="Sidebar-row-item">
+                            <button class="Button-Revert" id="revert">Revert</button>
                         </div>
                     </div>
-                    <div class="Toolbar-Row" id="alphaRow">&alpha;
-                        <input type="range" name="points" min="0" max="100" value="100" id="alphaSlider">
+                    <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
                     </div>
-                    <div class="Toolbar-Row" id="lmSizeRow">&#9679;
-                        <input type="range" name="points" min="0" max="100" id="lmSizeSlider">
-                    </div>
+                    <div id="sidebarSpacer"></div>
                 </div>
             </div>
-            <!-- Prev/Next  (bottom centre) -->
-            <div class="App-Flex-Pager" id="assetPager">
-                <div class="Pager-Item">
-                    <button class="Button-Basic-Fixed"
-                            id="previous">Previous</button>
-                </div>
-                <div class="Pager-Item">
-                    <button class="Button-Basic-Fixed" id="next">Next</button>
-                </div>
-            </div>
-            <!-- SIDEBAR (WebGL window and related overlay toolbars) -->
-            <!-- 2/2 flexbox child of App -->
-            <div class="App-Flex-Sidebar">
-                <div class="Sidebar-row" id="saveRevert">
-                    <div class="Sidebar-row-item">
-                        <button class="Button-Save"
-                                id="save">Save</button>
-                    </div>
-                    <div class="Sidebar-row-item">
-                        <button class="Button-Revert" id="revert">Revert</button>
-                    </div>
-                </div>
-                <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
-                </div>
-                <div id="sidebarSpacer"></div>
-            </div>
-        </div>
-
-        <!--Depricated-->
-        <!-- The toolbar (for toggling various settings like texture) -->
-        <div class="App-Viewport-UIText-TopLeft">
-            <div id="demoWarning">DEMO MODE</div>
-            <div><a href="http://www.landmarker.io/help/demo" target="_blank">what does this mean?</a></div>
         </div>
     </div>
 </div>
