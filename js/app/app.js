@@ -48,12 +48,8 @@ exports.App = Backbone.Model.extend({
                 that.set('landmarkType', labels[0]);
             },
             error: function () {
-                console.log('Failed to talk localhost:5000 (is landmarkerio' +
+                console.log('Failed to talk server for templates (is landmarkerio' +
                     'running from your command line?).');
-                console.log('Restarting in demo mode.');
-                // templates should be provided by both mesh and image -
-                // if this errors then we should just cut to the demo
-                window.location.href = window.location.origin + '/?demo=mesh'
             }
         });
 
@@ -88,15 +84,21 @@ exports.App = Backbone.Model.extend({
                 assetSource.setAsset(assetSource.assets().at(0));
             },
             error: function () {
-                console.log('Failed to talk localhost:5000 (is landmarkerio' +
+                // load the url module and parse our URL
+                var url = require('url');
+                var u = url.parse(window.location.href, true);
+                u.search = null;
+                console.log('Failed to talk to server (is landmarkerio' +
                     'running from your command line?).');
                 if (that.meshMode()) {
                     console.log('Restarting in image mode.');
-                    window.location.href = window.location.origin + '/?mode=image'
+                    u.query.mode = 'image';
                 } else {
                     console.log('Restarting in demo mode.');
-                    window.location.href = window.location.origin + '/?demo=mesh'
+                    u.query.mode = 'mesh';
+                    u.query.server = 'demo'
                 }
+                window.location.href = url.format(u)
             }
         });
 
@@ -166,6 +168,7 @@ exports.App = Backbone.Model.extend({
             }
         });
     },
+
 
     // returns the currently active Mesh.
     mesh: function () {
