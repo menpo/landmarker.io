@@ -49,6 +49,7 @@ var Image = Backbone.Model.extend({
                     function() {
                         console.log('loaded thumbnail for ' + that.id);
                         that.trigger("textureSet");
+                        that.collection.trigger("thumbnailLoaded");
                     } )
             }
         );
@@ -117,8 +118,21 @@ var ImageSource = Backbone.Model.extend({
 
     defaults: function () {
         return {
-            assets: new ImageList
+            assets: new ImageList,
+            nPreviews: 0
         };
+    },
+
+    initialize : function() {
+        this.listenTo(this, "change:assets", this.changeAssets);
+    },
+
+    changeAssets: function () {
+        this.listenTo(this.get('assets'), "thumbnailLoaded", this.previewCount);
+    },
+
+    previewCount : function () {
+        this.set('nPreviews', this.get('nPreviews') + 1);
     },
 
     url: function () {
@@ -157,6 +171,10 @@ var ImageSource = Backbone.Model.extend({
 
     nAssets: function () {
         return this.get('assets').length;
+    },
+
+    nPreviews: function () {
+        return this.get('nPreviews');
     },
 
     next: function () {

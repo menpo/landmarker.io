@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var AssetView = require('./app/view/asset');
     var ToolbarView = require('./app/view/toolbar');
     var ViewportView = require('./app/view/viewport');
+    var Notification = require('./app/view/notification');
     var App = require('./app/model/app');
     var THREE = require('three');
     var url = require('url');
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // by this point definitely have a correctly set server.
 
     var app = new App.App({server: server, mode: mode});
+    var preview = new Notification.ThumbnailNotification({model:app});
     var sidebar = new SidebarView.Sidebar({model: app});
     var assetView = new AssetView.AssetView({model: app});
     var viewport = new ViewportView.Viewport({model: app});

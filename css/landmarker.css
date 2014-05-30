@@ -132,6 +132,52 @@ is itself a row flexbox */
 
 .Notifications {
     z-index: 4;
+    display: flex;
+    flex-direction: column;
+    height: 10px;
+
+}
+
+.Notification {
+    display: flex;
+    flex: 1;
+}
+
+#assetDone {
+    flex: 0.3;
+    background: #B91109;
+}
+
+#previewDone {
+    flex: 0.00001;
+    background: #0A4EB2;
+}
+
+#landmarksDone {
+    flex: 0.3;
+    background: #ffff00;
+}
+
+#assetRemaining {
+    flex: 0.7;
+    background: #ff6966;
+    opacity: 0.1;
+}
+
+#previewRemaining  {
+    flex: 1;
+    background: #2D77C2;
+    opacity: 0.1;
+}
+
+#landmarksRemaining {
+    flex: 0.7;
+    background: #ddff63;
+    opacity: 0.1;
+}
+
+.AssetInfo {
+    z-index: 2
 }
 
 /*.App-Viewport-Bottom-Flex {*/

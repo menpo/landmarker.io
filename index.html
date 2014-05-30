@@ -27,7 +27,18 @@
         <canvas class="App-FullScreen" id="canvas"></canvas>
         <div class="App-FullScreen" id="viewport"></div>
         <div class="App-Flex-Vert">
-            <div class="Notifications">Hello World</div>
+            <div class="Notifications">
+                <div class="Notification" id="assetNotification">
+                    <div id="assetDone"></div><div id="assetRemaining"></div>
+                </div>
+                <div class="Notification" id="previewNotification">
+                    <div id="previewDone"></div><div id="previewRemaining"></div>
+                </div>
+                <div class="Notification" id="landmarksNotification">
+                    <div id="landmarksDone"></div><div id="landmarksRemaining"></div>
+                </div>
+
+            </div>
             <div class="App-Flex-Horiz">
                 <div class="App-Flex-LeftCol">
                     <!-- Asset information  (top left) -->
