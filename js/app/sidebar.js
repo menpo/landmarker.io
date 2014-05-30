@@ -253,7 +253,7 @@ var SaveRevertView = Backbone.View.extend({
     el: '#saveRevert',
 
     initialize : function() {
-        _.bindAll(this, 'render');
+        _.bindAll(this, 'render', 'save', 'revert');
         //this.listenTo(this.model, "all", this.render);
     },
 
@@ -342,6 +342,8 @@ var Sidebar = Backbone.View.extend({
         this.listenTo(this.model, "change:landmarks", this.landmarksChange);
         this.listenTo(this.model, "change:assetSource", this.assetSourceChange);
         this.assetSourceChange();
+        this.saveRevertView = null;
+        this.lmView = null
     },
 
     assetSourceChange: function () {
@@ -351,12 +353,19 @@ var Sidebar = Backbone.View.extend({
     },
 
     landmarksChange: function () {
-        // TODO inconsistency in binding - manual or hardcoded? not both.
-        new SaveRevertView({model: this.model.get('landmarks')});
-        var lmView = new LandmarkGroupListView({
+        if (this.saveRevertView) {
+            // break bindings for save revert
+            this.saveRevertView.undelegateEvents();
+        }
+        this.saveRevertView = new SaveRevertView(
+            {model: this.model.get('landmarks')});
+        if (this.lmView) {
+            this.lmView.cleanup();
+        }
+        this.lmView = new LandmarkGroupListView({
             collection: this.model.get('landmarks').get('groups')
         });
-        $('.Sidebar-LandmarksPanel').html(lmView.render().$el)
+        $('.Sidebar-LandmarksPanel').html(this.lmView.render().$el)
     }
 
 });
