@@ -1,53 +1,72 @@
-function getURLParameter(name) {
-    return decodeURIComponent((new RegExp('[?|&]' + name + '=' +
-        '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null
+var DEFAULT_API_URL = 'http://localhost:5000';
+
+
+function resolveMode(u) {
+    var url = require('url');
+    if(!u.query.hasOwnProperty('mode')) {
+        // no mode specified. Reload defaulting to mesh.
+        u.query.mode = 'mesh';
+        window.location.href = url.format(u);
+    } else {
+        // TODO add checks for invalid mode here
+        return u.query.mode;
+    }
 }
+
+
+function resolveServer(u) {
+    var Server = require('./app/model/server');
+    var apiUrl = DEFAULT_API_URL;
+    if (u.query.hasOwnProperty('server')) {
+        if (u.query.server === 'demo') {
+            // in demo mode and have mode set.
+            document.title = document.title + ' - demo mode';
+            var $ = require('jquery');
+            $('.App-Viewport-UIText-TopLeft').toggle();
+            return new Server.Server({DEMO_MODE: true});
+        } else {
+            apiUrl = 'https://' + u.query.server;
+            console.log('Setting server to provided value: ' + apiUrl);
+        }
+    } // if no server provided use the default
+    return new Server.Server({apiURL: apiUrl});
+}
+
 
 document.addEventListener('DOMContentLoaded', function () {
     var $ = require('jquery');
-    var Sidebar = require('./app/sidebar');
-    var Toolbar = require('./app/toolbar');
-    var Viewport = require('./app/viewport');
-    var App = require('./app/app');
-    var Server = require('./app/server');
+    var SidebarView = require('./app/view/sidebar');
+    var AssetView = require('./app/view/asset');
+    var ToolbarView = require('./app/view/toolbar');
+    var ViewportView = require('./app/view/viewport');
+    var App = require('./app/model/app');
     var THREE = require('three');
+    var url = require('url');
+
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = "";
-    var server;
-    // by default, we try mesh mode
-    var mode = 'mesh';
-    var modeParam;
-    if (getURLParameter('mode') === null &&
-        getURLParameter('demo') === null) {
-        // reload in mesh mode by default.
-        window.location.href = window.location.origin + '/?mode=mesh'
-    }
-    if (getURLParameter('demo') === 'mesh') {
-        // put the server in demo mode
-        document.title = document.title + ' - demo mode';
-        $('.App-Viewport-UIText-TopLeft').toggle();
-        server = new Server.Server({DEMO_MODE: true});
-        // demo mode only supports meshes for now
-        mode = 'mesh';
-    } else {
-        server = new Server.Server({apiURL: 'http://localhost:5000'});
-        modeParam = getURLParameter('mode');
-        if (modeParam === 'image' || modeParam === 'mesh') {
-            mode = modeParam;
-        }
-    }
-    // By here let's say the mode of operation is decided - image or mesh
+
+    // Parse the current url so we can query the parameters
+    var u = url.parse(window.location.href, true);
+    u.search = null;  // erase search so query is used in building back URL
+
+    var mode = resolveMode(u);
+    // by this point definitely have a mode set.
+    var server = resolveServer(u);
+    // by this point definitely have a correctly set server.
+
     var app = new App.App({server: server, mode: mode});
-    var sidebar = new Sidebar.Sidebar({model: app});
+    var sidebar = new SidebarView.Sidebar({model: app});
+    var assetView = new AssetView.AssetView({model: app});
     // note that we provide the Viewport with the canvas overlay of
     // the viewport as requested.
-    var viewport = new Viewport.Viewport(
+    var viewport = new ViewportView.Viewport(
         {
             model: app,
             el: $('#vpoverlay')
         });
-    var toolbar = new Toolbar.Toolbar({model: app});
+    var toolbar = new ToolbarView.Toolbar({model: app});
 
     // For debugging, attach to the window.
     window.app = app;
