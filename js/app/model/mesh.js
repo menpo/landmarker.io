@@ -2,6 +2,7 @@ var _ = require('underscore');
 var Backbone = require('backbone');
 Backbone.$ = require('jquery');
 var THREE = require('three');
+var Asset = require('./asset');
 
 
 "use strict";
@@ -205,27 +206,7 @@ var MeshList = Backbone.Collection.extend({
 // Holds a list of available meshes, and a MeshList. The MeshList
 // is populated immediately, although meshes aren't fetched until demanded.
 // Also has a mesh parameter - the currently active mesh.
-var MeshSource = Backbone.Model.extend({
-
-    defaults: function () {
-        return {
-            assets: new MeshList,
-            nPreviews: 0
-        };
-    },
-
-    initialize : function() {
-        this.listenTo(this, "change:assets", this.changeAssets);
-        this.pending = {};
-    },
-
-    changeAssets: function () {
-        this.listenTo(this.get('assets'), "thumbnailLoaded", this.previewCount);
-    },
-
-    previewCount : function () {
-        this.set('nPreviews', this.get('nPreviews') + 1);
-    },
+var MeshSource = Asset.AssetSource.extend({
 
     url: function () {
         return this.get('server').map("meshes");
@@ -245,41 +226,6 @@ var MeshSource = Backbone.Model.extend({
         };
     },
 
-    mesh: function () {
-        // For the mesh source, mesh === asset.
-        return this.asset();
-    },
-
-    asset: function () {
-        return this.get('asset');
-    },
-
-    assets: function () {
-        return this.get('assets');
-    },
-
-    nAssets: function () {
-        return this.get('assets').length;
-    },
-
-    nPreviews: function () {
-        return this.get('nPreviews');
-    },
-
-    next: function () {
-        if (!this.hasSuccessor()) {
-            return;
-        }
-        this.setAsset(this.assets().at(this.assetIndex() + 1));
-    },
-
-    previous: function () {
-        if (!this.hasPredecessor()) {
-            return;
-        }
-        this.setAsset(this.assets().at(this.assetIndex() - 1));
-    },
-
     setAsset: function (newMesh) {
         var that = this;
         _.each(this.pending, function (xhr) {
@@ -295,19 +241,6 @@ var MeshSource = Backbone.Model.extend({
                 delete that.pending[newMesh.id];
             }
         });
-    },
-
-    hasPredecessor: function () {
-        return this.assetIndex() !== 0;
-    },
-
-    hasSuccessor: function () {
-        return this.nAssets() - this.assetIndex() !== 1;
-    },
-
-    // returns the index of the currently active mesh
-    assetIndex: function () {
-        return this.assets().indexOf(this.get('asset'));
     }
 });
 
