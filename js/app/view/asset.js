@@ -108,12 +108,6 @@ var AssetIndexView = Backbone.View.extend({
 var AssetView = Backbone.View.extend({
 
     initialize : function() {
-        _.bindAll(this, "assetSourceChange");
-        this.listenTo(this.model, "change:assetSource", this.assetSourceChange);
-        this.assetSourceChange();
-    },
-
-    assetSourceChange: function () {
         new AssetPagerView({model: this.model.assetSource()});
         new AssetNameView({model: this.model.assetSource()});
         new AssetIndexView({model: this.model.assetSource()});

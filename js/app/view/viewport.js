@@ -27,7 +27,8 @@ var PIP_MARGIN = 0;
 
 exports.Viewport = Backbone.View.extend({
 
-    id: 'vpoverlay',
+    el: '#canvas',
+    id: 'canvas',
 
     initialize: function () {
 

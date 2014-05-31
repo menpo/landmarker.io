@@ -47,30 +47,18 @@ input, textarea, select{
 }
 
 /* ----------------------------- CONTAINER STYING ------------------------- */
-/* APP (VIEWPORT + SIDEBAR) - ROW FLEXBOX */
 .App {
-    display: flex;
     min-height: 100vh;
-    flex-direction: row;
-}
-
-.App-Viewport {
-    flex: 4;
+    min-width: 100vw;
     cursor: none;
 }
 
+
 /* Make the Sidebar fixed width */
-.App-Sidebar {
+.App-Flex-Sidebar {
     width: 300px;
-    align-items: center;
     z-index: 2;
-}
-
-
-/* SIDEBAR  - COLUMN FLEXBOX */
-.Sidebar {
     display: flex;
-    min-height: 100vh;
     max-height: 100vh;
     flex-direction: column-reverse;
     text-align: center;
@@ -109,31 +97,95 @@ is itself a row flexbox */
     flex: 1;
 }
 
-.App-Viewport-Viewport {
+.App-FullScreen {
     position: fixed
 }
 
-.App-Viewport-Viewport#vpoverlay {
+#canvas {
     z-index: 1;
 }
 
 
 /* ASSET INFO AND TOOLBAR - LEFT COLUMN - FLEXBOX */
-.App-Viewport-Flex-Left-Column {
+.App-Flex-LeftCol {
     display: flex;
-    min-height: 100vh;
     flex-direction: column;
     align-items: flex-start;
     justify-content: space-between;
 }
 
 /* PAGER - BOTTOM ROW - FLEXBOX */
-.App-Viewport-Flex-Horizontal {
+.App-Flex-Horiz {
     display: flex;
-    min-height: 100vh;
+    flex: 1;
     flex-direction: row;
-    align-items: flex-end;
     justify-content: space-between;
+}
+
+.App-Flex-Vert {
+    display: flex;
+    min-width: 100vw;
+    min-height: 100vh;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.Notifications {
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    height: 10px;
+
+}
+
+.Notification {
+    display: flex;
+    flex: 1;
+}
+
+#assetNotification {
+    display: none;
+}
+
+#landmarksNotification {
+    display: none;
+}
+
+#assetDone {
+    flex: 0.3;
+    background: #B91109;
+}
+
+#previewDone {
+    flex: 0.00001;
+    background: #0A4EB2;
+}
+
+#landmarksDone {
+    flex: 0.3;
+    background: #ffff00;
+}
+
+#assetRemaining {
+    flex: 0.7;
+    background: #ff6966;
+    opacity: 0.1;
+}
+
+#previewRemaining  {
+    flex: 1;
+    background: #2D77C2;
+    opacity: 0.1;
+}
+
+#landmarksRemaining {
+    flex: 0.7;
+    background: #ddff63;
+    opacity: 0.1;
+}
+
+.AssetInfo {
+    z-index: 2
 }
 
 /*.App-Viewport-Bottom-Flex {*/
@@ -154,13 +206,13 @@ is itself a row flexbox */
 }
 
 /* Container for Prev/Next buttons */
-.Pager-Flex {
+.App-Flex-Pager {
     display: flex;
-    flex-direction: row;
-    text-align: center;
-    justify-content: space-around;
-    align-items: center;
-    z-index: 2;
+    align-items: flex-end;
+}
+
+.Pager-Item {
+    z-index : 2
 }
 
 /* Toolbar needs to be above the Three.js viewport and canvas overlay */
