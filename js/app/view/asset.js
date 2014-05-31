@@ -105,6 +105,7 @@ var AssetIndexView = Backbone.View.extend({
     }
 });
 
+
 exports.AssetView = Backbone.View.extend({
 
     initialize : function() {

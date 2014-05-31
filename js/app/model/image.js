@@ -49,7 +49,7 @@ var Image = Backbone.Model.extend({
                     that.thumbnailUrl(), new THREE.UVMapping(),
                     function() {
                         console.log('loaded thumbnail for ' + that.id);
-                        that.mesh.trigger("change:texture");
+                        that.mesh().trigger("change:texture");
                         that.collection.trigger("thumbnailLoaded");
                     } )
             }
@@ -78,7 +78,12 @@ var Image = Backbone.Model.extend({
                 {
                     t_mesh: t_mesh,
                     // Set up vector so viewport can rotate
-                    up: new THREE.Vector3(0, -1, 0)
+                    up: new THREE.Vector3(0, -1, 0),
+                    // images have their z pointing away from the camera (in
+                    // effect this emulates having a LHS coordinate system for
+                    // images, which we want)
+                    front: new THREE.Vector3(0, 0, -1)
+
                 }),
             thumbnailMaterial: material
         };
@@ -142,7 +147,7 @@ var ImageSource = Asset.AssetSource.extend({
         // trigger the loading of the full texture
         newImage.loadTexture();
         this.set('asset', newImage);
-        if (newImage.mesh()) {
+        if (newImage.has('mesh')) {
             // image already has a mesh! set it immediately.
             this.setMeshFromImage(newImage)
         } else {
