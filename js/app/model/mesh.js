@@ -156,7 +156,7 @@ var Mesh = Backbone.Model.extend({
                     map: THREE.ImageUtils.loadTexture(
                         textureURL, new THREE.UVMapping(),
                         function() {
-                            that.trigger("textureSet");
+                            that.trigger("change:texture");
                         } )
                 }
             );

@@ -49,7 +49,7 @@ var Image = Backbone.Model.extend({
                     that.thumbnailUrl(), new THREE.UVMapping(),
                     function() {
                         console.log('loaded thumbnail for ' + that.id);
-                        that.trigger("textureSet");
+                        that.mesh.trigger("change:texture");
                         that.collection.trigger("thumbnailLoaded");
                     } )
             }
@@ -98,8 +98,8 @@ var Image = Backbone.Model.extend({
                     function() {
                         that.mesh().t_mesh().material = material;
                         that.set('material', material);
-                        // trigger the textureSet causing the viewport to update
-                        that.trigger("textureSet");
+                        // trigger the texture change on our mesh
+                        that.mesh().trigger("change:texture");
                     } )
             }
         );

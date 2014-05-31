@@ -638,7 +638,7 @@ exports.Viewport = Backbone.View.extend({
         }
         console.log('listening to new mesh');
         // TODO should this be an all?
-        this.listenTo(this.model.mesh(), "all", this.update);
+        this.listenTo(this.model.mesh(), "change:texture", this.update);
         this.mesh = this.model.mesh();
         // firstly, remove any existing mesh
         if (this.s_mesh.children.length) {
