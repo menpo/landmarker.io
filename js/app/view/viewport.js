@@ -637,8 +637,8 @@ exports.Viewport = Backbone.View.extend({
             this.stopListening(this.mesh);
         }
         console.log('listening to new mesh');
-        // TODO should this be an all?
-        this.listenTo(this.model.mesh(), "change:texture", this.update);
+        // Any change on the mesh - rerender.
+        this.listenTo(this.model.mesh(), "all", this.update);
         this.mesh = this.model.mesh();
         // firstly, remove any existing mesh
         if (this.s_mesh.children.length) {
@@ -655,17 +655,8 @@ exports.Viewport = Backbone.View.extend({
         this.s_h_scaleRotate.scale.set(s, s, s);
         this.s_scaleRotate.up = this.mesh.up().clone();
         this.s_h_scaleRotate.up = this.mesh.up().clone();
-        if (this.model.meshMode()) {
-            // Meshes point in the normal way
-            this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
-            this.s_h_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
-        } else {
-            // images have their z pointing away from the camera (in effect
-            // this emulates having a LHS coordinate system for images, which
-            // we want)
-            this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, -1));
-            this.s_h_scaleRotate.lookAt(new THREE.Vector3(0, 0, -1));
-        }
+        this.s_scaleRotate.lookAt(this.mesh.front().clone());
+        this.s_h_scaleRotate.lookAt(this.mesh.front().clone());
         // translation
         var t = t_mesh.geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);

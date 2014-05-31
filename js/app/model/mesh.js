@@ -3,7 +3,7 @@ var Backbone = require('backbone');
 Backbone.$ = require('jquery');
 var THREE = require('three');
 var Asset = require('./asset');
-
+var Image = require('./image');
 
 "use strict";
 
@@ -25,7 +25,7 @@ var Mesh = Backbone.Model.extend({
     urlRoot: "meshes",
 
     initialize : function() {
-        _.bindAll(this, 'changeAlpha');
+        _.bindAll(this, 'changeAlpha', 'loadThumbnail');
         this.listenTo(this, "change:alpha", this.changeAlpha);
     },
 
@@ -51,6 +51,10 @@ var Mesh = Backbone.Model.extend({
 
     hasTexture: function() {
         return this.has('texture');
+    },
+
+    hasThumbnail: function() {
+        return this.has('thumbnail');
     },
 
     isTextureOn: function () {
@@ -203,8 +207,25 @@ var Mesh = Backbone.Model.extend({
         geometry.computeBoundingSphere();
 
         return result;
-    }
+    },
 
+    loadThumbnail: function () {
+        var that = this;
+        var image = new Image.Image({
+            id: this.id,
+            server: this.get('server')
+        });
+        // load the thumbnail for this mesh
+        image.fetch({
+            success: function () {
+                console.log('grabbed thumbnail preview!');
+                that.set('thumbnail', image);
+            },
+            error: function () {
+                console.log('should set blank here');
+            }
+        });
+    }
 });
 
 var MeshList = Backbone.Collection.extend({
@@ -222,11 +243,15 @@ var MeshSource = Asset.AssetSource.extend({
 
     parse: function (response) {
         var that = this;
+        var mesh;
         var meshes = _.map(response, function (assetId) {
-            return new Mesh({
+            mesh = new Mesh({
                 id: assetId,
                 server: that.get('server')
-            })
+            });
+            // immediately load the preview texture for the mesh
+            mesh.loadThumbnail();
+            return mesh;
         });
         var meshList = new MeshList(meshes);
         return {
@@ -242,6 +267,10 @@ var MeshSource = Asset.AssetSource.extend({
         }, this);
         // set the asset immediately (triggering change in UI, landmark fetch)
         that.set('asset', newMesh);
+        if (newMesh.hasThumbnail()) {
+            console.log('setting mesh to thumbnail');
+            that.set('mesh', newMesh.get('thumbnail').mesh());
+        }
         // fetch the new asset and update the mesh when the fetch is complete
         this.pending[newMesh.id] = newMesh.fetch({
             success: function () {
