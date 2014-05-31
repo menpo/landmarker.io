@@ -150,8 +150,8 @@ exports.App = Backbone.Model.extend({
     },
 
     reloadLandmarks: function () {
-        if (!this.get('mesh') || !this.get('landmarkType')) {
-            // can only proceed with a mesh and a landmarkType...
+        if (!this.get('asset') || !this.get('landmarkType')) {
+            // can only proceed with an asset and a landmarkType...
             return;
         }
         // now we have a mesh and landmarkType we can get landmarks -

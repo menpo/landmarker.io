@@ -228,15 +228,17 @@ var MeshSource = Asset.AssetSource.extend({
 
     setAsset: function (newMesh) {
         var that = this;
+        // kill any current fetches
         _.each(this.pending, function (xhr) {
             xhr.abort();
         }, this);
-        // the asset advances immediately.
+        // set the asset immediately (triggering change in UI, landmark fetch)
+        that.set('asset', newMesh);
+        // fetch the new asset and update the mesh when the fetch is complete
         this.pending[newMesh.id] = newMesh.fetch({
             success: function () {
                 console.log('grabbed new mesh');
                 // once the mesh is downloaded, advance the mesh
-                that.set('asset', newMesh);
                 that.set('mesh', newMesh);
                 delete that.pending[newMesh.id];
             }
