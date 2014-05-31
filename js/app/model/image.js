@@ -152,7 +152,7 @@ var ImageSource = Asset.AssetSource.extend({
     },
 
     setMeshFromImage: function (newImage) {
-        // the image now has a mesh, set it.
+        // the image now has a proper texture, set it.
         this.set('mesh', newImage.mesh());
     }
 

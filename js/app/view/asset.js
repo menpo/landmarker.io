@@ -105,14 +105,11 @@ var AssetIndexView = Backbone.View.extend({
     }
 });
 
-var AssetView = Backbone.View.extend({
+exports.AssetView = Backbone.View.extend({
 
     initialize : function() {
-        new AssetPagerView({model: this.model.assetSource()});
-        new AssetNameView({model: this.model.assetSource()});
-        new AssetIndexView({model: this.model.assetSource()});
+        new AssetPagerView({model: this.model});
+        new AssetNameView({model: this.model});
+        new AssetIndexView({model: this.model});
     }
 });
-
-
-exports.AssetView = AssetView;
