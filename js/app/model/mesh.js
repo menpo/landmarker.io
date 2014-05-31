@@ -209,8 +209,22 @@ var MeshSource = Backbone.Model.extend({
 
     defaults: function () {
         return {
-            assets: new MeshList
+            assets: new MeshList,
+            nPreviews: 0
         };
+    },
+
+    initialize : function() {
+        this.listenTo(this, "change:assets", this.changeAssets);
+        this.pending = {};
+    },
+
+    changeAssets: function () {
+        this.listenTo(this.get('assets'), "thumbnailLoaded", this.previewCount);
+    },
+
+    previewCount : function () {
+        this.set('nPreviews', this.get('nPreviews') + 1);
     },
 
     url: function () {
@@ -248,6 +262,10 @@ var MeshSource = Backbone.Model.extend({
         return this.get('assets').length;
     },
 
+    nPreviews: function () {
+        return this.get('nPreviews');
+    },
+
     next: function () {
         if (!this.hasSuccessor()) {
             return;
@@ -263,15 +281,18 @@ var MeshSource = Backbone.Model.extend({
     },
 
     setAsset: function (newMesh) {
-        // TODO this should cache and not get every time
         var that = this;
+        _.each(this.pending, function (xhr) {
+            xhr.abort();
+        }, this);
         // the asset advances immediately.
-        this.set('asset', newMesh);
-        newMesh.fetch({
+        this.pending[newMesh.id] = newMesh.fetch({
             success: function () {
                 console.log('grabbed new mesh');
                 // once the mesh is downloaded, advance the mesh
+                that.set('asset', newMesh);
                 that.set('mesh', newMesh);
+                delete that.pending[newMesh.id];
             }
         });
     },

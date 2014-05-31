@@ -143,6 +143,14 @@ is itself a row flexbox */
     flex: 1;
 }
 
+#assetNotification {
+    display: none;
+}
+
+#landmarksNotification {
+    display: none;
+}
+
 #assetDone {
     flex: 0.3;
     background: #B91109;
@@ -201,7 +209,10 @@ is itself a row flexbox */
 .App-Flex-Pager {
     display: flex;
     align-items: flex-end;
-    z-index: 2;
+}
+
+.Pager-Item {
+    z-index : 2
 }
 
 /* Toolbar needs to be above the Three.js viewport and canvas overlay */
