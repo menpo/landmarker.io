@@ -67,7 +67,6 @@ var Image = Backbone.Model.extend({
         geometry.faceVertexUvs[0].push(t0);
         geometry.faceVertexUvs[0].push(t1);
 
-        geometry.computeCentroids();
         // needed for lighting to work
         geometry.computeFaceNormals();
         geometry.computeVertexNormals();
