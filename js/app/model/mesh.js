@@ -273,6 +273,7 @@ var MeshSource = Asset.AssetSource.extend({
         _.each(this.pending, function (xhr) {
             xhr.abort();
         }, this);
+        this.set('assetIsLoading', true);
         // set the asset immediately (triggering change in UI, landmark fetch)
         that.set('asset', newMesh);
         if (newMesh.hasThumbnail()) {
@@ -286,6 +287,7 @@ var MeshSource = Asset.AssetSource.extend({
                 // once the mesh is downloaded, advance the mesh
                 that.set('mesh', newMesh);
                 delete that.pending[newMesh.id];
+                that.set('assetIsLoading', false);
             }
         });
     }

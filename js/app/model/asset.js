@@ -9,7 +9,8 @@ exports.AssetSource = Backbone.Model.extend({
     defaults: function () {
         return {
             assets: new Backbone.Collection,
-            nPreviews: 0
+            nPreviews: 0,
+            assetIsLoading: false
         };
     },
 
@@ -40,6 +41,10 @@ exports.AssetSource = Backbone.Model.extend({
 
     assets: function () {
         return this.get('assets');
+    },
+
+    assetIsLoading: function () {
+        return this.get('assetIsLoading');
     },
 
     nAssets: function () {

@@ -157,9 +157,11 @@ var ImageSource = Asset.AssetSource.extend({
         // trigger the loading of the full texture
         newImage.loadTexture();
         this.set('asset', newImage);
+        this.set('assetIsLoading', true);
         if (newImage.has('mesh')) {
             // image already has a mesh! set it immediately.
-            this.setMeshFromImage(newImage)
+            this.setMeshFromImage(newImage);
+            this.set('assetIsLoading', false);
         } else {
             // keep our ear to the ground and update when there is a change.
             this.listenToOnce(newImage, 'change:mesh', this.setMeshFromImage);
@@ -169,6 +171,7 @@ var ImageSource = Asset.AssetSource.extend({
     setMeshFromImage: function (newImage) {
         // the image now has a proper texture, set it.
         this.set('mesh', newImage.mesh());
+        this.set('assetIsLoading', false);
     }
 
 });

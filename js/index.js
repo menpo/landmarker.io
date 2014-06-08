@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var app = new App.App({server: server, mode: mode});
     var preview = new Notification.ThumbnailNotification({model:app});
+    var loading = new Notification.AssetLoadingNotification({model:app});
     var sidebar = new SidebarView.Sidebar({model: app});
     var assetView = new AssetView.AssetView({model: app.assetSource()});
     var viewport = new ViewportView.Viewport({model: app});

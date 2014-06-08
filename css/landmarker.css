@@ -53,6 +53,17 @@ input, textarea, select{
     cursor: none;
 }
 
+.LoadingFlex {
+    min-width: 100vw;
+    min-height: 100vh;
+    position: fixed;
+    display: flex;
+    z-index: 2;
+    pointer-events: none;
+    align-items: center;
+    justify-content: center;
+}
+
 
 /* Make the Sidebar fixed width */
 .App-Flex-Sidebar {
