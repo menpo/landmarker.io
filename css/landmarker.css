@@ -147,10 +147,6 @@ is itself a row flexbox */
     display: none;
 }
 
-#landmarksNotification {
-    display: none;
-}
-
 #assetDone {
     flex: 0.3;
     background: #B91109;
@@ -159,11 +155,6 @@ is itself a row flexbox */
 #previewDone {
     flex: 0.00001;
     background: #0A4EB2;
-}
-
-#landmarksDone {
-    flex: 0.3;
-    background: #ffff00;
 }
 
 #assetRemaining {
@@ -175,12 +166,6 @@ is itself a row flexbox */
 #previewRemaining  {
     flex: 1;
     background: #2D77C2;
-    opacity: 0.1;
-}
-
-#landmarksRemaining {
-    flex: 0.7;
-    background: #ddff63;
     opacity: 0.1;
 }
 
