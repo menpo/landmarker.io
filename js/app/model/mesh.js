@@ -213,7 +213,8 @@ var Mesh = Backbone.Model.extend({
         var that = this;
         var image = new Image.Image({
             id: this.id,
-            server: this.get('server')
+            server: this.get('server'),
+            thumbnailDelegate: this.collection
         });
         // load the thumbnail for this mesh
         image.fetch({
@@ -222,7 +223,9 @@ var Mesh = Backbone.Model.extend({
                 that.set('thumbnail', image);
             },
             error: function () {
-                console.log('should set blank here');
+                // couldn't load a thumbnail - must be an untextured mesh!
+                // trigger the thumbnail loaded so our progress bar finishes
+                that.collection.trigger('thumbnailLoaded');
             }
         });
     }
@@ -249,14 +252,19 @@ var MeshSource = Asset.AssetSource.extend({
                 id: assetId,
                 server: that.get('server')
             });
-            // immediately load the preview texture for the mesh
-            mesh.loadThumbnail();
             return mesh;
         });
         var meshList = new MeshList(meshes);
         return {
             assets: meshList
         };
+    },
+
+    _changeAssets: function () {
+        this.assets().each(function(mesh) {
+            // immediately load the preview texture for the mesh
+            mesh.loadThumbnail();
+        })
     },
 
     setAsset: function (newMesh) {

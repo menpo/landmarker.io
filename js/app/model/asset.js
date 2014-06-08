@@ -20,7 +20,11 @@ exports.AssetSource = Backbone.Model.extend({
 
     changeAssets: function () {
         this.listenTo(this.get('assets'), "thumbnailLoaded", this.previewCount);
+        this._changeAssets();
     },
+
+    // Called after changeAssets. Opportunity for subclass to intervene
+    _changeAssets: function () {},
 
     previewCount : function () {
         this.set('nPreviews', this.get('nPreviews') + 1);

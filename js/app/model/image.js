@@ -50,7 +50,10 @@ var Image = Backbone.Model.extend({
                     function() {
                         console.log('loaded thumbnail for ' + that.id);
                         that.mesh().trigger("change:texture");
-                        that.collection.trigger("thumbnailLoaded");
+                        // If we have a thumbnail delegate then trigger the change
+                        if (that.has('thumbnailDelegate')) {
+                            that.get('thumbnailDelegate').trigger('thumbnailLoaded');
+                        }
                     } )
             }
         );
@@ -128,19 +131,26 @@ var ImageSource = Asset.AssetSource.extend({
     parse: function (response) {
         var that = this;
         var image;
+        var imageList = new ImageList();
         var images = _.map(response, function (assetId) {
             image =  new Image({
                 id: assetId,
-                server: that.get('server')
+                server: that.get('server'),
+                thumbnailDelegate: imageList
             });
-            // fetch the JSON info and thumbnail immediately.
-            image.fetch();
             return image;
         });
-        var imageList = new ImageList(images);
+        imageList.add(images);
         return {
             assets: imageList
         };
+    },
+
+    _changeAssets: function () {
+        this.get('assets').each(function(image) {
+            // after change in asssets always call fetch to acquire thumbnails
+            image.fetch();
+        })
     },
 
     setAsset: function (newImage) {
