@@ -473,16 +473,22 @@ var LandmarkSet = Backbone.Model.extend({
         };
     },
 
-    saveVerbose: function () {
+    saveWithCallbacks: function (success, failure) {
         console.log('save called');
         this.save(null,
             {
                 parse: false,
                 success: function () {
                     console.log('successfully saved');
+                    if (success) {
+                        success();
+                    }
                 },
                 error: function () {
                     console.log('could not save.');
+                    if (failure) {
+                        failure();
+                    }
                 }
         });
     }
