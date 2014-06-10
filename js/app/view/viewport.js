@@ -89,9 +89,9 @@ exports.Viewport = Backbone.View.extend({
         // ----- SCENE: CAMERA AND DIRECTED LIGHTS ----- //
         // s_camera holds the camera, and (optionally) any
         // lights that track with the camera as children
-        this.s_oCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 5);
-        this.s_oCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 5);
-        this.s_pCam = new THREE.PerspectiveCamera(50, 1, 0.02, 5);
+        this.s_oCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
+        this.s_oCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
+        this.s_pCam = new THREE.PerspectiveCamera(50, 1, 0.02, 20);
         this.s_camera = this.s_pCam;
         if (!this.model.meshMode()) {
             // but for images, default to orthographic camera
