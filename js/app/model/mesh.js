@@ -18,14 +18,14 @@ var Mesh = Backbone.Model.extend({
             alpha : 1,
             up : new THREE.Vector3(0, 1, 0),
             front : new THREE.Vector3(0, 0, 1)
-
         }
     },
 
     urlRoot: "meshes",
 
     initialize : function() {
-        _.bindAll(this, 'changeAlpha', 'loadThumbnail');
+        _.bindAll(this, 'changeAlpha', 'loadThumbnail', 'dispose',
+                  'wireframeToggle');
         this.listenTo(this, "change:alpha", this.changeAlpha);
     },
 
@@ -39,10 +39,6 @@ var Mesh = Backbone.Model.extend({
 
     front: function () {
         return this.get('front');
-    },
-
-    t_mesh: function () {
-        return this.get('t_mesh');
     },
 
     alpha: function () {
@@ -62,7 +58,7 @@ var Mesh = Backbone.Model.extend({
     },
 
     isWireframeOn: function () {
-        return this.t_mesh().material.wireframe;
+        return this.get('t_mesh').material.wireframe;
     },
 
     textureOn: function() {
@@ -107,7 +103,7 @@ var Mesh = Backbone.Model.extend({
         if (this.isWireframeOn()) {
             return;
         }
-        this.t_mesh().material.wireframe = true;
+        this.get('t_mesh').material.wireframe = true;
         this.set('wireframeOn', true);
         this.changeAlpha();
     },
@@ -116,7 +112,7 @@ var Mesh = Backbone.Model.extend({
         if (!this.isWireframeOn()) {
             return;
         }
-        this.t_mesh().material.wireframe = false;
+        this.get('t_mesh').material.wireframe = false;
         this.set('wireframeOn', false);
         this.changeAlpha();
     },
@@ -205,7 +201,7 @@ var Mesh = Backbone.Model.extend({
         geometry.computeFaceNormals();
         geometry.computeVertexNormals();
         geometry.computeBoundingSphere();
-
+        result.t_mesh.name = this.id;
         return result;
     },
 
@@ -228,6 +224,20 @@ var Mesh = Backbone.Model.extend({
                 that.collection.trigger('thumbnailLoaded');
             }
         });
+    },
+
+    // reset this mesh back to how it was at fetch time.
+    dispose : function () {
+        var texture;
+        this.get('t_mesh').geometry.dispose();
+        if (this.hasTexture()) {
+            texture = this.get('texture');
+            texture.map.dispose();
+            texture.dispose();
+            this.unset('texture');
+        }
+        this.get('t_mesh').material.dispose();
+        this.unset('t_mesh');
     }
 });
 
@@ -284,8 +294,16 @@ var MeshSource = Asset.AssetSource.extend({
         this.pending[newMesh.id] = newMesh.fetch({
             success: function () {
                 console.log('grabbed new mesh');
-                // once the mesh is downloaded, advance the mesh
+                // once the mesh is downloaded, advance the mesh. Let's get a
+                // reference to the old one first...
+                var oldMesh = that.get('mesh');
                 that.set('mesh', newMesh);
+                // now everyone has moved onto the new mesh, clean up the old
+                // one.
+                if (oldMesh) {
+                    oldMesh.dispose();
+                    oldMesh = null;
+                }
                 delete that.pending[newMesh.id];
                 that.set('assetIsLoading', false);
             }

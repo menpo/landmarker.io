@@ -631,25 +631,25 @@ exports.Viewport = Backbone.View.extend({
     },
 
     changeMesh: function () {
-        console.log('Viewport: mesh has changed');
-        if (this.mesh) {
-            console.log('stopping listening to previous mesh');
-            this.stopListening(this.mesh);
-        }
-        console.log('listening to new mesh');
-        // Any change on the mesh - rerender.
-        this.listenTo(this.model.mesh(), "all", this.update);
-        this.mesh = this.model.mesh();
+        console.log('Viewport:changeMesh');
+        console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
         // firstly, remove any existing mesh
         if (this.s_mesh.children.length) {
-            this.s_mesh.remove(this.s_mesh.children[0]);
+            var previousMesh = this.s_mesh.children[0];
+            this.s_mesh.remove(previousMesh);
         }
-        var t_mesh = this.model.mesh().get('t_mesh');
-        this.s_mesh.add(t_mesh);
+        if (this.mesh) {
+            console.log('Viewport:changeMesh - stopping listening to prev mesh');
+            this.stopListening(this.mesh);
+        }
+        this.mesh = this.model.mesh();
+        // Any change on the mesh - rerender.
+        this.listenTo(this.mesh , "all", this.update);
+        this.s_mesh.add(this.mesh.get('t_mesh'));
 
         // Now we need to rescale the s_meshAndLms to fit in the unit sphere
         // First, the scale
-        this.meshScale = t_mesh.geometry.boundingSphere.radius;
+        this.meshScale = this.mesh.get('t_mesh').geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
         this.s_scaleRotate.scale.set(s, s, s);
         this.s_h_scaleRotate.scale.set(s, s, s);
@@ -658,12 +658,19 @@ exports.Viewport = Backbone.View.extend({
         this.s_scaleRotate.lookAt(this.mesh.front().clone());
         this.s_h_scaleRotate.lookAt(this.mesh.front().clone());
         // translation
-        var t = t_mesh.geometry.boundingSphere.center.clone();
+        var t = this.mesh.get('t_mesh').geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
         this.s_translate.position = t;
         this.s_h_translate.position = t;
         this.resetCamera();
+        console.log('Viewport:changeMesh - memory after:  ' +  this.memoryString());
         this.update();
+    },
+
+    memoryString : function () {
+        return  'geo:' + this.renderer.info.memory.geometries +
+                ' tex:' + this.renderer.info.memory.textures +
+                ' prog:' + this.renderer.info.memory.programs;
     },
 
     changeLandmarks: function () {

@@ -141,8 +141,8 @@ var WireframeToggle = Backbone.View.extend({
         if (this.mesh) {
             this.stopListening(this.mesh);
         }
-        this.listenTo(this.model.mesh(), "all", this.render);
-        this.mesh = this.model.mesh();
+        this.mesh = this.model.get('mesh');
+        this.listenTo(this.mesh, "all", this.render);
     },
 
 
