@@ -676,14 +676,19 @@ exports.Viewport = Backbone.View.extend({
     changeLandmarks: function () {
         console.log('Viewport: landmarks have changed');
         var that = this;
-        // 1. Clear the scene graph of all landmarks
-        // TODO should this be a destructor on LandmarkView?
-        this.s_meshAndLms.remove(this.s_lms);
-        this.s_h_meshAndLms.remove(this.s_lmsconnectivity);
-        this.s_lms = new THREE.Object3D();
-        this.s_lmsconnectivity = new THREE.Object3D();
-        this.s_meshAndLms.add(this.s_lms);
-        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
+        // 1. Dispose of all landmark and connectivity views
+        _.map(this.landmarkViews, function (lmView) {
+            lmView.dispose();
+        });
+        _.map(this.connectivityViews, function (connView) {
+            connView.dispose();
+        });
+//        this.s_meshAndLms.remove(this.s_lms);
+//        this.s_h_meshAndLms.remove(this.s_lmsconnectivity);
+//        this.s_lms = new THREE.Object3D();
+//        this.s_lmsconnectivity = new THREE.Object3D();
+//        this.s_meshAndLms.add(this.s_lms);
+//        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
         // 2. Build a fresh set of views - clear any existing lms
         this.landmarkViews = [];
         this.connectivityViews = [];
@@ -879,9 +884,7 @@ var LandmarkTHREEView = Backbone.View.extend({
             // this landmark already has an allocated representation..
             if (this.model.isEmpty()) {
                 // but it's been deleted.
-                this.viewport.s_lms.remove(this.symbol);
-                this.symbol = null;
-
+                this.dispose();
             } else {
                 // the lm may need updating. See what needs to be done
                 this.updateSymbol();
@@ -929,6 +932,15 @@ var LandmarkTHREEView = Backbone.View.extend({
         }
     },
 
+    dispose: function () {
+        if (this.symbol) {
+            this.viewport.s_lms.remove(this.symbol);
+            this.symbol.geometry.dispose();
+            this.symbol.material.dispose();
+            this.symbol = null;
+        }
+    },
+
     changeLandmarkSize: function () {
         if (this.symbol) {
             // have a symbol, and need to change it's size.
@@ -940,6 +952,11 @@ var LandmarkTHREEView = Backbone.View.extend({
             this.viewport.update();
         }
     }
+});
+
+var lineMaterial = new THREE.LineBasicMaterial({
+    color: 0x0000ff,
+    linewidth: 3
 });
 
 var LandmarkConnectionTHREEView = Backbone.View.extend({
@@ -961,8 +978,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
             // this landmark already has an allocated representation..
             if (this.model[0].isEmpty() || this.model[1].isEmpty()) {
                 // but it's been deleted.
-                this.viewport.s_lmsconnectivity.remove(this.symbol);
-                this.symbol = null;
+                this.dispose();
 
             } else {
                 // the connection may need updating. See what needs to be done
@@ -984,15 +1000,19 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
     },
 
     createLine: function (start, end) {
-        var material = new THREE.LineBasicMaterial({
-            color: 0x0000ff,
-            linewidth: 3
-        });
         var geometry = new THREE.Geometry();
         geometry.dynamic = true;
         geometry.vertices.push(start.clone());
         geometry.vertices.push(end.clone());
-        return new THREE.Line(geometry, material);
+        return new THREE.Line(geometry, lineMaterial);
+    },
+
+    dispose: function () {
+        if (this.symbol) {
+            this.viewport.s_lmsconnectivity.remove(this.symbol);
+            this.symbol.geometry.dispose();
+            this.symbol = null;
+        }
     },
 
     updateSymbol: function () {
