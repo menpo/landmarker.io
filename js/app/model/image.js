@@ -49,7 +49,7 @@ var Image = Backbone.Model.extend({
                     that.thumbnailUrl(), new THREE.UVMapping(),
                     function() {
                         console.log('loaded thumbnail for ' + that.id);
-                        that.mesh().trigger("change:texture");
+                        that.get('mesh').trigger("change:texture");
                         // If we have a thumbnail delegate then trigger the change
                         if (that.has('thumbnailDelegate')) {
                             that.get('thumbnailDelegate').trigger('thumbnailLoaded');
@@ -92,7 +92,7 @@ var Image = Backbone.Model.extend({
         };
     },
 
-    loadTexture: function () {
+    loadTexture: function (success) {
         if (this.get('material')) {
             console.log(this.id + ' already has material. Skipping');
             return;
@@ -104,13 +104,31 @@ var Image = Backbone.Model.extend({
                 map: THREE.ImageUtils.loadTexture(
                     that.textureUrl(), new THREE.UVMapping(),
                     function() {
-                        that.mesh().t_mesh().material = material;
+                        that.get('mesh').get('t_mesh').material = material;
                         that.set('material', material);
                         // trigger the texture change on our mesh
-                        that.mesh().trigger("change:texture");
+                        that.get('mesh').trigger("change:texture");
+                        if (success) {
+                            success();
+                        }
                     } )
             }
         );
+    },
+
+    dispose: function () {
+        this.get('mesh').get('t_mesh').material = this.get('thumbnailMaterial');
+        // dispose of the old texture
+        if (this.has('material')) {
+            var m = this.get('material');
+            // if there was a texture mapping (likely!) dispose of it
+            if (m.map) {
+                m.map.dispose();
+            }
+            // dispose of the material itself.
+            m.dispose();
+            this.unset('material');
+        }
     }
 
 });
@@ -148,20 +166,26 @@ var ImageSource = Asset.AssetSource.extend({
 
     _changeAssets: function () {
         this.get('assets').each(function(image) {
-            // after change in asssets always call fetch to acquire thumbnails
+            // after change in assets always call fetch to acquire thumbnails
             image.fetch();
         })
     },
 
     setAsset: function (newImage) {
-        // trigger the loading of the full texture
-        newImage.loadTexture();
-        this.set('asset', newImage);
+        var that = this;
+        var oldAsset = this.get('asset');
         this.set('assetIsLoading', true);
+        // trigger the loading of the full texture
+        newImage.loadTexture(function () {
+            that.set('assetIsLoading', false);
+            if (oldAsset) {
+                oldAsset.dispose();
+            }
+        });
+        this.set('asset', newImage);
         if (newImage.has('mesh')) {
             // image already has a mesh! set it immediately.
             this.setMeshFromImage(newImage);
-            this.set('assetIsLoading', false);
         } else {
             // keep our ear to the ground and update when there is a change.
             this.listenToOnce(newImage, 'change:mesh', this.setMeshFromImage);
@@ -170,8 +194,7 @@ var ImageSource = Asset.AssetSource.extend({
 
     setMeshFromImage: function (newImage) {
         // the image now has a proper texture, set it.
-        this.set('mesh', newImage.mesh());
-        this.set('assetIsLoading', false);
+        this.set('mesh', newImage.get('mesh'));
     }
 
 });

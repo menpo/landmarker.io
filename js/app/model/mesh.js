@@ -236,7 +236,6 @@ var Mesh = Backbone.Model.extend({
             texture.dispose();
             this.unset('texture');
         }
-        this.get('t_mesh').material.dispose();
         this.unset('t_mesh');
     }
 });
@@ -273,12 +272,14 @@ var MeshSource = Asset.AssetSource.extend({
     _changeAssets: function () {
         this.assets().each(function(mesh) {
             // immediately load the preview texture for the mesh
+            // TODO this may need to be less agressive on large datasets
             mesh.loadThumbnail();
         })
     },
 
     setAsset: function (newMesh) {
         var that = this;
+        var oldAsset = this.get('asset');
         // kill any current fetches
         _.each(this.pending, function (xhr) {
             xhr.abort();
@@ -288,21 +289,19 @@ var MeshSource = Asset.AssetSource.extend({
         that.set('asset', newMesh);
         if (newMesh.hasThumbnail()) {
             console.log('setting mesh to thumbnail');
-            that.set('mesh', newMesh.get('thumbnail').mesh());
+            that.set('mesh', newMesh.get('thumbnail').get('mesh'));
         }
         // fetch the new asset and update the mesh when the fetch is complete
         this.pending[newMesh.id] = newMesh.fetch({
             success: function () {
                 console.log('grabbed new mesh');
-                // once the mesh is downloaded, advance the mesh. Let's get a
-                // reference to the old one first...
-                var oldMesh = that.get('mesh');
+                // once the mesh is downloaded, advance the mesh.
                 that.set('mesh', newMesh);
                 // now everyone has moved onto the new mesh, clean up the old
                 // one.
-                if (oldMesh) {
-                    oldMesh.dispose();
-                    oldMesh = null;
+                if (oldAsset) {
+                    oldAsset.dispose();
+                    oldAsset = null;
                 }
                 delete that.pending[newMesh.id];
                 that.set('assetIsLoading', false);
