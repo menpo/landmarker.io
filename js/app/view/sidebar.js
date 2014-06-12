@@ -248,7 +248,7 @@ var SaveRevertView = Backbone.View.extend({
 
     revert: function () {
         console.log('revert called');
-        this.model.fetch();
+        alert('Warning: revert is currently not implemented.')
     }
 });
 
