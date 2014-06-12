@@ -2,7 +2,8 @@ var _ = require('underscore');
 var Backbone = require('backbone');
 Backbone.$ = require('jquery');
 var THREE = require('three');
-
+var Asset = require('./asset');
+var Image = require('./image');
 
 "use strict";
 
@@ -12,15 +13,19 @@ basicMaterial.transparent = true;
 
 var Mesh = Backbone.Model.extend({
 
-    defaults : {
-        alpha : 1,
-        up : new THREE.Vector3(0, 1, 0)
+    defaults : function () {
+        return {
+            alpha : 1,
+            up : new THREE.Vector3(0, 1, 0),
+            front : new THREE.Vector3(0, 0, 1)
+        }
     },
 
     urlRoot: "meshes",
 
     initialize : function() {
-        _.bindAll(this, 'changeAlpha');
+        _.bindAll(this, 'changeAlpha', 'loadThumbnail', 'dispose',
+                  'wireframeToggle');
         this.listenTo(this, "change:alpha", this.changeAlpha);
     },
 
@@ -32,8 +37,8 @@ var Mesh = Backbone.Model.extend({
         return this.get('up');
     },
 
-    t_mesh: function () {
-        return this.get('t_mesh');
+    front: function () {
+        return this.get('front');
     },
 
     alpha: function () {
@@ -44,12 +49,16 @@ var Mesh = Backbone.Model.extend({
         return this.has('texture');
     },
 
+    hasThumbnail: function() {
+        return this.has('thumbnail');
+    },
+
     isTextureOn: function () {
         return this.hasTexture() && this.get('textureOn');
     },
 
     isWireframeOn: function () {
-        return this.t_mesh().material.wireframe;
+        return this.get('t_mesh').material.wireframe;
     },
 
     textureOn: function() {
@@ -57,7 +66,7 @@ var Mesh = Backbone.Model.extend({
             return;  // texture already off or no texture
         }
         var wf = this.isWireframeOn();
-        this.t_mesh().material = this.get('texture');
+        this.get('t_mesh').material = this.get('texture');
         if (wf) {
             this.wireframeOn();
         } else {
@@ -72,7 +81,7 @@ var Mesh = Backbone.Model.extend({
             return;  // texture already on
         }
         var wf = this.isWireframeOn();
-        this.t_mesh().material = basicMaterial;
+        this.get('t_mesh').material = basicMaterial;
         if (wf) {
             this.wireframeOn();
         } else {
@@ -94,7 +103,7 @@ var Mesh = Backbone.Model.extend({
         if (this.isWireframeOn()) {
             return;
         }
-        this.t_mesh().material.wireframe = true;
+        this.get('t_mesh').material.wireframe = true;
         this.set('wireframeOn', true);
         this.changeAlpha();
     },
@@ -103,7 +112,7 @@ var Mesh = Backbone.Model.extend({
         if (!this.isWireframeOn()) {
             return;
         }
-        this.t_mesh().material.wireframe = false;
+        this.get('t_mesh').material.wireframe = false;
         this.set('wireframeOn', false);
         this.changeAlpha();
     },
@@ -117,11 +126,11 @@ var Mesh = Backbone.Model.extend({
     },
 
     toJSON: function () {
-        var trilist = _.map(this.t_mesh().geometry.faces, function (face) {
+        var trilist = _.map(this.get('t_mesh').geometry.faces, function (face) {
             return [face.a, face.b, face.c];
         });
 
-        var points = _.map(this.t_mesh().geometry.vertices, function (v) {
+        var points = _.map(this.get('t_mesh').geometry.vertices, function (v) {
             return [v.x, v.y, v.z];
         });
 
@@ -132,7 +141,7 @@ var Mesh = Backbone.Model.extend({
     },
 
     changeAlpha: function () {
-        this.t_mesh().material.opacity = this.get('alpha');
+        this.get('t_mesh').material.opacity = this.get('alpha');
     },
 
     parse: function (response) {
@@ -155,7 +164,7 @@ var Mesh = Backbone.Model.extend({
                     map: THREE.ImageUtils.loadTexture(
                         textureURL, new THREE.UVMapping(),
                         function() {
-                            that.trigger("textureSet");
+                            that.trigger("change:texture");
                         } )
                 }
             );
@@ -192,10 +201,43 @@ var Mesh = Backbone.Model.extend({
         geometry.computeFaceNormals();
         geometry.computeVertexNormals();
         geometry.computeBoundingSphere();
-
+        result.t_mesh.name = this.id;
         return result;
-    }
+    },
 
+    loadThumbnail: function () {
+        var that = this;
+        var image = new Image.Image({
+            id: this.id,
+            server: this.get('server'),
+            thumbnailDelegate: this.collection
+        });
+        // load the thumbnail for this mesh
+        image.fetch({
+            success: function () {
+                console.log('grabbed thumbnail preview!');
+                that.set('thumbnail', image);
+            },
+            error: function () {
+                // couldn't load a thumbnail - must be an untextured mesh!
+                // trigger the thumbnail loaded so our progress bar finishes
+                that.collection.trigger('thumbnailLoaded');
+            }
+        });
+    },
+
+    // reset this mesh back to how it was at fetch time.
+    dispose : function () {
+        var texture;
+        this.get('t_mesh').geometry.dispose();
+        if (this.hasTexture()) {
+            texture = this.get('texture');
+            texture.map.dispose();
+            texture.dispose();
+            this.unset('texture');
+        }
+        this.unset('t_mesh');
+    }
 });
 
 var MeshList = Backbone.Collection.extend({
@@ -205,27 +247,7 @@ var MeshList = Backbone.Collection.extend({
 // Holds a list of available meshes, and a MeshList. The MeshList
 // is populated immediately, although meshes aren't fetched until demanded.
 // Also has a mesh parameter - the currently active mesh.
-var MeshSource = Backbone.Model.extend({
-
-    defaults: function () {
-        return {
-            assets: new MeshList,
-            nPreviews: 0
-        };
-    },
-
-    initialize : function() {
-        this.listenTo(this, "change:assets", this.changeAssets);
-        this.pending = {};
-    },
-
-    changeAssets: function () {
-        this.listenTo(this.get('assets'), "thumbnailLoaded", this.previewCount);
-    },
-
-    previewCount : function () {
-        this.set('nPreviews', this.get('nPreviews') + 1);
-    },
+var MeshSource = Asset.AssetSource.extend({
 
     url: function () {
         return this.get('server').map("meshes");
@@ -233,81 +255,58 @@ var MeshSource = Backbone.Model.extend({
 
     parse: function (response) {
         var that = this;
+        var mesh;
         var meshes = _.map(response, function (assetId) {
-            return new Mesh({
+            mesh = new Mesh({
                 id: assetId,
                 server: that.get('server')
-            })
+            });
+            return mesh;
         });
-        var meshList = new MeshList(meshes);
+        var meshList = new MeshList(meshes.slice(0, 100));
         return {
             assets: meshList
         };
     },
 
-    mesh: function () {
-        // For the mesh source, mesh === asset.
-        return this.asset();
-    },
-
-    asset: function () {
-        return this.get('asset');
-    },
-
-    assets: function () {
-        return this.get('assets');
-    },
-
-    nAssets: function () {
-        return this.get('assets').length;
-    },
-
-    nPreviews: function () {
-        return this.get('nPreviews');
-    },
-
-    next: function () {
-        if (!this.hasSuccessor()) {
-            return;
-        }
-        this.setAsset(this.assets().at(this.assetIndex() + 1));
-    },
-
-    previous: function () {
-        if (!this.hasPredecessor()) {
-            return;
-        }
-        this.setAsset(this.assets().at(this.assetIndex() - 1));
+    _changeAssets: function () {
+        this.assets().each(function(mesh) {
+            // immediately load the preview texture for the mesh
+            // TODO this may need to be less agressive on large datasets
+            mesh.loadThumbnail();
+        })
     },
 
     setAsset: function (newMesh) {
         var that = this;
+        var oldAsset = this.get('asset');
+        // kill any current fetches
         _.each(this.pending, function (xhr) {
             xhr.abort();
         }, this);
-        // the asset advances immediately.
+        this.set('assetIsLoading', true);
+        // set the asset immediately (triggering change in UI, landmark fetch)
+        that.set('asset', newMesh);
+        if (newMesh.hasThumbnail()) {
+            console.log('setting mesh to thumbnail');
+            that.set('mesh', newMesh.get('thumbnail').get('mesh'));
+        }
+        // fetch the new asset and update the mesh when the fetch is complete
         this.pending[newMesh.id] = newMesh.fetch({
             success: function () {
                 console.log('grabbed new mesh');
-                // once the mesh is downloaded, advance the mesh
-                that.set('asset', newMesh);
+                // once the mesh is downloaded, advance the mesh.
                 that.set('mesh', newMesh);
+                // now everyone has moved onto the new mesh, clean up the old
+                // one.
+                if (oldAsset) {
+                    oldAsset.dispose();
+                    oldAsset = null;
+                }
                 delete that.pending[newMesh.id];
+                that.set('assetIsLoading', false);
             }
         });
-    },
-
-    hasPredecessor: function () {
-        return this.assetIndex() !== 0;
-    },
-
-    hasSuccessor: function () {
-        return this.nAssets() - this.assetIndex() !== 1;
-    },
-
-    // returns the index of the currently active mesh
-    assetIndex: function () {
-        return this.assets().indexOf(this.get('asset'));
     }
 });
 

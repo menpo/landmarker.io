@@ -89,9 +89,9 @@ exports.Viewport = Backbone.View.extend({
         // ----- SCENE: CAMERA AND DIRECTED LIGHTS ----- //
         // s_camera holds the camera, and (optionally) any
         // lights that track with the camera as children
-        this.s_oCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 5);
-        this.s_oCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 5);
-        this.s_pCam = new THREE.PerspectiveCamera(50, 1, 0.02, 5);
+        this.s_oCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
+        this.s_oCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
+        this.s_pCam = new THREE.PerspectiveCamera(50, 1, 0.02, 20);
         this.s_camera = this.s_pCam;
         if (!this.model.meshMode()) {
             // but for images, default to orthographic camera
@@ -631,61 +631,64 @@ exports.Viewport = Backbone.View.extend({
     },
 
     changeMesh: function () {
-        console.log('Viewport: mesh has changed');
-        if (this.mesh) {
-            console.log('stopping listening to previous mesh');
-            this.stopListening(this.mesh);
-        }
-        console.log('listening to new mesh');
-        // TODO should this be an all?
-        this.listenTo(this.model.mesh(), "all", this.update);
-        this.mesh = this.model.mesh();
+        console.log('Viewport:changeMesh');
+        console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
         // firstly, remove any existing mesh
         if (this.s_mesh.children.length) {
-            this.s_mesh.remove(this.s_mesh.children[0]);
+            var previousMesh = this.s_mesh.children[0];
+            this.s_mesh.remove(previousMesh);
         }
-        var t_mesh = this.model.mesh().get('t_mesh');
-        this.s_mesh.add(t_mesh);
+        if (this.mesh) {
+            console.log('Viewport:changeMesh - stopping listening to prev mesh');
+            this.stopListening(this.mesh);
+        }
+        this.mesh = this.model.mesh();
+        // Any change on the mesh - rerender.
+        this.listenTo(this.mesh , "all", this.update);
+        this.s_mesh.add(this.mesh.get('t_mesh'));
 
         // Now we need to rescale the s_meshAndLms to fit in the unit sphere
         // First, the scale
-        this.meshScale = t_mesh.geometry.boundingSphere.radius;
+        this.meshScale = this.mesh.get('t_mesh').geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
         this.s_scaleRotate.scale.set(s, s, s);
         this.s_h_scaleRotate.scale.set(s, s, s);
         this.s_scaleRotate.up = this.mesh.up().clone();
         this.s_h_scaleRotate.up = this.mesh.up().clone();
-        if (this.model.meshMode()) {
-            // Meshes point in the normal way
-            this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
-            this.s_h_scaleRotate.lookAt(new THREE.Vector3(0, 0, 1));
-        } else {
-            // images have their z pointing away from the camera (in effect
-            // this emulates having a LHS coordinate system for images, which
-            // we want)
-            this.s_scaleRotate.lookAt(new THREE.Vector3(0, 0, -1));
-            this.s_h_scaleRotate.lookAt(new THREE.Vector3(0, 0, -1));
-        }
+        this.s_scaleRotate.lookAt(this.mesh.front().clone());
+        this.s_h_scaleRotate.lookAt(this.mesh.front().clone());
         // translation
-        var t = t_mesh.geometry.boundingSphere.center.clone();
+        var t = this.mesh.get('t_mesh').geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
         this.s_translate.position = t;
         this.s_h_translate.position = t;
         this.resetCamera();
+        console.log('Viewport:changeMesh - memory after:  ' +  this.memoryString());
         this.update();
+    },
+
+    memoryString : function () {
+        return  'geo:' + this.renderer.info.memory.geometries +
+                ' tex:' + this.renderer.info.memory.textures +
+                ' prog:' + this.renderer.info.memory.programs;
     },
 
     changeLandmarks: function () {
         console.log('Viewport: landmarks have changed');
         var that = this;
-        // 1. Clear the scene graph of all landmarks
-        // TODO should this be a destructor on LandmarkView?
-        this.s_meshAndLms.remove(this.s_lms);
-        this.s_h_meshAndLms.remove(this.s_lmsconnectivity);
-        this.s_lms = new THREE.Object3D();
-        this.s_lmsconnectivity = new THREE.Object3D();
-        this.s_meshAndLms.add(this.s_lms);
-        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
+        // 1. Dispose of all landmark and connectivity views
+        _.map(this.landmarkViews, function (lmView) {
+            lmView.dispose();
+        });
+        _.map(this.connectivityViews, function (connView) {
+            connView.dispose();
+        });
+//        this.s_meshAndLms.remove(this.s_lms);
+//        this.s_h_meshAndLms.remove(this.s_lmsconnectivity);
+//        this.s_lms = new THREE.Object3D();
+//        this.s_lmsconnectivity = new THREE.Object3D();
+//        this.s_meshAndLms.add(this.s_lms);
+//        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
         // 2. Build a fresh set of views - clear any existing lms
         this.landmarkViews = [];
         this.connectivityViews = [];
@@ -881,9 +884,7 @@ var LandmarkTHREEView = Backbone.View.extend({
             // this landmark already has an allocated representation..
             if (this.model.isEmpty()) {
                 // but it's been deleted.
-                this.viewport.s_lms.remove(this.symbol);
-                this.symbol = null;
-
+                this.dispose();
             } else {
                 // the lm may need updating. See what needs to be done
                 this.updateSymbol();
@@ -931,6 +932,15 @@ var LandmarkTHREEView = Backbone.View.extend({
         }
     },
 
+    dispose: function () {
+        if (this.symbol) {
+            this.viewport.s_lms.remove(this.symbol);
+            this.symbol.geometry.dispose();
+            this.symbol.material.dispose();
+            this.symbol = null;
+        }
+    },
+
     changeLandmarkSize: function () {
         if (this.symbol) {
             // have a symbol, and need to change it's size.
@@ -942,6 +952,11 @@ var LandmarkTHREEView = Backbone.View.extend({
             this.viewport.update();
         }
     }
+});
+
+var lineMaterial = new THREE.LineBasicMaterial({
+    color: 0x0000ff,
+    linewidth: 3
 });
 
 var LandmarkConnectionTHREEView = Backbone.View.extend({
@@ -963,8 +978,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
             // this landmark already has an allocated representation..
             if (this.model[0].isEmpty() || this.model[1].isEmpty()) {
                 // but it's been deleted.
-                this.viewport.s_lmsconnectivity.remove(this.symbol);
-                this.symbol = null;
+                this.dispose();
 
             } else {
                 // the connection may need updating. See what needs to be done
@@ -986,15 +1000,19 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
     },
 
     createLine: function (start, end) {
-        var material = new THREE.LineBasicMaterial({
-            color: 0x0000ff,
-            linewidth: 3
-        });
         var geometry = new THREE.Geometry();
         geometry.dynamic = true;
         geometry.vertices.push(start.clone());
         geometry.vertices.push(end.clone());
-        return new THREE.Line(geometry, material);
+        return new THREE.Line(geometry, lineMaterial);
+    },
+
+    dispose: function () {
+        if (this.symbol) {
+            this.viewport.s_lmsconnectivity.remove(this.symbol);
+            this.symbol.geometry.dispose();
+            this.symbol = null;
+        }
     },
 
     updateSymbol: function () {

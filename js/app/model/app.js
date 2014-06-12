@@ -30,6 +30,30 @@ exports.App = Backbone.Model.extend({
         return this.get('server');
     },
 
+    dispatcher: function () {
+        return this.get('dispatcher');
+    },
+
+    // returns the currently active Mesh.
+    mesh: function () {
+        return this.get('mesh');
+    },
+
+    // returns the currently active Asset (Image or Mesh).
+    // changes independently of mesh() - care should be taken as to which one
+    // subclasses should listen to.
+    asset: function () {
+        return this.get('asset');
+    },
+
+    assetSource: function () {
+        return this.get('assetSource');
+    },
+
+    landmarks: function () {
+        return this.get('landmarks');
+    },
+
     initialize: function () {
         var that = this;
         var labels = null;
@@ -75,8 +99,13 @@ exports.App = Backbone.Model.extend({
         // to update the app state.
         this.listenTo(assetSource, 'change:asset', this.assetChanged);
         this.listenTo(assetSource, 'change:mesh', this.meshChanged);
+
+        // All app state updates are then done in response to the asset
+        // and mesh changes on the app
         this.listenTo(this, 'change:landmarkType', this.reloadLandmarks);
-        this.listenTo(this, 'change:mesh', this.reloadLandmarks);
+        this.listenTo(this, 'change:asset', this.reloadLandmarks);
+        this.listenTo(this, 'change:mesh', this.changeMeshAlpha);
+
 
         assetSource.fetch({
             success: function () {
@@ -111,25 +140,18 @@ exports.App = Backbone.Model.extend({
         this.mesh().set('alpha', this.get('meshAlpha'));
     },
 
-    dispatcher: function () {
-        return this.get('dispatcher');
-    },
-
+    // Mirror the state of the asset source onto the app
     assetChanged: function () {
-        console.log('asset has been changed on the assetSource!');
         this.set('asset', this.assetSource().asset());
     },
 
     meshChanged: function () {
-        console.log('mesh has been changed on the assetSource!');
         this.set('mesh', this.assetSource().mesh());
-        // make sure the new mesh has the right alpha setting
-        this.changeMeshAlpha();
     },
 
     reloadLandmarks: function () {
-        if (!this.get('mesh') || !this.get('landmarkType')) {
-            // can only proceed with a mesh and a landmarkType...
+        if (!this.get('asset') || !this.get('landmarkType')) {
+            // can only proceed with an asset and a landmarkType...
             return;
         }
         // now we have a mesh and landmarkType we can get landmarks -
@@ -167,27 +189,6 @@ exports.App = Backbone.Model.extend({
                 });
             }
         });
-    },
-
-
-    // returns the currently active Mesh.
-    mesh: function () {
-        return this.get('mesh');
-    },
-
-    // returns the currently active Asset (Image or Mesh).
-    // changes independently of mesh() - care should be taken as to which one
-    // subclasses should listen to.
-    asset: function () {
-        return this.get('asset');
-    },
-
-    assetSource: function () {
-        return this.get('assetSource');
-    },
-
-    landmarks: function () {
-        return this.get('landmarks');
     }
 
 });

@@ -53,6 +53,62 @@ input, textarea, select{
     cursor: none;
 }
 
+.ModalCentreFlex {
+    min-width: 100vw;
+    min-height: 100vh;
+    position: fixed;
+    display: flex;
+    z-index: 2;
+    pointer-events: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.ModalNotification {
+    display: none;
+    width: 200px;
+    font-size: large;
+    font-weight: bold;
+    padding: 16px;
+    text-align: center;
+    color: white;
+    opacity: 0;
+    /*transition: opacity .25s ease-in-out;*/
+}
+
+.ModalNotification.ModalNotification--Display {
+    display: inline;
+    animation-duration: 3s;
+    -webkit-animation-duration: 2s;
+    animation-name: toast;
+    -webkit-animation-name: toast;
+}
+
+@-webkit-keyframes toast {
+    0% {
+        opacity: 0;
+    }
+    20% {
+        opacity: 0.9;
+    }
+
+    80% {
+        opacity: 0.9;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+#saveCompleted {
+    background: #5FB632;
+}
+
+#saveFailed {
+    background: #B91109;
+}
+
 
 /* Make the Sidebar fixed width */
 .App-Flex-Sidebar {
@@ -147,10 +203,6 @@ is itself a row flexbox */
     display: none;
 }
 
-#landmarksNotification {
-    display: none;
-}
-
 #assetDone {
     flex: 0.3;
     background: #B91109;
@@ -159,11 +211,6 @@ is itself a row flexbox */
 #previewDone {
     flex: 0.00001;
     background: #0A4EB2;
-}
-
-#landmarksDone {
-    flex: 0.3;
-    background: #ffff00;
 }
 
 #assetRemaining {
@@ -175,12 +222,6 @@ is itself a row flexbox */
 #previewRemaining  {
     flex: 1;
     background: #2D77C2;
-    opacity: 0.1;
-}
-
-#landmarksRemaining {
-    flex: 0.7;
-    background: #ddff63;
     opacity: 0.1;
 }
 

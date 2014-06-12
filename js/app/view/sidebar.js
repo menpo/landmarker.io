@@ -1,6 +1,7 @@
 var _ = require('underscore');
 var Backbone = require('backbone');
 var $ = require('jquery');
+var Notification = require('./notification');
 
 
 "use strict";
@@ -216,6 +217,9 @@ var SaveRevertView = Backbone.View.extend({
     initialize : function() {
         _.bindAll(this, 'render', 'save', 'revert');
         //this.listenTo(this.model, "all", this.render);
+        // make a spinner to listen for save calls on these landmarks
+        this.spinner = new Notification.LandmarkSavingNotification();
+        this.notification = new Notification.LandmarkSuccessFailureNotification();
     },
 
     events: {
@@ -229,12 +233,22 @@ var SaveRevertView = Backbone.View.extend({
     },
 
     save: function () {
-        this.model.saveVerbose();
+        var that = this;
+        this.spinner.start();
+        this.model.saveWithCallbacks(function () {
+            that.spinner.stop();
+            that.notification.success();
+        },
+        function () {
+            that.spinner.stop();
+            that.notification.failure();
+        });
+
     },
 
     revert: function () {
         console.log('revert called');
-        this.model.fetch();
+        alert('Warning: revert is currently not implemented.')
     }
 });
 

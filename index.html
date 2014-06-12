@@ -21,6 +21,13 @@
     </div>
 </div>
 
+<div class="ModalCentreFlex">
+        <div class="ModalNotification"
+         id="saveCompleted">Save Completed</div>
+    <div class="ModalNotification" id="saveFailed">Save Failed</div>
+    <div id="loadingSpinner"></div>
+</div>
+
 <!-- MAIN LANDMARKER.IO UI -->
 <div class="App" id="viewportContainer">
         <!-- A canvas (for 2D overlays, e.g. selection box) and the WebGL div -->
@@ -34,10 +41,6 @@
                 <div class="Notification" id="previewNotification">
                     <div id="previewDone"></div><div id="previewRemaining"></div>
                 </div>
-                <div class="Notification" id="landmarksNotification">
-                    <div id="landmarksDone"></div><div id="landmarksRemaining"></div>
-                </div>
-
             </div>
             <div class="App-Flex-Horiz">
                 <div class="App-Flex-LeftCol">
