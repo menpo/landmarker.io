@@ -74,6 +74,8 @@ exports.App = Backbone.Model.extend({
             error: function () {
                 console.log('Failed to talk server for templates (is landmarkerio' +
                     'running from your command line?).');
+                // TODO nasty hack - temp hardcode the landmark type
+                that.set('landmarkType', "kohmal");
             }
         });
 
