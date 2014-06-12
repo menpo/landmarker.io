@@ -66,7 +66,7 @@ var Mesh = Backbone.Model.extend({
             return;  // texture already off or no texture
         }
         var wf = this.isWireframeOn();
-        this.t_mesh().material = this.get('texture');
+        this.get('t_mesh').material = this.get('texture');
         if (wf) {
             this.wireframeOn();
         } else {
@@ -81,7 +81,7 @@ var Mesh = Backbone.Model.extend({
             return;  // texture already on
         }
         var wf = this.isWireframeOn();
-        this.t_mesh().material = basicMaterial;
+        this.get('t_mesh').material = basicMaterial;
         if (wf) {
             this.wireframeOn();
         } else {
@@ -126,11 +126,11 @@ var Mesh = Backbone.Model.extend({
     },
 
     toJSON: function () {
-        var trilist = _.map(this.t_mesh().geometry.faces, function (face) {
+        var trilist = _.map(this.get('t_mesh').geometry.faces, function (face) {
             return [face.a, face.b, face.c];
         });
 
-        var points = _.map(this.t_mesh().geometry.vertices, function (v) {
+        var points = _.map(this.get('t_mesh').geometry.vertices, function (v) {
             return [v.x, v.y, v.z];
         });
 
@@ -141,7 +141,7 @@ var Mesh = Backbone.Model.extend({
     },
 
     changeAlpha: function () {
-        this.t_mesh().material.opacity = this.get('alpha');
+        this.get('t_mesh').material.opacity = this.get('alpha');
     },
 
     parse: function (response) {
@@ -263,7 +263,7 @@ var MeshSource = Asset.AssetSource.extend({
             });
             return mesh;
         });
-        var meshList = new MeshList(meshes);
+        var meshList = new MeshList(meshes.slice(0, 100));
         return {
             assets: meshList
         };
