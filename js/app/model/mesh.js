@@ -237,6 +237,7 @@ var Mesh = Backbone.Model.extend({
             this.unset('texture');
         }
         this.unset('t_mesh');
+        this._previousAttributes = {};
     }
 });
 
