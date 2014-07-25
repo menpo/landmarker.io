@@ -63,6 +63,7 @@ function initLandmarker(server, mode) {
     var App = require('./app/model/app');
     var THREE = require('three');
     var url = require('url');
+    var History = require('./app/view/history');
 
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
@@ -71,14 +72,26 @@ function initLandmarker(server, mode) {
     // Parse the current url so we can query the parameters
     var u = url.parse(window.location.href, true);
     u.search = null;  // erase search so query is used in building back URL
-
-    var app = new App.App({server: server, mode: mode});
+    var appInit = {server: server, mode: mode};
+    if (u.query.hasOwnProperty('t')) {
+        appInit._activeTemplate = u.query.t;
+    }
+    if (u.query.hasOwnProperty('c')) {
+        appInit._activeCollection = u.query.c;
+    }
+    if (u.query.hasOwnProperty('i')) {
+        appInit._assetIndex = u.query.i - 1;
+    }
+    var app = new App.App(appInit);
 //    var preview = new Notification.ThumbnailNotification({model:app});
 //    var loading = new Notification.AssetLoadingNotification({model:app});
     var sidebar = new SidebarView.Sidebar({model: app});
     var assetView = new AssetView.AssetView({model: app});
     var viewport = new ViewportView.Viewport({model: app});
     var toolbar = new ToolbarView.Toolbar({model: app});
+
+    // update the URL of the page as the state changes
+    var historyUpdate = new History.HistoryUpdate({model: app});
 
     // For debugging, attach to the window.
     window.app = app;
@@ -126,7 +139,6 @@ function initLandmarker(server, mode) {
 
 document.addEventListener('DOMContentLoaded', function () {
     var url = require('url');
-
     // Parse the current url so we can query the parameters
     var u = url.parse(window.location.href, true);
     u.search = null;  // erase search so query is used in building back URL

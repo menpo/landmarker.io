@@ -110,9 +110,15 @@ exports.App = Backbone.Model.extend({
         templates.fetch({
             success: function () {
                 labels = templates.get('labels');
-                console.log('Available templates are ' + labels + ' setting ' +
-                    labels[0] + ' to start');
-                that.set('activeTemplate', labels[0]);
+                var label = labels[0];
+                console.log('Available templates are ' + labels);
+                if (that.has('_activeTemplate')) {
+                    label = that.get('_activeTemplate');
+                    console.log("template is preset to '" + label + "'");
+                }
+                console.log("template set to '" + label + "'");
+                that.set('activeTemplate', label);
+
             },
             error: function () {
                 console.log('Failed to talk server for templates (is landmarkerio' +
@@ -132,7 +138,12 @@ exports.App = Backbone.Model.extend({
                 labels = collections.get('labels');
                 console.log('Available collections are ' + labels + ' setting ' +
                     labels[0] + ' to start');
-                that.set('activeCollection', labels[0]);
+                if (that.has('_activeCollection')) {
+                    that.set('activeCollection',
+                        that.get('_activeCollection'));
+                } else {
+                    that.set('activeCollection', labels[0]);
+                }
             },
             error: function () {
                 console.log('Failed to talk server for collections (is landmarkerio' +
@@ -142,6 +153,7 @@ exports.App = Backbone.Model.extend({
     },
 
     reloadAssetSource: function () {
+        var that = this;
         if (!this.get('activeCollection')) {
             // can only proceed with an activeCollection...
             return;
@@ -168,8 +180,18 @@ exports.App = Backbone.Model.extend({
 
         assetSource.fetch({
             success: function () {
+                var i = 0;
                 console.log('asset source finished - setting');
-                assetSource.setAsset(assetSource.assets().at(0));
+                if (that.has('_assetIndex')) {
+                    i = that.get('_assetIndex');
+                }
+                if (i < 0 ||  i > (assetSource.nAssets() - 1)) {
+                    console.error(
+                            'Error trying to set index to ' + i + ' - needs to'
+                    + ' be in the range 0-' + assetSource.nAssets());
+                    return;
+                }
+                assetSource.setAsset(assetSource.assets().at(i));
             },
             error: function () {
                 console.log('Failed to fetch assets (is landmarkerio' +
