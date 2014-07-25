@@ -113,21 +113,8 @@ exports.App = Backbone.Model.extend({
                 assetSource.setAsset(assetSource.assets().at(0));
             },
             error: function () {
-                // load the url module and parse our URL
-                var url = require('url');
-                var u = url.parse(window.location.href, true);
-                u.search = null;
-                console.log('Failed to talk to server (is landmarkerio' +
+                console.log('Failed to fetch assets (is landmarkerio' +
                     'running from your command line?).');
-                if (that.meshMode()) {
-                    console.log('Restarting in image mode.');
-                    u.query.mode = 'image';
-                } else {
-                    console.log('Restarting in demo mode.');
-                    u.query.mode = 'mesh';
-                    u.query.server = 'demo'
-                }
-                window.location.href = url.format(u)
             }
         });
 

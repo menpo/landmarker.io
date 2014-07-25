@@ -1,19 +1,6 @@
 var DEFAULT_API_URL = 'http://localhost:5000';
 
 
-function resolveMode(u) {
-    var url = require('url');
-    if(!u.query.hasOwnProperty('mode')) {
-        // no mode specified. Reload defaulting to mesh.
-        u.query.mode = 'mesh';
-        window.location.href = url.format(u);
-    } else {
-        // TODO add checks for invalid mode here
-        return u.query.mode;
-    }
-}
-
-
 function resolveServer(u) {
     var Server = require('./app/model/server');
     var apiUrl = DEFAULT_API_URL;
@@ -32,14 +19,12 @@ function resolveServer(u) {
     return new Server.Server({apiURL: apiUrl});
 }
 
-function resolveModeReally(server) {
+function resolveMode(server) {
     var mode = require('./app/model/mode');
     var modeResolver = new mode.Mode({server: server});
     modeResolver.fetch({
         success: _resolveMode,
-        error: function () {
-            console.log('couldnt find mode');
-        }
+        error: restartInDemoMode
     });
 }
 
@@ -53,8 +38,18 @@ function _resolveMode(modeResolver) {
         console.log('Successfully found mode: image');
     } else {
         console.log('Error unknown mode - terminating');
+        restartInDemoMode();
     }
     initLandmarker(modeResolver.get('server'), mode);
+}
+
+function restartInDemoMode() {
+    // load the url module and parse our URL
+    var url = require('url');
+    var u = url.parse(window.location.href, true);
+    u.search = null;
+    u.query.server = 'demo';
+    window.location.href = url.format(u)
 }
 
 function initLandmarker(server, mode) {
@@ -139,5 +134,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var server = resolveServer(u);
     // by this point definitely have a correctly set server.
 
-    resolveModeReally(server);
+    // check the mode of the server.
+    resolveMode(server);
 });
