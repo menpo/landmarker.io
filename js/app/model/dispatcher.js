@@ -1,8 +1,8 @@
-var backbone = require('backbone');
+var Backbone = require('../lib/backbonej');
 
 "use strict";
 
-exports.Dispatcher = backbone.Model.extend({
+exports.Dispatcher = Backbone.Model.extend({
 
     defaults: function () {
         return {

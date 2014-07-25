@@ -1,5 +1,5 @@
 var _ = require('underscore');
-var Backbone = require('backbone');
+var Backbone = require('../lib/backbonej');
 var Landmark = require('./landmark');
 var Template = require('./template');
 var Mesh = require('./mesh');

@@ -1,6 +1,5 @@
-var Backbone = require('backbone');
 var _ = require('underscore');
-Backbone.$ = require('jquery');
+var Backbone = require('../lib/backbonej');
 var THREE = require('three');
 
 "use strict";

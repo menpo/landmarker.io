@@ -1,6 +1,5 @@
 var _ = require('underscore');
-var Backbone = require('backbone');
-Backbone.$ = require('jquery');
+var Backbone = require('../lib/backbonej');
 var THREE = require('three');
 var Asset = require('./asset');
 var Image = require('./image');

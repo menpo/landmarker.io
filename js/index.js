@@ -32,8 +32,33 @@ function resolveServer(u) {
     return new Server.Server({apiURL: apiUrl});
 }
 
+function resolveModeReally(server) {
+    var mode = require('./app/model/mode');
+    var modeResolver = new mode.Mode({server: server});
+    modeResolver.fetch({
+        success: _resolveMode,
+        error: function () {
+            console.log('couldnt find mode');
+        }
+    });
+}
 
-document.addEventListener('DOMContentLoaded', function () {
+function _resolveMode(modeResolver) {
+    var mode;
+    if (modeResolver.has('mesh')) {
+        mode = 'mesh';
+        console.log('Successfully found mode: mesh');
+    } else if (modeResolver.has('image')) {
+        mode = 'image';
+        console.log('Successfully found mode: image');
+    } else {
+        console.log('Error unknown mode - terminating');
+    }
+    initLandmarker(modeResolver.get('server'), mode);
+}
+
+function initLandmarker(server, mode) {
+    console.log('Starting landmarker in ' + mode + ' mode');
     var $ = require('jquery');
     var SidebarView = require('./app/view/sidebar');
     var AssetView = require('./app/view/asset');
@@ -51,11 +76,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Parse the current url so we can query the parameters
     var u = url.parse(window.location.href, true);
     u.search = null;  // erase search so query is used in building back URL
-
-    var mode = resolveMode(u);
-    // by this point definitely have a mode set.
-    var server = resolveServer(u);
-    // by this point definitely have a correctly set server.
 
     var app = new App.App({server: server, mode: mode});
     var preview = new Notification.ThumbnailNotification({model:app});
@@ -106,4 +126,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
         }
     });
+}
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    var url = require('url');
+
+    // Parse the current url so we can query the parameters
+    var u = url.parse(window.location.href, true);
+    u.search = null;  // erase search so query is used in building back URL
+
+    var server = resolveServer(u);
+    // by this point definitely have a correctly set server.
+
+    resolveModeReally(server);
 });

@@ -1,5 +1,5 @@
-var Backbone = require('backbone');
-Backbone.$ = require('jquery');
+var Backbone = require('../lib/backbonej');
+
 
 "use strict";
 
