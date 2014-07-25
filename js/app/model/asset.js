@@ -14,6 +14,12 @@ exports.AssetSource = Backbone.Model.extend({
         };
     },
 
+    urlRoot : "collections",
+
+    url: function () {
+        return this.get('server').map(this.urlRoot + '/' + this.id);
+    },
+
     initialize : function() {
         this.listenTo(this, "change:assets", this.changeAssets);
         this.pending = {};

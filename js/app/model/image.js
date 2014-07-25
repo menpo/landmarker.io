@@ -141,10 +141,6 @@ var ImageList = Backbone.Collection.extend({
 // Also has a mesh parameter - the currently active mesh.
 var ImageSource = Asset.AssetSource.extend({
 
-    url: function () {
-        return this.get('server').map("images");
-    },
-
     parse: function (response) {
         var that = this;
         var image;

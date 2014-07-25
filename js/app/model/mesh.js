@@ -249,10 +249,6 @@ var MeshList = Backbone.Collection.extend({
 // Also has a mesh parameter - the currently active mesh.
 var MeshSource = Asset.AssetSource.extend({
 
-    url: function () {
-        return this.get('server').map("meshes");
-    },
-
     parse: function (response) {
         var that = this;
         var mesh;

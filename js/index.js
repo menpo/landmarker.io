@@ -73,10 +73,10 @@ function initLandmarker(server, mode) {
     u.search = null;  // erase search so query is used in building back URL
 
     var app = new App.App({server: server, mode: mode});
-    var preview = new Notification.ThumbnailNotification({model:app});
-    var loading = new Notification.AssetLoadingNotification({model:app});
+//    var preview = new Notification.ThumbnailNotification({model:app});
+//    var loading = new Notification.AssetLoadingNotification({model:app});
     var sidebar = new SidebarView.Sidebar({model: app});
-    var assetView = new AssetView.AssetView({model: app.assetSource()});
+    var assetView = new AssetView.AssetView({model: app});
     var viewport = new ViewportView.Viewport({model: app});
     var toolbar = new ToolbarView.Toolbar({model: app});
 
