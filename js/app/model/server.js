@@ -17,16 +17,15 @@ exports.Server = Backbone.Model.extend({
     map: function (url) {
         var mapping;
         if (this.get('DEMO_MODE')) {
-            console.log('in demo mode');
             mapping = this.apiHeader + url;
             // this just means we map everything to .json..except images
-            // which have to be jpeg.
+            // which have to be jpeg and mesh data (.raw)
             if ((new RegExp('textures/')).test(url)) {
-                console.log('mapping a texture image');
                 return mapping + '.jpg';
             } else if ((new RegExp('thumbnails/')).test(url)) {
-                console.log('mapping a thumbnail image');
                 return mapping + '.jpg';
+            } else if ((new RegExp('meshes/')).test(url)) {
+                    return mapping + '.raw';
             } else {
                 return mapping + '.json';
             }
