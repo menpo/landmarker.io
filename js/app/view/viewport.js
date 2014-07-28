@@ -660,8 +660,8 @@ exports.Viewport = Backbone.View.extend({
         // translation
         var t = this.mesh.get('t_mesh').geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
-        this.s_translate.position = t;
-        this.s_h_translate.position = t;
+        this.s_translate.position.copy(t);
+        this.s_h_translate.position.copy(t);
         this.resetCamera();
         console.log('Viewport:changeMesh - memory after:  ' +  this.memoryString());
         this.update();
