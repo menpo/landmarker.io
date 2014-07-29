@@ -199,7 +199,7 @@ exports.Viewport = Backbone.View.extend({
             event.preventDefault();
             that.$el.focus();
             downEvent = event;
-            onMouseDownPosition.set(event.offsetX, event.offsetY);
+            onMouseDownPosition.set(event.clientX, event.clientY);
 
             // All interactions require intersections to distinguish
             intersectsWithLms = that.getIntersectsFromEvent(event, that.s_lms);
@@ -431,7 +431,7 @@ exports.Viewport = Backbone.View.extend({
         var meshOnMouseUp = function (event) {
             console.log("meshPress:up");
             var p;
-            onMouseUpPosition.set(event.offsetX, event.offsetY);
+            onMouseUpPosition.set(event.clientX, event.clientY);
             if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
                 //  a click on the mesh
                 p = intersectsWithMesh[0].point.clone();
@@ -443,7 +443,7 @@ exports.Viewport = Backbone.View.extend({
 
         var nothingOnMouseUp = function (event) {
             console.log("nothingPress:up");
-            onMouseUpPosition.set(event.offsetX, event.offsetY);
+            onMouseUpPosition.set(event.clientX, event.clientY);
             if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
                 // a click on nothing - deselect all
                 that.model.get('landmarks').get('groups').deselectAll();
@@ -456,7 +456,7 @@ exports.Viewport = Backbone.View.extend({
             console.log("landmarkPress:up");
             $(document).off('mousemove.landmarkDrag');
             var lm;
-            onMouseUpPosition.set(event.offsetX, event.offsetY);
+            onMouseUpPosition.set(event.clientX, event.clientY);
             if (onMouseDownPosition.distanceTo(onMouseUpPosition) > 0) {
                 // landmark was dragged
                 var activeGroup = that.model.get('landmarks').get('groups').active();
@@ -562,7 +562,7 @@ exports.Viewport = Backbone.View.extend({
     },
 
     getIntersectsFromEvent: function (event, object) {
-      return this.getIntersects(event.offsetX, event.offsetY, object);
+      return this.getIntersects(event.clientX, event.clientY, object);
     },
 
     worldToScreen: function (vector) {
