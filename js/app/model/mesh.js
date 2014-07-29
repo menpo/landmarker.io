@@ -209,7 +209,7 @@ var Mesh = Backbone.Model.extend({
             geometry.addAttribute('uv', new THREE.BufferAttribute(tcoords, 2));
             // this mesh has a texture - grab it
             var textureURL = this.get('server').map('textures/' + this.id);
-            material = new THREE.MeshPhongMaterial(
+            material = new THREE.MeshBasicMaterial(
                 {
                     map: THREE.ImageUtils.loadTexture(textureURL,
                         new THREE.UVMapping(),
