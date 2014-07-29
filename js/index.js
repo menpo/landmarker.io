@@ -113,11 +113,6 @@ function initLandmarker(server, mode) {
                     app.mesh().textureToggle();
                 }
                 break;
-            case 119:  // w = [W]ireframe toggle (mesh mode only)
-                if (app.meshMode()) {
-                    app.mesh().wireframeToggle();
-                }
-                break;
             case 97:  // a = select [A]ll
                 app.landmarks().selectAllInActiveGroup();
                 break;

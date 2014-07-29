@@ -7,7 +7,7 @@ var Camera = require('./camera');
 "use strict";
 
 // clear colour for both the main view and PictureInPicture
-var CLEAR_COLOUR = 0xAAAAAA;
+var CLEAR_COLOUR = 0xDDDDDD;
 var CLEAR_COLOUR_PIP = 0xCCCCCC;
 
 // the default scale for 1.0

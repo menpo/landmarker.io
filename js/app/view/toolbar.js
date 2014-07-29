@@ -116,54 +116,6 @@ var TextureToggle = Backbone.View.extend({
 });
 
 
-var WireframeToggle = Backbone.View.extend({
-
-    el: '#wireframeRow',
-
-    events: {
-        'click #wireframeToggle' : "wireframeToggle"
-    },
-
-    initialize : function () {
-        console.log('WireframeToggle:initialize');
-        this.$toggle = this.$el.find('#wireframeToggle')[0];
-        _.bindAll(this, 'changeMesh', 'render', 'wireframeToggle');
-        this.listenTo(this.model, "change:mesh", this.changeMesh);
-        // there could already be a model we have missed
-        if (this.model.mesh()) {
-            this.changeMesh();
-        }
-        this.render();
-    },
-
-    changeMesh: function () {
-        console.log('WireframeToggle:changeMesh');
-        if (this.mesh) {
-            this.stopListening(this.mesh);
-        }
-        this.mesh = this.model.get('mesh');
-        this.listenTo(this.mesh, "all", this.render);
-    },
-
-
-    render: function () {
-        console.log('WireframeToggle:render');
-        if (this.mesh) {
-            this.$toggle.checked = this.mesh.isWireframeOn();
-        }
-        return this;
-    },
-
-    wireframeToggle: function () {
-        console.log('WireframeToggle:wireframeToggle');
-        if (!this.mesh) {
-            return;
-        }
-        this.mesh.wireframeToggle();
-    }
-});
-
-
 exports.Toolbar = Backbone.View.extend({
 
     el: '#toolbar',
@@ -175,12 +127,10 @@ exports.Toolbar = Backbone.View.extend({
             // only in mesh mode do we add these toolbar items.
             this.alphaSlider = new AlphaSlider({model: this.model});
             this.textureToggle = new TextureToggle({model: this.model});
-            this.wireframeToggle = new WireframeToggle({model: this.model});
         } else {
             // in image mode, we shouldn't even have these controls.
             this.$el.find('#alphaRow').css("display", "none");
             this.$el.find('#textureRow').css("display", "none");
-            this.$el.find('#wireframeRow').css("display", "none");
         }
     }
 
