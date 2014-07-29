@@ -78,11 +78,24 @@ exports.AssetLoadingNotification = Backbone.View.extend({
 
     initialize : function() {
         _.bindAll(this, 'render');
-        this.listenTo(this.model.assetSource(), "change:assetIsLoading", this.render);
+        this.listenTo(this.model, "change:assetSource",
+            this._changeAssetSource);
         this.spinner = new Spinner().spin();
         this.el = document.getElementById('loadingSpinner');
         this.spinner = new Spinner(spinnerOpts);
         this.isSpinning = false;
+        this._changeAssetSource();
+    },
+
+    _changeAssetSource: function () {
+        if (this.source) {
+            this.stopListening(this.source);
+        }
+        this.source = this.model.assetSource();
+        if (this.source) {
+            this.listenTo(this.source, "change:assetIsLoading",
+                this.render);
+        }
     },
 
     render: function () {
