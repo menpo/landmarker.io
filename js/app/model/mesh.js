@@ -148,23 +148,43 @@ var Mesh = Backbone.Model.extend({
         var promise = getArray(this.url());
         var that = this;
         promise.then(function (buffer) {
-            var lenMeta = 2;
+            var lenMeta = 4;
             var bytes = 4;
             var meta = new Uint32Array(buffer, 0, lenMeta);
-            var isTextured = Boolean(meta[0]);
-            var nTris = meta[1];
+            var nTris = meta[0];
+            var isTextured = Boolean(meta[1]);
+            var hasNormals = Boolean(meta[2]);
+            var hasBinning = Boolean(meta[2]);  // used for efficient lookup
             var stride = nTris * 3;
+
+            // Points
             var pointsOffset = lenMeta * bytes;
-            var normalOffset = pointsOffset + stride * 3 * bytes;
             var points = new Float32Array(buffer, pointsOffset, stride * 3);
-            var normals = new Float32Array(buffer, normalOffset, stride * 3);
-            var tcoords;
-            if (isTextured) {
-                var tcoordsOffset = normalOffset + stride * 3 * bytes;
-                tcoords = new Float32Array(buffer, tcoordsOffset, stride * 2);
-            } else {
-                tcoords = null;
+            var normalOffset = pointsOffset + stride * 3 * bytes;
+
+            // Normals (optional)
+            var normals = null;  // initialize for no normals
+            var tcoordsOffset = normalOffset;  // no normals -> tcoords next
+            if (hasNormals) {
+                // correct if has normals
+                normals = new Float32Array(buffer, normalOffset, stride * 3);
+                // need to advance the pointer on tcoords offset
+                tcoordsOffset = normalOffset + stride * 3 * bytes;
             }
+
+            // Tcoords (optional)
+            var tcoords = null;  // initialize for no tcoords
+            var binningOffset = tcoordsOffset;  // no tcoords -> binning next
+            if (isTextured) {
+                tcoords = new Float32Array(buffer, tcoordsOffset, stride * 2);
+                binningOffset = tcoordsOffset + stride * 2 * bytes;
+            }
+
+            // Binning (optional)
+            if (hasBinning) {
+                console.log('ready to read from binning file at ' + binningOffset)
+            }
+
             return that._newBufferMesh(points, normals, tcoords);
         }).catch(function () {
             console.log('something went wrong');
@@ -177,7 +197,11 @@ var Mesh = Backbone.Model.extend({
         window.points = points;
         var geometry = new THREE.BufferGeometry();
         geometry.addAttribute('position', new THREE.BufferAttribute(points, 3));
-        geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3));
+        if (normals) {
+            geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3));
+        } else {
+            geometry.computeVertexNormals();
+        }
         var material;
         var result;
         var that = this;
