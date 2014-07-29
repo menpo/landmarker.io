@@ -19,13 +19,7 @@
         "backbone": "~1.1.2",
         "underscore": "~1.6.0",
         "browserify": "~3.44.2",
-        "browserify-shim": "~3.4.1",
+        "three": "~0.68.0",
         "spin.js": "~2.0.1"
-    },
-    "browserify": {
-        "transform": [ "browserify-shim" ]
-    },
-    "browserify-shim": {
-        "three": "global:THREE"
     }
 }

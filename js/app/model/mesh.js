@@ -1,9 +1,9 @@
 var _ = require('underscore');
-var Backbone = require('backbone');
-Backbone.$ = require('jquery');
+var Backbone = require('../lib/backbonej');
 var THREE = require('three');
 var Asset = require('./asset');
 var Image = require('./image');
+var getArray = require('../lib/get');
 
 "use strict";
 
@@ -144,46 +144,80 @@ var Mesh = Backbone.Model.extend({
         this.get('t_mesh').material.opacity = this.get('alpha');
     },
 
-    parse: function (response) {
-        var geometry = new THREE.Geometry();
-        _.each(response.points, function (v) {
-            geometry.vertices.push(new THREE.Vector3(v[0], v[1], v[2]));
+    parseBuffer: function () {
+        var promise = getArray(this.url());
+        var that = this;
+        promise.then(function (buffer) {
+            var lenMeta = 4;
+            var bytes = 4;
+            var meta = new Uint32Array(buffer, 0, lenMeta);
+            var nTris = meta[0];
+            var isTextured = Boolean(meta[1]);
+            var hasNormals = Boolean(meta[2]);
+            var hasBinning = Boolean(meta[2]);  // used for efficient lookup
+            var stride = nTris * 3;
+
+            // Points
+            var pointsOffset = lenMeta * bytes;
+            var points = new Float32Array(buffer, pointsOffset, stride * 3);
+            var normalOffset = pointsOffset + stride * 3 * bytes;
+
+            // Normals (optional)
+            var normals = null;  // initialize for no normals
+            var tcoordsOffset = normalOffset;  // no normals -> tcoords next
+            if (hasNormals) {
+                // correct if has normals
+                normals = new Float32Array(buffer, normalOffset, stride * 3);
+                // need to advance the pointer on tcoords offset
+                tcoordsOffset = normalOffset + stride * 3 * bytes;
+            }
+
+            // Tcoords (optional)
+            var tcoords = null;  // initialize for no tcoords
+            var binningOffset = tcoordsOffset;  // no tcoords -> binning next
+            if (isTextured) {
+                tcoords = new Float32Array(buffer, tcoordsOffset, stride * 2);
+                binningOffset = tcoordsOffset + stride * 2 * bytes;
+            }
+
+            // Binning (optional)
+            if (hasBinning) {
+                console.log('ready to read from binning file at ' + binningOffset)
+            }
+
+            return that._newBufferMesh(points, normals, tcoords);
+        }).catch(function () {
+            console.log('something went wrong');
         });
-        _.each(response.trilist, function (tl) {
-            geometry.faces.push(new THREE.Face3(tl[0], tl[1], tl[2]));
-        });
+        return promise;
+    },
+
+    _newBufferMesh: function(points, normals, tcoords) {
+        console.log('in new buffer mesh');
+        window.points = points;
+        var geometry = new THREE.BufferGeometry();
+        geometry.addAttribute('position', new THREE.BufferAttribute(points, 3));
+        if (normals) {
+            geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3));
+        } else {
+            geometry.computeVertexNormals();
+        }
         var material;
         var result;
         var that = this;
-        if (response.tcoords) {
+        if (tcoords) {
+            geometry.addAttribute('uv', new THREE.BufferAttribute(tcoords, 2));
             // this mesh has a texture - grab it
-            var textureURL = this.get('server').map('textures/' +
-                                                    this.id);
+            var textureURL = this.get('server').map('textures/' + this.id);
             material = new THREE.MeshPhongMaterial(
                 {
-                    map: THREE.ImageUtils.loadTexture(
-                        textureURL, new THREE.UVMapping(),
-                        function() {
-                            that.trigger("change:texture");
-                        } )
+                    map: THREE.ImageUtils.loadTexture(textureURL,
+                        new THREE.UVMapping(),
+                        function() {that.trigger("change:texture");}
+                    )
                 }
             );
             material.transparent = true;
-            // We expect per-vertex texture coords only. Three js has per
-            // face tcoords, so we need to handle the conversion.
-            // First - generate all the tcoords in a list
-            var tcs = [];
-            _.each(response.tcoords, function (tc) {
-                tcs.push(new THREE.Vector2(tc[0], tc[1]));
-            });
-            // now index into them to build up the per-face uvs THREE js
-            // uses
-            var t; // the indices for the triangle in question
-            for (var i = 0; i < geometry.faces.length; i++) {
-                t = geometry.faces[i];
-                geometry.faceVertexUvs[0].push(
-                    [tcs[t.a], tcs[t.b], tcs[t.c]])
-            }
             result = {
                 t_mesh: new THREE.Mesh(geometry, material),
                 texture: material,
@@ -195,14 +229,9 @@ var Mesh = Backbone.Model.extend({
                 t_mesh: new THREE.Mesh(geometry, basicMaterial)
             };
         }
-        // clean up the vertices
-        geometry.mergeVertices();
-        // needed for lighting to work
-        geometry.computeFaceNormals();
-        geometry.computeVertexNormals();
         geometry.computeBoundingSphere();
         result.t_mesh.name = this.id;
-        return result;
+        return this.set(result);
     },
 
     loadThumbnail: function () {
@@ -250,10 +279,6 @@ var MeshList = Backbone.Collection.extend({
 // Also has a mesh parameter - the currently active mesh.
 var MeshSource = Asset.AssetSource.extend({
 
-    url: function () {
-        return this.get('server').map("meshes");
-    },
-
     parse: function (response) {
         var that = this;
         var mesh;
@@ -293,8 +318,9 @@ var MeshSource = Asset.AssetSource.extend({
             that.set('mesh', newMesh.get('thumbnail').get('mesh'));
         }
         // fetch the new asset and update the mesh when the fetch is complete
-        this.pending[newMesh.id] = newMesh.fetch({
-            success: function () {
+        var promise = newMesh.parseBuffer();
+        this.pending[newMesh.id] = promise.xhr();
+        promise.then(function () {
                 console.log('grabbed new mesh');
                 // once the mesh is downloaded, advance the mesh.
                 that.set('mesh', newMesh);
@@ -306,7 +332,6 @@ var MeshSource = Asset.AssetSource.extend({
                 }
                 delete that.pending[newMesh.id];
                 that.set('assetIsLoading', false);
-            }
         });
     }
 });

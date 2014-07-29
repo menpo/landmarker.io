@@ -1,6 +1,5 @@
 var _ = require('underscore');
-var Backbone = require('backbone');
-Backbone.$ = require('jquery');
+var Backbone = require('../lib/backbonej');
 var THREE = require('three');
 var Mesh = require('./mesh');
 var Asset = require('./asset');
@@ -32,13 +31,13 @@ var Image = Backbone.Model.extend({
         var h = response.height;
 
         var geometry = new THREE.Geometry();
-        geometry.vertices.push(new THREE.Vector3(0, h, 0));
-        geometry.vertices.push(new THREE.Vector3(w, h, 0));
-        geometry.vertices.push(new THREE.Vector3(w, 0, 0));
         geometry.vertices.push(new THREE.Vector3(0, 0, 0));
+        geometry.vertices.push(new THREE.Vector3(h, 0, 0));
+        geometry.vertices.push(new THREE.Vector3(h, w, 0));
+        geometry.vertices.push(new THREE.Vector3(0, w, 0));
 
-        geometry.faces.push(new THREE.Face3(0, 1, 2));
-        geometry.faces.push(new THREE.Face3(2, 3, 0));
+        geometry.faces.push(new THREE.Face3(0, 1, 3));
+        geometry.faces.push(new THREE.Face3(1, 2, 3));
 
         var material;
         var that = this;
@@ -59,14 +58,14 @@ var Image = Backbone.Model.extend({
         );
 
         var t0 = [];
-        t0.push(new THREE.Vector2(0, 0)); // 1 0
-        t0.push(new THREE.Vector2(1, 0)); // 1 1
+        t0.push(new THREE.Vector2(0, 1)); // 1 0
+        t0.push(new THREE.Vector2(0, 0)); // 1 1
         t0.push(new THREE.Vector2(1, 1)); // 0 1
 
         var t1 = [];
-        t1.push(new THREE.Vector2(1, 1)); // 0 1
-        t1.push(new THREE.Vector2(0, 1)); // 0 0
-        t1.push(new THREE.Vector2(0, 0)); // 1 0
+        t1.push(new THREE.Vector2(0, 0)); // 0 1
+        t1.push(new THREE.Vector2(1, 0)); // 0 0
+        t1.push(new THREE.Vector2(1, 1)); // 1 0
 
         geometry.faceVertexUvs[0].push(t0);
         geometry.faceVertexUvs[0].push(t1);
@@ -81,11 +80,7 @@ var Image = Backbone.Model.extend({
                 {
                     t_mesh: t_mesh,
                     // Set up vector so viewport can rotate
-                    up: new THREE.Vector3(0, -1, 0),
-                    // images have their z pointing away from the camera (in
-                    // effect this emulates having a LHS coordinate system for
-                    // images, which we want)
-                    front: new THREE.Vector3(0, 0, -1)
+                    up: new THREE.Vector3(1, 0, 0)
 
                 }),
             thumbnailMaterial: material
@@ -141,10 +136,6 @@ var ImageList = Backbone.Collection.extend({
 // is populated immediately, although images aren't fetched until demanded.
 // Also has a mesh parameter - the currently active mesh.
 var ImageSource = Asset.AssetSource.extend({
-
-    url: function () {
-        return this.get('server').map("images");
-    },
 
     parse: function (response) {
         var that = this;

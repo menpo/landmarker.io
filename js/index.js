@@ -1,19 +1,6 @@
 var DEFAULT_API_URL = 'http://localhost:5000';
 
 
-function resolveMode(u) {
-    var url = require('url');
-    if(!u.query.hasOwnProperty('mode')) {
-        // no mode specified. Reload defaulting to mesh.
-        u.query.mode = 'mesh';
-        window.location.href = url.format(u);
-    } else {
-        // TODO add checks for invalid mode here
-        return u.query.mode;
-    }
-}
-
-
 function resolveServer(u) {
     var Server = require('./app/model/server');
     var apiUrl = DEFAULT_API_URL;
@@ -32,8 +19,41 @@ function resolveServer(u) {
     return new Server.Server({apiURL: apiUrl});
 }
 
+function resolveMode(server) {
+    var mode = require('./app/model/mode');
+    var modeResolver = new mode.Mode({server: server});
+    modeResolver.fetch({
+        success: _resolveMode,
+        error: restartInDemoMode
+    });
+}
 
-document.addEventListener('DOMContentLoaded', function () {
+function _resolveMode(modeResolver) {
+    var mode;
+    if (modeResolver.has('mesh')) {
+        mode = 'mesh';
+        console.log('Successfully found mode: mesh');
+    } else if (modeResolver.has('image')) {
+        mode = 'image';
+        console.log('Successfully found mode: image');
+    } else {
+        console.log('Error unknown mode - terminating');
+        restartInDemoMode();
+    }
+    initLandmarker(modeResolver.get('server'), mode);
+}
+
+function restartInDemoMode() {
+    // load the url module and parse our URL
+    var url = require('url');
+    var u = url.parse(window.location.href, true);
+    u.search = null;
+    u.query.server = 'demo';
+    window.location.href = url.format(u)
+}
+
+function initLandmarker(server, mode) {
+    console.log('Starting landmarker in ' + mode + ' mode');
     var $ = require('jquery');
     var SidebarView = require('./app/view/sidebar');
     var AssetView = require('./app/view/asset');
@@ -43,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var App = require('./app/model/app');
     var THREE = require('three');
     var url = require('url');
+    var History = require('./app/view/history');
 
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
@@ -51,19 +72,26 @@ document.addEventListener('DOMContentLoaded', function () {
     // Parse the current url so we can query the parameters
     var u = url.parse(window.location.href, true);
     u.search = null;  // erase search so query is used in building back URL
-
-    var mode = resolveMode(u);
-    // by this point definitely have a mode set.
-    var server = resolveServer(u);
-    // by this point definitely have a correctly set server.
-
-    var app = new App.App({server: server, mode: mode});
-    var preview = new Notification.ThumbnailNotification({model:app});
+    var appInit = {server: server, mode: mode};
+    if (u.query.hasOwnProperty('t')) {
+        appInit._activeTemplate = u.query.t;
+    }
+    if (u.query.hasOwnProperty('c')) {
+        appInit._activeCollection = u.query.c;
+    }
+    if (u.query.hasOwnProperty('i')) {
+        appInit._assetIndex = u.query.i - 1;
+    }
+    var app = new App.App(appInit);
+//    var preview = new Notification.ThumbnailNotification({model:app});
     var loading = new Notification.AssetLoadingNotification({model:app});
     var sidebar = new SidebarView.Sidebar({model: app});
-    var assetView = new AssetView.AssetView({model: app.assetSource()});
+    var assetView = new AssetView.AssetView({model: app});
     var viewport = new ViewportView.Viewport({model: app});
     var toolbar = new ToolbarView.Toolbar({model: app});
+
+    // update the URL of the page as the state changes
+    var historyUpdate = new History.HistoryUpdate({model: app});
 
     // For debugging, attach to the window.
     window.app = app;
@@ -106,4 +134,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
         }
     });
+}
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    var url = require('url');
+    // Parse the current url so we can query the parameters
+    var u = url.parse(window.location.href, true);
+    u.search = null;  // erase search so query is used in building back URL
+
+    var server = resolveServer(u);
+    // by this point definitely have a correctly set server.
+
+    // check the mode of the server.
+    resolveMode(server);
 });

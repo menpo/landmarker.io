@@ -1,5 +1,5 @@
-var Backbone = require('backbone');
-Backbone.$ = require('jquery');
+var Backbone = require('../lib/backbonej');
+
 
 "use strict";
 
@@ -12,6 +12,12 @@ exports.AssetSource = Backbone.Model.extend({
             nPreviews: 0,
             assetIsLoading: false
         };
+    },
+
+    urlRoot : "collections",
+
+    url: function () {
+        return this.get('server').map(this.urlRoot + '/' + this.id);
     },
 
     initialize : function() {

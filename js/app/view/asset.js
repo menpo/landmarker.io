@@ -24,27 +24,26 @@ var AssetPagerView = Backbone.View.extend({
     initialize : function() {
         console.log('AssetPagerView:initialize');
         _.bindAll(this, 'render');
-        this.listenTo(this.model, "all", this.render);
-        this.render();
+        this.listenTo(this.model, "change:asset", this.render);
     },
 
     render: function () {
         console.log('AssetPagerView:render');
         this.$el.find('#next').toggleClass('Button--Disabled',
-            !this.model.hasSuccessor());
+            !this.model.assetSource().hasSuccessor());
         this.$el.find('#previous').toggleClass('Button--Disabled',
-            !this.model.hasPredecessor());
+            !this.model.assetSource().hasPredecessor());
         return this;
     },
 
     next: function () {
         console.log('AssetPagerView:next');
-        this.model.next();
+        this.model.assetSource().next();
     },
 
     previous: function () {
         console.log('AssetPagerView:previous');
-        this.model.previous();
+        this.model.assetSource().previous();
     }
 
 });
@@ -92,7 +91,7 @@ var AssetIndexView = Backbone.View.extend({
 
     render: function () {
         console.log("AssetIndexView:assetSource:render");
-        var n_str = pad(this.model.assets().length, 2);
+        var n_str = pad(this.model.assetSource().nAssets(), 2);
         var i_str = pad(this.model.assetIndex() + 1, 2);
         this.$el.html(i_str + "/" + n_str);
         return this;

@@ -263,6 +263,7 @@ var Sidebar = Backbone.View.extend({
     },
 
     landmarksChange: function () {
+        console.log('Sidebar - rewiring after landmark change');
         if (this.saveRevertView) {
             // break bindings for save revert
             this.saveRevertView.undelegateEvents();
