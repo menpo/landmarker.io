@@ -50,7 +50,7 @@ input, textarea, select{
 .App {
     min-height: 100vh;
     min-width: 100vw;
-    cursor: none;
+    cursor: url(../img/cursor.png) 25 25, auto;
 }
 
 .ModalCentreFlex {
