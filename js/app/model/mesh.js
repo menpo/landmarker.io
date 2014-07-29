@@ -24,8 +24,7 @@ var Mesh = Backbone.Model.extend({
     urlRoot: "meshes",
 
     initialize : function() {
-        _.bindAll(this, 'changeAlpha', 'loadThumbnail', 'dispose',
-                  'wireframeToggle');
+        _.bindAll(this, 'changeAlpha', 'loadThumbnail', 'dispose');
         this.listenTo(this, "change:alpha", this.changeAlpha);
     },
 
@@ -57,21 +56,11 @@ var Mesh = Backbone.Model.extend({
         return this.hasTexture() && this.get('textureOn');
     },
 
-    isWireframeOn: function () {
-        return this.get('t_mesh').material.wireframe;
-    },
-
     textureOn: function() {
         if (this.isTextureOn() || !this.hasTexture()) {
             return;  // texture already off or no texture
         }
-        var wf = this.isWireframeOn();
         this.get('t_mesh').material = this.get('texture');
-        if (wf) {
-            this.wireframeOn();
-        } else {
-            this.wireframeOff();
-        }
         this.changeAlpha();
         this.set('textureOn', true);
     },
@@ -80,13 +69,7 @@ var Mesh = Backbone.Model.extend({
         if (!this.isTextureOn()) {
             return;  // texture already on
         }
-        var wf = this.isWireframeOn();
         this.get('t_mesh').material = basicMaterial;
-        if (wf) {
-            this.wireframeOn();
-        } else {
-            this.wireframeOff();
-        }
         this.changeAlpha();
         this.set('textureOn', false);
     },
@@ -96,32 +79,6 @@ var Mesh = Backbone.Model.extend({
             this.textureOff();
         } else {
             this.textureOn();
-        }
-    },
-
-    wireframeOn: function() {
-        if (this.isWireframeOn()) {
-            return;
-        }
-        this.get('t_mesh').material.wireframe = true;
-        this.set('wireframeOn', true);
-        this.changeAlpha();
-    },
-
-    wireframeOff: function() {
-        if (!this.isWireframeOn()) {
-            return;
-        }
-        this.get('t_mesh').material.wireframe = false;
-        this.set('wireframeOn', false);
-        this.changeAlpha();
-    },
-
-    wireframeToggle: function () {
-        if (this.isWireframeOn()) {
-            this.wireframeOff();
-        } else {
-            this.wireframeOn();
         }
     },
 
