@@ -39,10 +39,6 @@ input, textarea, select{
 
 /* Don't want user selectable text */
 * {
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: -moz-none;
-    -o-user-select: none;
     user-select: none;
 }
 
@@ -73,29 +69,24 @@ input, textarea, select{
     text-align: center;
     color: white;
     opacity: 0;
-    /*transition: opacity .25s ease-in-out;*/
 }
 
 .ModalNotification.ModalNotification--Display {
     display: inline;
     animation-duration: 3s;
-    -webkit-animation-duration: 2s;
     animation-name: toast;
-    -webkit-animation-name: toast;
 }
 
-@-webkit-keyframes toast {
+@keyframes toast {
     0% {
         opacity: 0;
     }
-    20% {
-        opacity: 0.9;
+    15% {
+        opacity: 0.94;
     }
-
-    80% {
-        opacity: 0.9;
+    85% {
+        opacity: 0.94;
     }
-
     100% {
         opacity: 0;
     }
@@ -228,14 +219,6 @@ is itself a row flexbox */
 .AssetInfo {
     z-index: 2
 }
-
-/*.App-Viewport-Bottom-Flex {*/
-    /*display: flex;*/
-    /*min-height: 100vh;*/
-    /*flex-direction: row;*/
-    /*align-items: flex-start;*/
-    /*justify-content: space-around;*/
-/*}*/
 
 /* UITEXT (TOP LEFT) */
 .App-Viewport-UIText-TopLeft {

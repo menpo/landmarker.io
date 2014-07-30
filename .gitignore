@@ -1,7 +1,8 @@
 node_modules
 # On gh-pages - store out the bundle
 # bundle.js
-# Likewise don't check in three that is here for dev
-three.min.js
+# On gh-pages - check in the built CSS files
+# css
 # IntelliJ modules
 *.iml
+

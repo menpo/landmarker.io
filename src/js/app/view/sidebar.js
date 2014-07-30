@@ -238,12 +238,10 @@ var SaveRevertView = Backbone.View.extend({
         this.model.saveWithCallbacks(function () {
             that.spinner.stop();
             that.notification.success();
-            alert('save succeeded');
         },
         function () {
             that.spinner.stop();
             that.notification.failure();
-            alert('save failed');
         });
 
     },
