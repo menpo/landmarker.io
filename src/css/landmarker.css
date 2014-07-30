@@ -101,6 +101,23 @@ input, textarea, select{
     }
 }
 
+@keyframes toast {
+    0% {
+        opacity: 0;
+    }
+    20% {
+        opacity: 0.9;
+    }
+
+    80% {
+        opacity: 0.9;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
 #saveCompleted {
     background: #5FB632;
 }
