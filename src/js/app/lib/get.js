@@ -1,3 +1,5 @@
+var Promise = require('promise-polyfill');
+
 module.exports = function (url) {
     var req = new XMLHttpRequest();
     req.open('GET', url);
