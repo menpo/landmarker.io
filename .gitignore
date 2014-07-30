@@ -1,6 +1,6 @@
 node_modules
 # On master - we don't want to check in every bundle we make!
-bundle.js.gz
+bundle.js
 # Likewise don't check in the built CSS files
 css
 # IntelliJ modules
