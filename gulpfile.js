@@ -3,7 +3,6 @@ var prefix = require('gulp-autoprefixer');
 var browserify = require('browserify');
 var source = require('vinyl-source-stream');
 var notify = require("gulp-notify");
-var gzip = require('gulp-gzip');
 
 var paths = {
     js: ['src/js/**/*.js'],
@@ -16,7 +15,6 @@ gulp.task('js', function() {
         .bundle({ debug: true })
         //Pass desired output filename to vinyl-source-stream
         .pipe(source('bundle.js'))
-        .pipe(gzip())
         // Start piping stream to tasks!
         .pipe(gulp.dest('.'))
         .pipe(notify('Landmarker.io: JS rebuilt'));

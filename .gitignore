@@ -1,6 +1,6 @@
 node_modules
 # On gh-pages - store out the bundle
-# bundle.js.gz
+# bundle.js
 # On gh-pages - check in the built CSS files
 # css
 # IntelliJ modules
