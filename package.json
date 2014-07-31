@@ -14,23 +14,23 @@
   "author": "James Booth <jabooth@gmail.com> (github.com/jabooth)",
   "license": "BSD",
   "dependencies": {
+    "backbone": "~1.1.2",
     "jquery": "~2.1.0",
     "jquery-mousewheel": "~3.1.11",
-    "backbone": "~1.1.2",
-    "underscore": "~1.6.0",
+    "promise-polyfill": "^1.1.2",
+    "spin.js": "~2.0.1",
     "three": "~0.68.0",
-    "spin.js": "~2.0.1"
+    "underscore": "~1.6.0"
   },
   "devDependencies": {
     "autoprefixer": "^2.2.0",
     "browserify": "^3.44.2",
+    "exorcist": "^0.1.6",
     "gulp": "^3.8.6",
     "gulp-autoprefixer": "0.0.8",
+    "gulp-manifest": "0.0.6",
     "gulp-notify": "^1.4.0",
-    "gulp-rename": "^1.2.0",
-    "gulp-sourcemaps": "^1.1.0",
-    "gulp-streamify": "0.0.5",
-    "gulp-uglify": "^0.3.1",
+    "run-sequence": "^0.3.6",
     "vinyl-source-stream": "^0.1.1"
   }
 }

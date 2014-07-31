@@ -53,7 +53,6 @@ function restartInDemoMode() {
 }
 
 function initLandmarker(server, mode) {
-    alert('back again!');
     console.log('Starting landmarker in ' + mode + ' mode');
     var $ = require('jquery');
     var SidebarView = require('./app/view/sidebar');
