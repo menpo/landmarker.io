@@ -46,13 +46,14 @@ function _resolveMode(modeResolver) {
 function restartInDemoMode() {
     // load the url module and parse our URL
     var url = require('url');
-    var u = url.parse(window.location.href, true);
+    var u = url.parse(window.location.href.replace('#', '?'), true);
     u.search = null;
     u.query.server = 'demo';
-    window.location.href = url.format(u)
+    window.location.href = url.format(u).replace('?', '#');
 }
 
 function initLandmarker(server, mode) {
+    alert('back again!');
     console.log('Starting landmarker in ' + mode + ' mode');
     var $ = require('jquery');
     var SidebarView = require('./app/view/sidebar');
@@ -70,7 +71,7 @@ function initLandmarker(server, mode) {
     THREE.ImageUtils.crossOrigin = "";
 
     // Parse the current url so we can query the parameters
-    var u = url.parse(window.location.href, true);
+    var u = url.parse(window.location.href.replace('#', '?'), true);
     u.search = null;  // erase search so query is used in building back URL
     var appInit = {server: server, mode: mode};
     if (u.query.hasOwnProperty('t')) {
@@ -135,7 +136,7 @@ function initLandmarker(server, mode) {
 document.addEventListener('DOMContentLoaded', function () {
     var url = require('url');
     // Parse the current url so we can query the parameters
-    var u = url.parse(window.location.href, true);
+    var u = url.parse(window.location.href.replace('#', '?'), true);
     u.search = null;  // erase search so query is used in building back URL
 
     var server = resolveServer(u);
