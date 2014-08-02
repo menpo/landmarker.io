@@ -1,6 +1,5 @@
 var Backbone = require('../lib/backbonej');
 
-
 "use strict";
 
 // Holds a list of available assets.
@@ -20,6 +19,43 @@ exports.AssetSource = Backbone.Model.extend({
         return this.get('server').map(this.urlRoot + '/' + this.id);
     },
 
+    asset: function () {
+        return this.get('asset');
+    },
+
+    assets: function () {
+        return this.get('assets');
+    },
+
+    mesh: function () {
+        return this.get('mesh');
+    },
+
+    assetIsLoading: function () {
+        return this.get('assetIsLoading');
+    },
+
+    nAssets: function () {
+        return this.get('assets').length;
+    },
+
+    nPreviews: function () {
+        return this.get('nPreviews');
+    },
+
+    hasPredecessor: function () {
+        return this.assetIndex() !== 0;
+    },
+
+    hasSuccessor: function () {
+        return this.nAssets() - this.assetIndex() !== 1;
+    },
+
+    // returns the index of the currently active mesh
+    assetIndex: function () {
+        return this.assets().indexOf(this.get('asset'));
+    },
+
     initialize : function() {
         this.listenTo(this, "change:assets", this.changeAssets);
         this.pending = {};
@@ -37,30 +73,6 @@ exports.AssetSource = Backbone.Model.extend({
         this.set('nPreviews', this.get('nPreviews') + 1);
     },
 
-    mesh: function () {
-        return this.get('mesh');
-    },
-
-    asset: function () {
-        return this.get('asset');
-    },
-
-    assets: function () {
-        return this.get('assets');
-    },
-
-    assetIsLoading: function () {
-        return this.get('assetIsLoading');
-    },
-
-    nAssets: function () {
-        return this.get('assets').length;
-    },
-
-    nPreviews: function () {
-        return this.get('nPreviews');
-    },
-
     next: function () {
         if (!this.hasSuccessor()) {
             return;
@@ -73,18 +85,5 @@ exports.AssetSource = Backbone.Model.extend({
             return;
         }
         this.setAsset(this.assets().at(this.assetIndex() - 1));
-    },
-
-    hasPredecessor: function () {
-        return this.assetIndex() !== 0;
-    },
-
-    hasSuccessor: function () {
-        return this.nAssets() - this.assetIndex() !== 1;
-    },
-
-    // returns the index of the currently active mesh
-    assetIndex: function () {
-        return this.assets().indexOf(this.get('asset'));
     }
 });

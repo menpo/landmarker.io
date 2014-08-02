@@ -852,6 +852,8 @@ var LandmarkTHREEView = Backbone.View.extend({
         } else {
             // there is no symbol yet
             if (!this.model.isEmpty()) {
+                console.log('meshScale: ' + this.viewport.meshScale);
+                console.log('LM_SCALE: ' + LM_SCALE);
                 // and there should be! Make it and update it
                 this.symbol = this.createSphere(this.model.get('point'),
                     this.viewport.meshScale * LM_SCALE, 1);
@@ -867,6 +869,7 @@ var LandmarkTHREEView = Backbone.View.extend({
     },
 
     createSphere: function (v, radius, selected) {
+        console.log('creating sphere of radius ' + radius);
         var wSegments = 10;
         var hSegments = 10;
         var geometry = new THREE.SphereGeometry(radius, wSegments, hSegments);

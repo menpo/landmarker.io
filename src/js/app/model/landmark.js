@@ -343,16 +343,13 @@ var LandmarkGroupList = Backbone.Collection.extend({
 var LandmarkSet = Backbone.Model.extend({
 
     urlRoot: "landmarks",
-    urlTemplateRoot: "templates",
 
+    groups: function () {
+        return this.get('groups');
+    },
 
     url: function () {
-        var url;
-        if (this.get('from_template')) {
-            url = this.urlTemplateRoot + '/' + this.get('type');
-        } else {
-            url = this.urlRoot + '/' + this.id + '/' + this.get('type');
-        }
+        var url = this.urlRoot + '/' + this.id + '/' + this.get('type');
         return this.get('server').map(url);
     },
 
@@ -360,10 +357,6 @@ var LandmarkSet = Backbone.Model.extend({
         return {
             groups: new LandmarkGroupList
         };
-    },
-
-    groups: function () {
-        return this.get('groups');
     },
 
     insertNew: function (v) {

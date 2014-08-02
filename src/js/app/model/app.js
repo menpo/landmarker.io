@@ -247,23 +247,10 @@ exports.App = Backbone.Model.extend({
                 that.set('landmarks', landmarks);
             },
             error: function () {
-                // can't find landmarks for this person! Grab the template
-                // instead
-                console.log("couldn't get the landmarks");
-                landmarks.set('from_template', 'true');
-                landmarks.fetch({
-                    success: function () {
-                        console.log('got the template landmarks!');
-                        that.set('landmarks', landmarks);
-                        landmarks.unset('from_template');
-                    },
-                    error: function () {
-                        console.log('FATAL ERROR:  could not get the template landmarks!');
-                        landmarks.unset('from_template');
-                    }
-                });
-            }
-        });
+                    console.log('FATAL ERROR: could not get landmarks!');
+                    landmarks.unset('from_template');
+                }
+            });
     }
 
 });
