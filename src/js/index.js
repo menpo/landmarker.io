@@ -84,11 +84,11 @@ function initLandmarker(server, mode) {
     }
     var app = new App.App(appInit);
 //    var preview = new Notification.ThumbnailNotification({model:app});
-    var loading = new Notification.AssetLoadingNotification({model:app});
-    var sidebar = new SidebarView.Sidebar({model: app});
-    var assetView = new AssetView.AssetView({model: app});
+//    var loading = new Notification.AssetLoadingNotification({model:app});
+//    var sidebar = new SidebarView.Sidebar({model: app});
+//    var assetView = new AssetView.AssetView({model: app});
     var viewport = new ViewportView.Viewport({model: app});
-    var toolbar = new ToolbarView.Toolbar({model: app});
+//    var toolbar = new ToolbarView.Toolbar({model: app});
 
     // update the URL of the page as the state changes
     var historyUpdate = new History.HistoryUpdate({model: app});
@@ -110,7 +110,7 @@ function initLandmarker(server, mode) {
                 break;
             case 116:  // t = [T]exture toggle (mesh mode only)
                 if (app.meshMode()) {
-                    app.mesh().textureToggle();
+                    app.asset().textureToggle();
                 }
                 break;
             case 97:  // a = select [A]ll
@@ -122,10 +122,10 @@ function initLandmarker(server, mode) {
                 }
                 break;
             case 106:  // j = down, next asset
-                app.assetSource().next();
+                app.nextAsset();
                 break;
             case 107:  // k = up, previous asset
-                app.assetSource().previous();
+                app.previousAsset();
                 break;
         }
     });

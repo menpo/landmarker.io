@@ -137,8 +137,7 @@ exports.Viewport = Backbone.View.extend({
 
         // add mesh if there already is one present (we have missed a
         // backbone callback to changeMesh() otherwise).
-        var mesh = this.model.mesh();
-        if (mesh && mesh.t_mesh()) {
+        if (this.model.has('mesh')) {
             this.changeMesh();
         }
 
@@ -618,6 +617,7 @@ exports.Viewport = Backbone.View.extend({
     },
 
     changeMesh: function () {
+        var mesh, up, front;
         console.log('Viewport:changeMesh');
         console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
         // firstly, remove any existing mesh
@@ -625,31 +625,26 @@ exports.Viewport = Backbone.View.extend({
             var previousMesh = this.s_mesh.children[0];
             this.s_mesh.remove(previousMesh);
         }
-        if (this.mesh) {
-            console.log('Viewport:changeMesh - stopping listening to prev mesh');
-            this.stopListening(this.mesh);
-        }
-        this.mesh = this.model.mesh();
-        // Any change on the mesh - rerender.
-        this.listenTo(this.mesh , "all", this.update);
-        this.s_mesh.add(this.mesh.get('t_mesh'));
+        mesh = this.model.get('mesh').mesh;
+        up = this.model.get('mesh').up;
+        front = this.model.get('mesh').front;
 
+        this.s_mesh.add(mesh);
         // Now we need to rescale the s_meshAndLms to fit in the unit sphere
         // First, the scale
-        this.meshScale = this.mesh.get('t_mesh').geometry.boundingSphere.radius;
+        this.meshScale = mesh.geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
         this.s_scaleRotate.scale.set(s, s, s);
         this.s_h_scaleRotate.scale.set(s, s, s);
-        this.s_scaleRotate.up = this.mesh.up().clone();
-        this.s_h_scaleRotate.up = this.mesh.up().clone();
-        this.s_scaleRotate.lookAt(this.mesh.front().clone());
-        this.s_h_scaleRotate.lookAt(this.mesh.front().clone());
+        this.s_scaleRotate.up.copy(up);
+        this.s_h_scaleRotate.up.copy(up);
+        this.s_scaleRotate.lookAt(front.clone());
+        this.s_h_scaleRotate.lookAt(front.clone());
         // translation
-        var t = this.mesh.get('t_mesh').geometry.boundingSphere.center.clone();
+        var t = mesh.geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
         this.s_translate.position.copy(t);
         this.s_h_translate.position.copy(t);
-        this.resetCamera();
         console.log('Viewport:changeMesh - memory after:  ' +  this.memoryString());
         this.update();
     },
@@ -679,6 +674,11 @@ exports.Viewport = Backbone.View.extend({
         // 2. Build a fresh set of views - clear any existing lms
         this.landmarkViews = [];
         this.connectivityViews = [];
+        var lms = this.model.get('landmarks');
+        if (lms === null) {
+            // no landmarks set - pass
+            return
+        }
         var groups = this.model.get('landmarks').get('groups');
         groups.each(function (group) {
             group.get('landmarks').each(function (lm) {
@@ -820,7 +820,6 @@ exports.Viewport = Backbone.View.extend({
             this.update();
         }
     }
-
 });
 
 

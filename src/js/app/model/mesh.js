@@ -1,47 +1,94 @@
+var R = require('ramda');
 var _ = require('underscore');
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
 var Asset = require('./asset');
-var Image = require('./image');
+
 var getArray = require('../lib/get');
+var loadImage = require('../lib/image');
 
 "use strict";
 
-var basicMaterial = new THREE.MeshPhongMaterial();
-basicMaterial.transparent = true;
+var abortAll = R.each(function (x) {
+    x.abort();
+});
+
+var extractABC = R.map(function (f) {
+    return [f.a, f.b, f.c];
+});
+
+var extractXYZ = R.map(function (v) {
+    return [v.x, v.y, v.z];
+});
+
+var FRONT = {
+    image: new THREE.Vector3(0, 0, 1),
+    mesh: new THREE.Vector3(0, 0, 1)
+};
+
+var UP = {
+    image: new THREE.Vector3(1, 0, 0),
+    mesh: new THREE.Vector3(0, 1, 0)
+};
+
+function mappedPlane(w, h) {
+    var geometry = new THREE.Geometry();
+    geometry.vertices.push(new THREE.Vector3(0, 0, 0));
+    geometry.vertices.push(new THREE.Vector3(h, 0, 0));
+    geometry.vertices.push(new THREE.Vector3(h, w, 0));
+    geometry.vertices.push(new THREE.Vector3(0, w, 0));
+
+    geometry.faces.push(new THREE.Face3(0, 1, 3));
+    geometry.faces.push(new THREE.Face3(1, 2, 3));
+
+    var t0 = [];
+    t0.push(new THREE.Vector2(0, 1)); // 1 0
+    t0.push(new THREE.Vector2(0, 0)); // 1 1
+    t0.push(new THREE.Vector2(1, 1)); // 0 1
+
+    var t1 = [];
+    t1.push(new THREE.Vector2(0, 0)); // 0 1
+    t1.push(new THREE.Vector2(1, 0)); // 0 0
+    t1.push(new THREE.Vector2(1, 1)); // 1 0
+
+    geometry.faceVertexUvs[0].push(t0);
+    geometry.faceVertexUvs[0].push(t1);
+
+    // needed for lighting to work
+    geometry.computeFaceNormals();
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+    geometry.computeBoundingBox();
+
+    return geometry;
+}
+
+var untexturedMeshMaterial = new THREE.MeshPhongMaterial();
+untexturedMeshMaterial.transparent = true;
+
+var imagePlaceholderGeometry = mappedPlane(1, 1);
+var imagePlaceholderMaterial = new THREE.MeshPhongMaterial(
+    {
+        map: THREE.ImageUtils.loadTexture('./img/placeholder.jpg',
+            new THREE.UVMapping())
+    }
+);
 
 
-var Mesh = Backbone.Model.extend({
+var Image = Backbone.Model.extend({
 
     defaults : function () {
         return {
-            alpha : 1,
-            up : new THREE.Vector3(0, 1, 0),
-            front : new THREE.Vector3(0, 0, 1)
+            textureOn : true
         }
     },
 
-    urlRoot: "meshes",
-
-    initialize : function() {
-        _.bindAll(this, 'changeAlpha', 'loadThumbnail', 'dispose');
-        this.listenTo(this, "change:alpha", this.changeAlpha);
+    thumbnailUrl: function () {
+        return this.get('server').map('thumbnails/' + this.id);
     },
 
-    url: function () {
-        return this.get('server').map(this.urlRoot + '/' + this.id);
-    },
-
-    up: function () {
-        return this.get('up');
-    },
-
-    front: function () {
-        return this.get('front');
-    },
-
-    alpha: function () {
-        return this.get('alpha');
+    textureUrl: function () {
+        return this.get('server').map('textures/' + this.id);
     },
 
     hasTexture: function() {
@@ -56,22 +103,94 @@ var Mesh = Backbone.Model.extend({
         return this.hasTexture() && this.get('textureOn');
     },
 
+    initialize : function() {
+        var that = this;
+
+        var meshChanged = function () {
+            that.trigger('meshChanged');
+        };
+        this.listenTo(this, 'change:geometry', meshChanged);
+        this.listenTo(this, 'change:thumbnail', meshChanged);
+        this.listenTo(this, 'change:texture', meshChanged);
+        this.listenTo(this, 'change:textureOn', meshChanged);
+    },
+
+    mesh: function () {
+        var geometry, material, image, mesh, up, front, hasGeo, hasTex, hasThumb;
+        hasGeo = this.has('geometry');
+        hasTex = this.has('texture');
+        hasThumb = this.has('thumb');
+
+        up = UP.image;
+        front = FRONT.image;
+
+        // 1. Resolve geometry
+        if (hasGeo) {
+            geometry = this.get('geometry');
+            up = UP.mesh;
+            front = FRONT.mesh;
+        } else if (hasTex || hasThumb) {
+            // there is some kind of texture set, use that to build the
+            // appropriate sized geometry
+            if (hasTex) {
+                image = this.get('texture').map.image;
+            } else {
+                image = this.get('thumbnail').map.image;
+            }
+            geometry = mappedPlane(image.width, image.height);
+        } else {
+            // no geometry, no image - use the placeholder
+            geometry = imagePlaceholderGeometry;
+        }
+
+        // 2. Resolve material
+        // First set the defaults.
+        if (hasGeo) {
+            material = untexturedMeshMaterial;
+        } else {
+            material = imagePlaceholderMaterial;
+
+        }
+        if (hasGeo) {
+            // MESH
+            if (this.isTextureOn()) {
+                // must have either thumbnail or texture.
+                if (this.has('texture')) {
+                    material = this.get('texture');
+                } else {
+                    material = this.get('thumbnail');
+                }
+            }
+        } else {
+            if (this.has('texture')) {
+                material = this.get('texture');
+            } else if (this.has('thumbnail')) {
+                material = this.get('thumbnail');
+            }
+        }
+        mesh = new THREE.Mesh(geometry, material);
+        mesh.name = this.id;
+        return {
+            mesh: mesh,
+            up: up,
+            front: front
+        };
+    },
+
     textureOn: function() {
         if (this.isTextureOn() || !this.hasTexture()) {
             return;  // texture already off or no texture
         }
-        this.get('t_mesh').material = this.get('texture');
-        this.changeAlpha();
         this.set('textureOn', true);
+        this.trigger('meshChanged');
     },
 
     textureOff: function() {
         if (!this.isTextureOn()) {
             return;  // texture already on
         }
-        this.get('t_mesh').material = basicMaterial;
-        this.changeAlpha();
         this.set('textureOn', false);
+        this.trigger('meshChanged');
     },
 
     textureToggle: function () {
@@ -83,28 +202,75 @@ var Mesh = Backbone.Model.extend({
     },
 
     toJSON: function () {
-        var trilist = _.map(this.get('t_mesh').geometry.faces, function (face) {
-            return [face.a, face.b, face.c];
-        });
-
-        var points = _.map(this.get('t_mesh').geometry.vertices, function (v) {
-            return [v.x, v.y, v.z];
-        });
-
         return {
-            points: points,
-            trilist: trilist
+            points: extractXYZ(this.get('t_mesh').geometry.vertices),
+            trilist: extractABC(this.get('t_mesh').geometry.faces)
         };
     },
 
-    changeAlpha: function () {
-        this.get('t_mesh').material.opacity = this.get('alpha');
+    loadThumbnail: function () {
+        var that = this;
+        return loadImage(this.thumbnailUrl()).then(function(material) {
+            console.log('Mesh: loaded thumbnail for ' + that.id);
+            that.set('thumbnail', material);
+            return material;
+        });
     },
 
-    parseBuffer: function () {
-        var promise = getArray(this.url());
+    loadTexture: function () {
+        var existingTexture = this.get('texture');
+        if (existingTexture) {
+            console.log(this.id + ' already has texture. Skipping');
+            return new Promise(function(resolve) {
+                resolve(existingTexture);
+            });
+        }
         var that = this;
-        promise.then(function (buffer) {
+        return loadImage(this.textureUrl()).then(function(material) {
+            console.log('Mesh: loaded texture for ' + that.id);
+            that.set('texture', material);
+            return material;
+        });
+    }
+
+//    // reset this mesh back to how it was at fetch time.
+//    dispose : function () {
+//        var texture;
+//        this.get('t_mesh').geometry.dispose();
+//        if (this.hasTexture()) {
+//            texture = this.get('texture');
+//            texture.map.dispose();
+//            texture.dispose();
+//            this.unset('texture');
+//        }
+//
+//        this.get('mesh').get('t_mesh').material = this.get('thumbnailMaterial');
+//        // dispose of the old texture
+//        if (this.has('material')) {
+//            var m = this.get('material');
+//            // if there was a texture mapping (likely!) dispose of it
+//            if (m.map) {
+//                m.map.dispose();
+//            }
+//            // dispose of the material itself.
+//            m.dispose();
+//            this.unset('material');
+//        }
+//    }
+});
+
+
+var Mesh = Image.extend({
+
+    geometryUrl: function () {
+        return this.get('server').map('meshes/' + this.id);
+    },
+
+    loadGeometry: function () {
+        var that = this;
+        return getArray(this.geometryUrl()).then(function (buffer) {
+            var geometry;
+
             var lenMeta = 4;
             var bytes = 4;
             var meta = new Uint32Array(buffer, 0, lenMeta);
@@ -141,17 +307,17 @@ var Mesh = Backbone.Model.extend({
             if (hasBinning) {
                 console.log('ready to read from binning file at ' + binningOffset)
             }
+            geometry = that._newBufferGeometry(points, normals, tcoords);
+            console.log('Mesh: loaded Geometry for ' + that.id);
+            that.set('geometry', geometry);
 
-            return that._newBufferMesh(points, normals, tcoords);
-        }).catch(function () {
-            console.log('something went wrong');
+            return geometry;
+        }, function () {
+            console.log('failed to load geometry for ' + that.id);
         });
-        return promise;
     },
 
-    _newBufferMesh: function(points, normals, tcoords) {
-        console.log('in new buffer mesh');
-        window.points = points;
+    _newBufferGeometry: function(points, normals, tcoords) {
         var geometry = new THREE.BufferGeometry();
         geometry.addAttribute('position', new THREE.BufferAttribute(points, 3));
         if (normals) {
@@ -159,72 +325,13 @@ var Mesh = Backbone.Model.extend({
         } else {
             geometry.computeVertexNormals();
         }
-        var material;
-        var result;
-        var that = this;
         if (tcoords) {
             geometry.addAttribute('uv', new THREE.BufferAttribute(tcoords, 2));
-            // this mesh has a texture - grab it
-            var textureURL = this.get('server').map('textures/' + this.id);
-            material = new THREE.MeshBasicMaterial(
-                {
-                    map: THREE.ImageUtils.loadTexture(textureURL,
-                        new THREE.UVMapping(),
-                        function() {that.trigger("change:texture");}
-                    )
-                }
-            );
-            material.transparent = true;
-            result = {
-                t_mesh: new THREE.Mesh(geometry, material),
-                texture: material,
-                textureOn: true
-            };
-        } else {
-            // default to basic Phong lighting
-            result = {
-                t_mesh: new THREE.Mesh(geometry, basicMaterial)
-            };
         }
         geometry.computeBoundingSphere();
-        result.t_mesh.name = this.id;
-        return this.set(result);
-    },
-
-    loadThumbnail: function () {
-        var that = this;
-        var image = new Image.Image({
-            id: this.id,
-            server: this.get('server'),
-            thumbnailDelegate: this.collection
-        });
-        // load the thumbnail for this mesh
-        image.fetch({
-            success: function () {
-                console.log('grabbed thumbnail preview!');
-                that.set('thumbnail', image);
-            },
-            error: function () {
-                // couldn't load a thumbnail - must be an untextured mesh!
-                // trigger the thumbnail loaded so our progress bar finishes
-                that.collection.trigger('thumbnailLoaded');
-            }
-        });
-    },
-
-    // reset this mesh back to how it was at fetch time.
-    dispose : function () {
-        var texture;
-        this.get('t_mesh').geometry.dispose();
-        if (this.hasTexture()) {
-            texture = this.get('texture');
-            texture.map.dispose();
-            texture.dispose();
-            this.unset('texture');
-        }
-        this.unset('t_mesh');
-        this._previousAttributes = {};
+        return geometry;
     }
+
 });
 
 var MeshList = Backbone.Collection.extend({
@@ -263,33 +370,50 @@ var MeshSource = Asset.AssetSource.extend({
     setAsset: function (newMesh) {
         var that = this;
         var oldAsset = this.get('asset');
-        // kill any current fetches
-        _.each(this.pending, function (xhr) {
-            xhr.abort();
-        }, this);
-        this.set('assetIsLoading', true);
-        // set the asset immediately (triggering change in UI, landmark fetch)
-        that.set('asset', newMesh);
-        if (newMesh.hasThumbnail()) {
-            console.log('setting mesh to thumbnail');
-            that.set('mesh', newMesh.get('thumbnail').get('mesh'));
+        // stop listening to the old asset
+        if (oldAsset) {
+            this.stopListening(oldAsset);
         }
-        // fetch the new asset and update the mesh when the fetch is complete
-        var promise = newMesh.parseBuffer();
-        this.pending[newMesh.id] = promise.xhr();
-        promise.then(function () {
-                console.log('grabbed new mesh');
-                // once the mesh is downloaded, advance the mesh.
-                that.set('mesh', newMesh);
+        // kill any current fetches
+//        abortAll(this.pending);
+        this.set('assetIsLoading', true);
+        // set the asset immediately (triggering change in UI)
+        that.set('asset', newMesh);
+
+        this.listenTo(newMesh, 'meshChanged', this.updateMesh);
+
+        // update the mesh immediately (so we get a placeholder if nothing else)
+        this.updateMesh();
+
+        // fetch the thumbnail and texture aggressively asynchronously.
+        // TODO should track the thumbnail here too
+        var thumbnail = newMesh.loadThumbnail();
+        var texture = newMesh.loadTexture();
+        // fetch the geometry
+        var geometry = newMesh.loadGeometry();
+
+        // track the request
+//        this.pending[newMesh.id] = geometry.xhr();
+        geometry.then(function () {
+                console.log('grabbed new mesh geometry');
                 // now everyone has moved onto the new mesh, clean up the old
                 // one.
                 if (oldAsset) {
                     oldAsset.dispose();
                     oldAsset = null;
                 }
-                delete that.pending[newMesh.id];
+//                delete that.pending[newMesh.id];
                 that.set('assetIsLoading', false);
+        }, function (err) {
+            console.log('geometry.then something went wrong ' + err.stack);
         });
+        // return the geometry promise
+        return geometry;
+    },
+
+    updateMesh: function () {
+        console.log('MeshSource.updateMesh');
+        this.set('mesh', this.get('asset').mesh());
     }
 });
 

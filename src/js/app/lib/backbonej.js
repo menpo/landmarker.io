@@ -1,6 +1,8 @@
 var Backbone = require('backbone');
 Backbone.$ = require('jquery');
 
+window.Backbone = Backbone;
+
 var credentials =  {
     withCredentials: true
 };
@@ -10,5 +12,16 @@ Backbone.sync = function( method, model, options ) {
     options.xhrFields = credentials;
     return oldBackboneSync.apply(this, [method, model, options]);
 };
+
+
+Backbone.promiseFetch = function (model) {
+    return new Promise(function(resolve, reject) {
+        model.fetch({
+            success: resolve,
+            error: reject
+        });
+    });
+};
+
 
 module.exports = Backbone;

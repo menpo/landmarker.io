@@ -77,13 +77,13 @@ exports.AssetSource = Backbone.Model.extend({
         if (!this.hasSuccessor()) {
             return;
         }
-        this.setAsset(this.assets().at(this.assetIndex() + 1));
+        return this.setAsset(this.assets().at(this.assetIndex() + 1));
     },
 
     previous: function () {
         if (!this.hasPredecessor()) {
             return;
         }
-        this.setAsset(this.assets().at(this.assetIndex() - 1));
+        return this.setAsset(this.assets().at(this.assetIndex() - 1));
     }
 });

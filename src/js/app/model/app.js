@@ -87,15 +87,15 @@ exports.App = Backbone.Model.extend({
 
         // All app state updates are then done in response to the asset
         // and mesh changes on the app
-        this.listenTo(this, 'change:activeTemplate', this.reloadLandmarks);
-        this.listenTo(this, 'change:asset', this.reloadLandmarks);
-        this.listenTo(this, 'change:mesh', this.changeMeshAlpha);
+//        this.listenTo(this, 'change:activeTemplate', this.reloadLandmarks);
+//        this.listenTo(this, 'change:asset', this.reloadLandmarks);
+//        this.listenTo(this, 'change:mesh', this.changeMeshAlpha);
         this.listenTo(this, 'change:activeCollection',
             this.reloadAssetSource);
 
         // TODO this seems messy, do we need this message passing?
         // whenever the user changes the meshAlpha, hit the callback
-        this.listenTo(this, 'change:meshAlpha', this.changeMeshAlpha);
+//        this.listenTo(this, 'change:meshAlpha', this.changeMeshAlpha);
         this._initTemplates();
         this._initCollections();
     },
@@ -178,8 +178,7 @@ exports.App = Backbone.Model.extend({
         this.listenTo(assetSource, 'change:asset', this.assetChanged);
         this.listenTo(assetSource, 'change:mesh', this.meshChanged);
 
-        assetSource.fetch({
-            success: function () {
+        Backbone.promiseFetch(assetSource).then(function () {
                 var i = 0;
                 console.log('asset source finished - setting');
                 if (that.has('_assetIndex')) {
@@ -191,13 +190,12 @@ exports.App = Backbone.Model.extend({
                     + ' be in the range 0-' + assetSource.nAssets());
                     return;
                 }
-                assetSource.setAsset(assetSource.assets().at(i));
+                return that.setAsset(assetSource.assets().at(i));
             },
-            error: function () {
+            function () {
                 console.log('Failed to fetch assets (is landmarkerio' +
                     'running from your command line?).');
-            }
-        });
+            });
     },
 
     _assetSourceConstructor: function () {
@@ -211,17 +209,55 @@ exports.App = Backbone.Model.extend({
         }
     },
 
-    changeMeshAlpha: function () {
-        this.mesh().set('alpha', this.get('meshAlpha'));
-    },
+//    changeMeshAlpha: function () {
+//        this.mesh().set('alpha', this.get('meshAlpha'));
+//    },
 
     // Mirror the state of the asset source onto the app
     assetChanged: function () {
+        console.log('App.assetChanged');
         this.set('asset', this.assetSource().asset());
-        },
+    },
 
     meshChanged: function () {
-        this.set('mesh', this.assetSource().mesh());
+        console.log('App.meshChanged');
+        this.set('mesh', this.get('assetSource').get('mesh'));
+    },
+
+    setAsset: function (newAsset) {
+        this.set('landmarks', null);
+        return this._loadLandmarksWithAsset(
+            this.get('assetSource').setAsset(newAsset));
+    },
+
+    _loadLandmarksWithAsset: function (loadAsset) {
+        var that = this;
+        // Make a new landmark object for the new asset.
+        var landmarks = new Landmark.LandmarkSet({
+            id: this.get('asset').id,
+            type: this.get('activeTemplate'),
+            server: this.get('server')
+        });
+        // get promises for the both the asset and the landmarks
+        var loadLandmarks = Backbone.promiseFetch(landmarks);
+        // if both come true, display
+        return Promise.all([loadLandmarks, loadAsset]).then(function () {
+            console.log('landmarks are loaded and the asset is at a suitable ' +
+                'state to display');
+            that.set('landmarks', landmarks);
+        });
+    },
+
+    nextAsset: function () {
+        this.set('landmarks', null);
+        return this._loadLandmarksWithAsset(
+            this.get('assetSource').next());
+    },
+
+    previousAsset: function () {
+        this.set('landmarks', null);
+        return this._loadLandmarksWithAsset(
+            this.get('assetSource').previous());
     },
 
     reloadLandmarks: function () {
@@ -248,7 +284,6 @@ exports.App = Backbone.Model.extend({
             },
             error: function () {
                     console.log('FATAL ERROR: could not get landmarks!');
-                    landmarks.unset('from_template');
                 }
             });
     }

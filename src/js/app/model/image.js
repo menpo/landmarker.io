@@ -1,30 +1,20 @@
 var _ = require('underscore');
 var Backbone = require('../lib/backbonej');
+var loadImage = require('../lib/image');
 var THREE = require('three');
 var Mesh = require('./mesh');
 var Asset = require('./asset');
 
 "use strict";
 
+//var placeholderMesh = imageMesh('./img/placeholder.jpg');
+//
+//placeholderMesh.then(function (mesh) {
+//    window.tempMesh = mesh;
+//});
+
+
 var Image = Backbone.Model.extend({
-
-    urlRoot: "images",
-
-    url: function () {
-        return this.get('server').map(this.urlRoot + '/' + this.id);
-    },
-
-    textureUrl: function () {
-        return this.get('server').map('textures/' + this.id);
-    },
-
-    thumbnailUrl: function () {
-        return this.get('server').map('thumbnails/' + this.id);
-    },
-
-    mesh: function () {
-        return this.get('mesh');
-    },
 
     parse: function (response) {
         var w = response.width;
@@ -57,23 +47,6 @@ var Image = Backbone.Model.extend({
             }
         );
 
-        var t0 = [];
-        t0.push(new THREE.Vector2(0, 1)); // 1 0
-        t0.push(new THREE.Vector2(0, 0)); // 1 1
-        t0.push(new THREE.Vector2(1, 1)); // 0 1
-
-        var t1 = [];
-        t1.push(new THREE.Vector2(0, 0)); // 0 1
-        t1.push(new THREE.Vector2(1, 0)); // 0 0
-        t1.push(new THREE.Vector2(1, 1)); // 1 0
-
-        geometry.faceVertexUvs[0].push(t0);
-        geometry.faceVertexUvs[0].push(t1);
-
-        // needed for lighting to work
-        geometry.computeFaceNormals();
-        geometry.computeVertexNormals();
-        geometry.computeBoundingSphere();
         var t_mesh = new THREE.Mesh(geometry, material);
         return {
             mesh: new Mesh.Mesh(
@@ -87,44 +60,46 @@ var Image = Backbone.Model.extend({
         };
     },
 
-    loadTexture: function (success) {
-        if (this.get('material')) {
-            console.log(this.id + ' already has material. Skipping');
-            return;
-        }
+    loadThumbnail: function () {
         var that = this;
-        // load the full texture for this image and set it on the mesh
-        var material = new THREE.MeshPhongMaterial(
-            {
-                map: THREE.ImageUtils.loadTexture(
-                    that.textureUrl(), new THREE.UVMapping(),
-                    function() {
-                        that.get('mesh').get('t_mesh').material = material;
-                        that.set('material', material);
-                        // trigger the texture change on our mesh
-                        that.get('mesh').trigger("change:texture");
-                        if (success) {
-                            success();
-                        }
-                    } )
+        return imageMesh(this.thumbnailUrl()).then(function(mesh) {
+            console.log('loaded thumbnail for ' + that.id);
+            that.get('mesh').trigger("change:texture");
+            // If we have a thumbnail delegate then trigger the change
+            if (that.has('thumbnailDelegate')) {
+                that.get('thumbnailDelegate').trigger('thumbnailLoaded');
             }
-        );
+            that.set({
+                mesh: new Mesh.Mesh(
+                    {
+                        t_mesh: mesh,
+                        // Set up vector so viewport can rotate
+                        up: new THREE.Vector3(1, 0, 0)
+
+                    }),
+                thumbnailMaterial: mesh.material
+            });
+        });
     },
 
-    dispose: function () {
-        this.get('mesh').get('t_mesh').material = this.get('thumbnailMaterial');
-        // dispose of the old texture
-        if (this.has('material')) {
-            var m = this.get('material');
-            // if there was a texture mapping (likely!) dispose of it
-            if (m.map) {
-                m.map.dispose();
-            }
-            // dispose of the material itself.
-            m.dispose();
-            this.unset('material');
+    loadTexture: function () {
+        var existingMaterial = this.get('material');
+        if (existingMaterial) {
+            console.log(this.id + ' already has material. Skipping');
+            return new Promise(function(resolve) {
+                resolve(existingMaterial);
+            });
         }
-    }
+        // load the full texture for this image and set it on the mesh
+        var that = this;
+        return loadImage(this.textureUrl()).then(function(material) {
+                that.get('mesh').get('t_mesh').material = material;
+                that.set('material', material);
+                // trigger the texture change on our mesh
+                that.get('mesh').trigger("change:texture");
+            });
+    },
+
 
 });
 
@@ -158,7 +133,7 @@ var ImageSource = Asset.AssetSource.extend({
     _changeAssets: function () {
         this.get('assets').each(function(image) {
             // after change in assets always call fetch to acquire thumbnails
-            image.fetch();
+            image.loadThumbnail();
         })
     },
 
@@ -167,7 +142,7 @@ var ImageSource = Asset.AssetSource.extend({
         var oldAsset = this.get('asset');
         this.set('assetIsLoading', true);
         // trigger the loading of the full texture
-        newImage.loadTexture(function () {
+        newImage.loadTexture().then(function () {
             that.set('assetIsLoading', false);
             if (oldAsset) {
                 oldAsset.dispose();
