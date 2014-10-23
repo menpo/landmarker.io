@@ -8,7 +8,6 @@ exports.AssetSource = Backbone.Model.extend({
     defaults: function () {
         return {
             assets: new Backbone.Collection,
-            nPreviews: 0,
             assetIsLoading: false
         };
     },
@@ -39,10 +38,6 @@ exports.AssetSource = Backbone.Model.extend({
         return this.get('assets').length;
     },
 
-    nPreviews: function () {
-        return this.get('nPreviews');
-    },
-
     hasPredecessor: function () {
         return this.assetIndex() !== 0;
     },
@@ -56,34 +51,17 @@ exports.AssetSource = Backbone.Model.extend({
         return this.assets().indexOf(this.get('asset'));
     },
 
-    initialize : function() {
-        this.listenTo(this, "change:assets", this.changeAssets);
-        this.pending = {};
-    },
-
-    changeAssets: function () {
-        this.listenTo(this.get('assets'), "thumbnailLoaded", this.previewCount);
-        this._changeAssets();
-    },
-
-    // Called after changeAssets. Opportunity for subclass to intervene
-    _changeAssets: function () {},
-
-    previewCount : function () {
-        this.set('nPreviews', this.get('nPreviews') + 1);
-    },
-
     next: function () {
         if (!this.hasSuccessor()) {
             return;
         }
-        return this.setAsset(this.assets().at(this.assetIndex() + 1));
+        return this.setAsset(this.assets()[this.assetIndex() + 1]);
     },
 
     previous: function () {
         if (!this.hasPredecessor()) {
             return;
         }
-        return this.setAsset(this.assets().at(this.assetIndex() - 1));
+        return this.setAsset(this.assets()[this.assetIndex() - 1]);
     }
 });

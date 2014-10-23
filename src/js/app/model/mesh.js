@@ -13,6 +13,10 @@ var abortAll = R.each(function (x) {
     x.abort();
 });
 
+var abortAllObj = function (x) {
+    return abortAll(R.values(x));
+};
+
 var extractABC = R.map(function (f) {
     return [f.a, f.b, f.c];
 });
@@ -210,27 +214,32 @@ var Image = Backbone.Model.extend({
 
     loadThumbnail: function () {
         var that = this;
-        return loadImage(this.thumbnailUrl()).then(function(material) {
-            console.log('Mesh: loaded thumbnail for ' + that.id);
-            that.set('thumbnail', material);
-            return material;
-        });
+        if (!this.hasOwnProperty('_thumbnailPromise')) {
+            this._thumbnailPromise = loadImage(this.thumbnailUrl()).then(function(material) {
+                delete that._thumbnailPromise;
+                console.log('Mesh: loaded thumbnail for ' + that.id);
+                that.set('thumbnail', material);
+                return material;
+            });
+        } else {
+            console.log('thumbnailPromise already exists - no need to regrab');
+        }
+        return this._thumbnailPromise;
     },
 
     loadTexture: function () {
-        var existingTexture = this.get('texture');
-        if (existingTexture) {
-            console.log(this.id + ' already has texture. Skipping');
-            return new Promise(function(resolve) {
-                resolve(existingTexture);
-            });
-        }
         var that = this;
-        return loadImage(this.textureUrl()).then(function(material) {
-            console.log('Mesh: loaded texture for ' + that.id);
-            that.set('texture', material);
-            return material;
-        });
+        if (!this.hasOwnProperty('_texturePromise')) {
+            this._texturePromise = loadImage(this.textureUrl()).then(function(material) {
+                delete that._texturePromise;
+                console.log('Mesh: loaded texture for ' + that.id);
+                that.set('texture', material);
+                return material;
+            });
+        } else {
+            console.log('texturePromise already exists - no need to regrab');
+        }
+        return this._texturePromise;
     }
 
 //    // reset this mesh back to how it was at fetch time.
@@ -268,7 +277,14 @@ var Mesh = Image.extend({
 
     loadGeometry: function () {
         var that = this;
-        return getArray(this.geometryUrl()).then(function (buffer) {
+        if (this.hasOwnProperty('_geometryPromise')) {
+            // already loading this geometry
+            return this._geometryPromise;
+        }
+        var arrayPromise = getArray(this.geometryUrl());
+        this._geometryPromise = arrayPromise.then(function (buffer) {
+            // now the promise is fullfilled, delete the promise.
+            delete that._geometryPromise;
             var geometry;
 
             var lenMeta = 4;
@@ -315,6 +331,14 @@ var Mesh = Image.extend({
         }, function () {
             console.log('failed to load geometry for ' + that.id);
         });
+        // mirror the arrayPromise xhr() API
+        this._geometryPromise.xhr = function () {
+            return arrayPromise.xhr();
+        };
+        // return a promise that this Meshes Geometry will be correctly
+        // configured. Can access the raw underlying xhr request at xhr().
+        // Aborting this will cause the promise to fail.
+        return this._geometryPromise;
     },
 
     _newBufferGeometry: function(points, normals, tcoords) {
@@ -334,10 +358,6 @@ var Mesh = Image.extend({
 
 });
 
-var MeshList = Backbone.Collection.extend({
-    model: Mesh
-});
-
 // Holds a list of available meshes, and a MeshList. The MeshList
 // is populated immediately, although meshes aren't fetched until demanded.
 // Also has a mesh parameter - the currently active mesh.
@@ -353,18 +373,9 @@ var MeshSource = Asset.AssetSource.extend({
             });
             return mesh;
         });
-        var meshList = new MeshList(meshes.slice(0, 100));
         return {
-            assets: meshList
+            assets: meshes
         };
-    },
-
-    _changeAssets: function () {
-        this.assets().each(function(mesh) {
-            // immediately load the preview texture for the mesh
-            // TODO this may need to be less agressive on large datasets
-            mesh.loadThumbnail();
-        })
     },
 
     setAsset: function (newMesh) {
@@ -374,8 +385,11 @@ var MeshSource = Asset.AssetSource.extend({
         if (oldAsset) {
             this.stopListening(oldAsset);
         }
+        if (!this.hasOwnProperty('pending')) {
+            this.pending = {};
+        }
         // kill any current fetches
-//        abortAll(this.pending);
+        abortAllObj(this.pending);
         this.set('assetIsLoading', true);
         // set the asset immediately (triggering change in UI)
         that.set('asset', newMesh);
@@ -387,13 +401,16 @@ var MeshSource = Asset.AssetSource.extend({
 
         // fetch the thumbnail and texture aggressively asynchronously.
         // TODO should track the thumbnail here too
-        var thumbnail = newMesh.loadThumbnail();
-        var texture = newMesh.loadTexture();
+        newMesh.loadThumbnail();
+        newMesh.loadTexture();
         // fetch the geometry
         var geometry = newMesh.loadGeometry();
 
         // track the request
-//        this.pending[newMesh.id] = geometry.xhr();
+        this.pending[newMesh.id] = geometry.xhr();
+
+        // after the geometry is ready, we want to clear up our tracking of
+        // loading requests.
         geometry.then(function () {
                 console.log('grabbed new mesh geometry');
                 // now everyone has moved onto the new mesh, clean up the old
@@ -402,7 +419,7 @@ var MeshSource = Asset.AssetSource.extend({
                     oldAsset.dispose();
                     oldAsset = null;
                 }
-//                delete that.pending[newMesh.id];
+                delete that.pending[newMesh.id];
                 that.set('assetIsLoading', false);
         }, function (err) {
             console.log('geometry.then something went wrong ' + err.stack);
@@ -412,11 +429,65 @@ var MeshSource = Asset.AssetSource.extend({
     },
 
     updateMesh: function () {
-        console.log('MeshSource.updateMesh');
         this.set('mesh', this.get('asset').mesh());
     }
 });
 
+// Holds a list of available images, and a ImageList. The ImageList
+// is populated immediately, although images aren't fetched until demanded.
+// Also has a mesh parameter - the currently active mesh.
+var ImageSource = Asset.AssetSource.extend({
+
+    parse: function (response) {
+        var that = this;
+        var image;
+        var images = _.map(response, function (assetId) {
+            image =  new Image({
+                id: assetId,
+                server: that.get('server')
+            });
+            return image;
+        });
+        return {
+            assets: images
+        };
+    },
+
+    setAsset: function (newImage) {
+        var that = this;
+        var oldAsset = this.get('asset');
+        // stop listening to the old asset
+        if (oldAsset) {
+            this.stopListening(oldAsset);
+        }
+        this.set('assetIsLoading', true);
+        // set the asset immediately (triggering change in UI)
+        that.set('asset', newImage);
+
+        this.listenTo(newImage, 'meshChanged', this.updateMesh);
+
+        // update the mesh immediately (so we get a placeholder if nothing else)
+        this.updateMesh();
+
+        // fetch the thumbnail and texture aggressively asynchronously.
+        newImage.loadThumbnail();
+        var texture = newImage.loadTexture();
+
+        // after the texture is ready, we want to clear up our tracking of
+        // loading requests.
+        texture.then(function () {
+            console.log('grabbed new image texture');
+            that.set('assetIsLoading', false);
+        }, function (err) {
+            console.log('texture.then something went wrong ' + err.stack);
+        });
+        // return the texture promise. Once the texture is ready, landmarks
+        // can be displayed.
+        return texture;
+    }
+});
+
 exports.Mesh = Mesh;
-exports.MeshList = MeshList;
 exports.MeshSource = MeshSource;
+exports.ImageSource = ImageSource;
+exports.Image = Image;

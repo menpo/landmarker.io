@@ -3,14 +3,11 @@ var Backbone = require('../lib/backbonej');
 var Landmark = require('./landmark');
 var Template = require('./template');
 var Mesh = require('./mesh');
-var Image = require('./image');
 var Collection = require('./collection');
 var Dispatcher = require('./dispatcher');
 
 "use strict";
 
-
-//function url_for_state(template, collection, )
 
 exports.App = Backbone.Model.extend({
 
@@ -85,13 +82,11 @@ exports.App = Backbone.Model.extend({
                         'landmarks');
         this.set('dispatcher', new Dispatcher.Dispatcher);
 
-        // All app state updates are then done in response to the asset
-        // and mesh changes on the app
-//        this.listenTo(this, 'change:activeTemplate', this.reloadLandmarks);
-//        this.listenTo(this, 'change:asset', this.reloadLandmarks);
-//        this.listenTo(this, 'change:mesh', this.changeMeshAlpha);
-        this.listenTo(this, 'change:activeCollection',
-            this.reloadAssetSource);
+        // New collection? Need to find the assets on them again
+        this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
+
+        // activeTemplate changed? Best go and get the asset again.
+//        this.listenTo(this, 'change:activeTemplate', this.assetChanged);
 
         // TODO this seems messy, do we need this message passing?
         // whenever the user changes the meshAlpha, hit the callback
@@ -153,6 +148,8 @@ exports.App = Backbone.Model.extend({
     },
 
     reloadAssetSource: function () {
+        // needs to have an activeCollection to preceed. AssetSource should be
+        // updated every time the active collection is updated.
         var that = this;
         if (!this.get('activeCollection')) {
             // can only proceed with an activeCollection...
@@ -190,7 +187,7 @@ exports.App = Backbone.Model.extend({
                     + ' be in the range 0-' + assetSource.nAssets());
                     return;
                 }
-                return that.setAsset(assetSource.assets().at(i));
+                return that.setAsset(assetSource.assets()[i]);
             },
             function () {
                 console.log('Failed to fetch assets (is landmarkerio' +
@@ -200,7 +197,7 @@ exports.App = Backbone.Model.extend({
 
     _assetSourceConstructor: function () {
         if (this.imageMode()) {
-            return Image.ImageSource;
+            return Mesh.ImageSource;
         } else if (this.meshMode()) {
             return Mesh.MeshSource;
         } else {
