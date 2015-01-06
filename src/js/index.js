@@ -49,7 +49,10 @@ function restartInDemoMode() {
     var u = url.parse(window.location.href.replace('#', '?'), true);
     u.search = null;
     u.query.server = 'demo';
-    window.location.href = url.format(u).replace('?', '#');
+    window.location.replace(url.format(u).replace('?', '#'));
+    // the url is seemingly the same as we use a # not a ?. As such a reload
+    // is needed.
+    window.location.reload();
 }
 
 function initLandmarker(server, mode) {
