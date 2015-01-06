@@ -259,34 +259,6 @@ exports.App = Backbone.Model.extend({
         this.set('landmarks', null);
         return this._loadLandmarksWithAsset(
             this.get('assetSource').previous());
-    },
-
-    reloadLandmarks: function () {
-        if (!this.get('asset') || !this.get('activeTemplate')) {
-            // can only proceed with an asset and a template...
-            return;
-        }
-        // now we have an asset and template we can get landmarks -
-        // they need to know where to fetch from so attach the server.
-        // note that mesh changes are guaranteed to happen after asset changes,
-        // so we are safe that this.asset() contains the correct asset id
-        var landmarks = new Landmark.LandmarkSet(
-            {
-                id: this.asset().id,
-                type: this.get('activeTemplate'),
-                server: this.get('server')
-            }
-        );
-        var that = this;
-        landmarks.fetch({
-            success: function () {
-                console.log('got the landmarks!');
-                that.set('landmarks', landmarks);
-            },
-            error: function () {
-                    console.log('FATAL ERROR: could not get landmarks!');
-                }
-            });
     }
 
 });
