@@ -28,6 +28,9 @@ exports.Viewport = Backbone.View.extend({
 
     initialize: function () {
 
+        // to debug window.viewport = this;
+
+
         // ----- CONFIGURATION ----- //
         this.meshScale = 1.0;  // The radius of the mesh's bounding sphere
 
@@ -94,6 +97,14 @@ exports.Viewport = Backbone.View.extend({
             this.toggleCamera();
         }
 
+        // create the cameraController to look after all camera state.
+        this.cameraController = Camera.CameraController(
+            this.s_pCam, this.s_oCam, this.s_oCamZoom,
+            this.el, this.model.imageMode());
+
+        // when the camera updates, render
+        this.cameraController.on("change", this.update);
+
         this.resetCamera();
 
         // ----- SCENE: GENERAL LIGHTING ----- //
@@ -144,14 +155,6 @@ exports.Viewport = Backbone.View.extend({
         // make an empty list of landmark views
         this.landmarkViews = [];
         this.connectivityViews = [];
-        // TODO camera controls should be set based on mode
-        this.model.imageMode();
-        this.cameraControls = Camera.CameraController(
-            this.s_pCam, this.s_oCam, this.s_oCamZoom,
-            this.el, this.model.imageMode());
-        window.viewport = this;
-        // when the camera updates, render
-        this.cameraControls.on("change", this.update);
 
         var downEvent, lmPressed, lmPressedWasSelected;
 
@@ -243,7 +246,7 @@ exports.Viewport = Backbone.View.extend({
                 var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
                 console.log('landmark pressed!');
                 // before anything else, disable the camera
-                that.cameraControls.disable();
+                that.cameraController.disable();
                 // the clicked on landmark
                 var landmarkSymbol = intersectsWithLms[0].object;
                 var group;
@@ -307,7 +310,7 @@ exports.Viewport = Backbone.View.extend({
             function shiftPressed() {
                 console.log('shift pressed!');
                 // before anything else, disable the camera
-                that.cameraControls.disable();
+                that.cameraController.disable();
                 $(document).on('mousemove.shiftDrag', shiftOnDrag);
                 $(document).one('mouseup.viewportShift', shiftOnMouseUp);
             }
@@ -357,7 +360,7 @@ exports.Viewport = Backbone.View.extend({
         };
 
         var shiftOnMouseUp = function (event) {
-            that.cameraControls.enable();
+            that.cameraController.enable();
             console.log("shift:up");
             $(document).off('mousemove.shiftDrag', shiftOnDrag);
             var x1 = onMouseDownPosition.x;
@@ -451,7 +454,7 @@ exports.Viewport = Backbone.View.extend({
 
         var landmarkOnMouseUp = function (event) {
             var ctrl = downEvent.ctrlKey || downEvent.metaKey;
-            that.cameraControls.enable();
+            that.cameraController.enable();
             console.log("landmarkPress:up");
             $(document).off('mousemove.landmarkDrag');
             var lm;
@@ -753,18 +756,10 @@ exports.Viewport = Backbone.View.extend({
     },
 
     resetCamera: function () {
-        if (this.model.meshMode()) {
-            this.s_pCam.position.copy(MESH_MODE_STARTING_POSITION);
-            this.s_oCam.position.copy(MESH_MODE_STARTING_POSITION);
-            this.s_oCamZoom.position.copy(MESH_MODE_STARTING_POSITION);
-        } else {
-            this.s_pCam.position.copy(IMAGE_MODE_STARTING_POSITION);
-            this.s_oCam.position.copy(IMAGE_MODE_STARTING_POSITION);
-            this.s_oCamZoom.position.copy(IMAGE_MODE_STARTING_POSITION);
-        }
-        this.s_pCam.lookAt(this.scene.position);
-        this.s_oCam.lookAt(this.scene.position);
-        this.s_oCamZoom.lookAt(this.scene.position);
+        // reposition the cameras and focus back to the starting point.
+        var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION : IMAGE_MODE_STARTING_POSITION;
+        this.cameraController.position(v);
+        this.cameraController.focus(this.scene.position);
         this.update();
     },
 
@@ -804,7 +799,7 @@ exports.Viewport = Backbone.View.extend({
         w = this.$container.width();
         h = this.$container.height();
         // ask the camera controller to update the cameras appropriately
-        this.cameraControls.resize(w, h);
+        this.cameraController.resize(w, h);
         // update the size of the renderer and the canvas
         this.renderer.setSize(w, h);
         this.canvas.width = w;

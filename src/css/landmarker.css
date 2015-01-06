@@ -104,7 +104,6 @@ input, textarea, select{
 /* Make the Sidebar fixed width */
 .App-Flex-Sidebar {
     width: 300px;
-    z-index: 2;
     display: flex;
     max-height: 100vh;
     flex-direction: column-reverse;
@@ -123,6 +122,7 @@ input, textarea, select{
     text-align: center;
     overflow: auto;
     cursor: pointer;
+    z-index: 2;
 }
 
 .Sidebar-button {
@@ -138,6 +138,7 @@ is itself a row flexbox */
     justify-content: space-around;
     align-items: center;
     min-height: 40px;
+    z-index: 2;
 }
 
 .Sidebar-row-item {
