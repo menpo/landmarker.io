@@ -1,5 +1,7 @@
 var Backbone = require('backbone');
 Backbone.$ = require('jquery');
+var Promise = require('promise-polyfill');
+
 
 window.Backbone = Backbone;
 

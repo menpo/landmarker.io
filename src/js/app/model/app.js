@@ -1,4 +1,5 @@
 var _ = require('underscore');
+var Promise = require('promise-polyfill');
 var Backbone = require('../lib/backbonej');
 var Landmark = require('./landmark');
 var Template = require('./template');
@@ -108,6 +109,8 @@ exports.App = Backbone.Model.extend({
                 var label = labels[0];
                 console.log('Available templates are ' + labels);
                 if (that.has('_activeTemplate')) {
+                    // user has specified a preset! Use that if we can
+                    // TODO should validate here if we can actually use template
                     label = that.get('_activeTemplate');
                     console.log("template is preset to '" + label + "'");
                 }
@@ -153,9 +156,10 @@ exports.App = Backbone.Model.extend({
         var that = this;
         if (!this.get('activeCollection')) {
             // can only proceed with an activeCollection...
+            console.log('App:reloadAssetSource with no activeCollection - doing nothing');
             return;
         }
-        console.log('reloading asset source');
+        console.log('App: reloading asset source');
 
         // Construct an asset source (which can query for asset information
         // from the server). Of course, we must pass the server in. The
@@ -177,7 +181,7 @@ exports.App = Backbone.Model.extend({
 
         Backbone.promiseFetch(assetSource).then(function () {
                 var i = 0;
-                console.log('asset source finished - setting');
+                console.log('assetSource retrieved - setting');
                 if (that.has('_assetIndex')) {
                     i = that.get('_assetIndex');
                 }
@@ -218,27 +222,27 @@ exports.App = Backbone.Model.extend({
 
     meshChanged: function () {
         console.log('App.meshChanged');
-        this.set('mesh', this.get('assetSource').get('mesh'));
+        this.set('mesh', this.assetSource().mesh());
     },
 
     setAsset: function (newAsset) {
         this.set('landmarks', null);
         return this._loadLandmarksWithAsset(
-            this.get('assetSource').setAsset(newAsset));
+            this.assetSource().setAsset(newAsset));
     },
 
-    _loadLandmarksWithAsset: function (loadAsset) {
+    _loadLandmarksWithAsset: function (loadAssetPromise) {
         var that = this;
         // Make a new landmark object for the new asset.
         var landmarks = new Landmark.LandmarkSet({
-            id: this.get('asset').id,
-            type: this.get('activeTemplate'),
+            id: this.asset().id,
+            type: this.activeTemplate(),
             server: this.get('server')
         });
         // get promises for the both the asset and the landmarks
-        var loadLandmarks = Backbone.promiseFetch(landmarks);
-        // if both come true, display
-        return Promise.all([loadLandmarks, loadAsset]).then(function () {
+        var loadLandmarksPromise = Backbone.promiseFetch(landmarks);
+        // if both come true, then set the landmarks
+        return Promise.all([loadLandmarksPromise, loadAssetPromise]).then(function () {
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display');
             that.set('landmarks', landmarks);
