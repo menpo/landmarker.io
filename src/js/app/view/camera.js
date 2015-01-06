@@ -61,9 +61,19 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     var mouseMouseDelta = new THREE.Vector2();
 
     function focus(newTarget) {
+        // focus all cameras at a new target.
         target.copy(newTarget);
         pCam.lookAt(target);
-        controller.trigger('change');
+        oCam.lookAt(target);
+        oCamZoom.lookAt(target);
+        //controller.trigger('change');
+    }
+
+    function position(v) {
+        // position all cameras at a new location.
+        pCam.position.copy(v);
+        oCam.position.copy(v);
+        oCamZoom.position.copy(v);
     }
 
     function pan(distance) {
@@ -367,6 +377,8 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     controller.enable = enable;
     controller.disable = disable;
     controller.resize = resize;
+    controller.focus = focus;
+    controller.position = position;
 
     return controller;
 };
