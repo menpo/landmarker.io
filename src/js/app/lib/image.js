@@ -5,7 +5,7 @@ module.exports = function (url) {
 
     return new Promise(function(resolve, reject) {
 
-        var material = new THREE.MeshPhongMaterial(
+        var material = new THREE.MeshBasicMaterial(
             {
                 map: THREE.ImageUtils.loadTexture(
                     url, new THREE.UVMapping(),
