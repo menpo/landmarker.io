@@ -91,7 +91,7 @@ function initLandmarker(server, mode) {
 //    var sidebar = new SidebarView.Sidebar({model: app});
     var assetView = new AssetView.AssetView({model: app});
     var viewport = new ViewportView.Viewport({model: app});
-//    var toolbar = new ToolbarView.Toolbar({model: app});
+    var toolbar = new ToolbarView.Toolbar({model: app});
 
     // update the URL of the page as the state changes
     var historyUpdate = new History.HistoryUpdate({model: app});
