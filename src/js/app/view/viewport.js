@@ -11,7 +11,7 @@ var CLEAR_COLOUR = 0xDDDDDD;
 var CLEAR_COLOUR_PIP = 0xCCCCCC;
 
 // the default scale for 1.0
-var LM_SCALE = 0.005;
+var LM_SCALE = 0.02;
 
 var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.68, 0.35, 3.0);
 var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
