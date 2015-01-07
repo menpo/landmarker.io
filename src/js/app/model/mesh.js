@@ -416,7 +416,7 @@ var MeshSource = Asset.AssetSource.extend({
                 // now everyone has moved onto the new mesh, clean up the old
                 // one.
                 if (oldAsset) {
-                    oldAsset.dispose();
+                    //oldAsset.dispose();
                     oldAsset = null;
                 }
                 delete that.pending[newMesh.id];
@@ -480,6 +480,7 @@ var ImageSource = Asset.AssetSource.extend({
             that.set('assetIsLoading', false);
         }, function (err) {
             console.log('texture.then something went wrong ' + err.stack);
+            that.set('assetIsLoading', false);
         });
         // return the texture promise. Once the texture is ready, landmarks
         // can be displayed.

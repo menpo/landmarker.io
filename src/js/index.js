@@ -87,7 +87,7 @@ function initLandmarker(server, mode) {
     }
     var app = new App.App(appInit);
 //    var preview = new Notification.ThumbnailNotification({model:app});
-//    var loading = new Notification.AssetLoadingNotification({model:app});
+    var loading = new Notification.AssetLoadingNotification({model:app});
     var sidebar = new SidebarView.Sidebar({model: app});
     var assetView = new AssetView.AssetView({model: app});
     var viewport = new ViewportView.Viewport({model: app});
