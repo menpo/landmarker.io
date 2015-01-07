@@ -621,7 +621,6 @@ exports.Viewport = Backbone.View.extend({
 
     changeMesh: function () {
         var mesh, up, front;
-        console.log('Viewport:changeMesh');
         console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
         // firstly, remove any existing mesh
         if (this.s_mesh.children.length) {
@@ -846,8 +845,8 @@ var LandmarkTHREEView = Backbone.View.extend({
         } else {
             // there is no symbol yet
             if (!this.model.isEmpty()) {
-                console.log('meshScale: ' + this.viewport.meshScale);
-                console.log('LM_SCALE: ' + LM_SCALE);
+                //console.log('meshScale: ' + this.viewport.meshScale);
+                //console.log('LM_SCALE: ' + LM_SCALE);
                 // and there should be! Make it and update it
                 this.symbol = this.createSphere(this.model.get('point'),
                     this.viewport.meshScale * LM_SCALE, 1);
