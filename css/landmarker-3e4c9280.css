@@ -130,7 +130,6 @@ input, textarea, select{
 /* Make the Sidebar fixed width */
 .App-Flex-Sidebar {
     width: 300px;
-    z-index: 2;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
@@ -157,6 +156,7 @@ input, textarea, select{
     text-align: center;
     overflow: auto;
     cursor: pointer;
+    z-index: 2;
 }
 
 .Sidebar-button {
@@ -182,6 +182,7 @@ is itself a row flexbox */
         -ms-flex-align: center;
             align-items: center;
     min-height: 40px;
+    z-index: 2;
 }
 
 .Sidebar-row-item {
@@ -585,12 +586,12 @@ is itself a row flexbox */
 }
 
 .onoffswitch-inner {
-    width: 200%; margin-left: -100%; -webkit-transition: margin 0.1s ease-in 0s; transition: margin 0.1s ease-in 0s;
+    width: 200%; margin-left: -100%; transition: margin 0.1s ease-in 0s;
 }
 
 .onoffswitch-inner:before, .onoffswitch-inner:after {
     float: left; width: 50%; height: 30px; padding: 0; line-height: 30px;
-    font-size: 14px; color: white; font-family: Trebuchet, Arial, sans-serif; font-weight: bold; -webkit-box-sizing: border-box; box-sizing: border-box;
+    font-size: 14px; color: white; font-family: Trebuchet, Arial, sans-serif; font-weight: bold; box-sizing: border-box;
 }
 
 .onoffswitch-inner:before {
@@ -611,7 +612,7 @@ is itself a row flexbox */
     width: 30px; margin: 0px;
     background: #FFFFFF;
     border: 2px solid #999999; border-radius: 0px;
-    position: absolute; top: 0; bottom: 0; right: 46px; -webkit-transition: all 0.1s ease-in 0s; transition: all 0.1s ease-in 0s;
+    position: absolute; top: 0; bottom: 0; right: 46px; transition: all 0.1s ease-in 0s;
 }
 
 .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
