@@ -220,11 +220,19 @@ exports.App = Backbone.Model.extend({
 
     setAsset: function (newAsset) {
         this.set('landmarks', null);
-        return this._loadLandmarksWithAsset(
-            this.assetSource().setAsset(newAsset));
+        // get a promise of the new asset. this promise will only resolve
+        // once we have the key data loaded to start annotating - for an image
+        // that's the full texture. For a mesh, that's the geometry.
+        var newAssetPromise = this.assetSource().setAsset(newAsset);
+        // 'wrap' this promise in a landmark promise. All this will only
+        // resolve when we have both landmarks (if there are landmarks)
+        // and an asset suitable for display
+        return this._promiseLandmarksWithAsset(newAssetPromise);
     },
 
-    _loadLandmarksWithAsset: function (loadAssetPromise) {
+    _promiseLandmarksWithAsset: function (loadAssetPromise) {
+        // returns a promise that will only resolve when the asset and
+        // landmarks are both downloaded and ready.
         var that = this;
         // Make a new landmark object for the new asset.
         var landmarks = new Landmark.LandmarkSet({
@@ -238,20 +246,25 @@ exports.App = Backbone.Model.extend({
         return Promise.all([loadLandmarksPromise, loadAssetPromise]).then(function () {
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display');
+            // now we know that this is resolved we set the landmarks on the
+            // app. This way we know the landmarks will always be set with a
+            // valid asset.
             that.set('landmarks', landmarks);
         });
     },
 
     nextAsset: function () {
+        // see setAsset for docs
         this.set('landmarks', null);
-        return this._loadLandmarksWithAsset(
-            this.get('assetSource').next());
+        return this._promiseLandmarksWithAsset(
+            this.assetSource().next());
     },
 
     previousAsset: function () {
+        // see setAsset for docs
         this.set('landmarks', null);
-        return this._loadLandmarksWithAsset(
-            this.get('assetSource').previous());
+        return this._promiseLandmarksWithAsset(
+            this.assetSource().previous());
     }
 
 });

@@ -356,9 +356,6 @@ var Mesh = Image.extend({
 
 });
 
-// Holds a list of available meshes, and a MeshList. The MeshList
-// is populated immediately, although meshes aren't fetched until demanded.
-// Also has a mesh parameter - the currently active mesh.
 var MeshSource = Asset.AssetSource.extend({
 
     parse: function (response) {
