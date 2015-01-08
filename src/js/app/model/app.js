@@ -1,16 +1,13 @@
 var _ = require('underscore');
+var Promise = require('promise-polyfill');
 var Backbone = require('../lib/backbonej');
 var Landmark = require('./landmark');
 var Template = require('./template');
 var Mesh = require('./mesh');
-var Image = require('./image');
 var Collection = require('./collection');
-var Dispatcher = require('./dispatcher');
 
 "use strict";
 
-
-//function url_for_state(template, collection, )
 
 exports.App = Backbone.Model.extend({
 
@@ -34,10 +31,6 @@ exports.App = Backbone.Model.extend({
 
     server: function () {
         return this.get('server');
-    },
-
-    dispatcher: function () {
-        return this.get('dispatcher');
     },
 
     templates: function () {
@@ -81,21 +74,17 @@ exports.App = Backbone.Model.extend({
     },
 
     initialize: function () {
-        _.bindAll(this, 'assetChanged', 'dispatcher', 'mesh', 'assetSource',
-                        'landmarks');
-        this.set('dispatcher', new Dispatcher.Dispatcher);
+        _.bindAll(this, 'assetChanged', 'mesh', 'assetSource', 'landmarks');
 
-        // All app state updates are then done in response to the asset
-        // and mesh changes on the app
-        this.listenTo(this, 'change:activeTemplate', this.reloadLandmarks);
-        this.listenTo(this, 'change:asset', this.reloadLandmarks);
-        this.listenTo(this, 'change:mesh', this.changeMeshAlpha);
-        this.listenTo(this, 'change:activeCollection',
-            this.reloadAssetSource);
+        // New collection? Need to find the assets on them again
+        this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
+
+        // activeTemplate changed? Best go and get the asset again.
+//        this.listenTo(this, 'change:activeTemplate', this.assetChanged);
 
         // TODO this seems messy, do we need this message passing?
         // whenever the user changes the meshAlpha, hit the callback
-        this.listenTo(this, 'change:meshAlpha', this.changeMeshAlpha);
+//        this.listenTo(this, 'change:meshAlpha', this.changeMeshAlpha);
         this._initTemplates();
         this._initCollections();
     },
@@ -113,6 +102,8 @@ exports.App = Backbone.Model.extend({
                 var label = labels[0];
                 console.log('Available templates are ' + labels);
                 if (that.has('_activeTemplate')) {
+                    // user has specified a preset! Use that if we can
+                    // TODO should validate here if we can actually use template
                     label = that.get('_activeTemplate');
                     console.log("template is preset to '" + label + "'");
                 }
@@ -155,12 +146,15 @@ exports.App = Backbone.Model.extend({
     },
 
     reloadAssetSource: function () {
+        // needs to have an activeCollection to preceed. AssetSource should be
+        // updated every time the active collection is updated.
         var that = this;
         if (!this.get('activeCollection')) {
             // can only proceed with an activeCollection...
+            console.log('App:reloadAssetSource with no activeCollection - doing nothing');
             return;
         }
-        console.log('reloading asset source');
+        console.log('App: reloading asset source');
 
         // Construct an asset source (which can query for asset information
         // from the server). Of course, we must pass the server in. The
@@ -180,10 +174,9 @@ exports.App = Backbone.Model.extend({
         this.listenTo(assetSource, 'change:asset', this.assetChanged);
         this.listenTo(assetSource, 'change:mesh', this.meshChanged);
 
-        assetSource.fetch({
-            success: function () {
+        Backbone.promiseFetch(assetSource).then(function () {
                 var i = 0;
-                console.log('asset source finished - setting');
+                console.log('assetSource retrieved - setting');
                 if (that.has('_assetIndex')) {
                     i = that.get('_assetIndex');
                 }
@@ -193,18 +186,17 @@ exports.App = Backbone.Model.extend({
                     + ' be in the range 0-' + assetSource.nAssets());
                     return;
                 }
-                assetSource.setAsset(assetSource.assets().at(i));
+                return that.setAsset(assetSource.assets()[i]);
             },
-            error: function () {
+            function () {
                 console.log('Failed to fetch assets (is landmarkerio' +
                     'running from your command line?).');
-            }
-        });
+            });
     },
 
     _assetSourceConstructor: function () {
         if (this.imageMode()) {
-            return Image.ImageSource;
+            return Mesh.ImageSource;
         } else if (this.meshMode()) {
             return Mesh.MeshSource;
         } else {
@@ -213,59 +205,55 @@ exports.App = Backbone.Model.extend({
         }
     },
 
-    changeMeshAlpha: function () {
-        this.mesh().set('alpha', this.get('meshAlpha'));
-    },
+//    changeMeshAlpha: function () {
+//        this.mesh().set('alpha', this.get('meshAlpha'));
+//    },
 
     // Mirror the state of the asset source onto the app
     assetChanged: function () {
+        console.log('App.assetChanged');
         this.set('asset', this.assetSource().asset());
-        },
+    },
 
     meshChanged: function () {
+        console.log('App.meshChanged');
         this.set('mesh', this.assetSource().mesh());
     },
 
-    reloadLandmarks: function () {
-        if (!this.get('asset') || !this.get('activeTemplate')) {
-            // can only proceed with an asset and a template...
-            return;
-        }
-        // now we have an asset and template we can get landmarks -
-        // they need to know where to fetch from so attach the server.
-        // note that mesh changes are guaranteed to happen after asset changes,
-        // so we are safe that this.asset() contains the correct asset id
-        var landmarks = new Landmark.LandmarkSet(
-            {
-                id: this.asset().id,
-                type: this.get('activeTemplate'),
-                server: this.get('server')
-            }
-        );
+    setAsset: function (newAsset) {
+        this.set('landmarks', null);
+        return this._loadLandmarksWithAsset(
+            this.assetSource().setAsset(newAsset));
+    },
+
+    _loadLandmarksWithAsset: function (loadAssetPromise) {
         var that = this;
-        landmarks.fetch({
-            success: function () {
-                console.log('got the landmarks!');
-                that.set('landmarks', landmarks);
-            },
-            error: function () {
-                // can't find landmarks for this person! Grab the template
-                // instead
-                console.log("couldn't get the landmarks");
-                landmarks.set('from_template', 'true');
-                landmarks.fetch({
-                    success: function () {
-                        console.log('got the template landmarks!');
-                        that.set('landmarks', landmarks);
-                        landmarks.unset('from_template');
-                    },
-                    error: function () {
-                        console.log('FATAL ERROR:  could not get the template landmarks!');
-                        landmarks.unset('from_template');
-                    }
-                });
-            }
+        // Make a new landmark object for the new asset.
+        var landmarks = new Landmark.LandmarkSet({
+            id: this.asset().id,
+            type: this.activeTemplate(),
+            server: this.get('server')
         });
+        // get promises for the both the asset and the landmarks
+        var loadLandmarksPromise = Backbone.promiseFetch(landmarks);
+        // if both come true, then set the landmarks
+        return Promise.all([loadLandmarksPromise, loadAssetPromise]).then(function () {
+            console.log('landmarks are loaded and the asset is at a suitable ' +
+                'state to display');
+            that.set('landmarks', landmarks);
+        });
+    },
+
+    nextAsset: function () {
+        this.set('landmarks', null);
+        return this._loadLandmarksWithAsset(
+            this.get('assetSource').next());
+    },
+
+    previousAsset: function () {
+        this.set('landmarks', null);
+        return this._loadLandmarksWithAsset(
+            this.get('assetSource').previous());
     }
 
 });

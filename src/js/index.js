@@ -49,7 +49,10 @@ function restartInDemoMode() {
     var u = url.parse(window.location.href.replace('#', '?'), true);
     u.search = null;
     u.query.server = 'demo';
-    window.location.href = url.format(u).replace('?', '#');
+    window.location.replace(url.format(u).replace('?', '#'));
+    // the url is seemingly the same as we use a # not a ?. As such a reload
+    // is needed.
+    window.location.reload();
 }
 
 function initLandmarker(server, mode) {
@@ -110,7 +113,7 @@ function initLandmarker(server, mode) {
                 break;
             case 116:  // t = [T]exture toggle (mesh mode only)
                 if (app.meshMode()) {
-                    app.mesh().textureToggle();
+                    app.asset().textureToggle();
                 }
                 break;
             case 97:  // a = select [A]ll
@@ -122,10 +125,10 @@ function initLandmarker(server, mode) {
                 }
                 break;
             case 106:  // j = down, next asset
-                app.assetSource().next();
+                app.nextAsset();
                 break;
             case 107:  // k = up, previous asset
-                app.assetSource().previous();
+                app.previousAsset();
                 break;
         }
     });

@@ -38,12 +38,12 @@ var AssetPagerView = Backbone.View.extend({
 
     next: function () {
         console.log('AssetPagerView:next');
-        this.model.assetSource().next();
+        this.model.nextAsset();
     },
 
     previous: function () {
         console.log('AssetPagerView:previous');
-        this.model.assetSource().previous();
+        this.model.previousAsset();
     }
 
 });

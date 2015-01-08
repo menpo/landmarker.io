@@ -268,13 +268,16 @@ var Sidebar = Backbone.View.extend({
             // break bindings for save revert
             this.saveRevertView.undelegateEvents();
         }
-        this.saveRevertView = new SaveRevertView(
-            {model: this.model.get('landmarks')});
+        var lms = this.model.landmarks();
+        if (lms === null) {
+            return;
+        }
+        this.saveRevertView = new SaveRevertView({model: lms});
         if (this.lmView) {
             this.lmView.cleanup();
         }
         this.lmView = new LandmarkGroupListView({
-            collection: this.model.get('landmarks').get('groups')
+            collection: lms.get('groups')
         });
         $('.Sidebar-LandmarksPanel').html(this.lmView.render().$el)
     }

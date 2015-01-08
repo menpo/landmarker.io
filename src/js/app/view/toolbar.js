@@ -1,6 +1,7 @@
 var _ = require('underscore');
 var Backbone = require('backbone');
 var $ = require('jquery');
+var atomic = require('../model/atomic');
 
 "use strict";
 
@@ -27,14 +28,10 @@ var LandmarkSizeSlider = Backbone.View.extend({
         return this;
     },
 
-    changeLandmarkSize: function (event) {
+    changeLandmarkSize: atomic.atomicOperation(function (event) {
         console.log('LandmarkSizeSlider:changeLandmarkSize');
-        // turn on batch rendering before firing the change
-        this.model.dispatcher().enableBatchRender();
         this.model.set("landmarkSize", (Number(event.target.value) / 50));
-        // all symbols will be updated - disable the batch
-        this.model.dispatcher().disableBatchRender();
-    }
+    })
 });
 
 
@@ -90,8 +87,8 @@ var TextureToggle = Backbone.View.extend({
         if (this.mesh) {
             this.stopListening(this.mesh);
         }
-        this.listenTo(this.model.mesh(), "all", this.render);
-        this.mesh = this.model.mesh();
+        this.listenTo(this.model.asset(), "all", this.render);
+        this.mesh = this.model.asset();
     },
 
     render: function () {
@@ -123,9 +120,11 @@ exports.Toolbar = Backbone.View.extend({
     initialize : function () {
         console.log('Toolbar:initialize');
         this.lmSizeSlider = new LandmarkSizeSlider({model: this.model});
+        // For now we remove alpha support
+        this.$el.find('#alphaRow').css("display", "none");
         if (this.model.meshMode()) {
             // only in mesh mode do we add these toolbar items.
-            this.alphaSlider = new AlphaSlider({model: this.model});
+            //this.alphaSlider = new AlphaSlider({model: this.model});
             this.textureToggle = new TextureToggle({model: this.model});
         } else {
             // in image mode, we shouldn't even have these controls.

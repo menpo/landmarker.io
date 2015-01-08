@@ -3,6 +3,7 @@ var _ = require('underscore');
 var Backbone = require('backbone');
 var THREE = require('three');
 var Camera = require('./camera');
+var atomic = require('../model/atomic');
 
 "use strict";
 
@@ -11,7 +12,7 @@ var CLEAR_COLOUR = 0xDDDDDD;
 var CLEAR_COLOUR_PIP = 0xCCCCCC;
 
 // the default scale for 1.0
-var LM_SCALE = 0.005;
+var LM_SCALE = 0.02;
 
 var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.68, 0.35, 3.0);
 var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
@@ -27,6 +28,9 @@ exports.Viewport = Backbone.View.extend({
     id: 'canvas',
 
     initialize: function () {
+
+        // to debug window.viewport = this;
+
 
         // ----- CONFIGURATION ----- //
         this.meshScale = 1.0;  // The radius of the mesh's bounding sphere
@@ -94,6 +98,14 @@ exports.Viewport = Backbone.View.extend({
             this.toggleCamera();
         }
 
+        // create the cameraController to look after all camera state.
+        this.cameraController = Camera.CameraController(
+            this.s_pCam, this.s_oCam, this.s_oCamZoom,
+            this.el, this.model.imageMode());
+
+        // when the camera updates, render
+        this.cameraController.on("change", this.update);
+
         this.resetCamera();
 
         // ----- SCENE: GENERAL LIGHTING ----- //
@@ -137,22 +149,13 @@ exports.Viewport = Backbone.View.extend({
 
         // add mesh if there already is one present (we have missed a
         // backbone callback to changeMesh() otherwise).
-        var mesh = this.model.mesh();
-        if (mesh && mesh.t_mesh()) {
+        if (this.model.has('mesh')) {
             this.changeMesh();
         }
 
         // make an empty list of landmark views
         this.landmarkViews = [];
         this.connectivityViews = [];
-        // TODO camera controls should be set based on mode
-        this.model.imageMode();
-        this.cameraControls = Camera.CameraController(
-            this.s_pCam, this.s_oCam, this.s_oCamZoom,
-            this.el, this.model.imageMode());
-        window.viewport = this;
-        // when the camera updates, render
-        this.cameraControls.on("change", this.update);
 
         var downEvent, lmPressed, lmPressedWasSelected;
 
@@ -195,7 +198,7 @@ exports.Viewport = Backbone.View.extend({
         // Catch all for mouse interaction. This is what is bound on the canvas
         // and delegates to various other mouse handlers once it figures out
         // what the user has done.
-        var onMouseDown = function (event) {
+        var onMouseDown = atomic.atomicOperation(function (event) {
             event.preventDefault();
             that.$el.focus();
             downEvent = event;
@@ -242,9 +245,9 @@ exports.Viewport = Backbone.View.extend({
 
             function landmarkPressed() {
                 var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
-                console.log('landmark pressed!');
+                console.log('Viewport: landmark pressed');
                 // before anything else, disable the camera
-                that.cameraControls.disable();
+                that.cameraController.disable();
                 // the clicked on landmark
                 var landmarkSymbol = intersectsWithLms[0].object;
                 var group;
@@ -255,13 +258,16 @@ exports.Viewport = Backbone.View.extend({
                         group = that.landmarkViews[i].group;
                     }
                 }
+                console.log('Viewport: activating the group in question');
                 group.activate();
+                console.log('Viewport: finding the selected points');
                 lmPressedWasSelected = lmPressed.isSelected();
                 if (!lmPressedWasSelected && !ctrl) {
                     // this lm wasn't pressed before and we aren't holding
                     // mutliselection down - deselect rest and select this
-                    console.log("normal click on a unselected lm - deselecting rest and selecting me");
+                    console.log("normal click on a unselected lm - deselecting rest...");
                     lmPressed.collection.deselectAll();
+                    console.log("normal click on a unselected lm - ...and selecting me");
                     lmPressed.select();
                 }
                 if (ctrl && !lmPressedWasSelected) {
@@ -308,13 +314,13 @@ exports.Viewport = Backbone.View.extend({
             function shiftPressed() {
                 console.log('shift pressed!');
                 // before anything else, disable the camera
-                that.cameraControls.disable();
+                that.cameraController.disable();
                 $(document).on('mousemove.shiftDrag', shiftOnDrag);
                 $(document).one('mouseup.viewportShift', shiftOnMouseUp);
             }
-        };
+        });
 
-        var landmarkOnDrag = function (event) {
+        var landmarkOnDrag = atomic.atomicOperation(function(event) {
             console.log("drag");
             intersectSOnPlane = that.getIntersectsFromEvent(event,
                 intersectPlane);
@@ -330,7 +336,6 @@ exports.Viewport = Backbone.View.extend({
                 var activeGroup = that.model.get('landmarks').get('groups').active();
                 var selectedLandmarks = activeGroup.landmarks().selected();
                 var lm, lmP;
-                that.model.dispatcher().enableBatchRender();
                 for (var i = 0; i < selectedLandmarks.length; i++) {
                     lm = selectedLandmarks[i];
                     lmP = lm.point().clone();
@@ -338,9 +343,8 @@ exports.Viewport = Backbone.View.extend({
                     //if (!lm.get('isChanging')) lm.set('isChanging', true);
                     lm.setPoint(lmP);
                 }
-                that.model.dispatcher().disableBatchRender();
             }
-        };
+        });
 
         var shiftOnDrag = function (event) {
             console.log("shift:drag");
@@ -358,7 +362,7 @@ exports.Viewport = Backbone.View.extend({
         };
 
         var shiftOnMouseUp = function (event) {
-            that.cameraControls.enable();
+            that.cameraController.enable();
             console.log("shift:up");
             $(document).off('mousemove.shiftDrag', shiftOnDrag);
             var x1 = onMouseDownPosition.x;
@@ -450,9 +454,9 @@ exports.Viewport = Backbone.View.extend({
             }
         };
 
-        var landmarkOnMouseUp = function (event) {
+        var landmarkOnMouseUp = atomic.atomicOperation(function (event) {
             var ctrl = downEvent.ctrlKey || downEvent.metaKey;
-            that.cameraControls.enable();
+            that.cameraController.enable();
             console.log("landmarkPress:up");
             $(document).off('mousemove.landmarkDrag');
             var lm;
@@ -496,7 +500,7 @@ exports.Viewport = Backbone.View.extend({
                     lmPressed.select();
                 }
             }
-        };
+        });
         return onMouseDown
         })();
 
@@ -504,7 +508,7 @@ exports.Viewport = Backbone.View.extend({
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, "change:mesh", this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
-        this.listenTo(this.model.dispatcher(), "change:BATCH_RENDER", this.batchHandler);
+        this.listenTo(atomic, "change:ATOMIC_OPERATION", this.batchHandler);
 
         // trigger resize to initially size the viewport
         // this will also clearCanvas (will draw context box if needed)
@@ -618,38 +622,33 @@ exports.Viewport = Backbone.View.extend({
     },
 
     changeMesh: function () {
-        console.log('Viewport:changeMesh');
+        var mesh, up, front;
         console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
         // firstly, remove any existing mesh
         if (this.s_mesh.children.length) {
             var previousMesh = this.s_mesh.children[0];
             this.s_mesh.remove(previousMesh);
         }
-        if (this.mesh) {
-            console.log('Viewport:changeMesh - stopping listening to prev mesh');
-            this.stopListening(this.mesh);
-        }
-        this.mesh = this.model.mesh();
-        // Any change on the mesh - rerender.
-        this.listenTo(this.mesh , "all", this.update);
-        this.s_mesh.add(this.mesh.get('t_mesh'));
+        mesh = this.model.get('mesh').mesh;
+        up = this.model.get('mesh').up;
+        front = this.model.get('mesh').front;
 
+        this.s_mesh.add(mesh);
         // Now we need to rescale the s_meshAndLms to fit in the unit sphere
         // First, the scale
-        this.meshScale = this.mesh.get('t_mesh').geometry.boundingSphere.radius;
+        this.meshScale = mesh.geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
         this.s_scaleRotate.scale.set(s, s, s);
         this.s_h_scaleRotate.scale.set(s, s, s);
-        this.s_scaleRotate.up = this.mesh.up().clone();
-        this.s_h_scaleRotate.up = this.mesh.up().clone();
-        this.s_scaleRotate.lookAt(this.mesh.front().clone());
-        this.s_h_scaleRotate.lookAt(this.mesh.front().clone());
+        this.s_scaleRotate.up.copy(up);
+        this.s_h_scaleRotate.up.copy(up);
+        this.s_scaleRotate.lookAt(front.clone());
+        this.s_h_scaleRotate.lookAt(front.clone());
         // translation
-        var t = this.mesh.get('t_mesh').geometry.boundingSphere.center.clone();
+        var t = mesh.geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
         this.s_translate.position.copy(t);
         this.s_h_translate.position.copy(t);
-        this.resetCamera();
         console.log('Viewport:changeMesh - memory after:  ' +  this.memoryString());
         this.update();
     },
@@ -660,9 +659,10 @@ exports.Viewport = Backbone.View.extend({
                 ' prog:' + this.renderer.info.memory.programs;
     },
 
-    changeLandmarks: function () {
+    changeLandmarks: atomic.atomicOperation(function () {
         console.log('Viewport: landmarks have changed');
         var that = this;
+
         // 1. Dispose of all landmark and connectivity views
         _.map(this.landmarkViews, function (lmView) {
             lmView.dispose();
@@ -670,15 +670,15 @@ exports.Viewport = Backbone.View.extend({
         _.map(this.connectivityViews, function (connView) {
             connView.dispose();
         });
-//        this.s_meshAndLms.remove(this.s_lms);
-//        this.s_h_meshAndLms.remove(this.s_lmsconnectivity);
-//        this.s_lms = new THREE.Object3D();
-//        this.s_lmsconnectivity = new THREE.Object3D();
-//        this.s_meshAndLms.add(this.s_lms);
-//        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
+
         // 2. Build a fresh set of views - clear any existing lms
         this.landmarkViews = [];
         this.connectivityViews = [];
+        var lms = this.model.get('landmarks');
+        if (lms === null) {
+            // no landmarks set - pass
+            return
+        }
         var groups = this.model.get('landmarks').get('groups');
         groups.each(function (group) {
             group.get('landmarks').each(function (lm) {
@@ -698,8 +698,9 @@ exports.Viewport = Backbone.View.extend({
                        viewport: that
                    }));
             });
-        })
-    },
+        });
+
+    }),
 
     // this is called whenever there is a state change on the THREE scene
     update: function () {
@@ -707,9 +708,10 @@ exports.Viewport = Backbone.View.extend({
             return;
         }
         // if in batch mode - noop.
-        if (this.model.dispatcher().isBatchRenderEnabled()) {
+        if (atomic.atomicOperationUnderway()) {
             return;
         }
+        console.log('Viewport:update');
         // 1. Render the main viewport
         var w, h;
         w = this.$container.width();
@@ -753,18 +755,10 @@ exports.Viewport = Backbone.View.extend({
     },
 
     resetCamera: function () {
-        if (this.model.meshMode()) {
-            this.s_pCam.position.copy(MESH_MODE_STARTING_POSITION);
-            this.s_oCam.position.copy(MESH_MODE_STARTING_POSITION);
-            this.s_oCamZoom.position.copy(MESH_MODE_STARTING_POSITION);
-        } else {
-            this.s_pCam.position.copy(IMAGE_MODE_STARTING_POSITION);
-            this.s_oCam.position.copy(IMAGE_MODE_STARTING_POSITION);
-            this.s_oCamZoom.position.copy(IMAGE_MODE_STARTING_POSITION);
-        }
-        this.s_pCam.lookAt(this.scene.position);
-        this.s_oCam.lookAt(this.scene.position);
-        this.s_oCamZoom.lookAt(this.scene.position);
+        // reposition the cameras and focus back to the starting point.
+        var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION : IMAGE_MODE_STARTING_POSITION;
+        this.cameraController.position(v);
+        this.cameraController.focus(this.scene.position);
         this.update();
     },
 
@@ -804,7 +798,7 @@ exports.Viewport = Backbone.View.extend({
         w = this.$container.width();
         h = this.$container.height();
         // ask the camera controller to update the cameras appropriately
-        this.cameraControls.resize(w, h);
+        this.cameraController.resize(w, h);
         // update the size of the renderer and the canvas
         this.renderer.setSize(w, h);
         this.canvas.width = w;
@@ -815,12 +809,11 @@ exports.Viewport = Backbone.View.extend({
     },
 
     batchHandler: function (dispatcher) {
-        if (!dispatcher.isBatchRenderEnabled()) {
+        if (dispatcher.atomicOperationFinished()) {
             // just been turned off - trigger an update.
             this.update();
         }
     }
-
 });
 
 
@@ -852,6 +845,8 @@ var LandmarkTHREEView = Backbone.View.extend({
         } else {
             // there is no symbol yet
             if (!this.model.isEmpty()) {
+                //console.log('meshScale: ' + this.viewport.meshScale);
+                //console.log('LM_SCALE: ' + LM_SCALE);
                 // and there should be! Make it and update it
                 this.symbol = this.createSphere(this.model.get('point'),
                     this.viewport.meshScale * LM_SCALE, 1);
@@ -867,6 +862,7 @@ var LandmarkTHREEView = Backbone.View.extend({
     },
 
     createSphere: function (v, radius, selected) {
+        console.log('creating sphere of radius ' + radius);
         var wSegments = 10;
         var hSegments = 10;
         var geometry = new THREE.SphereGeometry(radius, wSegments, hSegments);
