@@ -63,5 +63,9 @@ exports.AssetSource = Backbone.Model.extend({
             return;
         }
         return this.setAsset(this.assets()[this.assetIndex() - 1]);
+    },
+
+    updateMesh: function () {
+        this.set('mesh', this.get('asset').mesh());
     }
 });
