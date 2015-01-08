@@ -24,9 +24,43 @@ var AtomicOperationTracker = Backbone.Model.extend({
 
     atomicOperationFinished: function () {
         return !this.get('ATOMIC_OPERATION');
+    },
+
+    atomicOperation: function (f) {
+        // calls f ensuring that the atomic operation is set throughout.
+
+        return function () {
+            if (!atomicTracker.atomicOperationUnderway()) {
+                // we are the highest level atomic lock. Code inside should be
+                // called with a single atomic lock wrapped around it.
+
+                console.log('Starting new atomic operation');
+                atomicTracker.startAtomicOperation();
+                f.apply(this, arguments);
+                console.log('Ending atomic operation (should be immediately followed by render)');
+                atomicTracker.endAtomicOperation();
+            } else {
+                // we are nested inside some other atomic lock. Just call the
+                // function as normal.
+                console.log('Interior atomic operation');
+                f.apply(this, arguments);
+            }
+        };
+
+
     }
+
 
 });
 
+var atomicTracker = new AtomicOperationTracker;
+module.exports = atomicTracker;
 
-module.exports = new AtomicOperationTracker;
+// Use this for atomic args
+//function a(args){
+//    b.apply(this, arguments);
+//}
+//function b(args){
+//    alert(arguments); //arguments[0] = 1, etc
+//}
+//a(1,2,3);​

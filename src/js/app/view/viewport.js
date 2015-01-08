@@ -198,7 +198,7 @@ exports.Viewport = Backbone.View.extend({
         // Catch all for mouse interaction. This is what is bound on the canvas
         // and delegates to various other mouse handlers once it figures out
         // what the user has done.
-        var onMouseDown = function (event) {
+        var onMouseDown = atomic.atomicOperation(function (event) {
             event.preventDefault();
             that.$el.focus();
             downEvent = event;
@@ -318,9 +318,9 @@ exports.Viewport = Backbone.View.extend({
                 $(document).on('mousemove.shiftDrag', shiftOnDrag);
                 $(document).one('mouseup.viewportShift', shiftOnMouseUp);
             }
-        };
+        });
 
-        var landmarkOnDrag = function (event) {
+        var landmarkOnDrag = atomic.atomicOperation(function(event) {
             console.log("drag");
             intersectSOnPlane = that.getIntersectsFromEvent(event,
                 intersectPlane);
@@ -336,7 +336,6 @@ exports.Viewport = Backbone.View.extend({
                 var activeGroup = that.model.get('landmarks').get('groups').active();
                 var selectedLandmarks = activeGroup.landmarks().selected();
                 var lm, lmP;
-                atomic.startAtomicOperation();
                 for (var i = 0; i < selectedLandmarks.length; i++) {
                     lm = selectedLandmarks[i];
                     lmP = lm.point().clone();
@@ -344,9 +343,8 @@ exports.Viewport = Backbone.View.extend({
                     //if (!lm.get('isChanging')) lm.set('isChanging', true);
                     lm.setPoint(lmP);
                 }
-                atomic.endAtomicOperation();
             }
-        };
+        });
 
         var shiftOnDrag = function (event) {
             console.log("shift:drag");
@@ -456,7 +454,7 @@ exports.Viewport = Backbone.View.extend({
             }
         };
 
-        var landmarkOnMouseUp = function (event) {
+        var landmarkOnMouseUp = atomic.atomicOperation(function (event) {
             var ctrl = downEvent.ctrlKey || downEvent.metaKey;
             that.cameraController.enable();
             console.log("landmarkPress:up");
@@ -502,7 +500,7 @@ exports.Viewport = Backbone.View.extend({
                     lmPressed.select();
                 }
             }
-        };
+        });
         return onMouseDown
         })();
 
@@ -661,11 +659,8 @@ exports.Viewport = Backbone.View.extend({
                 ' prog:' + this.renderer.info.memory.programs;
     },
 
-    changeLandmarks: function () {
+    changeLandmarks: atomic.atomicOperation(function () {
         console.log('Viewport: landmarks have changed');
-
-        // turn on batch rendering for the duration of this task
-        atomic.startAtomicOperation();
         var that = this;
 
         // 1. Dispose of all landmark and connectivity views
@@ -705,9 +700,7 @@ exports.Viewport = Backbone.View.extend({
             });
         });
 
-        // Now we are done, render our changes to the screen.
-        atomic.endAtomicOperation();
-    },
+    }),
 
     // this is called whenever there is a state change on the THREE scene
     update: function () {

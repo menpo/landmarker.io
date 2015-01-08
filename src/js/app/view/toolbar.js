@@ -28,14 +28,10 @@ var LandmarkSizeSlider = Backbone.View.extend({
         return this;
     },
 
-    changeLandmarkSize: function (event) {
+    changeLandmarkSize: atomic.atomicOperation(function (event) {
         console.log('LandmarkSizeSlider:changeLandmarkSize');
-        // turn on batch rendering before firing the change
-        atomic.startAtomicOperation();
         this.model.set("landmarkSize", (Number(event.target.value) / 50));
-        // all symbols will be updated - disable the batch
-        atomic.endAtomicOperation();
-    }
+    })
 });
 
 

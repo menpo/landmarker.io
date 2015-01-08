@@ -1,6 +1,7 @@
 var _ = require('underscore');
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
+var atomic = require('./atomic');
 
 "use strict";
 
@@ -143,23 +144,23 @@ var LandmarkList = Backbone.Collection.extend({
         return this.selected().length;
     },
 
-    selectAll: function () {
+    selectAll: atomic.atomicOperation(function () {
         this.forEach(function(landmark) {
             landmark.select();
         });
-    },
+    }),
 
-    clearAllNextAvailable: function () {
+    clearAllNextAvailable: atomic.atomicOperation(function () {
         this.forEach(function(landmark) {
             landmark.clearNextAvailable();
         });
-    },
+    }),
 
-    deselectAll: function () {
+    deselectAll: atomic.atomicOperation(function () {
         this.forEach(function(landmark) {
             landmark.deselect();
         });
-    }
+    })
 
 });
 
@@ -182,7 +183,7 @@ var LandmarkGroup = Backbone.Model.extend({
         return this.get('active');
     },
 
-    activate: function () {
+    activate: atomic.atomicOperation(function () {
         if (!this.isActive()) {
             this.collection.deselectAll();
             this.collection.deactivateAll();
@@ -190,7 +191,7 @@ var LandmarkGroup = Backbone.Model.extend({
             this.landmarks().deselectAll();
             this.collection.resetNextAvailable();
         }
-    },
+    }),
 
     deactivate: function () {
         if (this.isActive()) {
@@ -265,31 +266,31 @@ var LandmarkGroupList = Backbone.Collection.extend({
         this.activeIndex(0);
     },
 
-    deactivateAll: function () {
+    deactivateAll: atomic.atomicOperation(function () {
         this.each(function(group) {
             group.deactivate();
         });
-    },
+    }),
 
-    resetNextAvailable: function () {
+    resetNextAvailable: atomic.atomicOperation(function () {
         this.clearAllNextAvailable();
         var next = this.nextAvailable();
         if (next) {
             next.setNextAvailable();
         }
-    },
+    }),
 
-    clearAllNextAvailable: function () {
+    clearAllNextAvailable: atomic.atomicOperation(function () {
         this.each(function(group) {
             group.landmarks().clearAllNextAvailable();
         });
-    },
+    }),
 
-    deselectAll: function () {
+    deselectAll: atomic.atomicOperation(function () {
         this.each(function(group) {
             group.landmarks().deselectAll();
         });
-    },
+    }),
 
     nonempty: function () {
         return _.flatten(this.map(function(group) {
@@ -297,23 +298,23 @@ var LandmarkGroupList = Backbone.Collection.extend({
         }));
     },
 
-    activeIndex: function (i) {
+    activeIndex: atomic.atomicOperation(function (i) {
         // firstly, deactivate everything
         this.each(function(group) {
             group.set('active', false);
         });
         // then, enable the requested index
         this.at(i).set('active', true);
-    },
+    }),
 
-    activeLabel: function (label) {
+    activeLabel: atomic.atomicOperation(function (label) {
         // firstly, deactivate everything
         this.each(function(group) {
             group.set('active', false);
         });
         // then, enable the requested index
         this.withLabel(label).set('active', true);
-    },
+    }),
 
     nextAvailable: function () {
         var group, lms, lm, i, j;
@@ -359,7 +360,7 @@ var LandmarkSet = Backbone.Model.extend({
         };
     },
 
-    insertNew: function (v) {
+    insertNew: atomic.atomicOperation(function (v) {
         var lm = this.groups().nextAvailable();
         if (!lm) {
             // nothing left to insert!
@@ -382,18 +383,18 @@ var LandmarkSet = Backbone.Model.extend({
             nextLm.setNextAvailable();
         }
         return lm;
-    },
+    }),
 
-    deleteSelected: function () {
+    deleteSelected: atomic.atomicOperation(function () {
         var lms = this.groups().active().landmarks().selected();
         _.each(lms, function (lm) {
             lm.clear();
         });
-    },
+    }),
 
-    selectAllInActiveGroup: function () {
+    selectAllInActiveGroup: atomic.atomicOperation(function () {
         this.groups().active().landmarks().selectAll();
-    },
+    }),
 
     parse: function (json, options) {
         if (!options.parse) {
