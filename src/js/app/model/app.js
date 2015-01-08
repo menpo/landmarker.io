@@ -64,7 +64,7 @@ exports.App = Backbone.Model.extend({
         return this.get('asset');
     },
 
-    // returns the currently active Mesh.
+    // returns the currently active THREE.Mesh.
     mesh: function () {
         return this.get('mesh');
     },
@@ -79,12 +79,6 @@ exports.App = Backbone.Model.extend({
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
 
-        // activeTemplate changed? Best go and get the asset again.
-//        this.listenTo(this, 'change:activeTemplate', this.assetChanged);
-
-        // TODO this seems messy, do we need this message passing?
-        // whenever the user changes the meshAlpha, hit the callback
-//        this.listenTo(this, 'change:meshAlpha', this.changeMeshAlpha);
         this._initTemplates();
         this._initCollections();
     },
@@ -202,10 +196,6 @@ exports.App = Backbone.Model.extend({
                 ' mesh or image');
         }
     },
-
-//    changeMeshAlpha: function () {
-//        this.mesh().set('alpha', this.get('meshAlpha'));
-//    },
 
     // Mirror the state of the asset source onto the app
     assetChanged: function () {
