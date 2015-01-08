@@ -659,7 +659,11 @@ exports.Viewport = Backbone.View.extend({
 
     changeLandmarks: function () {
         console.log('Viewport: landmarks have changed');
+
+        // turn on batch rendering for the duration of this task
+        this.model.dispatcher().enableBatchRender();
         var that = this;
+
         // 1. Dispose of all landmark and connectivity views
         _.map(this.landmarkViews, function (lmView) {
             lmView.dispose();
@@ -667,12 +671,7 @@ exports.Viewport = Backbone.View.extend({
         _.map(this.connectivityViews, function (connView) {
             connView.dispose();
         });
-//        this.s_meshAndLms.remove(this.s_lms);
-//        this.s_h_meshAndLms.remove(this.s_lmsconnectivity);
-//        this.s_lms = new THREE.Object3D();
-//        this.s_lmsconnectivity = new THREE.Object3D();
-//        this.s_meshAndLms.add(this.s_lms);
-//        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
+
         // 2. Build a fresh set of views - clear any existing lms
         this.landmarkViews = [];
         this.connectivityViews = [];
@@ -700,7 +699,10 @@ exports.Viewport = Backbone.View.extend({
                        viewport: that
                    }));
             });
-        })
+        });
+
+        // Now we are done, render our changes to the screen.
+        this.model.dispatcher().disableBatchRender();
     },
 
     // this is called whenever there is a state change on the THREE scene
@@ -712,6 +714,7 @@ exports.Viewport = Backbone.View.extend({
         if (this.model.dispatcher().isBatchRenderEnabled()) {
             return;
         }
+        console.log('Viewport:update');
         // 1. Render the main viewport
         var w, h;
         w = this.$container.width();
