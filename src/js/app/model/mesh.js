@@ -17,14 +17,6 @@ var abortAllObj = function (x) {
     return abortAll(R.values(x));
 };
 
-var extractABC = R.map(function (f) {
-    return [f.a, f.b, f.c];
-});
-
-var extractXYZ = R.map(function (v) {
-    return [v.x, v.y, v.z];
-});
-
 var FRONT = {
     image: new THREE.Vector3(0, 0, 1),
     mesh: new THREE.Vector3(0, 0, 1)
@@ -201,13 +193,6 @@ var Image = Backbone.Model.extend({
         } else {
             this.textureOn();
         }
-    },
-
-    toJSON: function () {
-        return {
-            points: extractXYZ(this.get('t_mesh').geometry.vertices),
-            trilist: extractABC(this.get('t_mesh').geometry.faces)
-        };
     },
 
     loadThumbnail: function () {
