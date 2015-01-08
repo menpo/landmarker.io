@@ -3,6 +3,7 @@ var _ = require('underscore');
 var Backbone = require('backbone');
 var THREE = require('three');
 var Camera = require('./camera');
+var atomic = require('../model/atomic');
 
 "use strict";
 
@@ -244,7 +245,7 @@ exports.Viewport = Backbone.View.extend({
 
             function landmarkPressed() {
                 var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
-                console.log('landmark pressed!');
+                console.log('Viewport: landmark pressed');
                 // before anything else, disable the camera
                 that.cameraController.disable();
                 // the clicked on landmark
@@ -257,13 +258,16 @@ exports.Viewport = Backbone.View.extend({
                         group = that.landmarkViews[i].group;
                     }
                 }
+                console.log('Viewport: activating the group in question');
                 group.activate();
+                console.log('Viewport: finding the selected points');
                 lmPressedWasSelected = lmPressed.isSelected();
                 if (!lmPressedWasSelected && !ctrl) {
                     // this lm wasn't pressed before and we aren't holding
                     // mutliselection down - deselect rest and select this
-                    console.log("normal click on a unselected lm - deselecting rest and selecting me");
+                    console.log("normal click on a unselected lm - deselecting rest...");
                     lmPressed.collection.deselectAll();
+                    console.log("normal click on a unselected lm - ...and selecting me");
                     lmPressed.select();
                 }
                 if (ctrl && !lmPressedWasSelected) {
@@ -332,7 +336,7 @@ exports.Viewport = Backbone.View.extend({
                 var activeGroup = that.model.get('landmarks').get('groups').active();
                 var selectedLandmarks = activeGroup.landmarks().selected();
                 var lm, lmP;
-                that.model.dispatcher().enableBatchRender();
+                atomic.startAtomicOperation();
                 for (var i = 0; i < selectedLandmarks.length; i++) {
                     lm = selectedLandmarks[i];
                     lmP = lm.point().clone();
@@ -340,7 +344,7 @@ exports.Viewport = Backbone.View.extend({
                     //if (!lm.get('isChanging')) lm.set('isChanging', true);
                     lm.setPoint(lmP);
                 }
-                that.model.dispatcher().disableBatchRender();
+                atomic.endAtomicOperation();
             }
         };
 
@@ -506,7 +510,7 @@ exports.Viewport = Backbone.View.extend({
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, "change:mesh", this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
-        this.listenTo(this.model.dispatcher(), "change:BATCH_RENDER", this.batchHandler);
+        this.listenTo(atomic, "change:ATOMIC_OPERATION", this.batchHandler);
 
         // trigger resize to initially size the viewport
         // this will also clearCanvas (will draw context box if needed)
@@ -661,7 +665,7 @@ exports.Viewport = Backbone.View.extend({
         console.log('Viewport: landmarks have changed');
 
         // turn on batch rendering for the duration of this task
-        this.model.dispatcher().enableBatchRender();
+        atomic.startAtomicOperation();
         var that = this;
 
         // 1. Dispose of all landmark and connectivity views
@@ -702,7 +706,7 @@ exports.Viewport = Backbone.View.extend({
         });
 
         // Now we are done, render our changes to the screen.
-        this.model.dispatcher().disableBatchRender();
+        atomic.endAtomicOperation();
     },
 
     // this is called whenever there is a state change on the THREE scene
@@ -711,7 +715,7 @@ exports.Viewport = Backbone.View.extend({
             return;
         }
         // if in batch mode - noop.
-        if (this.model.dispatcher().isBatchRenderEnabled()) {
+        if (atomic.atomicOperationUnderway()) {
             return;
         }
         console.log('Viewport:update');
@@ -812,7 +816,7 @@ exports.Viewport = Backbone.View.extend({
     },
 
     batchHandler: function (dispatcher) {
-        if (!dispatcher.isBatchRenderEnabled()) {
+        if (dispatcher.atomicOperationFinished()) {
             // just been turned off - trigger an update.
             this.update();
         }

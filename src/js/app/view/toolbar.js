@@ -1,6 +1,7 @@
 var _ = require('underscore');
 var Backbone = require('backbone');
 var $ = require('jquery');
+var atomic = require('../model/atomic');
 
 "use strict";
 
@@ -30,10 +31,10 @@ var LandmarkSizeSlider = Backbone.View.extend({
     changeLandmarkSize: function (event) {
         console.log('LandmarkSizeSlider:changeLandmarkSize');
         // turn on batch rendering before firing the change
-        this.model.dispatcher().enableBatchRender();
+        atomic.startAtomicOperation();
         this.model.set("landmarkSize", (Number(event.target.value) / 50));
         // all symbols will be updated - disable the batch
-        this.model.dispatcher().disableBatchRender();
+        atomic.endAtomicOperation();
     }
 });
 

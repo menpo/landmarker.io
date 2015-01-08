@@ -5,7 +5,6 @@ var Landmark = require('./landmark');
 var Template = require('./template');
 var Mesh = require('./mesh');
 var Collection = require('./collection');
-var Dispatcher = require('./dispatcher');
 
 "use strict";
 
@@ -32,10 +31,6 @@ exports.App = Backbone.Model.extend({
 
     server: function () {
         return this.get('server');
-    },
-
-    dispatcher: function () {
-        return this.get('dispatcher');
     },
 
     templates: function () {
@@ -79,9 +74,7 @@ exports.App = Backbone.Model.extend({
     },
 
     initialize: function () {
-        _.bindAll(this, 'assetChanged', 'dispatcher', 'mesh', 'assetSource',
-                        'landmarks');
-        this.set('dispatcher', new Dispatcher.Dispatcher);
+        _.bindAll(this, 'assetChanged', 'mesh', 'assetSource', 'landmarks');
 
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
