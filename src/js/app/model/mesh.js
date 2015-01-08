@@ -186,7 +186,6 @@ var Image = Backbone.Model.extend({
             return;  // texture already off or no texture
         }
         this.set('textureOn', true);
-        this.trigger('meshChanged');
     },
 
     textureOff: function() {
@@ -194,7 +193,6 @@ var Image = Backbone.Model.extend({
             return;  // texture already on
         }
         this.set('textureOn', false);
-        this.trigger('meshChanged');
     },
 
     textureToggle: function () {
@@ -426,10 +424,6 @@ var MeshSource = Asset.AssetSource.extend({
         });
         // return the geometry promise
         return geometry;
-    },
-
-    updateMesh: function () {
-        this.set('mesh', this.get('asset').mesh());
     }
 });
 
