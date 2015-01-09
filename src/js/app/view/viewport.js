@@ -4,6 +4,7 @@ var Backbone = require('../lib/backbonej');
 var THREE = require('three');
 var Camera = require('./camera');
 var atomic = require('../model/atomic');
+var octree = require('../model/octree');
 
 "use strict";
 
@@ -206,7 +207,7 @@ exports.Viewport = Backbone.View.extend({
 
             // All interactions require intersections to distinguish
             intersectsWithLms = that.getIntersectsFromEvent(event, that.s_lms);
-            intersectsWithMesh = that.getIntersectsFromEvent(event, that.s_mesh);
+            intersectsWithMesh = that.getIntersectsFromEvent(event, that.mesh);
             if (event.button === 0) {  // left mouse button
                 if (intersectsWithLms.length > 0 &&
                     intersectsWithMesh.length > 0) {
@@ -343,6 +344,37 @@ exports.Viewport = Backbone.View.extend({
                     //if (!lm.get('isChanging')) lm.set('isChanging', true);
                     lm.setPoint(lmP);
                 }
+
+                // landmark was dragged
+                var vWorld, vScreen;
+                for (var i = 0; i < selectedLandmarks.length; i++) {
+                    lm = selectedLandmarks[i];
+                    // convert to screen coordinates
+                    vWorld = that.s_meshAndLms.localToWorld(lm.point().clone());
+                    vScreen = that.worldToScreen(vWorld);
+                    // use the standard machinery to find intersections
+                    intersectsWithMesh = that.getIntersects(vScreen.x,
+                        vScreen.y, that.mesh);
+                    if (intersectsWithMesh.length > 0) {
+                        // good, we're still on the mesh.
+                        lm.setPoint(that.s_meshAndLms.worldToLocal(
+                            intersectsWithMesh[0].point.clone()));
+                        lm.set('isChanging', false);
+                    } else {
+                        console.log("fallen off mesh");
+                        // TODO add back in history!
+//                                for (i = 0; i < selectedLandmarks.length; i++) {
+//                                    selectedLandmarks[i].rollbackModifications();
+//                                }
+                        // ok, we've fixed the mess. drop out of the loop
+                        break;
+                    }
+                    // only here as all landmarks were successfully moved
+                    //landmarkSet.snapshotGroup(); // snapshot the active group
+                }
+
+
+
             }
         });
 
@@ -473,7 +505,7 @@ exports.Viewport = Backbone.View.extend({
                     vScreen = that.worldToScreen(vWorld);
                     // use the standard machinery to find intersections
                     intersectsWithMesh = that.getIntersects(vScreen.x,
-                        vScreen.y, that.s_mesh);
+                        vScreen.y, that.mesh);
                     if (intersectsWithMesh.length > 0) {
                         // good, we're still on the mesh.
                         lm.setPoint(that.s_meshAndLms.worldToLocal(
@@ -559,10 +591,14 @@ exports.Viewport = Backbone.View.extend({
             this.ray = this.projector.pickingRay(vector, this.s_camera);
         }
 
-        if (object instanceof Array) {
+        if (object === this.mesh && this.octree) {
+            console.log('using octree for intersects on mesh');
+            return octree.intersetMesh(this.ray, this.mesh, this.octree);
+        } else if (object instanceof Array) {
             return this.ray.intersectObjects(object, true);
+        } else {
+            return this.ray.intersectObject(object, true);
         }
-        return this.ray.intersectObject(object, true);
     },
 
     getIntersectsFromEvent: function (event, object) {
@@ -628,8 +664,16 @@ exports.Viewport = Backbone.View.extend({
         if (this.s_mesh.children.length) {
             var previousMesh = this.s_mesh.children[0];
             this.s_mesh.remove(previousMesh);
+            this.mesh = null;
+            this.octree = null;
         }
         mesh = this.model.get('mesh').mesh;
+        this.mesh = mesh;
+        if(mesh.geometry instanceof THREE.BufferGeometry) {
+            this.octree = octree.octreeForMesh(mesh);
+            window.octree = this.octree;
+            window.mesh = this.mesh;
+        }
         up = this.model.get('mesh').up;
         front = this.model.get('mesh').front;
 
@@ -711,7 +755,7 @@ exports.Viewport = Backbone.View.extend({
         if (atomic.atomicOperationUnderway()) {
             return;
         }
-        console.log('Viewport:update');
+        //console.log('Viewport:update');
         // 1. Render the main viewport
         var w, h;
         w = this.$container.width();
