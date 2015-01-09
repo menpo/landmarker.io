@@ -115,7 +115,7 @@ var Image = Backbone.Model.extend({
         var geometry, material, image, mesh, up, front, hasGeo, hasTex, hasThumb;
         hasGeo = this.has('geometry');
         hasTex = this.has('texture');
-        hasThumb = this.has('thumb');
+        hasThumb = this.has('thumbnail');
 
         up = UP.image;
         front = FRONT.image;

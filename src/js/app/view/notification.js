@@ -1,5 +1,5 @@
 var _ = require('underscore');
-var Backbone = require('backbone');
+var Backbone = require('../lib/backbonej');
 var Spinner = require('spin.js');
 
 "use strict";

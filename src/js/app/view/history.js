@@ -1,4 +1,4 @@
-var Backbone = require('backbone');
+var Backbone = require('../lib/backbonej');
 var url = require('url');
 
 "use strict";

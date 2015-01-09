@@ -1,6 +1,6 @@
 var $ = require('jquery');
 var _ = require('underscore');
-var Backbone = require('backbone');
+var Backbone = require('../lib/backbonej');
 var THREE = require('three');
 var Camera = require('./camera');
 var atomic = require('../model/atomic');

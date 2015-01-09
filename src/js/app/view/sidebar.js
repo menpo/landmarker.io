@@ -1,8 +1,8 @@
 var _ = require('underscore');
-var Backbone = require('backbone');
+var Backbone = require('../lib/backbonej');
 var $ = require('jquery');
 var Notification = require('./notification');
-
+var atomic = require('../model/atomic');
 
 "use strict";
 
@@ -46,7 +46,7 @@ var LandmarkView = Backbone.View.extend({
         return this;
     },
 
-    select: function (event) {
+    select: atomic.atomicOperation(function (event) {
         if (event.shiftKey) {
             // shift takes precedence.
         } else if ((event.ctrlKey || event.metaKey)) {
@@ -60,7 +60,7 @@ var LandmarkView = Backbone.View.extend({
             this.model.get('group').activate();
             this.model.select();
         }
-    },
+    }),
 
     selectAll: function (event) {
         this.model.get('group').activate();
