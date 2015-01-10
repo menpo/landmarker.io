@@ -1,6 +1,6 @@
 var THREE = require('three');
 
-var MAX_NODE_ITEMS = 100;
+var MAX_NODE_ITEMS = 50;
 
 
 function octreeForMesh(mesh) {

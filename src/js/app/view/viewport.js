@@ -207,6 +207,8 @@ exports.Viewport = Backbone.View.extend({
 
             // All interactions require intersections to distinguish
             intersectsWithLms = that.getIntersectsFromEvent(event, that.s_lms);
+            // note that we explicitly ask for intersects with the mesh object
+            // as we know get intersects will use an octree if present.
             intersectsWithMesh = that.getIntersectsFromEvent(event, that.mesh);
             if (event.button === 0) {  // left mouse button
                 if (intersectsWithLms.length > 0 &&
@@ -353,6 +355,7 @@ exports.Viewport = Backbone.View.extend({
                     vWorld = that.s_meshAndLms.localToWorld(lm.point().clone());
                     vScreen = that.worldToScreen(vWorld);
                     // use the standard machinery to find intersections
+                    // note that we intersect the mesh to use the octree
                     intersectsWithMesh = that.getIntersects(vScreen.x,
                         vScreen.y, that.mesh);
                     if (intersectsWithMesh.length > 0) {
@@ -504,6 +507,8 @@ exports.Viewport = Backbone.View.extend({
                     vWorld = that.s_meshAndLms.localToWorld(lm.point().clone());
                     vScreen = that.worldToScreen(vWorld);
                     // use the standard machinery to find intersections
+                    // intersect the mesh directly so we benefit from the
+                    // octree
                     intersectsWithMesh = that.getIntersects(vScreen.x,
                         vScreen.y, that.mesh);
                     if (intersectsWithMesh.length > 0) {
@@ -641,10 +646,12 @@ exports.Viewport = Backbone.View.extend({
             return false;
         }
         var screenCoords = this.lmToScreen(lmView.symbol);
-        var i = this.getIntersects(screenCoords.x, screenCoords.y,
-            [this.s_mesh, lmView.symbol]);
-        // is the nearest intersection the one we want?
-        return (i[0].object === lmView.symbol)
+        // intersect the mesh and the landmarks
+        var iMesh = this.getIntersects(screenCoords.x, screenCoords.y, this.mesh);
+        var iLm = this.getIntersects(screenCoords.x, screenCoords.y, lmView.symbol);
+        // is there no mesh here (pretty rare as landmarks have to be on mesh)
+        // or is the mesh behind the landmarks?
+        return iMesh.length == 0 || iMesh[0].distance > iLm[0].distance;
     },
 
     events: {
