@@ -603,7 +603,7 @@ exports.Viewport = Backbone.View.extend({
         if(mesh.geometry instanceof THREE.BufferGeometry) {
             // octree only makes sense if we are dealing with a true mesh
             // (not images). Such meshes are always BufferGeometry instances.
-            this.octree = octree.octreeForMesh(mesh);
+            this.octree = octree.octreeForBufferGeometry(mesh.geometry);
         }
         up = this.model.get('mesh').up;
         front = this.model.get('mesh').front;
@@ -686,7 +686,7 @@ exports.Viewport = Backbone.View.extend({
         if (atomic.atomicOperationUnderway()) {
             return;
         }
-        //console.log('Viewport:update');
+        console.log('Viewport:update');
         // 1. Render the main viewport
         var w, h;
         w = this.$container.width();

@@ -1,21 +1,26 @@
 var THREE = require('three');
 
+// once a node gets this full it subdivides.
 var MAX_NODE_ITEMS = 50;
 
 
-function octreeForMesh(mesh) {
-	if (mesh.geometry.boundingBox === null) {
-		mesh.geometry.computeBoundingBox();
+// return an octree suitable for use with a buffer geometry instance.
+function octreeForBufferGeometry(geometry) {
+	if (geometry.boundingBox === null) {
+		geometry.computeBoundingBox();
 	}
-	var octree = new OctreeNode(mesh.geometry.boundingBox.min,
-	                            mesh.geometry.boundingBox.max);
-	var pointsAttribute = mesh.geometry.getAttribute('position');
+	// make the top node big enough to contain all the geometry.
+	var octree = new OctreeNode(geometry.boundingBox.min,
+	                            geometry.boundingBox.max);
+	var pointsAttribute = geometry.getAttribute('position');
 	var nTris = pointsAttribute.length / 9;
 	var p = pointsAttribute.array;
 	var box;
 	var tmp = new THREE.Vector3;
+	// run through the points array, creating tight bounding boxes for each
+	// point. Insert them into the tree.
 	for(var i = 0; i < nTris; i++) {
-		box = new THREE.Box3;
+		box = new THREE.Box3;  // boxes default to empty
 		tmp.set(p[i * 9], p[i * 9 + 1], p[i * 9 + 2]);
 		box.expandByPoint(tmp);
 		tmp.set(p[i * 9 + 3], p[i * 9 + 4], p[i * 9 + 5]);
@@ -24,21 +29,17 @@ function octreeForMesh(mesh) {
 		box.expandByPoint(tmp);
 		octree.add(new OctreeItem(box, i));
 	}
+	// we never want to change this octree again. we are storing a box-per-triangle
+	// that is redundant. Go through and prune all the boxes so our leaves
+	// are directly the payloads.
 	octree.finalize();
 	return octree;
 }
 
-function intersectMesh(raycaster, mesh, octree) {
-	// 1. Bring the ray into model space to intersect (remember, that's where
-	// our octree was constructed)
-	var inverseMatrix = new THREE.Matrix4;
-	inverseMatrix.getInverse(mesh.matrixWorld);
-	var ray = new THREE.Ray;
-	ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
-	var indices = octree.itemsWhichCouldIntersect(ray);
-	return intersectTrianglesAtIndices(ray, raycaster, mesh, indices);
-}
 
+// reused for mesh intersections.
+var inverseMatrix = new THREE.Matrix4;
+var ray = new THREE.Ray;
 
 var vA = new THREE.Vector3;
 var vB = new THREE.Vector3;
@@ -48,6 +49,21 @@ var descSort = function (a, b) {
 	return a.distance - b.distance;
 };
 
+
+function intersectMesh(raycaster, mesh, octree) {
+	// 1. Bring the ray into model space to intersect (remember, that's where
+	// our octree was constructed)
+	inverseMatrix.getInverse(mesh.matrixWorld);
+	ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
+	// query our octree (which only stores triangle indices) to find potential intersections.
+	var indices = octree.itemsWhichCouldIntersect(ray);
+	// now we can just whip through the few triangles in question and check for intersections.
+	return intersectTrianglesAtIndices(ray, raycaster, mesh, indices);
+}
+
+
+// this code is largely adapted from THREE.Mesh.prototype.raycast
+// (particularly the geometry instanceof THREE.BufferGeometry branch)
 var intersectTrianglesAtIndices = function(ray, raycaster, mesh, indices) {
 
 	var intersects = [];
@@ -98,7 +114,8 @@ var intersectTrianglesAtIndices = function(ray, raycaster, mesh, indices) {
 };
 
 
-
+// The datum stored in our octree. On finalization, these items will be replaced
+// by the payload only.
 function OctreeItem(box, payload) {
 	this.box = box;
 	this.payload = payload;
@@ -112,8 +129,12 @@ function OctreeNode(min, max) {
 	this.items = [];
 }
 
+// by extending Box we save memory - no need to have our node have a box - it
+// *is* one!
 OctreeNode.prototype = Object.create(THREE.Box3.prototype);
 
+// when all is said and done, we have a lot of boxes that are redundant on leaf
+// nodes. Go though and prune them all from the tree.
 OctreeNode.prototype.finalize = function () {
 	if (this.isInteriorNode()) {
 		for(var i = 0; i < 8; i++) {
@@ -123,6 +144,7 @@ OctreeNode.prototype.finalize = function () {
 		for(i = 0; i < this.nItems(); i++) {
 			this.items[i] = this.items[i].payload;
 		}
+		this.children = null;
 	}
 };
 
@@ -178,6 +200,7 @@ OctreeNode.prototype.add = function(item) {
 
 };
 
+// retrieve a list of items from this node and all subnodes that can intersect.
 OctreeNode.prototype.itemsWhichCouldIntersect = function(ray) {
 	var items = [];
 	if (ray.isIntersectionBox(this)) {
@@ -193,6 +216,7 @@ OctreeNode.prototype.itemsWhichCouldIntersect = function(ray) {
 };
 
 
+// Split this node into 8 subnodes.
 OctreeNode.prototype.subdivide = function () {
 
 	var newMin, newMax, toAdd;
@@ -236,5 +260,5 @@ OctreeNode.prototype.subdivide = function () {
 
 
 exports.OctreeNode = OctreeNode;
-exports.octreeForMesh = octreeForMesh;
+exports.octreeForBufferGeometry = octreeForBufferGeometry;
 exports.intersetMesh = intersectMesh;
