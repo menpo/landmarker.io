@@ -107,7 +107,7 @@ function initLandmarker(server, mode) {
             case 100:  // d
                 app.landmarks().deleteSelected();
                 break;
-            case 99:  //c
+            case 113:  // q
                 app.landmarks().deselectAllInActiveGroup();
                 break;
             case 32:  // space bar = reset camera
@@ -122,7 +122,7 @@ function initLandmarker(server, mode) {
             case 97:  // a = select [A]ll
                 app.landmarks().selectAllInActiveGroup();
                 break;
-            case 99:  // a = toggle [C]amera mode
+            case 99:  // c = toggle [C]amera mode
                 if (app.meshMode()) {
                     viewport.toggleCamera();
                 }
