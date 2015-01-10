@@ -138,7 +138,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         // for us. Little nasty, but we mock the event...
         onMouseMoveHover({pageX: mouseHoverPosition.x,
                           pageY: mouseHoverPosition.y});
-        //controller.trigger('change');
+        controller.trigger('change');
     }
 
     function distanceToTarget() {
@@ -266,7 +266,9 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         oCamZoom.top = oM.y + (zV/2);
         oCamZoom.bottom = oM.y - (zV/2);
         oCamZoom.updateProjectionMatrix();
-        controller.trigger('change');
+        // emit a special change event. If the viewport is
+        // interested (i.e. we are in PIP mode) it can update
+        controller.trigger('changePip');
     }
 
     function onMouseUp(event) {
