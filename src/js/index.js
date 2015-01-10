@@ -107,6 +107,9 @@ function initLandmarker(server, mode) {
             case 100:  // d
                 app.landmarks().deleteSelected();
                 break;
+            case 99:  //c
+                app.landmarks().deselectAllInActiveGroup();
+                break;
             case 32:  // space bar = reset camera
                 // TODO fix for multiple cameras (should be in camera controller)
                 viewport.resetCamera();
