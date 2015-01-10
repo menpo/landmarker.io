@@ -176,25 +176,14 @@ exports.Viewport = Backbone.View.extend({
         var onMouseDownPosition = new THREE.Vector2();
         var onMouseUpPosition = new THREE.Vector2();
 
-        // current world position when in drag state
-        var positionLmDrag = new THREE.Vector3();
+        // current screen position when in drag state
+        var positionLmDrag = new THREE.Vector2();
         // vector difference in one time step
-        var deltaLmDrag = new THREE.Vector3();
+        var deltaLmDrag = new THREE.Vector2();
 
-        // where we store the intersection plane. Note that it will not be
-        // moved if in image mode, so we set it exactly as we want for images.
-        // In mesh mode the position will be updated constantly.
-        var intersectPlanePos = new THREE.Vector3(0, 0, 0);
-        var intersectsWithLms, intersectsWithMesh,
-            intersectSOnPlane;
+        var intersectsWithLms, intersectsWithMesh;
 
         // ----- OBJECT PICKING  ----- //
-        var intersectPlane = new THREE.Mesh(new THREE.PlaneGeometry(10, 10));
-        intersectPlane.position.copy(intersectPlanePos);
-        intersectPlane.lookAt(new THREE.Vector3(0, 0, 1));
-        intersectPlane.visible = false;
-        that.sceneHelpers.add(intersectPlane);
-
 
         // Catch all for mouse interaction. This is what is bound on the canvas
         // and delegates to various other mouse handlers once it figures out
@@ -291,19 +280,8 @@ exports.Viewport = Backbone.View.extend({
 //                    landmark.select();
 //                }
                 // record the position of where the drag started.
-                positionLmDrag.copy(that.s_meshAndLms.localToWorld(
-                    lmPressed.point().clone()));
-                if (that.model.meshMode()) {
-                    // in 3D mode, we need to change the intersection plane
-                    // to be normal to the camera and budge it a little closer
-                    intersectPlanePos.subVectors(that.s_camera.position,
-                        positionLmDrag);
-                    intersectPlanePos.divideScalar(10.0);
-                    intersectPlanePos.add(positionLmDrag);
-                    intersectPlane.position.copy(intersectPlanePos);
-                    intersectPlane.lookAt(that.s_camera.position);
-                    intersectPlane.updateMatrixWorld();
-                }
+                positionLmDrag.copy(that.worldToScreen(that.s_meshAndLms.localToWorld(
+                    lmPressed.point().clone())));
                 // start listening for dragging landmarks
                 $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
                 $(document).one('mouseup.viewportLandmark', landmarkOnMouseUp);
@@ -325,40 +303,37 @@ exports.Viewport = Backbone.View.extend({
 
         var landmarkOnDrag = atomic.atomicOperation(function(event) {
             console.log("drag");
-            intersectSOnPlane = that.getIntersectsFromEvent(event,
-                intersectPlane);
-            if (intersectSOnPlane.length > 0) {
-                var intersectMeshSpace = intersectSOnPlane[0].point.clone();
-                var prevIntersectInMeshSpace = positionLmDrag.clone();
-                that.s_meshAndLms.worldToLocal(intersectMeshSpace);
-                that.s_meshAndLms.worldToLocal(prevIntersectInMeshSpace);
-                // change in this step in mesh space
-                deltaLmDrag.subVectors(intersectMeshSpace, prevIntersectInMeshSpace);
-                // update the position
-                positionLmDrag.copy(intersectSOnPlane[0].point);
-                var activeGroup = that.model.get('landmarks').get('groups').active();
-                var selectedLandmarks = activeGroup.landmarks().selected();
-                var lm, lmP, vWorld, vScreen;
-                for (var i = 0; i < selectedLandmarks.length; i++) {
-                    lm = selectedLandmarks[i];
-                    lmP = lm.point().clone();
-                    lmP.add(deltaLmDrag);
-                    // now we've budged the point, convert to screen coordinates
-                    vWorld = that.s_meshAndLms.localToWorld(lmP);
-                    vScreen = that.worldToScreen(vWorld);
+            // note that positionLmDrag is set to where we started.
+            // update where we are now and where we were
+            var newPositionLmDrag = new THREE.Vector2(event.clientX, event.clientY);
+            var prevPositionLmDrag = positionLmDrag.clone();
+            // change in this step in screen space
+            deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
+            // update the position
+            positionLmDrag.copy(newPositionLmDrag);
+            var activeGroup = that.model.get('landmarks').get('groups').active();
+            var selectedLandmarks = activeGroup.landmarks().selected();
+            var lm, vScreen;
+            for (var i = 0; i < selectedLandmarks.length; i++) {
+                lm = selectedLandmarks[i];
+                // convert to screen coordinates
+                vScreen = that.worldToScreen(that.s_meshAndLms.localToWorld(
+                    lm.point().clone()));
 
-                    // use the standard machinery to find intersections
-                    // note that we intersect the mesh to use the octree
-                    intersectsWithMesh = that.getIntersects(vScreen.x,
-                        vScreen.y, that.mesh);
-                    if (intersectsWithMesh.length > 0) {
-                        // good, we're still on the mesh.
-                        lm.setPoint(that.s_meshAndLms.worldToLocal(
-                            intersectsWithMesh[0].point.clone()));
-                    } else {
-                        console.log("fallen off mesh");
-                        // don't update the point - it would fall off the surface.
-                    }
+                // budge the screen coordinate
+                vScreen.add(deltaLmDrag);
+
+                // use the standard machinery to find intersections
+                // note that we intersect the mesh to use the octree
+                intersectsWithMesh = that.getIntersects(vScreen.x,
+                    vScreen.y, that.mesh);
+                if (intersectsWithMesh.length > 0) {
+                    // good, we're still on the mesh.
+                    lm.setPoint(that.s_meshAndLms.worldToLocal(
+                        intersectsWithMesh[0].point.clone()));
+                } else {
+                    console.log("fallen off mesh");
+                    // don't update the point - it would fall off the surface.
                 }
             }
         });
@@ -498,7 +473,6 @@ exports.Viewport = Backbone.View.extend({
 
         // trigger resize to initially size the viewport
         // this will also clearCanvas (will draw context box if needed)
-
         this.resize();
 
         // register for the animation loop
