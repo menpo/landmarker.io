@@ -597,7 +597,7 @@ exports.Viewport = Backbone.View.extend({
         }
 
         if (object === this.mesh && this.octree) {
-            console.log('using octree for intersects on mesh');
+            // we can use the octree to intersect the mesh efficiently.
             return octree.intersetMesh(this.ray, this.mesh, this.octree);
         } else if (object instanceof Array) {
             return this.ray.intersectObjects(object, true);
@@ -671,15 +671,16 @@ exports.Viewport = Backbone.View.extend({
         if (this.s_mesh.children.length) {
             var previousMesh = this.s_mesh.children[0];
             this.s_mesh.remove(previousMesh);
+            // we store the mesh and (optionally) an octree on the view
             this.mesh = null;
             this.octree = null;
         }
         mesh = this.model.get('mesh').mesh;
         this.mesh = mesh;
         if(mesh.geometry instanceof THREE.BufferGeometry) {
+            // octree only makes sense if we are dealing with a true mesh
+            // (not images). Such meshes are always BufferGeometry instances.
             this.octree = octree.octreeForMesh(mesh);
-            window.octree = this.octree;
-            window.mesh = this.mesh;
         }
         up = this.model.get('mesh').up;
         front = this.model.get('mesh').front;
