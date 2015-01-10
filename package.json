@@ -35,6 +35,7 @@
     "gulp-replace": "^0.4.0",
     "gulp-rev": "^1.0.0",
     "gulp-rimraf": "^0.1.0",
+    "gulp-util": "^3.0.2",
     "rimraf": "^2.2.8",
     "run-sequence": "^0.3.6",
     "vinyl-source-stream": "^0.1.1"

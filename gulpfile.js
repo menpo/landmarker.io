@@ -1,4 +1,5 @@
 var gulp = require('gulp');
+var gutil = require('gulp-util');
 var prefix = require('gulp-autoprefixer');
 var browserify = require('browserify');
 var source = require('vinyl-source-stream');
@@ -54,8 +55,12 @@ gulp.task('clean-css', function () {
 
 // Rebuild the JS bundle + issue a notification when done.
 gulp.task('js', function() {
-    return browserify('./src/js/index.js')
-        .bundle({ debug: true })
+    var b = browserify('./src/js/index.js')
+        .bundle({ debug: true });
+    return b.on('error', function(e) {
+            gutil.log(e);
+            b.end();
+        })
         // Cut out the source map...
         // .pipe(exorcist('bundle.js.map'))
         // Pass desired output filename to vinyl-source-stream

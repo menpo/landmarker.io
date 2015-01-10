@@ -5,6 +5,19 @@ var THREE = require('three');
 var Camera = require('./camera');
 var atomic = require('../model/atomic');
 var octree = require('../model/octree');
+// uncomment to monitor FPS performance
+//
+//var Stats = require('stats-js');
+//
+//var stats = new Stats();
+//stats.setMode(0); // 0: fps, 1: ms
+//
+//// Align top-left
+//stats.domElement.style.position = 'absolute';
+//stats.domElement.style.right = '0px';
+//stats.domElement.style.top = '0px';
+//
+//document.body.appendChild(stats.domElement);
 
 "use strict";
 
@@ -123,7 +136,7 @@ exports.Viewport = Backbone.View.extend({
         // add a soft white ambient light
         this.s_lights.add(new THREE.AmbientLight(0x404040));
 
-        this.renderer = new THREE.WebGLRenderer({antialias: true,
+        this.renderer = new THREE.WebGLRenderer({antialias: false,
                                                      alpha: false});
         this.renderer.setClearColor(CLEAR_COLOUR, 1);
         this.renderer.autoClear = false;
@@ -480,6 +493,8 @@ exports.Viewport = Backbone.View.extend({
 
         function animate() {
             requestAnimationFrame(animate);
+            // uncomment to monitor FPS performance
+            //stats.update();
         }
     },
 
@@ -489,8 +504,12 @@ exports.Viewport = Backbone.View.extend({
         var s = $('#sidebarSpacer');
         s.toggleClass('Sidebar-Spacer--ForPip', currentlyPerspective);
         if (currentlyPerspective) {
+            // going to orthographic - start listening for pip updates
+            this.listenTo(this.cameraController, "changePip", this.update);
             this.s_camera = this.s_oCam;
         } else {
+            // leaving orthographic - stop listening to pip calls.
+            this.stopListening(this.cameraController, "changePip");
             this.s_camera = this.s_pCam;
         }
         // clear the canvas to make
