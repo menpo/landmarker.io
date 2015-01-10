@@ -338,22 +338,15 @@ exports.Viewport = Backbone.View.extend({
                 positionLmDrag.copy(intersectSOnPlane[0].point);
                 var activeGroup = that.model.get('landmarks').get('groups').active();
                 var selectedLandmarks = activeGroup.landmarks().selected();
-                var lm, lmP;
+                var lm, lmP, vWorld, vScreen;
                 for (var i = 0; i < selectedLandmarks.length; i++) {
                     lm = selectedLandmarks[i];
                     lmP = lm.point().clone();
                     lmP.add(deltaLmDrag);
-                    //if (!lm.get('isChanging')) lm.set('isChanging', true);
-                    lm.setPoint(lmP);
-                }
-
-                // landmark was dragged
-                var vWorld, vScreen;
-                for (var i = 0; i < selectedLandmarks.length; i++) {
-                    lm = selectedLandmarks[i];
-                    // convert to screen coordinates
-                    vWorld = that.s_meshAndLms.localToWorld(lm.point().clone());
+                    // now we've budged the point, convert to screen coordinates
+                    vWorld = that.s_meshAndLms.localToWorld(lmP);
                     vScreen = that.worldToScreen(vWorld);
+
                     // use the standard machinery to find intersections
                     // note that we intersect the mesh to use the octree
                     intersectsWithMesh = that.getIntersects(vScreen.x,
@@ -362,22 +355,11 @@ exports.Viewport = Backbone.View.extend({
                         // good, we're still on the mesh.
                         lm.setPoint(that.s_meshAndLms.worldToLocal(
                             intersectsWithMesh[0].point.clone()));
-                        lm.set('isChanging', false);
                     } else {
                         console.log("fallen off mesh");
-                        // TODO add back in history!
-//                                for (i = 0; i < selectedLandmarks.length; i++) {
-//                                    selectedLandmarks[i].rollbackModifications();
-//                                }
-                        // ok, we've fixed the mess. drop out of the loop
-                        break;
+                        // don't update the point - it would fall off the surface.
                     }
-                    // only here as all landmarks were successfully moved
-                    //landmarkSet.snapshotGroup(); // snapshot the active group
                 }
-
-
-
             }
         });
 
@@ -494,41 +476,8 @@ exports.Viewport = Backbone.View.extend({
             that.cameraController.enable();
             console.log("landmarkPress:up");
             $(document).off('mousemove.landmarkDrag');
-            var lm;
             onMouseUpPosition.set(event.clientX, event.clientY);
-            if (onMouseDownPosition.distanceTo(onMouseUpPosition) > 0) {
-                // landmark was dragged
-                var activeGroup = that.model.get('landmarks').get('groups').active();
-                var selectedLandmarks = activeGroup.landmarks().selected();
-                var vWorld, vScreen;
-                for (var i = 0; i < selectedLandmarks.length; i++) {
-                    lm = selectedLandmarks[i];
-                    // convert to screen coordinates
-                    vWorld = that.s_meshAndLms.localToWorld(lm.point().clone());
-                    vScreen = that.worldToScreen(vWorld);
-                    // use the standard machinery to find intersections
-                    // intersect the mesh directly so we benefit from the
-                    // octree
-                    intersectsWithMesh = that.getIntersects(vScreen.x,
-                        vScreen.y, that.mesh);
-                    if (intersectsWithMesh.length > 0) {
-                        // good, we're still on the mesh.
-                        lm.setPoint(that.s_meshAndLms.worldToLocal(
-                            intersectsWithMesh[0].point.clone()));
-                        lm.set('isChanging', false);
-                    } else {
-                        console.log("fallen off mesh");
-                        // TODO add back in history!
-//                                for (i = 0; i < selectedLandmarks.length; i++) {
-//                                    selectedLandmarks[i].rollbackModifications();
-//                                }
-                        // ok, we've fixed the mess. drop out of the loop
-                        break;
-                    }
-                    // only here as all landmarks were successfully moved
-                    //landmarkSet.snapshotGroup(); // snapshot the active group
-                }
-            } else {
+            if (onMouseDownPosition.distanceTo(onMouseUpPosition) === 0) {
                 // landmark was pressed
                 if (lmPressedWasSelected && ctrl) {
                     lmPressed.deselect();
