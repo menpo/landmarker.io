@@ -3,8 +3,6 @@ Backbone.$ = require('jquery');
 var Promise = require('promise-polyfill');
 
 
-window.Backbone = Backbone;
-
 var credentials =  {
     withCredentials: true
 };

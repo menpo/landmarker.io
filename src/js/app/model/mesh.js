@@ -17,14 +17,6 @@ var abortAllObj = function (x) {
     return abortAll(R.values(x));
 };
 
-var extractABC = R.map(function (f) {
-    return [f.a, f.b, f.c];
-});
-
-var extractXYZ = R.map(function (v) {
-    return [v.x, v.y, v.z];
-});
-
 var FRONT = {
     image: new THREE.Vector3(0, 0, 1),
     mesh: new THREE.Vector3(0, 0, 1)
@@ -123,7 +115,7 @@ var Image = Backbone.Model.extend({
         var geometry, material, image, mesh, up, front, hasGeo, hasTex, hasThumb;
         hasGeo = this.has('geometry');
         hasTex = this.has('texture');
-        hasThumb = this.has('thumb');
+        hasThumb = this.has('thumbnail');
 
         up = UP.image;
         front = FRONT.image;
@@ -201,13 +193,6 @@ var Image = Backbone.Model.extend({
         } else {
             this.textureOn();
         }
-    },
-
-    toJSON: function () {
-        return {
-            points: extractXYZ(this.get('t_mesh').geometry.vertices),
-            trilist: extractABC(this.get('t_mesh').geometry.faces)
-        };
     },
 
     loadThumbnail: function () {
@@ -356,9 +341,6 @@ var Mesh = Image.extend({
 
 });
 
-// Holds a list of available meshes, and a MeshList. The MeshList
-// is populated immediately, although meshes aren't fetched until demanded.
-// Also has a mesh parameter - the currently active mesh.
 var MeshSource = Asset.AssetSource.extend({
 
     parse: function (response) {

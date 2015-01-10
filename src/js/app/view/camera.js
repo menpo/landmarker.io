@@ -25,7 +25,7 @@ var $ = require('jquery');
 // Doesn't seem to be helping us...
 //require('jquery-mousewheel')($);
 var _ = require('underscore');
-var Backbone = require('backbone');
+var Backbone = require('../lib/backbonej');
 var THREE = require('three');
 
 var MOUSE_WHEEL_SENSITIVITY = 0.5;

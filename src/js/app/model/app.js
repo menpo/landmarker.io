@@ -64,7 +64,7 @@ exports.App = Backbone.Model.extend({
         return this.get('asset');
     },
 
-    // returns the currently active Mesh.
+    // returns the currently active THREE.Mesh.
     mesh: function () {
         return this.get('mesh');
     },
@@ -79,12 +79,6 @@ exports.App = Backbone.Model.extend({
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
 
-        // activeTemplate changed? Best go and get the asset again.
-//        this.listenTo(this, 'change:activeTemplate', this.assetChanged);
-
-        // TODO this seems messy, do we need this message passing?
-        // whenever the user changes the meshAlpha, hit the callback
-//        this.listenTo(this, 'change:meshAlpha', this.changeMeshAlpha);
         this._initTemplates();
         this._initCollections();
     },
@@ -205,10 +199,6 @@ exports.App = Backbone.Model.extend({
         }
     },
 
-//    changeMeshAlpha: function () {
-//        this.mesh().set('alpha', this.get('meshAlpha'));
-//    },
-
     // Mirror the state of the asset source onto the app
     assetChanged: function () {
         console.log('App.assetChanged');
@@ -222,11 +212,19 @@ exports.App = Backbone.Model.extend({
 
     setAsset: function (newAsset) {
         this.set('landmarks', null);
-        return this._loadLandmarksWithAsset(
-            this.assetSource().setAsset(newAsset));
+        // get a promise of the new asset. this promise will only resolve
+        // once we have the key data loaded to start annotating - for an image
+        // that's the full texture. For a mesh, that's the geometry.
+        var newAssetPromise = this.assetSource().setAsset(newAsset);
+        // 'wrap' this promise in a landmark promise. All this will only
+        // resolve when we have both landmarks (if there are landmarks)
+        // and an asset suitable for display
+        return this._promiseLandmarksWithAsset(newAssetPromise);
     },
 
-    _loadLandmarksWithAsset: function (loadAssetPromise) {
+    _promiseLandmarksWithAsset: function (loadAssetPromise) {
+        // returns a promise that will only resolve when the asset and
+        // landmarks are both downloaded and ready.
         var that = this;
         // Make a new landmark object for the new asset.
         var landmarks = new Landmark.LandmarkSet({
@@ -240,20 +238,25 @@ exports.App = Backbone.Model.extend({
         return Promise.all([loadLandmarksPromise, loadAssetPromise]).then(function () {
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display');
+            // now we know that this is resolved we set the landmarks on the
+            // app. This way we know the landmarks will always be set with a
+            // valid asset.
             that.set('landmarks', landmarks);
         });
     },
 
     nextAsset: function () {
+        // see setAsset for docs
         this.set('landmarks', null);
-        return this._loadLandmarksWithAsset(
-            this.get('assetSource').next());
+        return this._promiseLandmarksWithAsset(
+            this.assetSource().next());
     },
 
     previousAsset: function () {
+        // see setAsset for docs
         this.set('landmarks', null);
-        return this._loadLandmarksWithAsset(
-            this.get('assetSource').previous());
+        return this._promiseLandmarksWithAsset(
+            this.assetSource().previous());
     }
 
 });

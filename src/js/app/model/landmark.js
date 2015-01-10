@@ -396,6 +396,10 @@ var LandmarkSet = Backbone.Model.extend({
         this.groups().active().landmarks().selectAll();
     }),
 
+    deselectAllInActiveGroup: atomic.atomicOperation(function () {
+        this.groups().active().landmarks().deselectAll();
+    }),
+
     parse: function (json, options) {
         if (!options.parse) {
             return;
