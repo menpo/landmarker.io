@@ -560,7 +560,7 @@ exports.Viewport = Backbone.View.extend({
     worldToScreen: function (vector) {
         var widthHalf = this.$container.width() / 2;
         var heightHalf = this.$container.height() / 2;
-        var result = this.projector.projectVector(vector.clone(), this.s_camera);
+        var result = vector.project(this.s_camera);
         result.x = (result.x * widthHalf) + widthHalf;
         result.y = -(result.y * heightHalf) + heightHalf;
         return result;
