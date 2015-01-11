@@ -107,7 +107,7 @@ var Image = Backbone.Model.extend({
         var that = this;
 
         var meshChanged = function () {
-            that.trigger('meshChanged');
+            that.trigger('newMeshAvailable');
         };
         this.listenTo(this, 'change:geometry', meshChanged);
         this.listenTo(this, 'change:thumbnail', meshChanged);
@@ -381,7 +381,7 @@ var MeshSource = Asset.AssetSource.extend({
         // set the asset immediately (triggering change in UI)
         that.set('asset', newMesh);
 
-        this.listenTo(newMesh, 'meshChanged', this.updateMesh);
+        this.listenTo(newMesh, 'newMeshAvailable', this.updateMesh);
 
         // update the mesh immediately (so we get a placeholder if nothing else)
         this.updateMesh();
@@ -447,7 +447,7 @@ var ImageSource = Asset.AssetSource.extend({
         // set the asset immediately (triggering change in UI)
         that.set('asset', newImage);
 
-        this.listenTo(newImage, 'meshChanged', this.updateMesh);
+        this.listenTo(newImage, 'newMeshAvailable', this.updateMesh);
 
         // update the mesh immediately (so we get a placeholder if nothing else)
         this.updateMesh();

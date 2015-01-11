@@ -49,6 +49,10 @@ exports.App = Backbone.Model.extend({
         return this.get('activeCollection');
     },
 
+    hasAssetSource: function () {
+        return this.has('assetSource');
+    },
+
     assetSource: function () {
         return this.get('assetSource');
     },
@@ -66,7 +70,11 @@ exports.App = Backbone.Model.extend({
 
     // returns the currently active THREE.Mesh.
     mesh: function () {
-        return this.get('mesh');
+        if (this.hasAssetSource()) {
+            return this.assetSource().mesh();
+        } else {
+            return null;
+        }
     },
 
     landmarks: function () {
@@ -205,7 +213,7 @@ exports.App = Backbone.Model.extend({
 
     meshChanged: function () {
         console.log('App.meshChanged');
-        this.set('mesh', this.assetSource().mesh());
+        this.trigger('newMeshAvailable');
     },
 
     setAsset: function (newAsset) {

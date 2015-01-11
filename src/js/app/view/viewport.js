@@ -166,11 +166,9 @@ exports.Viewport = Backbone.View.extend({
         this.s_h_scaleRotate.add(this.s_h_translate);
         this.sceneHelpers.add(this.s_h_scaleRotate);
 
-        // add mesh if there already is one present (we have missed a
-        // backbone callback to changeMesh() otherwise).
-        if (this.model.has('mesh')) {
-            this.changeMesh();
-        }
+        // add mesh if there already is one present (we could have missed a
+        // backbone callback).
+        this.changeMesh();
 
         // make an empty list of landmark views
         this.landmarkViews = [];
@@ -485,7 +483,7 @@ exports.Viewport = Backbone.View.extend({
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
-        this.listenTo(this.model, "change:mesh", this.changeMesh);
+        this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
         this.listenTo(atomic, "change:ATOMIC_OPERATION", this.batchHandler);
 
@@ -612,7 +610,7 @@ exports.Viewport = Backbone.View.extend({
     },
 
     changeMesh: function () {
-        var mesh, up, front;
+        var meshPayload, mesh, up, front;
         console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
         // firstly, remove any existing mesh
         if (this.s_mesh.children.length) {
@@ -622,15 +620,20 @@ exports.Viewport = Backbone.View.extend({
             this.mesh = null;
             this.octree = null;
         }
-        mesh = this.model.get('mesh').mesh;
+        meshPayload = this.model.mesh();
+        if (meshPayload === null) {
+            return;
+        }
+        mesh = meshPayload.mesh;
+        up = meshPayload.up;
+        front = meshPayload.front;
         this.mesh = mesh;
+
         if(mesh.geometry instanceof THREE.BufferGeometry) {
             // octree only makes sense if we are dealing with a true mesh
             // (not images). Such meshes are always BufferGeometry instances.
             this.octree = octree.octreeForBufferGeometry(mesh.geometry);
         }
-        up = this.model.get('mesh').up;
-        front = this.model.get('mesh').front;
 
         this.s_mesh.add(mesh);
         // Now we need to rescale the s_meshAndLms to fit in the unit sphere

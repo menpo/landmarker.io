@@ -27,7 +27,7 @@ exports.AssetSource = Backbone.Model.extend({
     },
 
     mesh: function () {
-        return this.get('mesh');
+        return this.get('asset').mesh();
     },
 
     assetIsLoading: function () {
@@ -66,6 +66,6 @@ exports.AssetSource = Backbone.Model.extend({
     },
 
     updateMesh: function () {
-        this.set('mesh', this.get('asset').mesh());
+        this.trigger('change:mesh');
     }
 });
