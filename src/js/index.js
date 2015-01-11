@@ -85,7 +85,7 @@ function initLandmarker(server, mode) {
     if (u.query.hasOwnProperty('i')) {
         appInit._assetIndex = u.query.i - 1;
     }
-    var app = new App.App(appInit);
+    var app = new App(appInit);
 //    var preview = new Notification.ThumbnailNotification({model:app});
     var loading = new Notification.AssetLoadingNotification({model:app});
     var sidebar = new SidebarView.Sidebar({model: app});

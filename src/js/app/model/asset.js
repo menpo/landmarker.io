@@ -1,6 +1,5 @@
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
-
 var getArray = require('../lib/get');
 var loadImage = require('../lib/image');
 

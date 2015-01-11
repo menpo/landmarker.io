@@ -9,7 +9,7 @@ var Collection = require('./collection');
 "use strict";
 
 
-exports.App = Backbone.Model.extend({
+module.exports = Backbone.Model.extend({
 
     defaults: function () {
         return {
