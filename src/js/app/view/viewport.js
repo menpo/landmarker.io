@@ -693,15 +693,15 @@ exports.Viewport = Backbone.View.extend({
                         viewport: that
                     }));
             });
-            //_.each(group.connectivity(), function (a_to_b) {
-            //   that.connectivityViews.push(new LandmarkConnectionTHREEView(
-            //       {
-            //           model: [group.landmarks().at(a_to_b[0]),
-            //                   group.landmarks().at(a_to_b[1])],
-            //           group: group,
-            //           viewport: that
-            //       }));
-            //});
+            _.each(group.connectivity(), function (a_to_b) {
+               that.connectivityViews.push(new LandmarkConnectionTHREEView(
+                   {
+                       model: [group.landmarks().at(a_to_b[0]),
+                               group.landmarks().at(a_to_b[1])],
+                       group: group,
+                       viewport: that
+                   }));
+            });
         });
 
     }),
