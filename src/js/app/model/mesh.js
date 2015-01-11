@@ -88,11 +88,15 @@ var Image = Backbone.Model.extend({
     },
 
     hasTexture: function() {
-        return this.has('texture');
+        return this.hasOwnProperty('texture');
     },
 
     hasThumbnail: function() {
-        return this.has('thumbnail');
+        return this.hasOwnProperty('thumbnail');
+    },
+
+    hasGeometry: function() {
+        return this.hasOwnProperty('geometry');
     },
 
     isTextureOn: function () {
@@ -113,25 +117,25 @@ var Image = Backbone.Model.extend({
 
     mesh: function () {
         var geometry, material, image, mesh, up, front, hasGeo, hasTex, hasThumb;
-        hasGeo = this.has('geometry');
-        hasTex = this.has('texture');
-        hasThumb = this.has('thumbnail');
+        hasGeo = this.hasGeometry();
+        hasTex = this.hasTexture();
+        hasThumb = this.hasThumbnail();
 
         up = UP.image;
         front = FRONT.image;
 
         // 1. Resolve geometry
         if (hasGeo) {
-            geometry = this.get('geometry');
+            geometry = this.geometry;
             up = UP.mesh;
             front = FRONT.mesh;
         } else if (hasTex || hasThumb) {
             // there is some kind of texture set, use that to build the
             // appropriate sized geometry
             if (hasTex) {
-                image = this.get('texture').map.image;
+                image = this.texture.map.image;
             } else {
-                image = this.get('thumbnail').map.image;
+                image = this.thumbnail.map.image;
             }
             geometry = mappedPlane(image.width, image.height);
         } else {
@@ -151,17 +155,17 @@ var Image = Backbone.Model.extend({
             // MESH
             if (this.isTextureOn()) {
                 // must have either thumbnail or texture.
-                if (this.has('texture')) {
-                    material = this.get('texture');
+                if (hasTex) {
+                    material = this.texture;
                 } else {
-                    material = this.get('thumbnail');
+                    material = this.thumbnail;
                 }
             }
         } else {
-            if (this.has('texture')) {
-                material = this.get('texture');
-            } else if (this.has('thumbnail')) {
-                material = this.get('thumbnail');
+            if (hasTex) {
+                material = this.texture;
+            } else if (hasThumb) {
+                material = this.thumbnail;
             }
         }
         mesh = new THREE.Mesh(geometry, material);
@@ -201,7 +205,8 @@ var Image = Backbone.Model.extend({
             this._thumbnailPromise = loadImage(this.thumbnailUrl()).then(function(material) {
                 delete that._thumbnailPromise;
                 console.log('Mesh: loaded thumbnail for ' + that.id);
-                that.set('thumbnail', material);
+                that.thumbnail =  material;
+                that.trigger('change:thumbnail');
                 return material;
             });
         } else {
@@ -216,7 +221,8 @@ var Image = Backbone.Model.extend({
             this._texturePromise = loadImage(this.textureUrl()).then(function(material) {
                 delete that._texturePromise;
                 console.log('Mesh: loaded texture for ' + that.id);
-                that.set('texture', material);
+                that.texture = material;
+                that.trigger('change:texture');
                 return material;
             });
         } else {
@@ -308,7 +314,8 @@ var Mesh = Image.extend({
             }
             geometry = that._newBufferGeometry(points, normals, tcoords);
             console.log('Mesh: loaded Geometry for ' + that.id);
-            that.set('geometry', geometry);
+            that.geometry = geometry;
+            that.trigger('change:geometry');
 
             return geometry;
         }, function () {
