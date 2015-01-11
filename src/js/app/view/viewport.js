@@ -530,7 +530,7 @@ exports.Viewport = Backbone.View.extend({
 
         if (this.s_camera === this.s_pCam) {
             // perspective selection
-            this.projector.unprojectVector(vector, this.s_camera);
+            vector.unproject(this.s_camera);
             this.ray.set(this.s_camera.position,
                 vector.sub(this.s_camera.position).normalize());
         } else {
