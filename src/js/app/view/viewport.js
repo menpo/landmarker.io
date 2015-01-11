@@ -36,6 +36,11 @@ var PIP_WIDTH = 300;
 var PIP_HEIGHT = 300;
 var PIP_MARGIN = 0;
 
+var LM_SPHERE_PARTS = 10;
+var LM_SPHERE_SELECTED_COLOR = 0xff75ff;
+var LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
+
+
 exports.Viewport = Backbone.View.extend({
 
     el: '#canvas',
@@ -161,11 +166,9 @@ exports.Viewport = Backbone.View.extend({
         this.s_h_scaleRotate.add(this.s_h_translate);
         this.sceneHelpers.add(this.s_h_scaleRotate);
 
-        // add mesh if there already is one present (we have missed a
-        // backbone callback to changeMesh() otherwise).
-        if (this.model.has('mesh')) {
-            this.changeMesh();
-        }
+        // add mesh if there already is one present (we could have missed a
+        // backbone callback).
+        this.changeMesh();
 
         // make an empty list of landmark views
         this.landmarkViews = [];
@@ -480,7 +483,7 @@ exports.Viewport = Backbone.View.extend({
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
-        this.listenTo(this.model, "change:mesh", this.changeMesh);
+        this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
         this.listenTo(atomic, "change:ATOMIC_OPERATION", this.batchHandler);
 
@@ -530,7 +533,7 @@ exports.Viewport = Backbone.View.extend({
 
         if (this.s_camera === this.s_pCam) {
             // perspective selection
-            this.projector.unprojectVector(vector, this.s_camera);
+            vector.unproject(this.s_camera);
             this.ray.set(this.s_camera.position,
                 vector.sub(this.s_camera.position).normalize());
         } else {
@@ -555,7 +558,7 @@ exports.Viewport = Backbone.View.extend({
     worldToScreen: function (vector) {
         var widthHalf = this.$container.width() / 2;
         var heightHalf = this.$container.height() / 2;
-        var result = this.projector.projectVector(vector.clone(), this.s_camera);
+        var result = vector.project(this.s_camera);
         result.x = (result.x * widthHalf) + widthHalf;
         result.y = -(result.y * heightHalf) + heightHalf;
         return result;
@@ -607,25 +610,25 @@ exports.Viewport = Backbone.View.extend({
     },
 
     changeMesh: function () {
-        var mesh, up, front;
+        var meshPayload, mesh, up, front;
         console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
         // firstly, remove any existing mesh
-        if (this.s_mesh.children.length) {
-            var previousMesh = this.s_mesh.children[0];
-            this.s_mesh.remove(previousMesh);
-            // we store the mesh and (optionally) an octree on the view
-            this.mesh = null;
-            this.octree = null;
+        this.removeMeshIfPresent();
+
+        meshPayload = this.model.mesh();
+        if (meshPayload === null) {
+            return;
         }
-        mesh = this.model.get('mesh').mesh;
+        mesh = meshPayload.mesh;
+        up = meshPayload.up;
+        front = meshPayload.front;
         this.mesh = mesh;
+
         if(mesh.geometry instanceof THREE.BufferGeometry) {
             // octree only makes sense if we are dealing with a true mesh
             // (not images). Such meshes are always BufferGeometry instances.
             this.octree = octree.octreeForBufferGeometry(mesh.geometry);
         }
-        up = this.model.get('mesh').up;
-        front = this.model.get('mesh').front;
 
         this.s_mesh.add(mesh);
         // Now we need to rescale the s_meshAndLms to fit in the unit sphere
@@ -643,8 +646,15 @@ exports.Viewport = Backbone.View.extend({
         t.multiplyScalar(-1.0);
         this.s_translate.position.copy(t);
         this.s_h_translate.position.copy(t);
-        console.log('Viewport:changeMesh - memory after:  ' +  this.memoryString());
         this.update();
+    },
+
+    removeMeshIfPresent: function () {
+        if (this.mesh !== null) {
+            this.s_mesh.remove(this.mesh);
+            this.mesh = null;
+            this.octree = null;
+        }
     },
 
     memoryString : function () {
@@ -683,15 +693,15 @@ exports.Viewport = Backbone.View.extend({
                         viewport: that
                     }));
             });
-            _.each(group.connectivity(), function (a_to_b) {
-               that.connectivityViews.push(new LandmarkConnectionTHREEView(
-                   {
-                       model: [group.landmarks().at(a_to_b[0]),
-                               group.landmarks().at(a_to_b[1])],
-                       group: group,
-                       viewport: that
-                   }));
-            });
+            //_.each(group.connectivity(), function (a_to_b) {
+            //   that.connectivityViews.push(new LandmarkConnectionTHREEView(
+            //       {
+            //           model: [group.landmarks().at(a_to_b[0]),
+            //                   group.landmarks().at(a_to_b[1])],
+            //           group: group,
+            //           viewport: that
+            //       }));
+            //});
         });
 
     }),
@@ -705,7 +715,7 @@ exports.Viewport = Backbone.View.extend({
         if (atomic.atomicOperationUnderway()) {
             return;
         }
-        console.log('Viewport:update');
+        //console.log('Viewport:update');
         // 1. Render the main viewport
         var w, h;
         w = this.$container.width();
@@ -810,6 +820,15 @@ exports.Viewport = Backbone.View.extend({
     }
 });
 
+// create a single geometry + material that will be shared by all landmarks
+var lmGeometry = new THREE.SphereGeometry(LM_SCALE, LM_SPHERE_PARTS,
+                                          LM_SPHERE_PARTS);
+
+var lmMaterialForSelected = {
+    true: new THREE.MeshPhongMaterial({color: LM_SPHERE_SELECTED_COLOR}),
+    false: new THREE.MeshPhongMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
+};
+
 
 var LandmarkTHREEView = Backbone.View.extend({
 
@@ -839,11 +858,8 @@ var LandmarkTHREEView = Backbone.View.extend({
         } else {
             // there is no symbol yet
             if (!this.model.isEmpty()) {
-                //console.log('meshScale: ' + this.viewport.meshScale);
-                //console.log('LM_SCALE: ' + LM_SCALE);
                 // and there should be! Make it and update it
-                this.symbol = this.createSphere(this.model.get('point'),
-                    this.viewport.meshScale * LM_SCALE, 1);
+                this.symbol = this.createSphere(this.model.get('point'), true);
                 this.updateSymbol();
                 // trigger changeLandmarkSize to make sure sizing is correct
                 this.changeLandmarkSize();
@@ -856,37 +872,22 @@ var LandmarkTHREEView = Backbone.View.extend({
     },
 
     createSphere: function (v, radius, selected) {
-        console.log('creating sphere of radius ' + radius);
-        var wSegments = 10;
-        var hSegments = 10;
-        var geometry = new THREE.SphereGeometry(radius, wSegments, hSegments);
-        var landmark = new THREE.Mesh(geometry, createDummyMaterial(selected));
-        landmark.name = 'Sphere ' + landmark.id;
+        //console.log('creating sphere of radius ' + radius);
+        var landmark = new THREE.Mesh(lmGeometry, lmMaterialForSelected[selected]);
+        landmark.name = 'Landmark ' + landmark.id;
         landmark.position.copy(v);
         return landmark;
-        function createDummyMaterial(selected) {
-            var hexColor = 0xffff00;
-            if (selected) {
-                hexColor = 0xff75ff
-            }
-            return new THREE.MeshPhongMaterial({color: hexColor});
-        }
     },
 
     updateSymbol: function () {
         this.symbol.position.copy(this.model.point());
-        if (this.group.get('active') && this.model.isSelected()) {
-            this.symbol.material.color.setHex(0xff75ff);
-        } else {
-            this.symbol.material.color.setHex(0xffff00);
-        }
+        var selected = this.group.get('active') && this.model.isSelected();
+        this.symbol.material = lmMaterialForSelected[selected];
     },
 
     dispose: function () {
         if (this.symbol) {
             this.viewport.s_lms.remove(this.symbol);
-            this.symbol.geometry.dispose();
-            this.symbol.material.dispose();
             this.symbol = null;
         }
     },
@@ -894,10 +895,8 @@ var LandmarkTHREEView = Backbone.View.extend({
     changeLandmarkSize: function () {
         if (this.symbol) {
             // have a symbol, and need to change it's size.
-            var radius = this.app.get('landmarkSize');
-            this.symbol.scale.x = radius;
-            this.symbol.scale.y = radius;
-            this.symbol.scale.z = radius;
+            var r = this.app.get('landmarkSize') * this.viewport.meshScale;
+            this.symbol.scale.set(r, r, r);
             // tell our viewport to update
             this.viewport.update();
         }

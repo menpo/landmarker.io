@@ -85,7 +85,7 @@ function initLandmarker(server, mode) {
     if (u.query.hasOwnProperty('i')) {
         appInit._assetIndex = u.query.i - 1;
     }
-    var app = new App.App(appInit);
+    var app = new App(appInit);
 //    var preview = new Notification.ThumbnailNotification({model:app});
     var loading = new Notification.AssetLoadingNotification({model:app});
     var sidebar = new SidebarView.Sidebar({model: app});
@@ -93,12 +93,32 @@ function initLandmarker(server, mode) {
     var viewport = new ViewportView.Viewport({model: app});
     var toolbar = new ToolbarView.Toolbar({model: app});
 
+    var prevAsset = null;
+
+    app.on('change:asset', function () {
+       console.log('Index: the asset has changed');
+        var mesh = viewport.mesh;
+        viewport.removeMeshIfPresent();
+        if (prevAsset !== null) {
+            // clean up previous asset
+            console.log('Index: cleaning up asset');
+            console.log('Before dispose: ' + viewport.memoryString());
+            prevAsset.dispose();
+            console.log('After dispose: ' + viewport.memoryString());
+            if (mesh !== null) {
+                //mesh.dispose();
+            }
+        }
+        prevAsset = app.asset();
+    });
+
     // update the URL of the page as the state changes
     var historyUpdate = new History.HistoryUpdate({model: app});
 
     // For debugging, attach to the window.
     window.app = app;
     window.toolbar = toolbar;
+    window.viewport = viewport;
 
     // ----- KEYBOARD HANDLER ----- //
     $(window).keypress(function(e) {

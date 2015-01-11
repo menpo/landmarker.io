@@ -74,9 +74,9 @@ var TextureToggle = Backbone.View.extend({
         console.log('TextureToggle:initialize');
         this.$toggle = this.$el.find('#textureToggle')[0];
         _.bindAll(this, 'changeMesh', 'render', 'textureToggle');
-        this.listenTo(this.model, "change:mesh", this.changeMesh);
-        // there could already be a model we have missed
-        if (this.model.mesh()) {
+        this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
+        // there could already be an asset we have missed
+        if (this.model.asset()) {
             this.changeMesh();
         }
         this.render();
