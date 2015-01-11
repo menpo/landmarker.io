@@ -1,21 +1,10 @@
-var R = require('ramda');
-var _ = require('underscore');
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
-var AssetSource = require('./assetsource');
 
 var getArray = require('../lib/get');
 var loadImage = require('../lib/image');
 
 "use strict";
-
-var abortAll = R.each(function (x) {
-    x.abort();
-});
-
-var abortAllObj = function (x) {
-    return abortAll(R.values(x));
-};
 
 var FRONT = {
     image: new THREE.Vector3(0, 0, 1),
@@ -204,7 +193,7 @@ var Image = Backbone.Model.extend({
         if (!this.hasOwnProperty('_thumbnailPromise')) {
             this._thumbnailPromise = loadImage(this.thumbnailUrl()).then(function(material) {
                 delete that._thumbnailPromise;
-                console.log('Mesh: loaded thumbnail for ' + that.id);
+                console.log('Asset: loaded thumbnail for ' + that.id);
                 that.thumbnail =  material;
                 that.trigger('change:thumbnail');
                 return material;
@@ -220,7 +209,7 @@ var Image = Backbone.Model.extend({
         if (!this.hasOwnProperty('_texturePromise')) {
             this._texturePromise = loadImage(this.textureUrl()).then(function(material) {
                 delete that._texturePromise;
-                console.log('Mesh: loaded texture for ' + that.id);
+                console.log('Asset: loaded texture for ' + that.id);
                 that.texture = material;
                 that.trigger('change:texture');
                 return material;
@@ -313,7 +302,7 @@ var Mesh = Image.extend({
                 console.log('ready to read from binning file at ' + binningOffset)
             }
             geometry = that._newBufferGeometry(points, normals, tcoords);
-            console.log('Mesh: loaded Geometry for ' + that.id);
+            console.log('Asset: loaded Geometry for ' + that.id);
             that.geometry = geometry;
             that.trigger('change:geometry');
 
@@ -348,130 +337,5 @@ var Mesh = Image.extend({
 
 });
 
-var MeshSource = AssetSource.extend({
-
-    parse: function (response) {
-        var that = this;
-        var mesh;
-        var meshes = _.map(response, function (assetId) {
-            mesh = new Mesh({
-                id: assetId,
-                server: that.get('server')
-            });
-            return mesh;
-        });
-        return {
-            assets: meshes
-        };
-    },
-
-    setAsset: function (newMesh) {
-        var that = this;
-        var oldAsset = this.get('asset');
-        // stop listening to the old asset
-        if (oldAsset) {
-            this.stopListening(oldAsset);
-        }
-        if (!this.hasOwnProperty('pending')) {
-            this.pending = {};
-        }
-        // kill any current fetches
-        abortAllObj(this.pending);
-        this.set('assetIsLoading', true);
-        // set the asset immediately (triggering change in UI)
-        that.set('asset', newMesh);
-
-        this.listenTo(newMesh, 'newMeshAvailable', this.updateMesh);
-
-        // update the mesh immediately (so we get a placeholder if nothing else)
-        this.updateMesh();
-
-        // fetch the thumbnail and texture aggressively asynchronously.
-        // TODO should track the thumbnail here too
-        newMesh.loadThumbnail();
-        newMesh.loadTexture();
-        // fetch the geometry
-        var geometry = newMesh.loadGeometry();
-
-        // track the request
-        this.pending[newMesh.id] = geometry.xhr();
-
-        // after the geometry is ready, we want to clear up our tracking of
-        // loading requests.
-        geometry.then(function () {
-                console.log('grabbed new mesh geometry');
-                // now everyone has moved onto the new mesh, clean up the old
-                // one.
-                if (oldAsset) {
-                    //oldAsset.dispose();
-                    oldAsset = null;
-                }
-                delete that.pending[newMesh.id];
-                that.set('assetIsLoading', false);
-        }, function (err) {
-            console.log('geometry.then something went wrong ' + err.stack);
-        });
-        // return the geometry promise
-        return geometry;
-    }
-});
-
-// Holds a list of available images, and a ImageList. The ImageList
-// is populated immediately, although images aren't fetched until demanded.
-// Also has a mesh parameter - the currently active mesh.
-var ImageSource = AssetSource.extend({
-
-    parse: function (response) {
-        var that = this;
-        var image;
-        var images = _.map(response, function (assetId) {
-            image =  new Image({
-                id: assetId,
-                server: that.get('server')
-            });
-            return image;
-        });
-        return {
-            assets: images
-        };
-    },
-
-    setAsset: function (newImage) {
-        var that = this;
-        var oldAsset = this.get('asset');
-        // stop listening to the old asset
-        if (oldAsset) {
-            this.stopListening(oldAsset);
-        }
-        this.set('assetIsLoading', true);
-        // set the asset immediately (triggering change in UI)
-        that.set('asset', newImage);
-
-        this.listenTo(newImage, 'newMeshAvailable', this.updateMesh);
-
-        // update the mesh immediately (so we get a placeholder if nothing else)
-        this.updateMesh();
-
-        // fetch the thumbnail and texture aggressively asynchronously.
-        newImage.loadThumbnail();
-        var texture = newImage.loadTexture();
-
-        // after the texture is ready, we want to clear up our tracking of
-        // loading requests.
-        texture.then(function () {
-            console.log('grabbed new image texture');
-            that.set('assetIsLoading', false);
-        }, function (err) {
-            console.log('texture.then something went wrong ' + err.stack);
-            that.set('assetIsLoading', false);
-        });
-        // return the texture promise. Once the texture is ready, landmarks
-        // can be displayed.
-        return texture;
-    }
-});
-
 exports.Mesh = Mesh;
-exports.MeshSource = MeshSource;
-exports.ImageSource = ImageSource;
 exports.Image = Image;

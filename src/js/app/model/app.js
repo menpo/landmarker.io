@@ -3,7 +3,7 @@ var Promise = require('promise-polyfill');
 var Backbone = require('../lib/backbonej');
 var Landmark = require('./landmark');
 var Template = require('./template');
-var Mesh = require('./mesh');
+var AssetSource = require('./assetsource');
 var Collection = require('./collection');
 
 "use strict";
@@ -61,7 +61,7 @@ exports.App = Backbone.Model.extend({
         return this.get('assetSource').assetIndex();
     },
 
-    // returns the currently active Asset (Image or Mesh).
+    // returns the currently active Asset (Image or Asset).
     // changes independently of mesh() - care should be taken as to which one
     // other objects should listen to.
     asset: function () {
@@ -196,9 +196,9 @@ exports.App = Backbone.Model.extend({
 
     _assetSourceConstructor: function () {
         if (this.imageMode()) {
-            return Mesh.ImageSource;
+            return AssetSource.ImageSource;
         } else if (this.meshMode()) {
-            return Mesh.MeshSource;
+            return AssetSource.MeshSource;
         } else {
             console.error('WARNING - illegal mode setting on app! Must be' +
                 ' mesh or image');
