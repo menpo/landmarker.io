@@ -613,13 +613,8 @@ exports.Viewport = Backbone.View.extend({
         var meshPayload, mesh, up, front;
         console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
         // firstly, remove any existing mesh
-        if (this.s_mesh.children.length) {
-            var previousMesh = this.s_mesh.children[0];
-            this.s_mesh.remove(previousMesh);
-            // we store the mesh and (optionally) an octree on the view
-            this.mesh = null;
-            this.octree = null;
-        }
+        this.removeMeshIfPresent();
+
         meshPayload = this.model.mesh();
         if (meshPayload === null) {
             return;
@@ -651,8 +646,15 @@ exports.Viewport = Backbone.View.extend({
         t.multiplyScalar(-1.0);
         this.s_translate.position.copy(t);
         this.s_h_translate.position.copy(t);
-        console.log('Viewport:changeMesh - memory after:  ' +  this.memoryString());
         this.update();
+    },
+
+    removeMeshIfPresent: function () {
+        if (this.mesh !== null) {
+            this.s_mesh.remove(this.mesh);
+            this.mesh = null;
+            this.octree = null;
+        }
     },
 
     memoryString : function () {
@@ -691,15 +693,15 @@ exports.Viewport = Backbone.View.extend({
                         viewport: that
                     }));
             });
-            _.each(group.connectivity(), function (a_to_b) {
-               that.connectivityViews.push(new LandmarkConnectionTHREEView(
-                   {
-                       model: [group.landmarks().at(a_to_b[0]),
-                               group.landmarks().at(a_to_b[1])],
-                       group: group,
-                       viewport: that
-                   }));
-            });
+            //_.each(group.connectivity(), function (a_to_b) {
+            //   that.connectivityViews.push(new LandmarkConnectionTHREEView(
+            //       {
+            //           model: [group.landmarks().at(a_to_b[0]),
+            //                   group.landmarks().at(a_to_b[1])],
+            //           group: group,
+            //           viewport: that
+            //       }));
+            //});
         });
 
     }),
@@ -713,7 +715,7 @@ exports.Viewport = Backbone.View.extend({
         if (atomic.atomicOperationUnderway()) {
             return;
         }
-        console.log('Viewport:update');
+        //console.log('Viewport:update');
         // 1. Render the main viewport
         var w, h;
         w = this.$container.width();

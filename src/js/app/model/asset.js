@@ -104,7 +104,12 @@ var Image = Backbone.Model.extend({
     },
 
     mesh: function () {
-        var geometry, material, image, mesh, up, front, hasGeo, hasTex, hasThumb;
+        // regenerate a THREE.Mesh from the current state. Note that no
+        // texture, geometry or material is created in here - we just
+        // wire up buffers that we own.
+        // Once this asset is no longer required, dispose() can be called to
+        // clear all state back up.
+        var geometry, material, mesh, up, front, hasGeo, hasTex, hasThumb;
         hasGeo = this.hasGeometry();
         hasTex = this.hasTexture();
         hasThumb = this.hasThumbnail();
@@ -112,20 +117,16 @@ var Image = Backbone.Model.extend({
         up = UP.image;
         front = FRONT.image;
 
-        // 1. Resolve geometry
+        // 1. Resolve which geometry should be used.
         if (hasGeo) {
-            geometry = this.geometry;
+            // actually is a mesh. adjust up and front accordingly.
             up = UP.mesh;
             front = FRONT.mesh;
-        } else if (hasTex || hasThumb) {
-            // there is some kind of texture set, use that to build the
-            // appropriate sized geometry
-            if (hasTex) {
-                image = this.texture.map.image;
-            } else {
-                image = this.thumbnail.map.image;
-            }
-            geometry = mappedPlane(image.width, image.height);
+            geometry = this.geometry;
+        } else if (hasTex) {
+            geometry = this.textureGeometry;
+        } else if (hasThumb) {
+            geometry = this.thumbnailGeometry;
         } else {
             // no geometry, no image - use the placeholder
             geometry = imagePlaceholderGeometry;
@@ -194,6 +195,8 @@ var Image = Backbone.Model.extend({
                 delete that._thumbnailPromise;
                 console.log('Asset: loaded thumbnail for ' + that.id);
                 that.thumbnail =  material;
+                var img = material.map.image;
+                that.thumbnailGeometry = mappedPlane(img.width, img.height);
                 that.trigger('change:thumbnail');
                 return material;
             });
@@ -210,6 +213,8 @@ var Image = Backbone.Model.extend({
                 delete that._texturePromise;
                 console.log('Asset: loaded texture for ' + that.id);
                 that.texture = material;
+                var img = material.map.image;
+                that.textureGeometry = mappedPlane(img.width, img.height);
                 that.trigger('change:texture');
                 return material;
             });
@@ -217,32 +222,40 @@ var Image = Backbone.Model.extend({
             console.log('texturePromise already exists - no need to regrab');
         }
         return this._texturePromise;
-    }
+    },
 
-//    // reset this mesh back to how it was at fetch time.
-//    dispose : function () {
-//        var texture;
-//        this.get('t_mesh').geometry.dispose();
-//        if (this.hasTexture()) {
-//            texture = this.get('texture');
-//            texture.map.dispose();
-//            texture.dispose();
-//            this.unset('texture');
-//        }
-//
-//        this.get('mesh').get('t_mesh').material = this.get('thumbnailMaterial');
-//        // dispose of the old texture
-//        if (this.has('material')) {
-//            var m = this.get('material');
-//            // if there was a texture mapping (likely!) dispose of it
-//            if (m.map) {
-//                m.map.dispose();
-//            }
-//            // dispose of the material itself.
-//            m.dispose();
-//            this.unset('material');
-//        }
-//    }
+    // reset this asset back to how it was at fetch time.
+    dispose : function () {
+        if (this.hasGeometry()) {
+            this.geometry.dispose();
+            this.geometry = null;
+            delete this.geometry;
+            this._texturePromise = null;
+            delete this._geometryPromise;
+        }
+        if (this.hasTexture()) {
+            this.texture.map.dispose();
+            this.texture.dispose();
+            this.texture = null;
+            delete this.texture;
+            this._texturePromise = null;
+            delete this._texturePromise;
+            this.textureGeometry.dispose();
+            this.textureGeometry = null;
+            delete this.textureGeometry;
+        }
+        if (this.hasThumbnail()) {
+            this.thumbnail.map.dispose();
+            this.thumbnail.dispose();
+            this.thumbnail = null;
+            delete this.thumbnail;
+            this._thumbnailPromise = null;
+            delete this._thumbnailPromise;
+            this.thumbnailGeometry.dispose();
+            this.thumbnailGeometry = null;
+            delete this.thumbnailGeometry;
+        }
+    }
 });
 
 
