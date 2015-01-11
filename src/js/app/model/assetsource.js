@@ -3,7 +3,7 @@ var Backbone = require('../lib/backbonej');
 "use strict";
 
 // Holds a list of available assets.
-exports.AssetSource = Backbone.Model.extend({
+module.exports = Backbone.Model.extend({
 
     defaults: function () {
         return {

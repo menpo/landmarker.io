@@ -2,7 +2,7 @@ var R = require('ramda');
 var _ = require('underscore');
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
-var Asset = require('./asset');
+var AssetSource = require('./assetsource');
 
 var getArray = require('../lib/get');
 var loadImage = require('../lib/image');
@@ -348,7 +348,7 @@ var Mesh = Image.extend({
 
 });
 
-var MeshSource = Asset.AssetSource.extend({
+var MeshSource = AssetSource.extend({
 
     parse: function (response) {
         var that = this;
@@ -419,7 +419,7 @@ var MeshSource = Asset.AssetSource.extend({
 // Holds a list of available images, and a ImageList. The ImageList
 // is populated immediately, although images aren't fetched until demanded.
 // Also has a mesh parameter - the currently active mesh.
-var ImageSource = Asset.AssetSource.extend({
+var ImageSource = AssetSource.extend({
 
     parse: function (response) {
         var that = this;
