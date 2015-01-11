@@ -36,6 +36,11 @@ var PIP_WIDTH = 300;
 var PIP_HEIGHT = 300;
 var PIP_MARGIN = 0;
 
+var LM_SPHERE_PARTS = 10;
+var LM_SPHERE_SELECTED_COLOR = 0xff75ff;
+var LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
+
+
 exports.Viewport = Backbone.View.extend({
 
     el: '#canvas',
@@ -810,6 +815,15 @@ exports.Viewport = Backbone.View.extend({
     }
 });
 
+// create a single geometry + material that will be shared by all landmarks
+var lmGeometry = new THREE.SphereGeometry(LM_SCALE, LM_SPHERE_PARTS,
+                                          LM_SPHERE_PARTS);
+
+var lmMaterialForSelected = {
+    true: new THREE.MeshPhongMaterial({color: LM_SPHERE_SELECTED_COLOR}),
+    false: new THREE.MeshPhongMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
+};
+
 
 var LandmarkTHREEView = Backbone.View.extend({
 
@@ -839,11 +853,8 @@ var LandmarkTHREEView = Backbone.View.extend({
         } else {
             // there is no symbol yet
             if (!this.model.isEmpty()) {
-                //console.log('meshScale: ' + this.viewport.meshScale);
-                //console.log('LM_SCALE: ' + LM_SCALE);
                 // and there should be! Make it and update it
-                this.symbol = this.createSphere(this.model.get('point'),
-                    this.viewport.meshScale * LM_SCALE, 1);
+                this.symbol = this.createSphere(this.model.get('point'), true);
                 this.updateSymbol();
                 // trigger changeLandmarkSize to make sure sizing is correct
                 this.changeLandmarkSize();
@@ -856,37 +867,22 @@ var LandmarkTHREEView = Backbone.View.extend({
     },
 
     createSphere: function (v, radius, selected) {
-        console.log('creating sphere of radius ' + radius);
-        var wSegments = 10;
-        var hSegments = 10;
-        var geometry = new THREE.SphereGeometry(radius, wSegments, hSegments);
-        var landmark = new THREE.Mesh(geometry, createDummyMaterial(selected));
-        landmark.name = 'Sphere ' + landmark.id;
+        //console.log('creating sphere of radius ' + radius);
+        var landmark = new THREE.Mesh(lmGeometry, lmMaterialForSelected[selected]);
+        landmark.name = 'Landmark ' + landmark.id;
         landmark.position.copy(v);
         return landmark;
-        function createDummyMaterial(selected) {
-            var hexColor = 0xffff00;
-            if (selected) {
-                hexColor = 0xff75ff
-            }
-            return new THREE.MeshPhongMaterial({color: hexColor});
-        }
     },
 
     updateSymbol: function () {
         this.symbol.position.copy(this.model.point());
-        if (this.group.get('active') && this.model.isSelected()) {
-            this.symbol.material.color.setHex(0xff75ff);
-        } else {
-            this.symbol.material.color.setHex(0xffff00);
-        }
+        var selected = this.group.get('active') && this.model.isSelected();
+        this.symbol.material = lmMaterialForSelected[selected];
     },
 
     dispose: function () {
         if (this.symbol) {
             this.viewport.s_lms.remove(this.symbol);
-            this.symbol.geometry.dispose();
-            this.symbol.material.dispose();
             this.symbol = null;
         }
     },
@@ -894,10 +890,8 @@ var LandmarkTHREEView = Backbone.View.extend({
     changeLandmarkSize: function () {
         if (this.symbol) {
             // have a symbol, and need to change it's size.
-            var radius = this.app.get('landmarkSize');
-            this.symbol.scale.x = radius;
-            this.symbol.scale.y = radius;
-            this.symbol.scale.z = radius;
+            var r = this.app.get('landmarkSize') * this.viewport.meshScale;
+            this.symbol.scale.set(r, r, r);
             // tell our viewport to update
             this.viewport.update();
         }
