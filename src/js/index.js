@@ -127,6 +127,9 @@ function initLandmarker(server, mode) {
             case 100:  // d
                 app.landmarks().deleteSelected();
                 break;
+            case 111:  // o = [o]ccluded
+                app.landmarks().toggledOcclusionOnSelected();
+                break;
             case 113:  // q
                 app.landmarks().deselectAllInActiveGroup();
                 break;

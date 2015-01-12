@@ -12,7 +12,8 @@ var Landmark = Backbone.Model.extend({
             point: null,
             selected: false,
             index: 0,
-            nextAvailable: false
+            nextAvailable: false,
+            occluded: false
         }
     },
 
@@ -70,11 +71,16 @@ var Landmark = Backbone.Model.extend({
         return !this.has('point');
     },
 
+    isOccluded: function () {
+        return this.get('occluded');
+    },
+
     clear: function() {
         this.set({
             point: null,
             selected: false,
-            isEmpty: true
+            isEmpty: true,
+            occluded: false
         });
         // reactivate the group to reset next available.
         this.get('group').collection.resetNextAvailable();
@@ -101,8 +107,13 @@ var Landmark = Backbone.Model.extend({
             }
         }
         return {
-            point: pointJSON
+            point: pointJSON,
+            occluded: this.get('occluded')
         }
+    },
+
+    toggleOccluded: function () {
+        this.set('occluded', !this.get('occluded'));
     }
 
 });
@@ -376,7 +387,8 @@ var LandmarkSet = Backbone.Model.extend({
             point: v.clone(),
             selected: true,
             isEmpty: false,
-            nextAvailable: false
+            nextAvailable: false,
+            occluded: false
         });
         var nextLm = this.groups().nextAvailable();
         if (nextLm) {
@@ -389,6 +401,13 @@ var LandmarkSet = Backbone.Model.extend({
         var lms = this.groups().active().landmarks().selected();
         _.each(lms, function (lm) {
             lm.clear();
+        });
+    }),
+
+    toggledOcclusionOnSelected: atomic.atomicOperation(function () {
+        var lms = this.groups().active().landmarks().selected();
+        _.each(lms, function (lm) {
+            lm.toggleOccluded();
         });
     }),
 
@@ -445,12 +464,16 @@ var LandmarkSet = Backbone.Model.extend({
                                 point = new THREE.Vector3(x, y, 0);
                             }
                         }
-                        return new Landmark({
+                        var lmObj = {
                             point: point,
                             index: index,
                             group: group,
                             ndims: ndims
-                        });
+                        };
+                        if (json_lm.hasOwnProperty('occluded')) {
+                            lmObj.occluded = json_lm.occluded;
+                        }
+                        return new Landmark(lmObj);
                     })
                 );
                 // now attach the landmark list to the group and return

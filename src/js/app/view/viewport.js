@@ -39,6 +39,7 @@ var PIP_MARGIN = 0;
 var LM_SPHERE_PARTS = 10;
 var LM_SPHERE_SELECTED_COLOR = 0xff75ff;
 var LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
+var LM_SPHERE_OCCLUDED_COLOR = 0xff0000;
 
 
 exports.Viewport = Backbone.View.extend({
@@ -829,6 +830,8 @@ var lmMaterialForSelected = {
     false: new THREE.MeshPhongMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
 };
 
+var lmMaterialOccluded = new THREE.MeshPhongMaterial({color: LM_SPHERE_OCCLUDED_COLOR});
+
 
 var LandmarkTHREEView = Backbone.View.extend({
 
@@ -883,6 +886,9 @@ var LandmarkTHREEView = Backbone.View.extend({
         this.symbol.position.copy(this.model.point());
         var selected = this.group.get('active') && this.model.isSelected();
         this.symbol.material = lmMaterialForSelected[selected];
+        if (this.model.isOccluded()) {
+            this.symbol.material = lmMaterialOccluded;
+        }
     },
 
     dispose: function () {

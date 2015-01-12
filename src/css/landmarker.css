@@ -360,6 +360,12 @@ is itself a row flexbox */
     background: #2D77C2;
 }
 
+.Lm-Occluded {
+    -webkit-box-shadow:inset 0px 0px 0px 5px #f00;
+    -moz-box-shadow:inset 0px 0px 0px 5px #f00;
+    box-shadow:inset 0px 0px 0px 5px #f00;
+}
+
 .Lm-Value {
     background: #0A4EB2;
 }
