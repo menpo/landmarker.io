@@ -3,16 +3,25 @@ Backbone.$ = require('jquery');
 var Promise = require('promise-polyfill');
 
 
-var credentials =  {
-    withCredentials: true
+Backbone.unsecureSync = Backbone.sync;
+
+Backbone.secureSync = function( method, model, options ) {
+    options.xhrFields = {
+        withCredentials: true
+    };
+    return Backbone.unsecureSync.apply(this, [method, model, options]);
 };
 
-var oldBackboneSync = Backbone.sync;
-Backbone.sync = function( method, model, options ) {
-    options.xhrFields = credentials;
-    return oldBackboneSync.apply(this, [method, model, options]);
+Backbone.enableSecureSync = function () {
+    Backbone.sync = Backbone.secureSync;
 };
 
+Backbone.enableUnsecureSync = function () {
+    Backbone.sync = Backbone.unsecureSync;
+};
+
+// default to the unsecure case.
+Backbone.enableUnsecureSync();
 
 Backbone.promiseFetch = function (model) {
     return new Promise(function(resolve, reject) {
@@ -22,6 +31,5 @@ Backbone.promiseFetch = function (model) {
         });
     });
 };
-
 
 module.exports = Backbone;

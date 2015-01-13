@@ -14,6 +14,14 @@ exports.Server = Backbone.Model.extend({
         return this.get('apiURL');
     },
 
+    configureBackboneSecurity: function () {
+        if(this.apiURL().indexOf('https://') == 0) {
+            Backbone.enableSecureSync();
+        } else {
+            Backbone.enableUnsecureSync();
+        }
+    },
+
     map: function (url) {
         var mapping;
         if (this.get('DEMO_MODE')) {

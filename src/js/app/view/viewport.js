@@ -110,12 +110,8 @@ exports.Viewport = Backbone.View.extend({
         this.s_oCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
         this.s_oCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
         this.s_pCam = new THREE.PerspectiveCamera(50, 1, 0.02, 20);
+        // start with the perspective camera as the main one
         this.s_camera = this.s_pCam;
-        if (!this.model.meshMode()) {
-            // but for images, default to orthographic camera
-            // (note that we use toggle to make sure the UI gets updated)
-            this.toggleCamera();
-        }
 
         // create the cameraController to look after all camera state.
         this.cameraController = Camera.CameraController(
@@ -124,6 +120,12 @@ exports.Viewport = Backbone.View.extend({
 
         // when the camera updates, render
         this.cameraController.on("change", this.update);
+
+        if (!this.model.meshMode()) {
+            // for images, default to orthographic camera
+            // (note that we use toggle to make sure the UI gets updated)
+            this.toggleCamera();
+        }
 
         this.resetCamera();
 
@@ -527,18 +529,20 @@ exports.Viewport = Backbone.View.extend({
         if (object === null || object.length === 0) {
             return [];
         }
-        var vector = new THREE.Vector3(
-                (x / this.$container.width()) * 2 - 1,
-                -(y / this.$container.height()) * 2 + 1, 0.5);
+        var vector = new THREE.Vector3((x / this.$container.width()) * 2 - 1,
+                                        -(y / this.$container.height()) * 2 + 1, 0.5);
 
         if (this.s_camera === this.s_pCam) {
             // perspective selection
+            vector.setZ(0.5);
             vector.unproject(this.s_camera);
-            this.ray.set(this.s_camera.position,
-                vector.sub(this.s_camera.position).normalize());
+            this.ray.set(this.s_camera.position, vector.sub(this.s_camera.position).normalize());
         } else {
             // orthographic selection
-            this.ray = this.projector.pickingRay(vector, this.s_camera);
+            vector.setZ(-1);
+            vector.unproject(this.s_camera);
+            var dir = new THREE.Vector3(0, 0, - 1).transformDirection(this.s_camera.matrixWorld);
+            this.ray.set(vector, dir);
         }
 
         if (object === this.mesh && this.octree) {
