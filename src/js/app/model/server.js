@@ -16,8 +16,10 @@ exports.Server = Backbone.Model.extend({
 
     configureBackboneSecurity: function () {
         if(this.apiURL().indexOf('https://') == 0) {
+            console.log('connecting to https:// API - request credentials');
             Backbone.enableSecureSync();
         } else {
+            console.log('connecting to http:// API - disabling request credentials');
             Backbone.enableUnsecureSync();
         }
     },
