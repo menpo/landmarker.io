@@ -1,7 +1,9 @@
 landmarker
 ==========
 
-3D mesh annotation - in the browser.
+3D mesh and image annotation in the browser. See 
+[landmarkerio-server](https://github.com/menpo/landmarkerio-server) for
+installation instructions.
 
 
 ### Landmark JSON format
