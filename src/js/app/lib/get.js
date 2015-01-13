@@ -7,7 +7,10 @@ module.exports = function (url) {
     var promise = new Promise(function(resolve, reject) {
         // Do the usual XHR stuff
         req.responseType = 'arraybuffer';
-        req.withCredentials = true;
+        if(url.indexOf('https://') == 0) {
+            // if it's HTTPS request with credentials
+            req.withCredentials = true;
+        }
 
         req.onload = function() {
             // This is called even on 404 etc

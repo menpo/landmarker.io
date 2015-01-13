@@ -228,33 +228,44 @@ var Image = Backbone.Model.extend({
     dispose : function () {
         if (this.hasGeometry()) {
             this.geometry.dispose();
-            this.geometry = null;
-            delete this.geometry;
-            this._texturePromise = null;
-            delete this._geometryPromise;
         }
         if (this.hasTexture()) {
             this.texture.map.dispose();
             this.texture.dispose();
-            this.texture = null;
-            delete this.texture;
-            this._texturePromise = null;
-            delete this._texturePromise;
             this.textureGeometry.dispose();
-            this.textureGeometry = null;
-            delete this.textureGeometry;
+
         }
         if (this.hasThumbnail()) {
             this.thumbnail.map.dispose();
             this.thumbnail.dispose();
-            this.thumbnail = null;
-            delete this.thumbnail;
-            this._thumbnailPromise = null;
-            delete this._thumbnailPromise;
             this.thumbnailGeometry.dispose();
-            this.thumbnailGeometry = null;
-            delete this.thumbnailGeometry;
+
         }
+        // null and delete everything
+        this.thumbnailGeometry = null;
+        delete this.thumbnailGeometry;
+
+        this.textureGeometry = null;
+        delete this.textureGeometry;
+
+        this.geometry = null;
+        delete this.geometry;
+
+
+        this.thumbnail = null;
+        delete this.thumbnail;
+
+        this.texture = null;
+        delete this.texture;
+
+        this._thumbnailPromise = null;
+        delete this._thumbnailPromise;
+
+        this._texturePromise = null;
+        delete this._texturePromise;
+
+        this._geometryPromise = null;
+        delete this._geometryPromise;
     }
 });
 
