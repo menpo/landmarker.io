@@ -1,7 +1,7 @@
 var THREE = require('three');
 
 // once a node gets this full it subdivides.
-var MAX_NODE_ITEMS = 50;
+var MAX_NODE_ITEMS = 75;
 
 
 // return an octree suitable for use with a buffer geometry instance.
