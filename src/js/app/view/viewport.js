@@ -111,12 +111,8 @@ exports.Viewport = Backbone.View.extend({
         this.s_oCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
         this.s_oCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
         this.s_pCam = new THREE.PerspectiveCamera(50, 1, 0.02, 20);
+        // start with the perspective camera as the main one
         this.s_camera = this.s_pCam;
-        if (!this.model.meshMode()) {
-            // but for images, default to orthographic camera
-            // (note that we use toggle to make sure the UI gets updated)
-            this.toggleCamera();
-        }
 
         // create the cameraController to look after all camera state.
         this.cameraController = Camera.CameraController(
@@ -125,6 +121,12 @@ exports.Viewport = Backbone.View.extend({
 
         // when the camera updates, render
         this.cameraController.on("change", this.update);
+
+        if (!this.model.meshMode()) {
+            // for images, default to orthographic camera
+            // (note that we use toggle to make sure the UI gets updated)
+            this.toggleCamera();
+        }
 
         this.resetCamera();
 

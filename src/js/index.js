@@ -12,11 +12,15 @@ function resolveServer(u) {
             $('.App-Viewport-UIText-TopLeft').toggle();
             return new Server.Server({DEMO_MODE: true});
         } else {
-            apiUrl = 'https://' + u.query.server;
+            apiUrl = u.query.server;
             console.log('Setting server to provided value: ' + apiUrl);
         }
     } // if no server provided use the default
-    return new Server.Server({apiURL: apiUrl});
+    var server = new Server.Server({apiURL: apiUrl});
+    // check to see if we have an https server or not and configure backbone
+    // appropriately.
+    server.configureBackboneSecurity();
+    return server;
 }
 
 function resolveMode(server) {
