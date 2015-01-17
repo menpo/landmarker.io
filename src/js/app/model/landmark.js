@@ -5,6 +5,24 @@ var atomic = require('./atomic');
 
 "use strict";
 
+
+var _validateJSONGroup =  function (json_group) {
+    var nLandmarks = json_group.landmarks.length;
+    var c = json_group.connectivity;
+    var a, b;
+    for (var i = 0; i < c.length; i++) {
+        a = c[i][0];
+        b = c[i][1];
+        if (a < 0 || a >= nLandmarks || b < 0 || b >= nLandmarks) {
+            // we have bad connectivity!
+            throw "Bad connectivity on landmark group " + json_group.label +
+            " connectivity [" + a + ", " + b +
+            "] not permitted in group of length " + nLandmarks;
+        }
+
+    }
+};
+
 var Landmark = Backbone.Model.extend({
 
     defaults: function () {
@@ -407,6 +425,8 @@ var LandmarkSet = Backbone.Model.extend({
         var landmarkGroupList = new LandmarkGroupList(
             _.map(json.groups, function (json_group) {
                 var ndims;
+                _validateJSONGroup(json_group);
+
                 // make the group so we can attach the landmarks
                 var group = new LandmarkGroup(
                     {

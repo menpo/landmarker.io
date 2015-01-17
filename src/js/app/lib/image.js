@@ -3,16 +3,37 @@ var THREE = require('three');
 
 
 window.ImagePromise = function (url) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'blob';
         var img = new Image;
-        img.crossOrigin = '';
-        img.addEventListener('load', function (event) {
-            resolve(img);
+
+        if(url.indexOf('https://') == 0) {
+            // if it's HTTPS request with credentials
+            req.withCredentials = true;
+        }
+
+        xhr.addEventListener('load', function () {
+            if (this.status == 200) {
+                var blob = this.response;
+                img.addEventListener('load', function () {
+                    window.URL.revokeObjectURL(img.src); // Clean up after ourselves.
+                    resolve(img);
+                });
+                img.src = window.URL.createObjectURL(blob);
+            } else {
+                reject(Error(xhr.statusText));
+            }
         });
-        img.addEventListener('error', function (event) {
-            reject(event);
+
+        // Handle network errors
+        xhr.addEventListener('error', function() {
+            reject(Error("Network Error"));
         });
-        img.src = url;
+
+        xhr.send();
     });
 };
 
