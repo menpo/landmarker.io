@@ -12,7 +12,7 @@ window.ImagePromise = function (url) {
 
         if(url.indexOf('https://') == 0) {
             // if it's HTTPS request with credentials
-            req.withCredentials = true;
+            xhr.withCredentials = true;
         }
 
         xhr.addEventListener('load', function () {
