@@ -22,13 +22,13 @@ var octree = require('../model/octree');
 "use strict";
 
 // clear colour for both the main view and PictureInPicture
-var CLEAR_COLOUR = 0xDDDDDD;
+var CLEAR_COLOUR = 0xEEEEEE;
 var CLEAR_COLOUR_PIP = 0xCCCCCC;
 
 // the default scale for 1.0
 var LM_SCALE = 0.01;
 
-var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.68, 0.35, 3.0);
+var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5);
 var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
 
 
@@ -758,8 +758,11 @@ exports.Viewport = Backbone.View.extend({
             this.renderer.clear();
             // render the PIP image
             this.renderer.render(this.scene, this.s_oCamZoom);
-            // never render connectivity in the zoom view
-            //this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
+            if (this.showConnectivity) {
+                this.renderer.clearDepth(); // clear depth buffer
+                // and render the connectivity
+                this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
+            }
             this.renderer.setClearColor(CLEAR_COLOUR, 1);
         }
     },
