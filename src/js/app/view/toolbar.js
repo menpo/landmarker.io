@@ -24,13 +24,13 @@ var LandmarkSizeSlider = Backbone.View.extend({
 
     render: function () {
         console.log('LandmarkSizeSlider:render');
-        this.$el[0].value = this.model.get("landmarkSize") * 50;
+        this.$el[0].value = this.model.get("landmarkSize") * 100;
         return this;
     },
 
     changeLandmarkSize: atomic.atomicOperation(function (event) {
         console.log('LandmarkSizeSlider:changeLandmarkSize');
-        this.model.set("landmarkSize", (Number(event.target.value) / 50));
+        this.model.set("landmarkSize", (Number(event.target.value) / 100));
     })
 });
 
