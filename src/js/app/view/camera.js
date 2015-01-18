@@ -28,7 +28,7 @@ var THREE = require('three');
 
 var MOUSE_WHEEL_SENSITIVITY = 0.5;
 var ROTATION_SENSITIVITY = 0.005;
-var PIP_ZOOM_FACTOR = 20.0;
+var PIP_ZOOM_FACTOR = 12.0;
 
 // see https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent.deltaMode
 var UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
