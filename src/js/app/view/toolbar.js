@@ -24,41 +24,14 @@ var LandmarkSizeSlider = Backbone.View.extend({
 
     render: function () {
         console.log('LandmarkSizeSlider:render');
-        this.$el[0].value = this.model.get("landmarkSize") * 50;
+        this.$el[0].value = this.model.get("landmarkSize") * 100;
         return this;
     },
 
     changeLandmarkSize: atomic.atomicOperation(function (event) {
         console.log('LandmarkSizeSlider:changeLandmarkSize');
-        this.model.set("landmarkSize", (Number(event.target.value) / 50));
+        this.model.set("landmarkSize", (Number(event.target.value) / 100));
     })
-});
-
-
-var AlphaSlider = Backbone.View.extend({
-
-    el: '#alphaSlider',
-
-    events: {
-        input : "changeAlpha"
-    },
-
-    initialize : function() {
-        console.log('AlphaSlider:initialize');
-        _.bindAll(this, 'render', 'changeAlpha');
-        this.listenTo(this.model, "change:meshAlpha", this.render);
-    },
-
-    render: function () {
-        console.log('AlphaSlider:render');
-        this.$el[0].value = this.model.get("meshAlpha") * 100;
-        return this;
-    },
-
-    changeAlpha: function (event) {
-        console.log('AlphaSlider:changeAlpha');
-        this.model.set("meshAlpha", (Number(event.target.value) / 100));
-    }
 });
 
 
@@ -113,6 +86,34 @@ var TextureToggle = Backbone.View.extend({
 });
 
 
+var ConnectivityToggle = Backbone.View.extend({
+
+    el: '#connectivityRow',
+
+    events: {
+        'click #connectivityToggle' : "connectivityToggle"
+    },
+
+    initialize : function() {
+        console.log('ConnectivityToggle:initialize');
+        this.$toggle = this.$el.find('#connectivityToggle')[0];
+        _.bindAll(this, 'render', 'connectivityToggle');
+        this.render();
+    },
+
+    render: function () {
+        console.log('ConnectivityToggle:render');
+        this.$toggle.checked = this.model.isConnectivityOn();
+        return this;
+    },
+
+    connectivityToggle: function () {
+        console.log('ConnectivityToggle:connectivityToggle');
+        this.model.toggleConnectivity();
+    }
+});
+
+
 exports.Toolbar = Backbone.View.extend({
 
     el: '#toolbar',
@@ -120,11 +121,8 @@ exports.Toolbar = Backbone.View.extend({
     initialize : function () {
         console.log('Toolbar:initialize');
         this.lmSizeSlider = new LandmarkSizeSlider({model: this.model});
-        // For now we remove alpha support
-        this.$el.find('#alphaRow').css("display", "none");
+        this.connectivityToggle = new ConnectivityToggle({model : this.model});
         if (this.model.meshMode()) {
-            // only in mesh mode do we add these toolbar items.
-            //this.alphaSlider = new AlphaSlider({model: this.model});
             this.textureToggle = new TextureToggle({model: this.model});
         } else {
             // in image mode, we shouldn't even have these controls.

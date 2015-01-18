@@ -26,7 +26,7 @@ var CLEAR_COLOUR = 0xDDDDDD;
 var CLEAR_COLOUR_PIP = 0xCCCCCC;
 
 // the default scale for 1.0
-var LM_SCALE = 0.02;
+var LM_SCALE = 0.01;
 
 var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.68, 0.35, 3.0);
 var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
@@ -39,6 +39,7 @@ var PIP_MARGIN = 0;
 var LM_SPHERE_PARTS = 10;
 var LM_SPHERE_SELECTED_COLOR = 0xff75ff;
 var LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
+var LM_CONNECTION_LINE_COLOR = LM_SPHERE_UNSELECTED_COLOR;
 
 
 exports.Viewport = Backbone.View.extend({
@@ -178,9 +179,8 @@ exports.Viewport = Backbone.View.extend({
 
         var downEvent, lmPressed, lmPressedWasSelected;
 
-        // Tools for moving betweens screen and world coordinates
+        // Tools for moving between screen and world coordinates
         this.ray = new THREE.Raycaster();
-        this.projector = new THREE.Projector();
 
         // ----- MOUSE HANDLER ----- //
         // There is quite a lot of finicky state in handling the mouse
@@ -487,6 +487,9 @@ exports.Viewport = Backbone.View.extend({
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
+        this.showConnectivity = true;
+        this.listenTo(this.model, "change:connectivityOn", this.updateConnectivityDisplay);
+        this.updateConnectivityDisplay();
         this.listenTo(atomic, "change:ATOMIC_OPERATION", this.batchHandler);
 
         // trigger resize to initially size the viewport
@@ -613,6 +616,10 @@ exports.Viewport = Backbone.View.extend({
         this.handler(event);
     },
 
+    updateConnectivityDisplay: atomic.atomicOperation(function () {
+        this.showConnectivity = this.model.isConnectivityOn();
+    }),
+
     changeMesh: function () {
         var meshPayload, mesh, up, front;
         console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
@@ -729,7 +736,12 @@ exports.Viewport = Backbone.View.extend({
         this.renderer.enableScissorTest (true);
         this.renderer.clear();
         this.renderer.render(this.scene, this.s_camera);
-        this.renderer.render(this.sceneHelpers, this.s_camera);
+
+        if (this.showConnectivity) {
+            this.renderer.clearDepth(); // clear depth buffer
+            // and render the connectivity
+            this.renderer.render(this.sceneHelpers, this.s_camera);
+        }
 
         // 2. Render the PIP image if in orthographic mode
         if (this.s_camera === this.s_oCam) {
@@ -829,8 +841,8 @@ var lmGeometry = new THREE.SphereGeometry(LM_SCALE, LM_SPHERE_PARTS,
                                           LM_SPHERE_PARTS);
 
 var lmMaterialForSelected = {
-    true: new THREE.MeshPhongMaterial({color: LM_SPHERE_SELECTED_COLOR}),
-    false: new THREE.MeshPhongMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
+    true: new THREE.MeshBasicMaterial({color: LM_SPHERE_SELECTED_COLOR}),
+    false: new THREE.MeshBasicMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
 };
 
 
@@ -908,8 +920,8 @@ var LandmarkTHREEView = Backbone.View.extend({
 });
 
 var lineMaterial = new THREE.LineBasicMaterial({
-    color: 0x0000ff,
-    linewidth: 3
+    color: LM_CONNECTION_LINE_COLOR,
+    linewidth: 1
 });
 
 var LandmarkConnectionTHREEView = Backbone.View.extend({

@@ -14,11 +14,20 @@ module.exports = Backbone.Model.extend({
     defaults: function () {
         return {
             landmarkSize: 0.5,
-            meshAlpha: 1,
             mode: 'mesh',
+            connectivityOn: true,
             activeTemplate: undefined,
             activeCollection: undefined
+
         }
+    },
+
+    isConnectivityOn: function () {
+        return this.get('connectivityOn');
+    },
+
+    toggleConnectivity: function () {
+        this.set('connectivityOn', !this.isConnectivityOn());
     },
 
     imageMode: function () {
