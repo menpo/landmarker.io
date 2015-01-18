@@ -179,9 +179,8 @@ exports.Viewport = Backbone.View.extend({
 
         var downEvent, lmPressed, lmPressedWasSelected;
 
-        // Tools for moving betweens screen and world coordinates
+        // Tools for moving between screen and world coordinates
         this.ray = new THREE.Raycaster();
-        this.projector = new THREE.Projector();
 
         // ----- MOUSE HANDLER ----- //
         // There is quite a lot of finicky state in handling the mouse
@@ -488,6 +487,9 @@ exports.Viewport = Backbone.View.extend({
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
+        this.showConnectivity = true;
+        this.listenTo(this.model, "change:connectivityOn", this.updateConnectivityDisplay);
+        this.updateConnectivityDisplay();
         this.listenTo(atomic, "change:ATOMIC_OPERATION", this.batchHandler);
 
         // trigger resize to initially size the viewport
@@ -614,6 +616,10 @@ exports.Viewport = Backbone.View.extend({
         this.handler(event);
     },
 
+    updateConnectivityDisplay: atomic.atomicOperation(function () {
+        this.showConnectivity = this.model.isConnectivityOn();
+    }),
+
     changeMesh: function () {
         var meshPayload, mesh, up, front;
         console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
@@ -730,9 +736,12 @@ exports.Viewport = Backbone.View.extend({
         this.renderer.enableScissorTest (true);
         this.renderer.clear();
         this.renderer.render(this.scene, this.s_camera);
-        this.renderer.clearDepth(); // clear depth buffer
-        // and render the connectivity
-        this.renderer.render(this.sceneHelpers, this.s_camera);
+
+        if (this.showConnectivity) {
+            this.renderer.clearDepth(); // clear depth buffer
+            // and render the connectivity
+            this.renderer.render(this.sceneHelpers, this.s_camera);
+        }
 
         // 2. Render the PIP image if in orthographic mode
         if (this.s_camera === this.s_oCam) {
