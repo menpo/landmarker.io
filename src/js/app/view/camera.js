@@ -22,8 +22,6 @@
  * property.
  */
 var $ = require('jquery');
-// Doesn't seem to be helping us...
-//require('jquery-mousewheel')($);
 var _ = require('underscore');
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
@@ -31,6 +29,13 @@ var THREE = require('three');
 var MOUSE_WHEEL_SENSITIVITY = 0.5;
 var ROTATION_SENSITIVITY = 0.005;
 var PIP_ZOOM_FACTOR = 20.0;
+
+// see https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent.deltaMode
+var UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
+    0: 1.0,  // The delta values are specified in pixels.
+    1: 34.0,  // The delta values are specified in lines.
+    2: 1.0  // The delta values are specified in pages.
+};
 
 "use strict";
 
@@ -280,8 +285,13 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
 
     function onMouseWheel(event) {
         //console.log('camera: mousewheel');
-        if (!enabled) return;
-        tinput.set(0, 0, (-event.originalEvent.deltaY * MOUSE_WHEEL_SENSITIVITY));
+        if (!enabled) {
+            return;
+        }
+        // we need to check the deltaMode to determine the scale of the mouse
+        // wheel reading.
+        var scale = UNITS_FOR_MOUSE_WHEEL_DELTA_MODE[event.originalEvent.deltaMode];
+        tinput.set(0, 0, (-event.originalEvent.deltaY * MOUSE_WHEEL_SENSITIVITY * scale));
         zoom(tinput);
     }
 
