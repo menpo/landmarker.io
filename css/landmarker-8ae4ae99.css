@@ -50,6 +50,7 @@ input, textarea, select{
     min-height: 100vh;
     min-width: 100vw;
     cursor: url(../img/cursor.png) 25 25, auto;
+    -webkit-overflow-scrolling: touch;  /* prevent scrolling on mobile safari */
 }
 
 .ModalCentreFlex {
