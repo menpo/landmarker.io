@@ -312,51 +312,51 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         }
     }
 
-//    // touch
-//    var touch = new THREE.Vector3();
-//    var prevTouch = new THREE.Vector3();
-//    var prevDistance = null;
-//
-//    function touchStart(event) {
-//        if (!enabled) return;
-//        var touches = event.touches;
-//        switch (touches.length) {
-//            case 2:
-//                var dx = touches[0].pageX - touches[1].pageX;
-//                var dy = touches[0].pageY - touches[1].pageY;
-//                prevDistance = Math.sqrt(dx * dx + dy * dy);
-//                break;
-//        }
-//        prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
-//    }
-//
-//    function touchMove(event) {
-//        if (!enabled) return;
-//        event.preventDefault();
-//        event.stopPropagation();
-//        var touches = event.touches;
-//        touch.set(touches[0].pageX, touches[0].pageY, 0);
-//        switch (touches.length) {
-//            case 1:
-//                scope.rotate(touch.sub(prevTouch).multiplyScalar(-0.005));
-//                break;
-//            case 2:
-//                var dx = touches[0].pageX - touches[1].pageX;
-//                var dy = touches[0].pageY - touches[1].pageY;
-//                var distance = Math.sqrt(dx * dx + dy * dy);
-//                scope.zoom(new THREE.Vector3(0, 0, prevDistance - distance));
-//                prevDistance = distance;
-//                break;
-//            case 3:
-//                scope.pan(touch.sub(prevTouch).setX(-touch.x));
-//                break;
-//        }
-//        prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
-//    }
-//
-//    // TODO renable touch
-//    //domElement.addEventListener('touchstart', touchStart, false);
-//    //domElement.addEventListener('touchmove', touchMove, false);
+    // touch
+    var touch = new THREE.Vector3();
+    var prevTouch = new THREE.Vector3();
+    var prevDistance = null;
+
+    function touchStart(event) {
+        if (!enabled) return;
+        var touches = event.touches;
+        switch (touches.length) {
+            case 2:
+                var dx = touches[0].pageX - touches[1].pageX;
+                var dy = touches[0].pageY - touches[1].pageY;
+                prevDistance = Math.sqrt(dx * dx + dy * dy);
+                break;
+        }
+        prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
+    }
+
+    function touchMove(event) {
+        if (!enabled) return;
+        event.preventDefault();
+        event.stopPropagation();
+        var touches = event.touches;
+        touch.set(touches[0].pageX, touches[0].pageY, 0);
+        switch (touches.length) {
+            case 1:
+                rotate(touch.sub(prevTouch).multiplyScalar(-0.005));
+                break;
+            case 2:
+                var dx = touches[0].pageX - touches[1].pageX;
+                var dy = touches[0].pageY - touches[1].pageY;
+                var distance = Math.sqrt(dx * dx + dy * dy);
+                zoom(new THREE.Vector3(0, 0, prevDistance - distance));
+                prevDistance = distance;
+                break;
+            case 3:
+                pan(touch.sub(prevTouch).setX(-touch.x));
+                break;
+        }
+        prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
+    }
+
+    // TODO should this always be enabled?
+    domElement.addEventListener('touchstart', touchStart, false);
+    domElement.addEventListener('touchmove', touchMove, false);
 
     // enable everything on creation
     enable();
