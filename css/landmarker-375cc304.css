@@ -59,7 +59,6 @@ input, textarea, select{
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
-    z-index: 2;
     pointer-events: none;
     -webkit-align-items: center;
         -ms-flex-align: center;
@@ -67,6 +66,10 @@ input, textarea, select{
     -webkit-justify-content: center;
         -ms-flex-pack: center;
             justify-content: center;
+}
+
+#notificationOverlay {
+    z-index: 3;
 }
 
 .ModalNotification {
