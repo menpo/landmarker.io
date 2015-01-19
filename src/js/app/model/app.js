@@ -17,7 +17,8 @@ module.exports = Backbone.Model.extend({
             mode: 'mesh',
             connectivityOn: true,
             activeTemplate: undefined,
-            activeCollection: undefined
+            activeCollection: undefined,
+            helpOverlayIsDisplayed: false,
 
         }
     },
@@ -28,6 +29,14 @@ module.exports = Backbone.Model.extend({
 
     toggleConnectivity: function () {
         this.set('connectivityOn', !this.isConnectivityOn());
+    },
+
+    isHelpOverlayOn: function () {
+        return this.get('helpOverlayIsDisplayed');
+    },
+
+    toggleHelpOverlay: function () {
+        this.set('helpOverlayIsDisplayed', !this.isHelpOverlayOn());
     },
 
     imageMode: function () {

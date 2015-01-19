@@ -98,6 +98,7 @@ var ConnectivityToggle = Backbone.View.extend({
         console.log('ConnectivityToggle:initialize');
         this.$toggle = this.$el.find('#connectivityToggle')[0];
         _.bindAll(this, 'render', 'connectivityToggle');
+        this.listenTo(this.model, 'change:connectivityOn', this.render);
         this.render();
     },
 

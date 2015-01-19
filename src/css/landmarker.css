@@ -54,10 +54,13 @@ input, textarea, select{
     min-height: 100vh;
     position: fixed;
     display: flex;
-    z-index: 2;
     pointer-events: none;
     align-items: center;
     justify-content: center;
+}
+
+#notificationOverlay {
+    z-index: 3;
 }
 
 .ModalNotification {

@@ -17,7 +17,7 @@ var grimraf = require('gulp-rimraf');
 var src = {
     js: ['src/js/**/*.js'],
     css: ['src/css/**/*.css'],
-    index: 'src/index.html'
+    index: ['src/index.html']
 };
 
 var built = {

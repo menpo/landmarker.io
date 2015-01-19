@@ -222,6 +222,12 @@ var SaveRevertView = Backbone.View.extend({
         this.notification = new Notification.LandmarkSuccessFailureNotification();
     },
 
+    // Hack here to pass the app through to the save revert view just
+    // as we are reusing restore for help temporarily (?)
+    attachApp: function (app) {
+        this.app = app;
+    },
+
     events: {
         'click #save' : "save",
         'click #revert' : "revert"
@@ -246,9 +252,9 @@ var SaveRevertView = Backbone.View.extend({
 
     },
 
-    revert: function () {
-        console.log('revert called');
-        alert('Warning: revert is currently not implemented.')
+    revert: function (e) {
+        e.stopPropagation();  // prevent the event from trigging the help immediately
+        this.app.toggleHelpOverlay();
     }
 });
 
@@ -273,6 +279,9 @@ var Sidebar = Backbone.View.extend({
             return;
         }
         this.saveRevertView = new SaveRevertView({model: lms});
+        // Hack here to pass the app through to the save revert view just
+        // as we are reusing restore for help temporarily (?)
+        this.saveRevertView.attachApp(app);
         if (this.lmView) {
             this.lmView.cleanup();
         }
