@@ -169,7 +169,7 @@ exports.ImageSource = AssetSource.extend({
         };
     },
 
-    setAsset: function (newImage) {
+    setAsset: function (newAsset) {
         var that = this;
         var oldAsset = this.get('asset');
         // stop listening to the old asset
@@ -178,16 +178,16 @@ exports.ImageSource = AssetSource.extend({
         }
         this.set('assetIsLoading', true);
         // set the asset immediately (triggering change in UI)
-        that.set('asset', newImage);
+        that.set('asset', newAsset);
 
-        this.listenTo(newImage, 'newMeshAvailable', this.updateMesh);
+        this.listenTo(newAsset, 'newMeshAvailable', this.updateMesh);
 
         // update the mesh immediately (so we get a placeholder if nothing else)
         this.updateMesh();
 
         // fetch the thumbnail and texture aggressively asynchronously.
-        newImage.loadThumbnail();
-        var texture = newImage.loadTexture();
+        newAsset.loadThumbnail();
+        var texture = newAsset.loadTexture();
 
         // after the texture is ready, we want to clear up our tracking of
         // loading requests.
