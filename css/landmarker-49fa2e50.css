@@ -143,12 +143,12 @@ input, textarea, select{
     text-align: center;
 }
 
-/* Make the Sidebar fixed width */
-.Sidebar-Spacer--ForPip {
-    min-height: 300px;
+@media screen and (max-width: 650px) {
+    .App-Flex-Sidebar {
+        display: none;
+    }
 }
 
-/* The Landmarks panel takes up the rest of the room */
 .Sidebar-LandmarksPanel {
     display: -webkit-flex;
     display: -ms-flexbox;
@@ -157,7 +157,7 @@ input, textarea, select{
         -ms-flex-direction: column;
             flex-direction: column;
     text-align: center;
-    overflow: auto;
+    /*overflow: auto; breaks Safari view? */
     cursor: pointer;
     z-index: 2;
 }
@@ -335,14 +335,7 @@ is itself a row flexbox */
 .Toolbar {
     z-index: 2;
     background: rgba(45, 119, 194, 0.5);
-    width: 200px;
-}
-
-/* A dummy spacer, just to push the toolbar to the bottom */
-.Toolbar-Spacer {
-    -webkit-flex: 1;
-        -ms-flex: 1;
-            flex: 1;
+    width: 170px;
 }
 
 .Toolbar-Row {
@@ -509,7 +502,7 @@ is itself a row flexbox */
 .Button-Basic-Fixed {
     background: #0A4EB2;
     color: white;
-    width: 140px;
+    width: 75px;
 }
 
 .Button--Disabled {

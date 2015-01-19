@@ -132,10 +132,8 @@ module.exports = Backbone.Model.extend({
 
             },
             error: function () {
-                console.log('Failed to talk server for templates (is landmarkerio' +
-                    'running from your command line?).');
-                // TODO nasty hack - temp hardcode the landmark type
-                that.set('landmarkType', "kohmal");
+                throw Error('Failed to talk server for templates (is ' +
+                            'landmarkerio running from your command line?).');
             }
         });
     },
@@ -159,8 +157,8 @@ module.exports = Backbone.Model.extend({
                 }
             },
             error: function () {
-                console.log('Failed to talk server for collections (is landmarkerio' +
-                    'running from your command line?).');
+                throw Error('Failed to talk server for collections (is ' +
+                            'landmarkerio running from your command line?).');
             }
         });
     },
@@ -201,16 +199,14 @@ module.exports = Backbone.Model.extend({
                     i = that.get('_assetIndex');
                 }
                 if (i < 0 ||  i > (assetSource.nAssets() - 1)) {
-                    console.error(
-                            'Error trying to set index to ' + i + ' - needs to'
+                    throw Error('Error trying to set index to ' + i + ' - needs to'
                     + ' be in the range 0-' + assetSource.nAssets());
-                    return;
                 }
                 return that.setAsset(assetSource.assets()[i]);
             },
             function () {
-                console.log('Failed to fetch assets (is landmarkerio' +
-                    'running from your command line?).');
+                throw Error('Failed to fetch assets (is landmarkerio' +
+                            'running from your command line?).');
             });
     },
 

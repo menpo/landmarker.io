@@ -509,8 +509,6 @@ exports.Viewport = Backbone.View.extend({
     toggleCamera: function () {
         // check what the current setting is
         var currentlyPerspective = (this.s_camera === this.s_pCam);
-        var s = $('#sidebarSpacer');
-        s.toggleClass('Sidebar-Spacer--ForPip', currentlyPerspective);
         if (currentlyPerspective) {
             // going to orthographic - start listening for pip updates
             this.listenTo(this.cameraController, "changePip", this.update);
