@@ -66,6 +66,7 @@ function initLandmarker(server, mode) {
     var AssetView = require('./app/view/asset');
     var ToolbarView = require('./app/view/toolbar');
     var ViewportView = require('./app/view/viewport');
+    var HelpOverlay = require('./app/view/help')
     var Notification = require('./app/view/notification');
     var App = require('./app/model/app');
     var THREE = require('three');
@@ -96,6 +97,7 @@ function initLandmarker(server, mode) {
     var assetView = new AssetView.AssetView({model: app});
     var viewport = new ViewportView.Viewport({model: app});
     var toolbar = new ToolbarView.Toolbar({model: app});
+    var helpOverlay = new HelpOverlay({model: app});
 
     var prevAsset = null;
 
@@ -128,25 +130,25 @@ function initLandmarker(server, mode) {
     $(window).keypress(function(e) {
         var key = e.which;
         switch (key) {
-            case 100:  // d
+            case 100:  // d = [d]elete selected
                 app.landmarks().deleteSelected();
                 break;
-            case 113:  // q
+            case 113:  // q = deselect all
                 app.landmarks().deselectAllInActiveGroup();
                 break;
             case 114:  // r = [r]eset camera
                 // TODO fix for multiple cameras (should be in camera controller)
                 viewport.resetCamera();
                 break;
-            case 116:  // t = [T]exture toggle (mesh mode only)
+            case 116:  // t = toggle [t]exture (mesh mode only)
                 if (app.meshMode()) {
                     app.asset().textureToggle();
                 }
                 break;
-            case 97:  // a = select [A]ll
+            case 97:  // a = select [a]ll
                 app.landmarks().selectAllInActiveGroup();
                 break;
-            case 99:  // c = toggle [C]amera mode
+            case 99:  // c = toggle [c]amera mode
                 if (app.meshMode()) {
                     viewport.toggleCamera();
                 }
@@ -156,6 +158,9 @@ function initLandmarker(server, mode) {
                 break;
             case 107:  // k = up, previous asset
                 app.previousAsset();
+                break;
+            case 108:  // l = toggle [l]inks
+                app.toggleConnectivity();
                 break;
         }
     });
