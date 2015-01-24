@@ -172,6 +172,8 @@ is itself a row flexbox */
     flex: 1;
     flex-direction: row;
     justify-content: space-between;
+    /* below needed IE11: https://github.com/Modernizr/Modernizr/issues/1301 */
+    min-height: 100vh;
 }
 
 .App-Flex-Vert {
