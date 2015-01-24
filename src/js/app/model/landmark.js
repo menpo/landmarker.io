@@ -127,8 +127,6 @@ var Landmark = Backbone.Model.extend({
 
 var LandmarkList = Backbone.Collection.extend({
 
-    t_mesh: Landmark,
-
     comparator: 'index',
 
     initEmpty: function (n) {
@@ -336,25 +334,18 @@ var LandmarkGroupList = Backbone.Collection.extend({
 
     nextAvailable: function () {
         var group, lms, lm, i, j;
-        var activeGroup = this.active();
-        if (activeGroup.landmarks().empty().length !== 0) {
-            // The active group has a space left - next for insertion is
-            // highest of these
-            return activeGroup.landmarks().empty()[0];
-        } else {
-            // no space in active group - hunt through for a space in all groups
-            for(i = 0; i < this.length; i++) {
-                group = this.at(i);
-                lms = group.landmarks();
-                for(j = 0; j < lms.length; j++) {
-                    lm = lms.at(j);
-                    if (lm.isEmpty()) {
-                        return lm;
-                    }
+        // hunt through for a space in all groups
+        for(i = 0; i < this.length; i++) {
+            group = this.at(i);
+            lms = group.landmarks();
+            for(j = 0; j < lms.length; j++) {
+                lm = lms.at(j);
+                if (lm.isEmpty()) {
+                    return lm;
                 }
             }
-            return null;
         }
+        return null;
     }
 
 });
@@ -516,3 +507,13 @@ exports.LandmarkList = LandmarkList;
 exports.LandmarkGroup = LandmarkGroup;
 exports.LandmarkGroupList = LandmarkGroupList;
 exports.LandmarkSet = LandmarkSet;
+
+
+
+var NewLandmarkGroup = function (id, type, server) {
+    server.map("landmarks/" + id + '/' + type);
+    this.landmarks = [];
+    this.connectivity = [];
+};
+
+window.LandmarkGroup = NewLandmarkGroup;

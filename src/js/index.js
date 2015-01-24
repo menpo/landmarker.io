@@ -66,7 +66,7 @@ function initLandmarker(server, mode) {
     var AssetView = require('./app/view/asset');
     var ToolbarView = require('./app/view/toolbar');
     var ViewportView = require('./app/view/viewport');
-    var HelpOverlay = require('./app/view/help')
+    var HelpOverlay = require('./app/view/help');
     var Notification = require('./app/view/notification');
     var App = require('./app/model/app');
     var THREE = require('three');

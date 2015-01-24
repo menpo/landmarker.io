@@ -1,12 +1,12 @@
 var Promise = require('promise-polyfill');
 
-module.exports = function (url) {
+var XMLHttpRequestPromise = function (responseType, url) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url);
     // Return a new promise.
     var promise = new Promise(function(resolve, reject) {
         // Do the usual XHR stuff
-        xhr.responseType = 'arraybuffer';
+        xhr.responseType = responseType;
         if(url.indexOf('https://') == 0) {
             // if it's HTTPS request with credentials
             xhr.withCredentials = true;
@@ -43,3 +43,15 @@ module.exports = function (url) {
 
     return promise;
 };
+
+
+exports.ArrayBufferPromise = function (url) {
+    return XMLHttpRequestPromise('arraybuffer', url);
+};
+
+exports.JSONPromise = function (url) {
+    return XMLHttpRequestPromise('json', url);
+};
+
+
+window.JSONPromise = exports.JSONPromise;
