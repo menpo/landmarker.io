@@ -23,20 +23,19 @@
     "underscore": "~1.6.0"
   },
   "devDependencies": {
-    "autoprefixer": "^2.2.0",
+    "autoprefixer": "^5.0.0",
     "browserify": "^8.1.1",
-    "gulp": "^3.8.6",
-    "gulp-autoprefixer": "0.0.8",
+    "del": "^1.1.1",
+    "gulp": "^3.8.10",
+    "gulp-autoprefixer": "^2.1.0",
     "gulp-buffer": "0.0.2",
-    "gulp-inject": "^1.0.1",
+    "gulp-inject": "^1.1.1",
     "gulp-manifest": "0.0.6",
-    "gulp-notify": "^1.4.0",
-    "gulp-replace": "^0.4.0",
-    "gulp-rev": "^1.0.0",
-    "gulp-rimraf": "^0.1.0",
+    "gulp-notify": "^2.1.0",
+    "gulp-replace": "^0.5.2",
+    "gulp-rev": "^3.0.0",
     "gulp-util": "^3.0.2",
-    "rimraf": "^2.2.8",
-    "run-sequence": "^0.3.6",
-    "vinyl-source-stream": "^0.1.1"
+    "run-sequence": "^1.0.2",
+    "vinyl-source-stream": "^1.0.0"
   }
 }
