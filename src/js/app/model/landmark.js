@@ -2,7 +2,7 @@ var _ = require('underscore');
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
 var atomic = require('./atomic');
-var JSONPromise = require('../lib/getpromise').JSONPromise;
+var requests = require('../lib/requests');
 
 "use strict";
 
@@ -133,25 +133,25 @@ var Landmark = Backbone.Model.extend({
 
 
 var promiseLandmarkGroup = function (id, type, server) {
-    return JSONPromise(server.map("landmarks/" + id + '/' + type)).then(
+    return requests.JSONGetPromise(server.map("landmarks/" + id + '/' + type)).then(
         function (json) {
             console.log(json);
-            return parseLJSON[json.version](json);
+            return parseLJSON[json.version](json, id, type, server);
         }, function (err) {
             console.log('Error in fetching landmark JSON file');
         }
     );
 };
 
-var parseLJSONv1 = function (json) {
+var parseLJSONv1 = function (json, id, type, server) {
     console.log('parsing v1 landmarks...');
 };
 
 
-var parseLJSONv2 = function (json) {
+var parseLJSONv2 = function (json, id, type, server) {
     console.log('parsing v2 landmarks...');
     return new LandmarkGroup(json.landmarks.points,
-        json.landmarks.connectivity, json.labels);
+        json.landmarks.connectivity, json.labels, id, type, server);
 };
 
 var parseLJSON = {
@@ -207,9 +207,12 @@ var _validateConnectivity =  function (nLandmarks, connectivity) {
 
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
-var LandmarkGroup = function (points, connectivity, labels) {
+var LandmarkGroup = function (points, connectivity, labels, id, type, server) {
 
     var that = this;
+    this.id = id;
+    this.type = type;
+    this.server = server;
 
     // 1. Build landmarks from points
     this.landmarks = points.map(function(p) {
@@ -243,6 +246,10 @@ var LandmarkGroup = function (points, connectivity, labels) {
 };
 
 LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
+
+LandmarkGroup.prototype.url = function () {
+    return this.server.map("landmarks/" + this.id + '/' + this.type)
+};
 
 LandmarkGroup.prototype.nextAvailable = function () {
     for (var i = 0; i < this.landmarks.length; i++) {
@@ -299,8 +306,7 @@ LandmarkGroup.prototype.toJSON = function () {
 };
 
 LandmarkGroup.prototype.promiseSave = function () {
-    // TODO implement
-    return Promise.resolve();
+    return requests.JSONPutPromise(this.url(), this);
 };
 
 

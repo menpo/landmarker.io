@@ -1,6 +1,6 @@
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
-var ArrayBufferPromise = require('../lib/getpromise').ArrayBufferPromise;
+var ArrayBufferGetPromise = require('../lib/requests').ArrayBufferGetPromise;
 var ImagePromise = require('../lib/imagepromise');
 
 "use strict";
@@ -282,7 +282,7 @@ var Mesh = Image.extend({
             // already loading this geometry
             return this._geometryPromise;
         }
-        var arrayPromise = ArrayBufferPromise(this.geometryUrl());
+        var arrayPromise = ArrayBufferGetPromise(this.geometryUrl());
         this._geometryPromise = arrayPromise.then(function (buffer) {
             // now the promise is fullfilled, delete the promise.
             delete that._geometryPromise;
