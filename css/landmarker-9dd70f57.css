@@ -57,13 +57,16 @@ input, textarea, select{
     min-width: 100vw;
     min-height: 100vh;
     position: fixed;
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
     pointer-events: none;
+    -webkit-box-align: center;
     -webkit-align-items: center;
         -ms-flex-align: center;
             align-items: center;
+    -webkit-box-pack: center;
     -webkit-justify-content: center;
         -ms-flex-pack: center;
             justify-content: center;
@@ -134,10 +137,13 @@ input, textarea, select{
 /* Make the Sidebar fixed width */
 .App-Flex-Sidebar {
     width: 300px;
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
     max-height: 100vh;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: reverse;
     -webkit-flex-direction: column-reverse;
         -ms-flex-direction: column-reverse;
             flex-direction: column-reverse;
@@ -151,9 +157,12 @@ input, textarea, select{
 }
 
 .Sidebar-LandmarksPanel {
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
     -webkit-flex-direction: column;
         -ms-flex-direction: column;
             flex-direction: column;
@@ -164,6 +173,7 @@ input, textarea, select{
 }
 
 .Sidebar-button {
+    -webkit-box-flex: 1;
     -webkit-flex: 1 auto;
         -ms-flex: 1 auto;
             flex: 1 auto;
@@ -172,9 +182,12 @@ input, textarea, select{
 /* Special Sidebar item used for rows (e.g. two buttons).
 is itself a row flexbox */
 .Sidebar-row {
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
     -webkit-flex-direction: row;
         -ms-flex-direction: row;
             flex-direction: row;
@@ -182,6 +195,7 @@ is itself a row flexbox */
     -webkit-justify-content: space-around;
         -ms-flex-pack: distribute;
             justify-content: space-around;
+    -webkit-box-align: center;
     -webkit-align-items: center;
         -ms-flex-align: center;
             align-items: center;
@@ -190,6 +204,7 @@ is itself a row flexbox */
 }
 
 .Sidebar-row-item {
+    -webkit-box-flex: 1;
     -webkit-flex: 1;
         -ms-flex: 1;
             flex: 1;
@@ -206,15 +221,20 @@ is itself a row flexbox */
 
 /* ASSET INFO AND TOOLBAR - LEFT COLUMN - FLEXBOX */
 .App-Flex-LeftCol {
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
     -webkit-flex-direction: column;
         -ms-flex-direction: column;
             flex-direction: column;
+    -webkit-box-align: start;
     -webkit-align-items: flex-start;
         -ms-flex-align: start;
             align-items: flex-start;
+    -webkit-box-pack: justify;
     -webkit-justify-content: space-between;
         -ms-flex-pack: justify;
             justify-content: space-between;
@@ -222,15 +242,20 @@ is itself a row flexbox */
 
 /* PAGER - BOTTOM ROW - FLEXBOX */
 .App-Flex-Horiz {
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-flex: 1;
     -webkit-flex: 1;
         -ms-flex: 1;
             flex: 1;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
     -webkit-flex-direction: row;
         -ms-flex-direction: row;
             flex-direction: row;
+    -webkit-box-pack: justify;
     -webkit-justify-content: space-between;
         -ms-flex-pack: justify;
             justify-content: space-between;
@@ -239,14 +264,18 @@ is itself a row flexbox */
 }
 
 .App-Flex-Vert {
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
     min-width: 100vw;
     min-height: 100vh;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
     -webkit-flex-direction: column;
         -ms-flex-direction: column;
             flex-direction: column;
+    -webkit-box-pack: justify;
     -webkit-justify-content: space-between;
         -ms-flex-pack: justify;
             justify-content: space-between;
@@ -254,9 +283,12 @@ is itself a row flexbox */
 
 .Notifications {
     z-index: 4;
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
     -webkit-flex-direction: column;
         -ms-flex-direction: column;
             flex-direction: column;
@@ -265,9 +297,11 @@ is itself a row flexbox */
 }
 
 .Notification {
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-flex: 1;
     -webkit-flex: 1;
         -ms-flex: 1;
             flex: 1;
@@ -278,6 +312,7 @@ is itself a row flexbox */
 }
 
 #assetDone {
+    -webkit-box-flex: 0.3;
     -webkit-flex: 0.3;
         -ms-flex: 0.3;
             flex: 0.3;
@@ -285,6 +320,7 @@ is itself a row flexbox */
 }
 
 #previewDone {
+    -webkit-box-flex: 0.00001;
     -webkit-flex: 0.00001;
         -ms-flex: 0.00001;
             flex: 0.00001;
@@ -292,6 +328,7 @@ is itself a row flexbox */
 }
 
 #assetRemaining {
+    -webkit-box-flex: 0.7;
     -webkit-flex: 0.7;
         -ms-flex: 0.7;
             flex: 0.7;
@@ -300,6 +337,7 @@ is itself a row flexbox */
 }
 
 #previewRemaining  {
+    -webkit-box-flex: 1;
     -webkit-flex: 1;
         -ms-flex: 1;
             flex: 1;
@@ -322,9 +360,11 @@ is itself a row flexbox */
 
 /* Container for Prev/Next buttons */
 .App-Flex-Pager {
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-align: end;
     -webkit-align-items: flex-end;
         -ms-flex-align: end;
             align-items: flex-end;
@@ -349,9 +389,12 @@ is itself a row flexbox */
     height: 40px;
     font-weight: 300;
     font-size: larger;
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
     -webkit-flex-direction: row;
         -ms-flex-direction: row;
             flex-direction: row;
@@ -359,12 +402,14 @@ is itself a row flexbox */
     -webkit-justify-content: space-around;
         -ms-flex-pack: distribute;
             justify-content: space-around;
+    -webkit-box-align: center;
     -webkit-align-items: center;
         -ms-flex-align: center;
             align-items: center;
 }
 
 .Toolbar-Row-Item {
+    -webkit-box-flex: 1;
     -webkit-flex: 1;
         -ms-flex: 1;
             flex: 1;
@@ -389,19 +434,24 @@ is itself a row flexbox */
 
 /* OVERLAY ROW FLEXBOX */
 .Overlay {
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
     height: 100%;
     width: 100%;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
     -webkit-flex-direction: row;
         -ms-flex-direction: row;
             flex-direction: row;
     z-index: 4;
     position: absolute;
+    -webkit-box-align: center;
     -webkit-align-items: center;
         -ms-flex-align: center;
             align-items: center;
+    -webkit-box-pack: center;
     -webkit-justify-content: center;
         -ms-flex-pack: center;
             justify-content: center;
@@ -410,6 +460,7 @@ is itself a row flexbox */
 
 /* The overlay sheet itself */
 .Overlay-Sheet {
+    -webkit-box-flex: 1;
     -webkit-flex: 1;
         -ms-flex: 1;
             flex: 1;
@@ -437,12 +488,15 @@ is itself a row flexbox */
     height: 100%;
     position: absolute;
     top: 0;
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-pack: center;
     -webkit-justify-content: center;
         -ms-flex-pack: center;
             justify-content: center;
+    -webkit-box-align: center;
     -webkit-align-items: center;
         -ms-flex-align: center;
             align-items: center;
@@ -459,9 +513,11 @@ is itself a row flexbox */
 .LmGroup-Flex {
     width: 100%;
     height: 100%;
+    display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-align: center;
     -webkit-align-items: center;
         -ms-flex-align: center;
             align-items: center;
@@ -469,6 +525,7 @@ is itself a row flexbox */
 }
 
 .Lm {
+    -webkit-box-flex: 1;
     -webkit-flex: 1;
         -ms-flex: 1;
             flex: 1;
@@ -585,7 +642,7 @@ is itself a row flexbox */
 }
 
 .onoffswitch-inner {
-    width: 200%; margin-left: -100%; transition: margin 0.1s ease-in 0s;
+    width: 200%; margin-left: -100%; -webkit-transition: margin 0.1s ease-in 0s; transition: margin 0.1s ease-in 0s;
 }
 
 .onoffswitch-inner:before, .onoffswitch-inner:after {
@@ -611,7 +668,7 @@ is itself a row flexbox */
     width: 30px; margin: 0px;
     background: #FFFFFF;
     border: 2px solid #999999; border-radius: 0px;
-    position: absolute; top: 0; bottom: 0; right: 46px; transition: all 0.1s ease-in 0s;
+    position: absolute; top: 0; bottom: 0; right: 46px; -webkit-transition: all 0.1s ease-in 0s; transition: all 0.1s ease-in 0s;
 }
 
 .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
