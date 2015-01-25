@@ -524,7 +524,6 @@ exports.LandmarkGroupList = LandmarkGroupList;
 exports.LandmarkSet = LandmarkSet;
 
 
-
 window.promiseLandmarkGroup = function (id, type, server) {
     return JSONPromise(server.map("landmarks/" + id + '/' + type)).then(
         function (json) {

@@ -10,9 +10,7 @@ var rev = require('gulp-rev');
 var buffer = require('gulp-buffer');
 var replace = require('gulp-replace');
 var inject = require('gulp-inject');
-var rimraf = require('gulp-rimraf');
-var grimraf = require('gulp-rimraf');
-
+var del = require('del');
 
 var src = {
     js: ['src/js/**/*.js'],
@@ -43,20 +41,18 @@ gulp.task('manifest', function(){
         .pipe(notify('Landmarker.io: Manifest updated'));
 });
 
-gulp.task('clean-js', function () {
-    return gulp.src('./bundle*.js', {read:false})
-        .pipe(grimraf());
+gulp.task('clean-js', function (cb) {
+    del(['./bundle*.js'], cb);
 });
 
-gulp.task('clean-css', function () {
-    return gulp.src('./css/*.css', {read:false})
-        .pipe(grimraf());
+gulp.task('clean-css', function (cb) {
+    del(['./css/*.css'], cb);
 });
 
 // Rebuild the JS bundle + issue a notification when done.
 gulp.task('js', function() {
-    var b = browserify('./src/js/index.js')
-        .bundle({ debug: true });
+    var b = browserify('./src/js/index.js', {debug: true})
+        .bundle();
     return b.on('error', function(e) {
             gutil.log(e);
             b.end();
@@ -100,13 +96,11 @@ gulp.task('html', function() {
 });
 
 gulp.task('build-js', function() {
-    runSequence('clean-js',
-        'js', 'build-html');
+    runSequence('clean-js', 'js', 'build-html');
 });
 
 gulp.task('build-css', function() {
-    runSequence('clean-css',
-        'css', 'build-html');
+    runSequence('clean-css', 'css', 'build-html');
 });
 
 gulp.task('build-html', function() {
