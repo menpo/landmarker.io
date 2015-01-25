@@ -55,8 +55,8 @@ gulp.task('clean-css', function () {
 
 // Rebuild the JS bundle + issue a notification when done.
 gulp.task('js', function() {
-    var b = browserify('./src/js/index.js')
-        .bundle({ debug: true });
+    var b = browserify('./src/js/index.js', {debug: true})
+        .bundle();
     return b.on('error', function(e) {
             gutil.log(e);
             b.end();

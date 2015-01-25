@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^2.2.0",
-    "browserify": "^3.44.2",
+    "browserify": "^8.1.1",
     "gulp": "^3.8.6",
     "gulp-autoprefixer": "0.0.8",
     "gulp-buffer": "0.0.2",
