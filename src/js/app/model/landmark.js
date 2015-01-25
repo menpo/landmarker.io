@@ -25,43 +25,10 @@ var booleanMaskArray = function (a, mask) {
     return masked;
 };
 
-var invertMask = function(mask) {
-    return map(mask, function(i) {
-        return !i;
-    });
+var where = function(a, f) {
+    var mask = a.map(f);
+    return booleanMaskArray(a, mask);
 };
-
-var map = function(a, f) {
-    var b = [];
-    for (var i = 0; i < a.length; i++) {
-        b.push(f(a[i]));
-    }
-    return b;
-};
-
-var mapMethod = function(a, m) {
-    var b = [];
-    for (var i = 0; i < a.length; i++) {
-        b.push(a[i][m]());
-    }
-    return b;
-};
-
-
-var _where = function(x) {
-    return function(a, f) {
-        return booleanMaskArray(a, x(a, f));
-    };
-};
-
-
-var where = _where(map);
-var whereMethod = _where(mapMethod);
-
-var whereNotMethod = function(a, m) {
-        return booleanMaskArray(a, invertMask(mapMethod(a, m)));
-};
-
 
 
 var Landmark = Backbone.Model.extend({
@@ -164,28 +131,6 @@ var Landmark = Backbone.Model.extend({
 
 });
 
-var LandmarkSet = Backbone.Model.extend({
-
-    saveWithCallbacks: function (success, failure) {
-        console.log('save called');
-        this.save(null,
-            {
-                parse: false,
-                success: function () {
-                    console.log('successfully saved');
-                    if (success) {
-                        success();
-                    }
-                },
-                error: function () {
-                    console.log('could not save.');
-                    if (failure) {
-                        failure();
-                    }
-                }
-        });
-    }
-});
 
 var promiseLandmarkGroup = function (id, type, server) {
     return JSONPromise(server.map("landmarks/" + id + '/' + type)).then(
@@ -205,7 +150,7 @@ var parseLJSONv1 = function (json) {
 
 var parseLJSONv2 = function (json) {
     console.log('parsing v2 landmarks...');
-    return new NewLandmarkGroup(json.landmarks.points,
+    return new LandmarkGroup(json.landmarks.points,
         json.landmarks.connectivity, json.labels);
 };
 
@@ -221,15 +166,21 @@ var LandmarkCollectionPrototype = Object.create(null);
 
 
 LandmarkCollectionPrototype.selected = function () {
-    return whereMethod(this.landmarks, 'isSelected');
+    return where(this.landmarks, function (lm) {
+        return lm.isSelected();
+    });
 };
 
 LandmarkCollectionPrototype.deselectAll = atomic.atomicOperation(function () {
-    return mapMethod(this.landmarks, 'deselect');
+    this.landmarks.map(function(lm) {
+        lm.deselect();
+    });
 });
 
 LandmarkCollectionPrototype.selectAll = atomic.atomicOperation(function () {
-    return mapMethod(this.landmarks, 'select');
+    this.landmarks.map(function (lm) {
+        lm.select();
+    });
 });
 
 
@@ -238,15 +189,6 @@ LandmarkCollectionPrototype.deleteSelected = atomic.atomicOperation(function () 
         lm.clear();
     })
 });
-
-LandmarkCollectionPrototype.empty = function () {
-    return whereMethod(this.landmarks, 'isEmpty');
-};
-
-LandmarkCollectionPrototype.nonempty = function () {
-    return whereNotMethod(this.landmarks, 'select');
-};
-
 
 
 var _validateConnectivity =  function (nLandmarks, connectivity) {
@@ -265,7 +207,7 @@ var _validateConnectivity =  function (nLandmarks, connectivity) {
 
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
-var NewLandmarkGroup = function (points, connectivity, labels) {
+var LandmarkGroup = function (points, connectivity, labels) {
 
     var that = this;
 
@@ -300,9 +242,9 @@ var NewLandmarkGroup = function (points, connectivity, labels) {
     this.resetNextAvailable();
 };
 
-NewLandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
+LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
 
-NewLandmarkGroup.prototype.nextAvailable = function () {
+LandmarkGroup.prototype.nextAvailable = function () {
     for (var i = 0; i < this.landmarks.length; i++) {
         if (this.landmarks[i].isNextAvailable()) {
             return this.landmarks[i];
@@ -311,13 +253,13 @@ NewLandmarkGroup.prototype.nextAvailable = function () {
     return null;
 };
 
-NewLandmarkGroup.prototype.clearAllNextAvailable = function () {
+LandmarkGroup.prototype.clearAllNextAvailable = function () {
     this.landmarks.map(function (l) {
         l.clearNextAvailable();
     });
 };
 
-NewLandmarkGroup.prototype.resetNextAvailable = function () {
+LandmarkGroup.prototype.resetNextAvailable = function () {
     this.clearAllNextAvailable();
     for (var i = 0; i < this.landmarks.length; i++) {
         if (this.landmarks[i].isEmpty()) {
@@ -327,7 +269,7 @@ NewLandmarkGroup.prototype.resetNextAvailable = function () {
     }
 };
 
-NewLandmarkGroup.prototype.insertNew = atomic.atomicOperation(function (v) {
+LandmarkGroup.prototype.insertNew = atomic.atomicOperation(function (v) {
     var lm = this.nextAvailable();
     if (lm == null) {
         // nothing left to insert!
@@ -345,7 +287,7 @@ NewLandmarkGroup.prototype.insertNew = atomic.atomicOperation(function (v) {
 });
 
 
-NewLandmarkGroup.prototype.toJSON = function () {
+LandmarkGroup.prototype.toJSON = function () {
     return {
         landmarks: {
             points: this.landmarks,
@@ -356,7 +298,7 @@ NewLandmarkGroup.prototype.toJSON = function () {
     };
 };
 
-NewLandmarkGroup.prototype.promiseSave = function () {
+LandmarkGroup.prototype.promiseSave = function () {
     // TODO implement
     return Promise.resolve();
 };
@@ -378,7 +320,4 @@ LandmarkLabel.prototype.toJSON = function () {
     }
 };
 
-
-exports.Landmark = Landmark;
 exports.promiseLandmarkGroup = promiseLandmarkGroup;
-window.promiseLandmarkGroup = promiseLandmarkGroup;
