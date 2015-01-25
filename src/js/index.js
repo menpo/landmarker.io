@@ -134,7 +134,7 @@ function initLandmarker(server, mode) {
                 app.landmarks().deleteSelected();
                 break;
             case 113:  // q = deselect all
-                app.landmarks().deselectAllInActiveGroup();
+                app.landmarks().deselectAll();
                 break;
             case 114:  // r = [r]eset camera
                 // TODO fix for multiple cameras (should be in camera controller)
@@ -146,7 +146,7 @@ function initLandmarker(server, mode) {
                 }
                 break;
             case 97:  // a = select [a]ll
-                app.landmarks().selectAllInActiveGroup();
+                app.landmarks().selectAll();
                 break;
             case 99:  // c = toggle [c]amera mode
                 if (app.meshMode()) {

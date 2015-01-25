@@ -260,43 +260,24 @@ exports.Viewport = Backbone.View.extend({
                 that.cameraController.disable();
                 // the clicked on landmark
                 var landmarkSymbol = intersectsWithLms[0].object;
-                var group;
                 // hunt through the landmarkViews for the right symbol
                 for (var i = 0; i < that.landmarkViews.length; i++) {
                     if (that.landmarkViews[i].symbol === landmarkSymbol) {
                         lmPressed = that.landmarkViews[i].model;
-                        group = that.landmarkViews[i].group;
                     }
                 }
-                console.log('Viewport: activating the group in question');
-                group.activate();
                 console.log('Viewport: finding the selected points');
                 lmPressedWasSelected = lmPressed.isSelected();
                 if (!lmPressedWasSelected && !ctrl) {
                     // this lm wasn't pressed before and we aren't holding
                     // mutliselection down - deselect rest and select this
-                    console.log("normal click on a unselected lm - deselecting rest...");
-                    lmPressed.collection.deselectAll();
-                    console.log("normal click on a unselected lm - ...and selecting me");
-                    lmPressed.select();
+                    console.log("normal click on a unselected lm - deselecting rest and selecting me");
+                    lmPressed.selectAndDeselectRest();
                 }
                 if (ctrl && !lmPressedWasSelected) {
                     lmPressed.select();
                 }
 
-//                if (group.landmarks().nSelected() >= 1) {
-//                    // This is a multiple selection -
-//                }
-//                if ((event.ctrlKey || event.metaKey)) {
-//                    if(landmark.isSelected()) {
-//                        landmark.deselect();
-//                    } else {
-//                        landmark.select();
-//                    }
-//                } else {
-//                    landmark.collection.deselectAll();
-//                    landmark.select();
-//                }
                 // record the position of where the drag started.
                 positionLmDrag.copy(that.worldToScreen(that.s_meshAndLms.localToWorld(
                     lmPressed.point().clone())));
@@ -329,8 +310,7 @@ exports.Viewport = Backbone.View.extend({
             deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
             // update the position
             positionLmDrag.copy(newPositionLmDrag);
-            var activeGroup = that.model.get('landmarks').get('groups').active();
-            var selectedLandmarks = activeGroup.landmarks().selected();
+            var selectedLandmarks = that.landmarks().selected();
             var lm, vScreen;
             for (var i = 0; i < selectedLandmarks.length; i++) {
                 lm = selectedLandmarks[i];
@@ -371,7 +351,7 @@ exports.Viewport = Backbone.View.extend({
             that.ctx.strokeRect(x, y, dx, dy);
         };
 
-        var shiftOnMouseUp = function (event) {
+        var shiftOnMouseUp = atomic.atomicOperation(function (event) {
             that.cameraController.enable();
             console.log("shift:up");
             $(document).off('mousemove.shiftDrag', shiftOnDrag);
@@ -407,40 +387,12 @@ exports.Viewport = Backbone.View.extend({
                 }
             });
 
-            var labelToGroup = that.model.landmarks().groups().labelsToGroups();
-            var labelToCount = {};
-            var label;
-            // build a count of each group label
-            _.each(visibleLms, function(lmView) {
-                label = lmView.model.get('group').get('label');
-               if (!labelToCount.hasOwnProperty(label)) {
-                   labelToCount[label] = 0;
-               }
-               labelToCount[label] += 1;
-            });
-
-            // find the highest count
-            var maxCountLabel = _.reduce(labelToCount,
-                function (maxCountLabel, count, label) {
-                    if (count > maxCountLabel[0]) {
-                        return [count, label];
-                    } else {
-                        return maxCountLabel;
-                    }
-                }, [0, '']);
-
-            // and activate that group
-            var  maxLabel = maxCountLabel[1];
-            labelToGroup[maxLabel].activate();
-
-            // we can safely select all the models that were visable (a no op
-            // on non-active group landmarks)
             _.each(visibleLms, function (lm) {
                 lm.model.select();
             });
 
             that.clearCanvas();
-        };
+        });
 
         var meshOnMouseUp = function (event) {
             console.log("meshPress:up");
@@ -451,7 +403,7 @@ exports.Viewport = Backbone.View.extend({
                 p = intersectsWithMesh[0].point.clone();
                 // Convert the point back into the mesh space
                 that.s_meshAndLms.worldToLocal(p);
-                that.model.get('landmarks').insertNew(p);
+                that.landmarks().insertNew(p);
             }
         };
 
@@ -460,7 +412,7 @@ exports.Viewport = Backbone.View.extend({
             onMouseUpPosition.set(event.clientX, event.clientY);
             if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
                 // a click on nothing - deselect all
-                that.model.get('landmarks').get('groups').deselectAll();
+                that.landmarks().deselectAll();
             }
         };
 
@@ -475,8 +427,7 @@ exports.Viewport = Backbone.View.extend({
                 if (lmPressedWasSelected && ctrl) {
                     lmPressed.deselect();
                 } else if (!ctrl) {
-                    lmPressed.collection.deselectAll();
-                    lmPressed.select();
+                    lmPressed.selectAndDeselectRest();
                 }
             }
         });
@@ -666,10 +617,14 @@ exports.Viewport = Backbone.View.extend({
         }
     },
 
-    memoryString : function () {
+    memoryString: function () {
         return  'geo:' + this.renderer.info.memory.geometries +
                 ' tex:' + this.renderer.info.memory.textures +
                 ' prog:' + this.renderer.info.memory.programs;
+    },
+
+    landmarks: function () {
+        return this.model.get('landmarks');
     },
 
     changeLandmarks: atomic.atomicOperation(function () {
@@ -684,33 +639,30 @@ exports.Viewport = Backbone.View.extend({
             connView.dispose();
         });
 
-        // 2. Build a fresh set of views - clear any existing lms
+        // 2. Build a fresh set of views - clear any existing views
         this.landmarkViews = [];
         this.connectivityViews = [];
-        var lms = this.model.get('landmarks');
-        if (lms === null) {
-            // no landmarks set - pass
-            return
+
+        var landmarks = this.model.get('landmarks');
+        if (landmarks === null) {
+            // no actual landmarks available - return
+            // TODO when can this happen?!
+            return;
         }
-        var groups = this.model.get('landmarks').get('groups');
-        groups.each(function (group) {
-            group.get('landmarks').each(function (lm) {
-                that.landmarkViews.push(new LandmarkTHREEView(
-                    {
-                        model: lm,
-                        group: group,
-                        viewport: that
-                    }));
-            });
-            _.each(group.connectivity(), function (a_to_b) {
-               that.connectivityViews.push(new LandmarkConnectionTHREEView(
-                   {
-                       model: [group.landmarks().at(a_to_b[0]),
-                               group.landmarks().at(a_to_b[1])],
-                       group: group,
-                       viewport: that
-                   }));
-            });
+        landmarks.landmarks.map(function (lm) {
+            that.landmarkViews.push(new LandmarkTHREEView(
+                {
+                    model: lm,
+                    viewport: that
+                }));
+        });
+        landmarks.connectivity.map(function (a_to_b) {
+           that.connectivityViews.push(new LandmarkConnectionTHREEView(
+               {
+                   model: [landmarks.landmarks[a_to_b[0]],
+                           landmarks.landmarks[a_to_b[1]]],
+                   viewport: that
+               }));
         });
 
     }),
@@ -852,10 +804,8 @@ var LandmarkTHREEView = Backbone.View.extend({
     initialize: function (options) {
         _.bindAll(this, 'render', 'changeLandmarkSize');
         this.listenTo(this.model, "change", this.render);
-        this.group = options.group;
         this.viewport = options.viewport;
         this.app = this.viewport.model;
-        this.listenTo(this.group, "change:active", this.render);
         this.listenTo(this.app, "change:landmarkSize", this.changeLandmarkSize);
         this.symbol = null; // a THREE object that represents this landmark.
         // null if the landmark isEmpty
@@ -898,7 +848,7 @@ var LandmarkTHREEView = Backbone.View.extend({
 
     updateSymbol: function () {
         this.symbol.position.copy(this.model.point());
-        var selected = this.group.get('active') && this.model.isSelected();
+        var selected = this.model.isSelected();
         this.symbol.material = lmMaterialForSelected[selected];
     },
 
@@ -931,9 +881,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
         // Listen to both models for changes
         this.listenTo(this.model[0], "change", this.render);
         this.listenTo(this.model[1], "change", this.render);
-        this.group = options.group;
         this.viewport = options.viewport;
-        this.listenTo(this.group, "change:active", this.render);
         this.symbol = null; // a THREE object that represents this connection.
         // null if the landmark isEmpty
         this.render();
