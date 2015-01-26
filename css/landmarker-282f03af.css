@@ -49,7 +49,8 @@ input, textarea, select{
 .App {
     min-height: 100vh;
     min-width: 100vw;
-    cursor: url(../img/cursor.png) 25 25, auto;
+    cursor: url(../img/cursor.cur), auto;
+
     -webkit-overflow-scrolling: touch;  /* prevent scrolling on mobile safari */
 }
 
