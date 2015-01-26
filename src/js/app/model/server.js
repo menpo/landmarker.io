@@ -2,7 +2,7 @@ var Backbone = require('../lib/backbonej');
 
 exports.Server = Backbone.Model.extend({
 
-    apiHeader: '/api/v1/',
+    apiHeader: '/api/v2/',
 
     defaults: function () {
         return {
