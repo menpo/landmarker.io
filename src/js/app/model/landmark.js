@@ -232,8 +232,12 @@ var LandmarkGroup = function (points, connectivity, labels, id, type, server) {
         return new Landmark(lmInitObj);
     });
 
-    // 2. Validate and assign connectivity
-    _validateConnectivity(this.landmarks.length, connectivity);
+    // 2. Validate and assign connectivity (if there is any, it's not mandatory)
+    if (connectivity !== undefined) {
+        _validateConnectivity(this.landmarks.length, connectivity);
+    } else {
+        connectivity = [];
+    }
     this.connectivity = connectivity;
 
     // 3. Build labels
