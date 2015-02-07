@@ -44,10 +44,11 @@ input, textarea, select{
 
 /* ----------------------------- CONTAINER STYING ------------------------- */
 .App {
-    min-height: 100vh;
-    min-width: 100vw;
+    height: 100vh;
+    width: 100vw;
     cursor: url(../img/cursor.cur), auto;
-
+    position: absolute;
+    top: 0;
     -webkit-overflow-scrolling: touch;  /* prevent scrolling on mobile safari */
 }
 
