@@ -2,6 +2,7 @@ var DEFAULT_API_URL = 'http://localhost:5000';
 
 
 function resolveServer(u) {
+    var server;
     var Server = require('./app/model/server');
     var apiUrl = DEFAULT_API_URL;
     if (u.query.hasOwnProperty('server')) {
@@ -10,17 +11,15 @@ function resolveServer(u) {
             document.title = document.title + ' - demo mode';
             var $ = require('jquery');
             $('.App-Viewport-UIText-TopLeft').toggle();
-            return new Server.Server({DEMO_MODE: true});
+            server = new Server('');
+            server.demoMode = true;
+            return server;
         } else {
             apiUrl = u.query.server;
             console.log('Setting server to provided value: ' + apiUrl);
         }
     } // if no server provided use the default
-    var server = new Server.Server({apiURL: apiUrl});
-    // check to see if we have an https server or not and configure backbone
-    // appropriately.
-    server.configureBackboneSecurity();
-    return server;
+    return new Server(apiUrl);
 }
 
 function resolveMode(server) {
@@ -28,8 +27,25 @@ function resolveMode(server) {
     var modeResolver = new mode.Mode({server: server});
     modeResolver.fetch({
         success: _resolveMode,
-        error: restartInDemoMode
+        error: function (e) {
+            // could be that there is an old v1 server, let's check
+            server.version = 1;
+            modeResolver.fetch({
+                success: redirectToV1,
+                error: restartInDemoMode
+            })
+        }
     });
+}
+
+function redirectToV1() {
+    // we want to add v1 into the url and leave everything else the same
+    console.log('v1 server found - redirecting to legacy landmarker');
+    var url = require('url');
+    var u = url.parse(window.location.href, true);
+    u.pathname = '/v1/';
+    // This will redirect us to v1
+    window.location.replace(url.format(u));
 }
 
 function _resolveMode(modeResolver) {
