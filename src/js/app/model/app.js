@@ -249,15 +249,12 @@ module.exports = Backbone.Model.extend({
         // landmarks are both downloaded and ready.
         var that = this;
         // Make a new landmark object for the new asset.
-        var landmarks = new Landmark.LandmarkSet({
-            id: this.asset().id,
-            type: this.activeTemplate(),
-            server: this.get('server')
-        });
-        // get promises for the both the asset and the landmarks
-        var loadLandmarksPromise = Backbone.promiseFetch(landmarks);
+        var loadLandmarksPromise = Landmark.promiseLandmarkGroup(
+            this.asset().id, this.activeTemplate(), this.get('server'));
         // if both come true, then set the landmarks
-        return Promise.all([loadLandmarksPromise, loadAssetPromise]).then(function () {
+        return Promise.all([loadLandmarksPromise,
+                            loadAssetPromise]).then(function (args) {
+            var landmarks = args[0];
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display');
             // now we know that this is resolved we set the landmarks on the
