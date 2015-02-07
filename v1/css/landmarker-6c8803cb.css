@@ -47,16 +47,17 @@ input, textarea, select{
 
 /* ----------------------------- CONTAINER STYING ------------------------- */
 .App {
-    min-height: 100vh;
-    min-width: 100vw;
-    cursor: url(../img/cursor.png) 25 25, auto;
+    height: 100vh;
+    width: 100vw;
+    cursor: url(../img/cursor.cur), auto;
+    position: absolute;
+    top: 0;
     -webkit-overflow-scrolling: touch;  /* prevent scrolling on mobile safari */
 }
 
 .ModalCentreFlex {
     min-width: 100vw;
     min-height: 100vh;
-    position: fixed;
     display: -webkit-box;
     display: -webkit-flex;
     display: -ms-flexbox;
@@ -210,8 +211,12 @@ is itself a row flexbox */
             flex: 1;
 }
 
-.App-FullScreen {
-    position: fixed
+.FullScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
 }
 
 #canvas {
@@ -349,15 +354,6 @@ is itself a row flexbox */
     z-index: 2
 }
 
-/* UITEXT (TOP LEFT) */
-.App-Viewport-UIText-TopLeft {
-    z-index: 2;
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    display: none;
-}
-
 /* Container for Prev/Next buttons */
 .App-Flex-Pager {
     display: -webkit-box;
@@ -418,56 +414,6 @@ is itself a row flexbox */
 .Toolbar-Row--Disabled{
     pointer-events: none;
     opacity: 0.3;
-}
-
-/* Black transparent overlay used when model sheets are up */
-.Overlay-Background {
-    position: fixed;
-    background: rgba(54, 25, 25, .5);
-    z-index: 3;
-    top:0;
-    left:0;
-    width: 100%;
-    height: 100%;
-    visibility: hidden;
-}
-
-/* OVERLAY ROW FLEXBOX */
-.Overlay {
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: -ms-flexbox;
-    display: flex;
-    height: 100%;
-    width: 100%;
-    -webkit-box-orient: horizontal;
-    -webkit-box-direction: normal;
-    -webkit-flex-direction: row;
-        -ms-flex-direction: row;
-            flex-direction: row;
-    z-index: 4;
-    position: absolute;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
-        -ms-flex-align: center;
-            align-items: center;
-    -webkit-box-pack: center;
-    -webkit-justify-content: center;
-        -ms-flex-pack: center;
-            justify-content: center;
-    visibility: hidden;
-}
-
-/* The overlay sheet itself */
-.Overlay-Sheet {
-    -webkit-box-flex: 1;
-    -webkit-flex: 1;
-        -ms-flex: 1;
-            flex: 1;
-    height: 80vh;
-    max-width: 50vw;
-    text-align: center;
-    background: white;
 }
 
 #demoWarning {

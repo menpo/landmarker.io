@@ -15,17 +15,101 @@
     <meta name="viewport" content="width=device-width, user-scalable=no, minimal-ui">
     <meta http-equiv="expires" content="0" />
     <!-- inject:css -->
-    <link rel="stylesheet" href="css/help-2379435a.css">
-    <link rel="stylesheet" href="css/landmarker-9dd70f57.css">
+    <link rel="stylesheet" href="css/help-1f30a89a.css">
+    <link rel="stylesheet" href="css/landmarker-6c8803cb.css">
     <!-- endinject -->
     <!-- inject:js -->
-    <script src="bundle-d1a7a2d8.js"></script>
+    <script src="bundle-527b6810.js"></script>
     <!-- endinject -->
 </head>
 
 <body oncontextmenu="return false;">
 
-<div class="ModalCentreFlex" id="helpOverlay">
+<!-- MAIN LANDMARKER.IO APP -->
+<div class="App" id="viewportContainer">
+    <!-- WebGL canvas (the actual assets and landmarks) -->
+    <div class="FullScreen" id="viewport"></div>
+
+    <!-- HTML5 canvas (for 2D overlays, e.g. selection box) -->
+    <canvas class="FullScreen" id="canvas"></canvas>
+</div>
+
+<div class="Chrome">
+    <!-- HTML UI -->
+    <div class="App-Flex-Vert">
+        <div class="App-Flex-Horiz">
+            <div class="App-Flex-LeftCol">
+                <!-- Asset information  (top left) -->
+                <div class="AssetInfo">
+                    <button id="assetName">mesh_name</button>
+                    <button id="assetIndex">001/999</button>
+                </div>
+                <!-- Toolbox itself (bottom left) -->
+                <div class="Toolbar" id="toolbar">
+                    <div class="Toolbar-Row" id="textureRow">
+                        <div class="Toolbar-Row-Item">Texture</div>
+                        <div class="Toolbar-Row-Item">
+                        <div class="onoffswitch">
+                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="textureToggle">
+                            <label class="onoffswitch-label" for="textureToggle">
+                                <div class="onoffswitch-inner"></div>
+                                <div class="onoffswitch-switch"></div>
+                            </label>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="Toolbar-Row" id="connectivityRow">
+                        <div class="Toolbar-Row-Item">Links</div>
+                        <div class="Toolbar-Row-Item">
+                            <div class="onoffswitch">
+                                <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="connectivityToggle">
+                                <label class="onoffswitch-label" for="connectivityToggle">
+                                    <div class="onoffswitch-inner"></div>
+                                    <div class="onoffswitch-switch"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="Toolbar-Row" id="lmSizeRow">&#9679;<input type="range" name="points" min="0" max="100" id="lmSizeSlider">
+                    </div>
+                </div>
+            </div>
+            <!-- PREV/NEXT  (bottom centre) -->
+            <div class="App-Flex-Pager" id="assetPager">
+                <div class="Pager-Item">
+                    <button class="Button-Basic-Fixed"
+                            id="previous">←</button>
+                </div>
+                <div class="Pager-Item">
+                    <button class="Button-Basic-Fixed" id="next">→</button>
+                </div>
+            </div>
+            <!-- SIDEBAR  -->
+            <div class="App-Flex-Sidebar">
+                <div class="Sidebar-row" id="saveRevert">
+                    <div class="Sidebar-row-item">
+                        <button class="Button-Save"
+                                id="save">Save</button>
+                    </div>
+                    <div class="Sidebar-row-item">
+                        <button class="Button-Revert" id="revert">Help</button>
+                    </div>
+                </div>
+                <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="FullScreen ModalCentreFlex" id="notificationOverlay">
+    <div class="ModalNotification"
+         id="saveCompleted">Save Completed</div>
+    <div class="ModalNotification" id="saveFailed">Save Failed</div>
+    <div id="loadingSpinner"></div>
+</div>
+
+<div class="FullScreen ModalCentreFlex" id="helpOverlay">
     <table>
         <tbody>
         <tr>
@@ -91,96 +175,10 @@
         </tbody>
     </table>
 </div>
-<div class="ModalCentreFlex" id="notificationOverlay">
-    <div class="ModalNotification"
-         id="saveCompleted">Save Completed</div>
-    <div class="ModalNotification" id="saveFailed">Save Failed</div>
-    <div id="loadingSpinner"></div>
-</div>
 
-<!-- MODAL OVERLAY (for filtering selected model) -->
-<div class="Overlay-Background"></div>
-<div class="Overlay">
-    <div class="Overlay-Sheet">
-        <label for="filter"></label>
-        <input type="text" class="text-input" id="filter" value="" />
-    </div>
-</div>
-
-<!-- MAIN LANDMARKER.IO UI -->
-<div class="App" id="viewportContainer">
-        <!-- A canvas (for 2D overlays, e.g. selection box) and the WebGL div -->
-        <canvas class="App-FullScreen" id="canvas"></canvas>
-        <div class="App-FullScreen" id="viewport"></div>
-        <div class="App-Flex-Vert">
-            <div style="z-index: 10; background: palevioletred; color: white;
-            text-align: center; padding: 5px;">
-                LEGACY MODE: landmarker.io is connected to a v1 server (see <a href="https://github.com/menpo/landmarker.io/wiki/API:-Moving-from-v1-to-v2" target="_blank">here</a> for details)
-            </div>
-            <div class="App-Flex-Horiz">
-                <div class="App-Flex-LeftCol">
-                    <!-- Asset information  (top left) -->
-                    <div class="AssetInfo">
-                        <button id="assetName">mesh_name</button>
-                        <button id="assetIndex">001/999</button>
-                    </div>
-                    <!-- Toolbox itself (bottom left) -->
-                    <div class="Toolbar" id="toolbar">
-                        <div class="Toolbar-Row" id="textureRow">
-                            <div class="Toolbar-Row-Item">Texture</div>
-                            <div class="Toolbar-Row-Item">
-                            <div class="onoffswitch">
-                                <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="textureToggle">
-                                <label class="onoffswitch-label" for="textureToggle">
-                                    <div class="onoffswitch-inner"></div>
-                                    <div class="onoffswitch-switch"></div>
-                                </label>
-                            </div>
-                            </div>
-                        </div>
-                        <div class="Toolbar-Row" id="connectivityRow">
-                            <div class="Toolbar-Row-Item">Links</div>
-                            <div class="Toolbar-Row-Item">
-                                <div class="onoffswitch">
-                                    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="connectivityToggle">
-                                    <label class="onoffswitch-label" for="connectivityToggle">
-                                        <div class="onoffswitch-inner"></div>
-                                        <div class="onoffswitch-switch"></div>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="Toolbar-Row" id="lmSizeRow">&#9679;<input type="range" name="points" min="0" max="100" id="lmSizeSlider">
-                        </div>
-                    </div>
-                </div>
-                <!-- PREV/NEXT  (bottom centre) -->
-                <div class="App-Flex-Pager" id="assetPager">
-                    <div class="Pager-Item">
-                        <button class="Button-Basic-Fixed"
-                                id="previous">←</button>
-                    </div>
-                    <div class="Pager-Item">
-                        <button class="Button-Basic-Fixed" id="next">→</button>
-                    </div>
-                </div>
-                <!-- SIDEBAR  -->
-                <div class="App-Flex-Sidebar">
-                    <div class="Sidebar-row" id="saveRevert">
-                        <div class="Sidebar-row-item">
-                            <button class="Button-Save"
-                                    id="save">Save</button>
-                        </div>
-                        <div class="Sidebar-row-item">
-                            <button class="Button-Revert" id="revert">Help</button>
-                        </div>
-                    </div>
-                    <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<div style="background: palevioletred; color: white;
+            text-align: center; padding: 10px;position: fixed;top: 0;width: 100vw;">
+    LEGACY MODE: landmarker.io is connected to a v1 server (see <a href="https://github.com/menpo/landmarker.io/wiki/API:-Moving-from-v1-to-v2" target="_blank">here</a> for details)
 </div>
 
 </body>
