@@ -210,7 +210,7 @@ exports.Viewport = Backbone.View.extend({
             event.preventDefault();
             that.$el.focus();
             downEvent = event;
-            onMouseDownPosition.set(event.offsetX, event.offsetY);
+            onMouseDownPosition.set(event.clientX, event.clientY);
 
             // All interactions require intersections to distinguish
             intersectsWithLms = that.getIntersectsFromEvent(event, that.s_lms);
@@ -304,7 +304,7 @@ exports.Viewport = Backbone.View.extend({
             console.log("drag");
             // note that positionLmDrag is set to where we started.
             // update where we are now and where we were
-            var newPositionLmDrag = new THREE.Vector2(event.offsetX, event.offsetY);
+            var newPositionLmDrag = new THREE.Vector2(event.clientX, event.clientY);
             var prevPositionLmDrag = positionLmDrag.clone();
             // change in this step in screen space
             deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
@@ -340,8 +340,8 @@ exports.Viewport = Backbone.View.extend({
             console.log("shift:drag");
             // note - we use client as we don't want to jump back to zero
             // if user drags into sidebar!
-            var newX = event.offsetX;
-            var newY = event.offsetY;
+            var newX = event.clientX;
+            var newY = event.clientY;
             // clear the canvas and draw a selection rect.
             that.clearCanvas();
             var x = onMouseDownPosition.x;
@@ -357,8 +357,8 @@ exports.Viewport = Backbone.View.extend({
             $(document).off('mousemove.shiftDrag', shiftOnDrag);
             var x1 = onMouseDownPosition.x;
             var y1 = onMouseDownPosition.y;
-            var x2 = event.offsetX;
-            var y2 = event.offsetY;
+            var x2 = event.clientX;
+            var y2 = event.clientY;
             var min_x, max_x, min_y, max_y;
             if (x1 < x2) {
                 min_x = x1;
@@ -397,7 +397,7 @@ exports.Viewport = Backbone.View.extend({
         var meshOnMouseUp = function (event) {
             console.log("meshPress:up");
             var p;
-            onMouseUpPosition.set(event.offsetX, event.offsetY);
+            onMouseUpPosition.set(event.clientX, event.clientY);
             if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
                 //  a click on the mesh
                 p = intersectsWithMesh[0].point.clone();
@@ -409,7 +409,7 @@ exports.Viewport = Backbone.View.extend({
 
         var nothingOnMouseUp = function (event) {
             console.log("nothingPress:up");
-            onMouseUpPosition.set(event.offsetX, event.offsetY);
+            onMouseUpPosition.set(event.clientX, event.clientY);
             if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
                 // a click on nothing - deselect all
                 that.landmarks().deselectAll();
@@ -421,7 +421,7 @@ exports.Viewport = Backbone.View.extend({
             that.cameraController.enable();
             console.log("landmarkPress:up");
             $(document).off('mousemove.landmarkDrag');
-            onMouseUpPosition.set(event.offsetX, event.offsetY);
+            onMouseUpPosition.set(event.clientX, event.clientY);
             if (onMouseDownPosition.distanceTo(onMouseUpPosition) === 0) {
                 // landmark was pressed
                 if (lmPressedWasSelected && ctrl) {
@@ -508,7 +508,7 @@ exports.Viewport = Backbone.View.extend({
     },
 
     getIntersectsFromEvent: function (event, object) {
-      return this.getIntersects(event.offsetX, event.offsetY, object);
+      return this.getIntersects(event.clientX, event.clientY, object);
     },
 
     worldToScreen: function (vector) {
