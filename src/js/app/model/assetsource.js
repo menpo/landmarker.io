@@ -76,6 +76,15 @@ var AssetSource = Backbone.Model.extend({
         return this.setAsset(this.assets()[this.assetIndex() - 1]);
     },
 
+    setIndex: function (newIndex) {
+        if (newIndex < 0 || newIndex >= this.nAssets()) {
+            console.log("Can't go to asset with index " + newIndex + 1);
+            return null;
+        } else {
+            return this.setAsset(this.assets()[newIndex]);
+        }
+    },
+
     updateMesh: function () {
         this.trigger('change:mesh');
     }

@@ -264,18 +264,22 @@ module.exports = Backbone.Model.extend({
         });
     },
 
-    nextAsset: function () {
+    _switchToAsset: function (q) {
         // see setAsset for docs
         this.set('landmarks', null);
-        return this._promiseLandmarksWithAsset(
-            this.assetSource().next());
+        return this._promiseLandmarksWithAsset(q);
+    },
+
+    nextAsset: function () {
+        return this._switchToAsset(this.assetSource().next());
     },
 
     previousAsset: function () {
-        // see setAsset for docs
-        this.set('landmarks', null);
-        return this._promiseLandmarksWithAsset(
-            this.assetSource().previous());
+        return this._switchToAsset(this.assetSource().previous());
+    },
+
+    goToAssetIndex: function (newIndex) {
+        return this._switchToAsset(this.assetSource().setIndex(newIndex));
     }
 
 });

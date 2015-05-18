@@ -395,6 +395,7 @@ is itself a row flexbox */
     width: inherit;
     z-index: 2;
     background: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
 }
 
 .LabelName {
