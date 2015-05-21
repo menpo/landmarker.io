@@ -350,10 +350,6 @@ is itself a row flexbox */
     width: 75px;
 }
 
-.Button--Disabled {
-    opacity: 0.33;
-}
-
 .Button-Save {
     color: white;
     background: #5FB632;
@@ -362,6 +358,15 @@ is itself a row flexbox */
 .Button-Revert {
     color: white;
     background: #B91109;
+}
+
+.Button-Save, .Button-Revert {
+  cursor: pointer;
+}
+
+.Button--Disabled {
+    opacity: 0.33;
+    cursor: initial;
 }
 
 .Button-Toolbar {
