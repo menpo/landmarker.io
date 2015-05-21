@@ -99,6 +99,9 @@ var AssetIndexView = Backbone.View.extend({
 
     chooseAssetNumber: function () {
         console.log('AssetIndexView:chooseAssetNumber');
+        var newIndex = window.prompt(
+          "Input asset index:", pad(this.model.assetIndex() + 1, 2));
+        this.model.goToAssetIndex(Number(newIndex) - 1);
     }
 });
 

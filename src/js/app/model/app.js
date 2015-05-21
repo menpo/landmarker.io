@@ -202,7 +202,7 @@ module.exports = Backbone.Model.extend({
                     throw Error('Error trying to set index to ' + i + ' - needs to'
                     + ' be in the range 0-' + assetSource.nAssets());
                 }
-                return that.setAsset(assetSource.assets()[i]);
+                return that.goToAssetIndex(i);
             },
             function () {
                 throw Error('Failed to fetch assets (is landmarkerio' +
@@ -232,18 +232,6 @@ module.exports = Backbone.Model.extend({
         this.trigger('newMeshAvailable');
     },
 
-    setAsset: function (newAsset) {
-        this.set('landmarks', null);
-        // get a promise of the new asset. this promise will only resolve
-        // once we have the key data loaded to start annotating - for an image
-        // that's the full texture. For a mesh, that's the geometry.
-        var newAssetPromise = this.assetSource().setAsset(newAsset);
-        // 'wrap' this promise in a landmark promise. All this will only
-        // resolve when we have both landmarks (if there are landmarks)
-        // and an asset suitable for display
-        return this._promiseLandmarksWithAsset(newAssetPromise);
-    },
-
     _promiseLandmarksWithAsset: function (loadAssetPromise) {
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
@@ -264,18 +252,25 @@ module.exports = Backbone.Model.extend({
         });
     },
 
-    nextAsset: function () {
-        // see setAsset for docs
+    _switchToAsset: function (newAssetPromise) {
         this.set('landmarks', null);
-        return this._promiseLandmarksWithAsset(
-            this.assetSource().next());
+        // The asset promise should come from the assetSource and will only
+        // resolve when all the key data for annotating is loaded, the
+        // promiseLandmark wraps it and only resolves when both landmarks (if
+        // applicable) and asset data are present
+        return this._promiseLandmarksWithAsset(newAssetPromise);
+    },
+
+    nextAsset: function () {
+        return this._switchToAsset(this.assetSource().next());
     },
 
     previousAsset: function () {
-        // see setAsset for docs
-        this.set('landmarks', null);
-        return this._promiseLandmarksWithAsset(
-            this.assetSource().previous());
+        return this._switchToAsset(this.assetSource().previous());
+    },
+
+    goToAssetIndex: function (newIndex) {
+        return this._switchToAsset(this.assetSource().setIndex(newIndex));
     }
 
 });
