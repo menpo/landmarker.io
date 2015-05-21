@@ -44,35 +44,76 @@ exports.ThumbnailNotification = Backbone.View.extend({
     }
 });
 
+// Singleton notification view accepting an option object of the form:
+// {type, msg, closeTimeout, manualClose}
+// automatic dismissal
+// use manualClose: true to disable automatic dismissal (will override
+// closeTimeout)
+exports.BaseNotification = Backbone.View.extend({
 
-exports.LandmarkSuccessFailureNotification = Backbone.View.extend({
+    tagName: 'div',
 
-    initialize : function() {
-        _.bindAll(this, 'success', 'failure');
-        this.successEl = document.getElementById('saveCompleted');
-        this.failureEl = document.getElementById('saveFailed');
-        this.off = 'ModalNotification';
-        this.on = this.off + ' ModalNotification--Display';
+    __container: '#notificationOverlay',
+    __baseClass: 'ModalNotification',
+    __closingClass: 'ModalNotification--Closing',
+    __defaultCloseTimeout: 1500,
+    __defaultType: 'warning',
+
+    __types: {
+      'success': true,
+      'error': true
     },
 
-    success: function () {
-        this.successEl.className = this.off;
-        this.failureEl.className = this.off;
-        // Need this to trigger a reflow (else CSS will miss the class change)
-        this.successEl.offsetWidth = this.successEl.offsetWidth;
-        this.successEl.className = this.on;
-
+    __classes: {
+      'success': 'ModalNotification--Success',
+      'error': 'ModalNotification--Error',
+      'warning': 'ModalNotification--Warning'
     },
 
-    failure: function () {
-        this.failureEl.className = this.off;
-        this.successEl.className = this.off;
-        // Need this to trigger a reflow (else CSS will miss the class change)
-        this.failureEl.offsetWidth = this.failureEl.offsetWidth;
-        this.failureEl.className = this.on;
+    initialize: function (opts) {
+
+      opts = opts || {};
+
+      _.bindAll(this, 'render', 'close', 'onClick');
+
+      var msg = opts.msg || '',
+          type = opts.type in this.__types ? opts.type || '' :
+                                             this.__defaultType,
+          closeTimeout = opts.manualClose ?
+                         undefined :
+                         opts.closeTimeout || this.__defaultCloseTimeout;
+
+      this.render(type, msg, closeTimeout);
+    },
+
+    render: function (type, msg, timeout) {
+        var _this = this;
+
+        this.$el.addClass([this.__baseClass, this.__classes[type]].join(' '));
+        this.$el.text(msg);
+        this.$el.appendTo(this.__container);
+
+        if (timeout) {
+          setTimeout(function () {
+              _this.close();
+          }, timeout);
+        }
+    },
+
+    onClick: function () {
+        this.close();
+    },
+
+    close: function () {
+        var _this = this;
+        this.$el.addClass(this.__closingClass);
+
+        setTimeout(function () {
+            _this.unbind();
+            _this.remove();
+        }, 1000);
     }
 });
-
 
 exports.AssetLoadingNotification = Backbone.View.extend({
 

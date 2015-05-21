@@ -61,50 +61,56 @@ input, textarea, select{
     justify-content: center;
 }
 
-#notificationOverlay {
+.NotificationWrapper {
+    display: flex;
+    flex-direction: column;
     z-index: 3;
 }
 
 .ModalNotification {
-    display: none;
-    width: 200px;
+    margin: .4em auto;
+    display: block;
+    width: 256px;
     font-size: large;
     font-weight: bold;
-    padding: 16px;
+    padding: 1em;
+    border-radius: 2px;
     text-align: center;
     color: white;
+    opacity: .95;
+    cursor: pointer;
+
+    animation-duration: 1s;
+    animation-name: notification-open;
+}
+
+@keyframes notification-open {
+    0% { opacity: 0; }
+    100% { opacity: .95; }
+}
+
+@keyframes notification-close {
+    0% { opacity: 0.95; }
+    100% { opacity: 0; }
+}
+
+.ModalNotification--Closing {
+    animation-duration: 1s;
+    animation-name: notification-close;
     opacity: 0;
 }
 
-.ModalNotification.ModalNotification--Display {
-    display: inline;
-    animation-duration: 3s;
-    animation-name: toast;
+.ModalNotification--Warning {
+    background-color: rgba(235,149,50,1);
 }
 
-@keyframes toast {
-    0% {
-        opacity: 0;
-    }
-    15% {
-        opacity: 0.94;
-    }
-    85% {
-        opacity: 0.94;
-    }
-    100% {
-        opacity: 0;
-    }
+.ModalNotification--Success {
+    background-color: rgba(46,204,113,1);
 }
 
-#saveCompleted {
-    background: #5FB632;
+.ModalNotification--Error {
+   background-color: rgba(239,72,54,1);
 }
-
-#saveFailed {
-    background: #B91109;
-}
-
 
 /* Make the Sidebar fixed width */
 .App-Flex-Sidebar {
