@@ -278,7 +278,7 @@ var Sidebar = Backbone.View.extend({
         this.lmView = new LandmarkGroupListView({
             collection: lms.labels
         });
-        $('.Sidebar-LandmarksPanel').html(this.lmView.render().$el)
+        $('#landmarksPanel').html(this.lmView.render().$el)
     }
 
 });

@@ -10,11 +10,13 @@ var rev = require('gulp-rev');
 var buffer = require('gulp-buffer');
 var replace = require('gulp-replace');
 var inject = require('gulp-inject');
+var sass = require('gulp-sass');
+var sourcemaps = require('gulp-sourcemaps');
 var del = require('del');
 
 var src = {
     js: ['src/js/**/*.js'],
-    css: ['src/css/**/*.css'],
+    scss: ['src/scss/**/*.scss'],
     index: ['src/index.html']
 };
 
@@ -26,7 +28,7 @@ var built = {
 var built_globs = [
     './bundle*js',
     './index.html',
-    './css/*.css',
+    './bundle*.css',
     './img/*.png'
 ];
 
@@ -46,7 +48,7 @@ gulp.task('clean-js', function (cb) {
 });
 
 gulp.task('clean-css', function (cb) {
-    del(['./css/*.css'], cb);
+    del(['./bundle*.css'], cb);
 });
 
 // Rebuild the JS bundle + issue a notification when done.
@@ -75,15 +77,18 @@ gulp.task('js', function() {
         .pipe(notify('Landmarker.io: JS rebuilt'));
 });
 
-// Rebuild the CSS autoprefixer output + issue a notification when done.
-gulp.task('css', function() {
-    // Pipe ./src/css through autoprefixer and store in ./css
-    return gulp.src(src.css)
+// Rebuild the SCSS and pass throuhg autoprefixer output
+// + issue a notification when done.
+gulp.task('sass', function () {
+    return gulp.src('./src/scss/bundle.scss')
+        .pipe(sourcemaps.init())
+        .pipe(sass().on('error', sass.logError))
         .pipe(prefix(["last 1 version", "> 1%", "ie 8", "ie 7"],
             { cascade: true }))
+        .pipe(sourcemaps.write())
         .pipe(rev())
-        .pipe(gulp.dest('./css/'))
-        .pipe(notify('Landmarker.io: CSS rebuilt'));
+        .pipe(gulp.dest('.'))
+        .pipe(notify('Landmarker.io: (S)CSS rebuilt'));
 });
 
 gulp.task('html', function() {
@@ -100,7 +105,7 @@ gulp.task('build-js', function() {
 });
 
 gulp.task('build-css', function() {
-    runSequence('clean-css', 'css', 'build-html');
+    runSequence('clean-css', 'sass', 'build-html');
 });
 
 gulp.task('build-html', function() {
@@ -110,7 +115,7 @@ gulp.task('build-html', function() {
 // Rerun the task when a file changes
 gulp.task('watch', function() {
     gulp.watch(src.js, ['build-js']);
-    gulp.watch(src.css, ['build-css']);
+    gulp.watch(src.scss, ['build-css']);
     gulp.watch(src.html, ['build-html']);
     // whenever any built file changes, invalidate the manifest
 });

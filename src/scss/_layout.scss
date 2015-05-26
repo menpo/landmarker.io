@@ -1,0 +1,86 @@
+%fullSize {
+    width: 100vw;
+    height: 100vh;
+}
+
+%fullSize--min {
+    min-width: 100vw;
+    min-height: 100vh;
+}
+
+.Viewport {
+    @extend %fullSize;
+    position: absolute;
+    top: 0;
+    cursor: url(../img/cursor.cur), auto;
+    -webkit-overflow-scrolling: touch;  /* prevent scrolling on mobile safari */
+}
+
+.MainCanvas {
+    z-index: $zIndexCanvas;
+}
+
+.FullScreen {
+    @extend %fullSize;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.ModalCentreFlex {
+    @extend %fullSize--min;
+    position: absolute;
+    z-index: $zIndexOverlay;
+    top: 0;
+    left: 0;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.App-Flex-Vert {
+    @extend %fullSize--min;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.App-Flex-Horiz {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+    justify-content: space-between;
+    /* below needed IE11: https://github.com/Modernizr/Modernizr/issues/1301 */
+    min-height: 100vh;
+}
+
+.App-Flex-LeftCol,
+.App-Flex-RightCol {
+    flex: 4;
+}
+
+.App-Flex-Pager {
+    flex: 1;
+}
+
+.Pager {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+
+    > div {
+        width: $pagerItemWidth;
+        z-index: $zIndexUI;
+    }
+}
+
+.RightSidebar,
+.LeftSidebar {
+    display: flex;
+    text-align: center;
+    > div {
+        z-index: $zIndexUI;
+    }
+}

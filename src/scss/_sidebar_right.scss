@@ -1,0 +1,94 @@
+// Main sidebar container
+.RightSidebar {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+
+    @media screen and (max-width: $breakpointsMobile) {
+        display: none;
+    }
+}
+
+.RightSidebar > div {
+    width: 100%;
+    max-width: 300px;
+}
+
+.RightSidebar-Controls,
+.RightSidebar-LandmarksPanel {
+    display: flex;
+    text-align: center;
+}
+
+/* Special RightSidebar item used for rows (e.g. two buttons).
+is itself a row flexbox */
+.RightSidebar-Controls {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    min-height: $mainControlHeight;
+}
+
+.RightSidebar-Controls-Item {
+    flex: 1;
+}
+
+/* Landmarks selector */
+.RightSidebar-LandmarksPanel {
+    flex-direction: column;
+    /*overflow: auto; breaks Safari view? */
+    cursor: pointer;
+}
+
+.LmGroup {
+    position: relative;
+}
+
+.LmGroup-Label,
+.LmGroup-Flex {
+    width: 100%;
+    height: 100%;
+}
+
+.LmGroup-Label {
+    position: absolute;
+    top: 0;
+    z-index: 1;
+    pointer-events: none;
+    font-size: larger;
+    color: white;
+}
+
+.LmGroup-Label--Active {
+    font-weight: bold
+}
+
+.LmGroup-Flex {
+    display: flex;
+    align-items: center;
+    opacity: 0.5;
+}
+
+.Lm {
+    flex: 1;
+    height: 30px;
+    margin-left: 1px;
+    margin-bottom: 1px;
+}
+
+.Lm-Empty {
+    background: #2D77C2;
+}
+
+.Lm-Value {
+    background: #0A4EB2;
+}
+
+.Lm-Selected {
+    background: #5FB632;
+}
+
+
+.Lm-NextAvailable {
+    border-bottom: solid white;
+    height: 27px;
+}

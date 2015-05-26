@@ -23,23 +23,23 @@
 <body oncontextmenu="return false;">
 
 <!-- MAIN LANDMARKER.IO APP -->
-<div class="App" id="viewportContainer">
+<div class="Viewport" id="viewportContainer">
     <!-- WebGL canvas (the actual assets and landmarks) -->
     <div class="FullScreen" id="viewport"></div>
 
     <!-- HTML5 canvas (for 2D overlays, e.g. selection box) -->
-    <canvas class="FullScreen" id="canvas"></canvas>
+    <canvas class="FullScreen MainCanvas" id="canvas"></canvas>
 </div>
 
 <div class="Chrome">
     <!-- HTML UI -->
     <div class="App-Flex-Vert">
         <div class="App-Flex-Horiz">
-            <div class="App-Flex-LeftCol">
+            <div class="App-Flex-LeftCol LeftSidebar">
                 <!-- Asset information  (top left) -->
                 <div class="AssetInfo">
-                    <button id="assetName">mesh_name</button>
-                    <button id="assetIndex">001/999</button>
+                    <button class="AssetName" id="assetName">mesh_name</button>
+                    <button class="AssetIndex" id="assetIndex">001/999</button>
                 </div>
                 <!-- Toolbox itself (bottom left) -->
                 <div class="Toolbar" id="toolbar">
@@ -72,28 +72,27 @@
                 </div>
             </div>
             <!-- PREV/NEXT  (bottom centre) -->
-            <div class="App-Flex-Pager" id="assetPager">
+            <div class="App-Flex-Pager Pager" id="assetPager">
                 <div class="Pager-Item">
-                    <button class="Button-Basic-Fixed"
-                            id="previous">&larr;</button>
+                    <button class="Button-Basic" id="previous">&larr;</button>
                 </div>
                 <div class="Pager-Item">
-                    <button class="Button-Basic-Fixed" id="next">&rarr;</button>
+                    <button class="Button-Basic" id="next">&rarr;</button>
                 </div>
             </div>
             <!-- SIDEBAR  -->
-            <div class="App-Flex-Sidebar">
-                <div class="Sidebar-row" id="saveRevert">
-                    <div class="Sidebar-row-item">
+            <div class="App-Flex-RightCol RightSidebar">
+                <div class="RightSidebar-Controls" id="saveRevert">
+                    <div class="RightSidebar-Controls-Item">
                         <button class="Button-Save"
                                 id="save">Save</button>
                     </div>
-                    <div class="Sidebar-row-item">
+                    <div class="RightSidebar-Controls-Item">
                         <button class="Button-Revert" id="revert">Help</button>
                     </div>
                 </div>
-                <div class="Sidebar-LandmarksPanel" id="LandmarksPanel">
-                </div>
+                <div class="RightSidebar-LandmarksPanel"
+                     id="landmarksPanel"></div>
             </div>
         </div>
     </div>
