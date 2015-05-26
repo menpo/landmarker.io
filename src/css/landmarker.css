@@ -18,7 +18,7 @@ button {
     outline: none;
     width: 100%;
     min-height: 40px;
-    height: 40px;
+    line-height: 40px;
     font-weight: 300;
     font-size: larger;
 }
@@ -120,12 +120,18 @@ input, textarea, select{
 
 /* Make the Sidebar fixed width */
 .App-Flex-Sidebar {
-    width: 300px;
     display: flex;
     max-height: 100vh;
     flex-direction: column-reverse;
     text-align: center;
+    flex: 4;
+    align-items: flex-end;
 }
+
+.App-Flex-Sidebar > div {
+    width: 300px;
+}
+
 
 @media screen and (max-width: 650px) {
     .App-Flex-Sidebar {
@@ -181,6 +187,7 @@ is itself a row flexbox */
     flex-direction: column;
     align-items: flex-start;
     justify-content: space-between;
+    flex: 4;
 }
 
 /* PAGER - BOTTOM ROW - FLEXBOX */
@@ -235,6 +242,8 @@ is itself a row flexbox */
 .App-Flex-Pager {
     display: flex;
     align-items: flex-end;
+    flex: 1;
+    justify-content: center;
 }
 
 .Pager-Item {
@@ -379,6 +388,7 @@ is itself a row flexbox */
 }
 
 #assetName {
+    display: block;
     color: #B91109;
     background: white;
     font-size: x-large;
@@ -391,6 +401,7 @@ is itself a row flexbox */
 }
 
 #assetIndex {
+    display: block;
     color: black;
     background: white;
     font-size: x-large;
