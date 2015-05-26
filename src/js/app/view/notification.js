@@ -74,7 +74,7 @@ exports.BaseNotification = Backbone.View.extend({
 
       opts = opts || {};
 
-      _.bindAll(this, 'render', 'close', 'onClick');
+      _.bindAll(this, 'render', 'close');
 
       var msg = opts.msg || '',
           type = opts.type in this.__types ? opts.type || '' :
@@ -86,6 +86,10 @@ exports.BaseNotification = Backbone.View.extend({
       this.render(type, msg, closeTimeout);
     },
 
+    events: {
+        click: 'close'
+    },
+
     render: function (type, msg, timeout) {
         var _this = this;
 
@@ -93,15 +97,9 @@ exports.BaseNotification = Backbone.View.extend({
         this.$el.text(msg);
         this.$el.appendTo(this.__container);
 
-        if (timeout) {
-          setTimeout(function () {
-              _this.close();
-          }, timeout);
+        if (timeout !== undefined) {
+          setTimeout(_this.close, timeout);
         }
-    },
-
-    onClick: function () {
-        this.close();
     },
 
     close: function () {

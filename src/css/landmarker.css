@@ -42,7 +42,7 @@ input, textarea, select{
     user-select: none;
 }
 
-/* ----------------------------- CONTAINER STYING ------------------------- */
+/* ----------------------------- CONTAINER STYLING ------------------------- */
 .App {
     height: 100vh;
     width: 100vw;
@@ -53,9 +53,14 @@ input, textarea, select{
 }
 
 .ModalCentreFlex {
+    display: flex;
     min-width: 100vw;
     min-height: 100vh;
-    display: flex;
+    flex-direction: column;
+    z-index: 3;
+    position: absolute;
+    top: 0;
+    left: 0;
     pointer-events: none;
     align-items: center;
     justify-content: center;
@@ -64,7 +69,7 @@ input, textarea, select{
 .NotificationWrapper {
     display: flex;
     flex-direction: column;
-    z-index: 3;
+    z-index: 4;
 }
 
 .ModalNotification {
@@ -79,6 +84,7 @@ input, textarea, select{
     color: white;
     opacity: .95;
     cursor: pointer;
+    pointer-events: auto;
 
     animation-duration: 1s;
     animation-name: notification-open;
@@ -193,19 +199,6 @@ is itself a row flexbox */
     min-height: 100vh;
     flex-direction: column;
     justify-content: space-between;
-}
-
-.Notifications {
-    z-index: 4;
-    display: flex;
-    flex-direction: column;
-    height: 10px;
-
-}
-
-.Notification {
-    display: flex;
-    flex: 1;
 }
 
 #assetNotification {
