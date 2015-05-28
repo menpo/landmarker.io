@@ -115,5 +115,7 @@ gulp.task('watch', function() {
     // whenever any built file changes, invalidate the manifest
 });
 
+gulp.task('build', ['build-js', 'build-css']);
+
 // The default task (called when you run `gulp` from cli)
 gulp.task('default', ['watch', 'build-js', 'build-css']);
