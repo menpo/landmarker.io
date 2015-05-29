@@ -12,6 +12,7 @@ var replace = require('gulp-replace');
 var inject = require('gulp-inject');
 var sass = require('gulp-sass');
 var sourcemaps = require('gulp-sourcemaps');
+var rename = require('gulp-rename');
 var del = require('del');
 
 var src = {
@@ -19,6 +20,11 @@ var src = {
     scss: ['src/scss/**/*.scss'],
     index: ['src/index.html']
 };
+
+var entry = {
+    js: './src/js/index.js',
+    scss: './src/scss/main.scss'
+}
 
 var built = {
     js: './',
@@ -53,7 +59,7 @@ gulp.task('clean-css', function (cb) {
 
 // Rebuild the JS bundle + issue a notification when done.
 gulp.task('js', function() {
-    var b = browserify('./src/js/index.js', {debug: true})
+    var b = browserify(entry.js, {debug: true})
         .bundle();
     return b.on('error', function(e) {
             gutil.log(e);
@@ -80,12 +86,13 @@ gulp.task('js', function() {
 // Rebuild the SCSS and pass throuhg autoprefixer output
 // + issue a notification when done.
 gulp.task('sass', function () {
-    return gulp.src('./src/scss/bundle.scss')
+    return gulp.src(entry.scss)
         .pipe(sourcemaps.init())
         .pipe(sass().on('error', sass.logError))
         .pipe(prefix(["last 1 version", "> 1%", "ie 8", "ie 7"],
             { cascade: true }))
         .pipe(sourcemaps.write())
+        .pipe(rename('bundle.css'))
         .pipe(rev())
         .pipe(gulp.dest('.'))
         .pipe(notify('Landmarker.io: (S)CSS rebuilt'));

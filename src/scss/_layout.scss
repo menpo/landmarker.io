@@ -12,11 +12,10 @@
     @extend %fullSize;
     position: absolute;
     top: 0;
-    cursor: url(../img/cursor.cur), auto;
     -webkit-overflow-scrolling: touch;  /* prevent scrolling on mobile safari */
 }
 
-.MainCanvas {
+.Viewport > canvas {
     z-index: $zIndexCanvas;
 }
 
