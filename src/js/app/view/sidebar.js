@@ -203,12 +203,8 @@ var SaveRevertView = Backbone.View.extend({
         //this.listenTo(this.model, "all", this.render);
         // make a spinner to listen for save calls on these landmarks
         this.spinner = new Notification.LandmarkSavingNotification();
-    },
-
-    // Hack here to pass the app through to the save revert view just
-    // as we are reusing restore for help temporarily (?)
-    attachApp: function (app) {
-        this.app = app;
+        // Get the singleton app model separately as model is the landmarks
+        this.app = require('../model/app')();
     },
 
     events: {
@@ -268,9 +264,6 @@ var Sidebar = Backbone.View.extend({
             return;
         }
         this.saveRevertView = new SaveRevertView({model: lms});
-        // Hack here to pass the app through to the save revert view just
-        // as we are reusing restore for help temporarily (?)
-        this.saveRevertView.attachApp(app);
         if (this.lmView) {
             this.lmView.cleanup();
         }

@@ -8,8 +8,9 @@ var Collection = require('./collection');
 
 "use strict";
 
+var _instance = null;
 
-module.exports = Backbone.Model.extend({
+var App = Backbone.Model.extend({
 
     defaults: function () {
         return {
@@ -274,3 +275,16 @@ module.exports = Backbone.Model.extend({
     }
 
 });
+
+module.exports = function (appInit) {
+    if (_instance) {
+        return _instance;
+    }
+
+    if (!appInit) {
+        throw new Error('App requires to be initialised');
+    }
+
+    _instance = new App(appInit);
+    return _instance;
+}

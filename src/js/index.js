@@ -10,7 +10,6 @@ function resolveServer(u) {
             // in demo mode and have mode set.
             document.title = document.title + ' - demo mode';
             var $ = require('jquery');
-            $('.App-Viewport-UIText-TopLeft').toggle();
             server = new Server('');
             server.demoMode = true;
             return server;
@@ -78,13 +77,9 @@ function restartInDemoMode() {
 function initLandmarker(server, mode) {
     console.log('Starting landmarker in ' + mode + ' mode');
     var $ = require('jquery');
-    var SidebarView = require('./app/view/sidebar');
-    var AssetView = require('./app/view/asset');
-    var ToolbarView = require('./app/view/toolbar');
-    var ViewportView = require('./app/view/viewport');
-    var HelpOverlay = require('./app/view/help');
-    var Notification = require('./app/view/notification');
+
     var App = require('./app/model/app');
+
     var THREE = require('three');
     var url = require('url');
     var History = require('./app/view/history');
@@ -106,7 +101,16 @@ function initLandmarker(server, mode) {
     if (u.query.hasOwnProperty('i')) {
         appInit._assetIndex = u.query.i - 1;
     }
-    var app = new App(appInit);
+
+    var app = App(appInit);
+
+    var SidebarView = require('./app/view/sidebar');
+    var AssetView = require('./app/view/asset');
+    var ToolbarView = require('./app/view/toolbar');
+    var ViewportView = require('./app/view/viewport');
+    var HelpOverlay = require('./app/view/help');
+    var Notification = require('./app/view/notification');
+
 //    var preview = new Notification.ThumbnailNotification({model:app});
     var loading = new Notification.AssetLoadingNotification({model:app});
     var sidebar = new SidebarView.Sidebar({model: app});
