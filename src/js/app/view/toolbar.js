@@ -34,7 +34,6 @@ var LandmarkSizeSlider = Backbone.View.extend({
     })
 });
 
-
 var TextureToggle = Backbone.View.extend({
 
     el: '#textureRow',
@@ -114,6 +113,33 @@ var ConnectivityToggle = Backbone.View.extend({
     }
 });
 
+var EditingToggle = Backbone.View.extend({
+
+    el: '#editingRow',
+
+    events: {
+        'click #editingToggle' : "editingToggle"
+    },
+
+    initialize : function() {
+        console.log('ConnectivityToggle:initialize');
+        this.$toggle = this.$el.find('#editingToggle')[0];
+        _.bindAll(this, 'render', 'editingToggle');
+        this.listenTo(this.model, 'change:editingOn', this.render);
+        this.render();
+    },
+
+    render: function () {
+        console.log('EditingToggle:render');
+        this.$toggle.checked = this.model.isEditingOn();
+        return this;
+    },
+
+    editingToggle: function () {
+        console.log('EditingToggle:editingToggle');
+        this.model.toggleEditing();
+    }
+});
 
 exports.Toolbar = Backbone.View.extend({
 
@@ -123,6 +149,7 @@ exports.Toolbar = Backbone.View.extend({
         console.log('Toolbar:initialize');
         this.lmSizeSlider = new LandmarkSizeSlider({model: this.model});
         this.connectivityToggle = new ConnectivityToggle({model : this.model});
+        this.editingToggle = new EditingToggle({model : this.model});
         if (this.model.meshMode()) {
             this.textureToggle = new TextureToggle({model: this.model});
         } else {

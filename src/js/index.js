@@ -182,6 +182,12 @@ function initLandmarker(server, mode) {
             case 108:  // l = toggle [l]inks
                 app.toggleConnectivity();
                 break;
+            case 101:  // e = toggle [e]dit mode
+                app.toggleEditing();
+                break;
+            case 63: // toggle help
+                app.toggleHelpOverlay();
+                break;
         }
     });
 }

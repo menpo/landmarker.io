@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^5.0.0",
+    "babelify": "^6.1.2",
     "browserify": "^8.1.1",
     "del": "^1.1.1",
     "gulp": "^3.8.10",
@@ -41,6 +42,7 @@
     "gulp-sass": "^2.0.1",
     "gulp-util": "^3.0.2",
     "run-sequence": "^1.0.2",
-    "vinyl-source-stream": "^1.0.0"
+    "vinyl-source-stream": "^1.0.0",
+    "watchify": "^3.2.1"
   }
 }

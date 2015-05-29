@@ -1,10 +1,17 @@
+"use strict";
+
 var $ = require('jquery');
 var _ = require('underscore');
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
+
 var Camera = require('./camera');
 var atomic = require('../model/atomic');
 var octree = require('../model/octree');
+
+var { LandmarkConnectionTHREEView,
+      LandmarkTHREEView } = require('./elements');
+
 // uncomment to monitor FPS performance
 //
 //var Stats = require('stats-js');
@@ -19,28 +26,18 @@ var octree = require('../model/octree');
 //
 //document.body.appendChild(stats.domElement);
 
-"use strict";
-
 // clear colour for both the main view and PictureInPicture
 var CLEAR_COLOUR = 0xEEEEEE;
 var CLEAR_COLOUR_PIP = 0xCCCCCC;
 
-// the default scale for 1.0
-var LM_SCALE = 0.01;
-
 var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5);
 var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
-
 
 var PIP_WIDTH = 300;
 var PIP_HEIGHT = 300;
 var PIP_MARGIN = 0;
 
-var LM_SPHERE_PARTS = 10;
-var LM_SPHERE_SELECTED_COLOR = 0xff75ff;
-var LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
-var LM_CONNECTION_LINE_COLOR = LM_SPHERE_UNSELECTED_COLOR;
-
+var MESH_SCALE = 1.0;
 
 exports.Viewport = Backbone.View.extend({
 
@@ -53,7 +50,7 @@ exports.Viewport = Backbone.View.extend({
 
 
         // ----- CONFIGURATION ----- //
-        this.meshScale = 1.0;  // The radius of the mesh's bounding sphere
+        this.meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
 
         // TODO bind all methods on the Viewport
         _.bindAll(this, 'resize', 'render', 'changeMesh',
@@ -177,8 +174,6 @@ exports.Viewport = Backbone.View.extend({
         this.landmarkViews = [];
         this.connectivityViews = [];
 
-        var downEvent, lmPressed, lmPressedWasSelected;
-
         // Tools for moving between screen and world coordinates
         this.ray = new THREE.Raycaster();
 
@@ -189,249 +184,326 @@ exports.Viewport = Backbone.View.extend({
         // to the general viewport state without leaking it's state all over
         // the place.
         var that = this;
+        this.isPressed = false;
+        this.landmarkToEdit = undefined;
+
         this.handler = (function () {
-        // x, y position of mouse on click states
-        var onMouseDownPosition = new THREE.Vector2();
-        var onMouseUpPosition = new THREE.Vector2();
 
-        // current screen position when in drag state
-        var positionLmDrag = new THREE.Vector2();
-        // vector difference in one time step
-        var deltaLmDrag = new THREE.Vector2();
+            var downEvent, lmPressed, lmPressedWasSelected;
+            // x, y position of mouse on click states
+            var onMouseDownPosition = new THREE.Vector2();
+            var onMouseUpPosition = new THREE.Vector2();
 
-        var intersectsWithLms, intersectsWithMesh;
+            // current screen position when in drag state
+            var positionLmDrag = new THREE.Vector2();
+            // vector difference in one time step
+            var deltaLmDrag = new THREE.Vector2();
 
-        // ----- OBJECT PICKING  ----- //
+            var intersectsWithLms, intersectsWithMesh;
 
-        // Catch all for mouse interaction. This is what is bound on the canvas
-        // and delegates to various other mouse handlers once it figures out
-        // what the user has done.
-        var onMouseDown = atomic.atomicOperation(function (event) {
-            event.preventDefault();
-            that.$el.focus();
-            downEvent = event;
-            onMouseDownPosition.set(event.clientX, event.clientY);
+            // ----- OBJECT PICKING  ----- //
 
-            // All interactions require intersections to distinguish
-            intersectsWithLms = that.getIntersectsFromEvent(event, that.s_lms);
-            // note that we explicitly ask for intersects with the mesh object
-            // as we know get intersects will use an octree if present.
-            intersectsWithMesh = that.getIntersectsFromEvent(event, that.mesh);
-            if (event.button === 0) {  // left mouse button
-                if (intersectsWithLms.length > 0 &&
-                    intersectsWithMesh.length > 0) {
-                    // degenerate case - which is closer?
-                    if (intersectsWithLms[0].distance <
-                        intersectsWithMesh[0].distance) {
-                        landmarkPressed(event);
-                    } else {
-                        // the mesh was pressed. Check for shift first though.
-                        if (event.shiftKey) {
-                            shiftPressed();
+            // Catch all for mouse interaction. This is what is bound on the
+            // canvas
+            // and delegates to various other mouse handlers once it figures out
+            // what the user has done.
+            var onMouseDown = atomic.atomicOperation(function (event) {
+                event.preventDefault();
+                that.$el.focus();
+
+                that.isPressed = true;
+
+                downEvent = event;
+                onMouseDownPosition.set(event.clientX, event.clientY);
+
+                // All interactions require intersections to distinguish
+                intersectsWithLms = that.getIntersectsFromEvent(
+                    event, that.s_lms);
+                // note that we explicitly ask for intersects with the mesh
+                // object as we know get intersects will use an octree if
+                // present.
+                intersectsWithMesh = that.getIntersectsFromEvent(
+                    event, that.mesh);
+
+                if (event.button === 0) {  // left mouse button
+                    if (intersectsWithLms.length > 0 &&
+                        intersectsWithMesh.length > 0) {
+                        // degenerate case - which is closer?
+                        if (intersectsWithLms[0].distance <
+                            intersectsWithMesh[0].distance) {
+                            landmarkPressed(event);
                         } else {
-                            meshPressed();
+                            // the mesh was pressed. Check for shift first.
+                            if (event.shiftKey) {
+                                shiftPressed();
+                            } else {
+                                meshPressed();
+                            }
+                        }
+                    } else if (intersectsWithLms.length > 0) {
+                        landmarkPressed(event);
+                    } else if (event.shiftKey) {
+                        // shift trumps all!
+                        shiftPressed();
+                    } else if (intersectsWithMesh.length > 0) {
+                        meshPressed();
+                    } else {
+                        nothingPressed();
+                    }
+                }
+
+                function meshPressed() {
+                    console.log('mesh pressed!');
+                    if (event.button === 0 && event.shiftKey) {
+                        shiftPressed();  // LMB + SHIFT
+                    } else {
+                        $(document).one('mouseup.viewportMesh', meshOnMouseUp);
+                    }
+                }
+
+                function landmarkPressed() {
+                    var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
+                    console.log('Viewport: landmark pressed');
+                    // before anything else, disable the camera
+                    that.cameraController.disable();
+                    // the clicked on landmark
+                    var landmarkSymbol = intersectsWithLms[0].object;
+                    // hunt through the landmarkViews for the right symbol
+                    for (var i = 0; i < that.landmarkViews.length; i++) {
+                        if (that.landmarkViews[i].symbol === landmarkSymbol) {
+                            lmPressed = that.landmarkViews[i].model;
                         }
                     }
-                } else if (intersectsWithLms.length > 0) {
-                    landmarkPressed(event);
-                } else if (event.shiftKey) {
-                    // shift trumps all!
-                    shiftPressed();
-                } else if (intersectsWithMesh.length > 0) {
-                    meshPressed();
-                } else {
-                    nothingPressed();
-                }
-            }
+                    console.log('Viewport: finding the selected points');
+                    lmPressedWasSelected = lmPressed.isSelected();
+                    if (!lmPressedWasSelected && !ctrl) {
+                        // this lm wasn't pressed before and we aren't holding
+                        // mutliselection down - deselect rest and select this
+                        console.log("normal click on a unselected lm - deselecting rest and selecting me");
+                        lmPressed.selectAndDeselectRest();
+                    }
+                    if (ctrl && !lmPressedWasSelected) {
+                        lmPressed.select();
+                    }
 
-            function meshPressed() {
-                console.log('mesh pressed!');
-                if (event.button === 0 && event.shiftKey) {
-                    shiftPressed();  // LMB + SHIFT
-                } else {
-                    $(document).one('mouseup.viewportMesh', meshOnMouseUp);
+                    // record the position of where the drag started.
+                    positionLmDrag.copy(
+                        that.worldToScreen(
+                            that.s_meshAndLms.localToWorld(
+                                lmPressed.point().clone())));
+                    // start listening for dragging landmarks
+                    $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
+                    $(document).one(
+                        'mouseup.viewportLandmark', landmarkOnMouseUp);
                 }
-            }
 
-            function landmarkPressed() {
-                var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
-                console.log('Viewport: landmark pressed');
-                // before anything else, disable the camera
-                that.cameraController.disable();
-                // the clicked on landmark
-                var landmarkSymbol = intersectsWithLms[0].object;
-                // hunt through the landmarkViews for the right symbol
-                for (var i = 0; i < that.landmarkViews.length; i++) {
-                    if (that.landmarkViews[i].symbol === landmarkSymbol) {
-                        lmPressed = that.landmarkViews[i].model;
+                function nothingPressed() {
+                    console.log('nothing pressed!');
+                    $(document).one(
+                        'mouseup.viewportNothing', nothingOnMouseUp);
+                }
+
+                function shiftPressed() {
+                    console.log('shift pressed!');
+                    // before anything else, disable the camera
+                    that.cameraController.disable();
+                    $(document).on('mousemove.shiftDrag', shiftOnDrag);
+                    $(document).one('mouseup.viewportShift', shiftOnMouseUp);
+                }
+            });
+
+            var landmarkOnDrag = atomic.atomicOperation(function(event) {
+                console.log("drag");
+                // note that positionLmDrag is set to where we started.
+                // update where we are now and where we were
+                var newPositionLmDrag = new THREE.Vector2(
+                    event.clientX, event.clientY);
+                var prevPositionLmDrag = positionLmDrag.clone();
+                // change in this step in screen space
+                deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
+                // update the position
+                positionLmDrag.copy(newPositionLmDrag);
+                var selectedLandmarks = that.landmarks().selected();
+                var lm, vScreen;
+                for (var i = 0; i < selectedLandmarks.length; i++) {
+                    lm = selectedLandmarks[i];
+                    // convert to screen coordinates
+                    vScreen = that.worldToScreen(that.s_meshAndLms.localToWorld(
+                        lm.point().clone()));
+
+                    // budge the screen coordinate
+                    vScreen.add(deltaLmDrag);
+
+                    // use the standard machinery to find intersections
+                    // note that we intersect the mesh to use the octree
+                    intersectsWithMesh = that.getIntersects(vScreen.x,
+                        vScreen.y, that.mesh);
+                    if (intersectsWithMesh.length > 0) {
+                        // good, we're still on the mesh.
+                        lm.setPoint(that.s_meshAndLms.worldToLocal(
+                            intersectsWithMesh[0].point.clone()));
+                    } else {
+                        // don't update point - it would fall off the surface.
+                        console.log("fallen off mesh");
                     }
                 }
-                console.log('Viewport: finding the selected points');
-                lmPressedWasSelected = lmPressed.isSelected();
-                if (!lmPressedWasSelected && !ctrl) {
-                    // this lm wasn't pressed before and we aren't holding
-                    // mutliselection down - deselect rest and select this
-                    console.log("normal click on a unselected lm - deselecting rest and selecting me");
-                    lmPressed.selectAndDeselectRest();
-                }
-                if (ctrl && !lmPressedWasSelected) {
-                    lmPressed.select();
-                }
+            });
 
-                // record the position of where the drag started.
-                positionLmDrag.copy(that.worldToScreen(that.s_meshAndLms.localToWorld(
-                    lmPressed.point().clone())));
-                // start listening for dragging landmarks
-                $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
-                $(document).one('mouseup.viewportLandmark', landmarkOnMouseUp);
-            }
+            var shiftOnDrag = function (event) {
+                console.log("shift:drag");
+                // note - we use client as we don't want to jump back to zero
+                // if user drags into sidebar!
+                var newX = event.clientX;
+                var newY = event.clientY;
+                // clear the canvas and draw a selection rect.
+                that.clearCanvas();
+                var x = onMouseDownPosition.x;
+                var y = onMouseDownPosition.y;
+                var dx = newX - x;
+                var dy = newY - y;
+                that.ctx.strokeRect(x, y, dx, dy);
+            };
 
-            function nothingPressed() {
-                console.log('nothing pressed!');
-                $(document).one('mouseup.viewportNothing', nothingOnMouseUp);
-            }
-
-            function shiftPressed() {
-                console.log('shift pressed!');
-                // before anything else, disable the camera
-                that.cameraController.disable();
-                $(document).on('mousemove.shiftDrag', shiftOnDrag);
-                $(document).one('mouseup.viewportShift', shiftOnMouseUp);
-            }
-        });
-
-        var landmarkOnDrag = atomic.atomicOperation(function(event) {
-            console.log("drag");
-            // note that positionLmDrag is set to where we started.
-            // update where we are now and where we were
-            var newPositionLmDrag = new THREE.Vector2(event.clientX, event.clientY);
-            var prevPositionLmDrag = positionLmDrag.clone();
-            // change in this step in screen space
-            deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
-            // update the position
-            positionLmDrag.copy(newPositionLmDrag);
-            var selectedLandmarks = that.landmarks().selected();
-            var lm, vScreen;
-            for (var i = 0; i < selectedLandmarks.length; i++) {
-                lm = selectedLandmarks[i];
-                // convert to screen coordinates
-                vScreen = that.worldToScreen(that.s_meshAndLms.localToWorld(
-                    lm.point().clone()));
-
-                // budge the screen coordinate
-                vScreen.add(deltaLmDrag);
-
-                // use the standard machinery to find intersections
-                // note that we intersect the mesh to use the octree
-                intersectsWithMesh = that.getIntersects(vScreen.x,
-                    vScreen.y, that.mesh);
-                if (intersectsWithMesh.length > 0) {
-                    // good, we're still on the mesh.
-                    lm.setPoint(that.s_meshAndLms.worldToLocal(
-                        intersectsWithMesh[0].point.clone()));
+            var shiftOnMouseUp = atomic.atomicOperation(function (event) {
+                that.cameraController.enable();
+                console.log("shift:up");
+                $(document).off('mousemove.shiftDrag', shiftOnDrag);
+                var x1 = onMouseDownPosition.x;
+                var y1 = onMouseDownPosition.y;
+                var x2 = event.clientX;
+                var y2 = event.clientY;
+                var min_x, max_x, min_y, max_y;
+                if (x1 < x2) {
+                    min_x = x1;
+                    max_x = x2;
                 } else {
-                    console.log("fallen off mesh");
-                    // don't update the point - it would fall off the surface.
+                    min_x = x2;
+                    max_x = x1;
                 }
-            }
-        });
-
-        var shiftOnDrag = function (event) {
-            console.log("shift:drag");
-            // note - we use client as we don't want to jump back to zero
-            // if user drags into sidebar!
-            var newX = event.clientX;
-            var newY = event.clientY;
-            // clear the canvas and draw a selection rect.
-            that.clearCanvas();
-            var x = onMouseDownPosition.x;
-            var y = onMouseDownPosition.y;
-            var dx = newX - x;
-            var dy = newY - y;
-            that.ctx.strokeRect(x, y, dx, dy);
-        };
-
-        var shiftOnMouseUp = atomic.atomicOperation(function (event) {
-            that.cameraController.enable();
-            console.log("shift:up");
-            $(document).off('mousemove.shiftDrag', shiftOnDrag);
-            var x1 = onMouseDownPosition.x;
-            var y1 = onMouseDownPosition.y;
-            var x2 = event.clientX;
-            var y2 = event.clientY;
-            var min_x, max_x, min_y, max_y;
-            if (x1 < x2) {
-                min_x = x1;
-                max_x = x2;
-            } else {
-                min_x = x2;
-                max_x = x1;
-            }
-            if (y1 < y2) {
-                min_y = y1;
-                max_y = y2;
-            } else {
-                min_y = y2;
-                max_y = y1;
-            }
-            // First, let's just find all the landmarks in screen space that
-            // are within our selection.
-            var lms = that.lmViewsInSelectionBox(min_x, min_y,
-                                                 max_x, max_y);
-
-            // Of these, filter out the ones which are visible (not obscured)
-            var visibleLms = [];
-            _.each(lms, function(lm) {
-                if (that.lmViewVisible(lm)) {
-                    visibleLms.push(lm);
+                if (y1 < y2) {
+                    min_y = y1;
+                    max_y = y2;
+                } else {
+                    min_y = y2;
+                    max_y = y1;
                 }
+                // First, let's just find all the landmarks in screen space that
+                // are within our selection.
+                var lms = that.lmViewsInSelectionBox(min_x, min_y,
+                                                     max_x, max_y);
+
+                // Of these, filter out the ones which are visible (not
+                // obscured)
+                var visibleLms = [];
+                _.each(lms, function(lm) {
+                    if (that.lmViewVisible(lm)) {
+                        visibleLms.push(lm);
+                    }
+                });
+
+                _.each(visibleLms, function (lm) {
+                    lm.model.select();
+                });
+
+                that.clearCanvas();
+                that.isPressed = false;
             });
 
-            _.each(visibleLms, function (lm) {
-                lm.model.select();
+            var meshOnMouseUp = function (event) {
+                console.log("meshPress:up");
+                var p;
+                onMouseUpPosition.set(event.clientX, event.clientY);
+                if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
+                    //  a click on the mesh
+                    p = intersectsWithMesh[0].point.clone();
+                    // Convert the point back into the mesh space
+                    that.s_meshAndLms.worldToLocal(p);
+                    that.landmarks().insertNew(p);
+                }
+
+                that.isPressed = false;
+            };
+
+            var nothingOnMouseUp = function (event) {
+                console.log("nothingPress:up");
+                onMouseUpPosition.set(event.clientX, event.clientY);
+                if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
+                    // a click on nothing - deselect all
+                    that.landmarks().deselectAll();
+                }
+
+                that.isPressed = false;
+            };
+
+            var landmarkOnMouseUp = atomic.atomicOperation(function (event) {
+                var ctrl = downEvent.ctrlKey || downEvent.metaKey;
+                that.cameraController.enable();
+                console.log("landmarkPress:up");
+                $(document).off('mousemove.landmarkDrag');
+                onMouseUpPosition.set(event.clientX, event.clientY);
+                if (onMouseDownPosition.distanceTo(onMouseUpPosition) === 0) {
+                    // landmark was pressed
+                    if (lmPressedWasSelected && ctrl) {
+                        lmPressed.deselect();
+                    } else if (!ctrl) {
+                        lmPressed.selectAndDeselectRest();
+                    }
+                }
+
+                that.isPressed = false;
             });
+            return onMouseDown
+        })();
 
-            that.clearCanvas();
-        });
+        this.moveHandler = (() => {
 
-        var meshOnMouseUp = function (event) {
-            console.log("meshPress:up");
-            var p;
-            onMouseUpPosition.set(event.clientX, event.clientY);
-            if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
-                //  a click on the mesh
-                p = intersectsWithMesh[0].point.clone();
-                // Convert the point back into the mesh space
-                that.s_meshAndLms.worldToLocal(p);
-                that.landmarks().insertNew(p);
-            }
-        };
 
-        var nothingOnMouseUp = function (event) {
-            console.log("nothingPress:up");
-            onMouseUpPosition.set(event.clientX, event.clientY);
-            if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
-                // a click on nothing - deselect all
-                that.landmarks().deselectAll();
-            }
-        };
+            var _handler = (evt) => {
 
-        var landmarkOnMouseUp = atomic.atomicOperation(function (event) {
-            var ctrl = downEvent.ctrlKey || downEvent.metaKey;
-            that.cameraController.enable();
-            console.log("landmarkPress:up");
-            $(document).off('mousemove.landmarkDrag');
-            onMouseUpPosition.set(event.clientX, event.clientY);
-            if (onMouseDownPosition.distanceTo(onMouseUpPosition) === 0) {
-                // landmark was pressed
-                if (lmPressedWasSelected && ctrl) {
-                    lmPressed.deselect();
-                } else if (!ctrl) {
-                    lmPressed.selectAndDeselectRest();
+                var closest;
+
+                if (this.isPressed || !this.model.isEditingOn()) {
+                    return null;
+                }
+
+                var intersectsWithMesh =
+                    this.getIntersectsFromEvent(evt, this.mesh);
+
+                var lmGroup = this.model.landmarks();
+
+                var shouldUpdate = (intersectsWithMesh.length > 0 &&
+                                    lmGroup &&
+                                    lmGroup.landmarks);
+
+                if (!shouldUpdate) {
+                    return null;
+                }
+
+                var minDist, dist, i,
+                    lm, lmLoc, closest,
+                    mouseLoc = this.s_meshAndLms.worldToLocal(
+                        intersectsWithMesh[0].point.clone());
+
+                for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
+                    lm = lmGroup.landmarks[i];
+                    lmLoc = lm.point();
+                    if (lmLoc !== null) {
+                        dist = mouseLoc.distanceTo(lmLoc);
+                        if (!minDist || dist < minDist) {
+                            [minDist, closest] = [dist, lm];
+                        }
+                    }
+                }
+
+                if (closest) {
+                    closest.selectAndDeselectRest();
+                    closest.setNextAvailable();
                 }
             }
-        });
-        return onMouseDown
+
+            // Throttle for performance, tradeoff with realtiminess of the
+            // feedback loop
+            return _.throttle(_handler, 100);
         })();
 
         // ----- BIND HANDLERS ----- //
@@ -548,21 +620,28 @@ exports.Viewport = Backbone.View.extend({
         }
         var screenCoords = this.lmToScreen(lmView.symbol);
         // intersect the mesh and the landmarks
-        var iMesh = this.getIntersects(screenCoords.x, screenCoords.y, this.mesh);
-        var iLm = this.getIntersects(screenCoords.x, screenCoords.y, lmView.symbol);
+        var iMesh = this.getIntersects(
+            screenCoords.x, screenCoords.y, this.mesh);
+        var iLm = this.getIntersects(
+            screenCoords.x, screenCoords.y, lmView.symbol);
         // is there no mesh here (pretty rare as landmarks have to be on mesh)
         // or is the mesh behind the landmarks?
         return iMesh.length == 0 || iMesh[0].distance > iLm[0].distance;
     },
 
     events: {
-        'mousedown' : "mousedownHandler"
+        'mousedown' : "mousedownHandler",
+        'mousemove': "mousemoveHandler"
     },
 
     mousedownHandler: function (event) {
         event.preventDefault();
         // delegate to the handler closure
         this.handler(event);
+    },
+
+    mousemoveHandler: function (event) {
+        this.moveHandler(event);
     },
 
     updateConnectivityDisplay: atomic.atomicOperation(function () {
@@ -786,152 +865,5 @@ exports.Viewport = Backbone.View.extend({
             // just been turned off - trigger an update.
             this.update();
         }
-    }
-});
-
-// create a single geometry + material that will be shared by all landmarks
-var lmGeometry = new THREE.SphereGeometry(LM_SCALE, LM_SPHERE_PARTS,
-                                          LM_SPHERE_PARTS);
-
-var lmMaterialForSelected = {
-    true: new THREE.MeshBasicMaterial({color: LM_SPHERE_SELECTED_COLOR}),
-    false: new THREE.MeshBasicMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
-};
-
-
-var LandmarkTHREEView = Backbone.View.extend({
-
-    initialize: function (options) {
-        _.bindAll(this, 'render', 'changeLandmarkSize');
-        this.listenTo(this.model, "change", this.render);
-        this.viewport = options.viewport;
-        this.app = this.viewport.model;
-        this.listenTo(this.app, "change:landmarkSize", this.changeLandmarkSize);
-        this.symbol = null; // a THREE object that represents this landmark.
-        // null if the landmark isEmpty
-        this.render();
-    },
-
-    render: function () {
-        if (this.symbol) {
-            // this landmark already has an allocated representation..
-            if (this.model.isEmpty()) {
-                // but it's been deleted.
-                this.dispose();
-            } else {
-                // the lm may need updating. See what needs to be done
-                this.updateSymbol();
-            }
-        } else {
-            // there is no symbol yet
-            if (!this.model.isEmpty()) {
-                // and there should be! Make it and update it
-                this.symbol = this.createSphere(this.model.get('point'), true);
-                this.updateSymbol();
-                // trigger changeLandmarkSize to make sure sizing is correct
-                this.changeLandmarkSize();
-                // and add it to the scene
-                this.viewport.s_lms.add(this.symbol);
-            }
-        }
-        // tell our viewport to update
-        this.viewport.update();
-    },
-
-    createSphere: function (v, radius, selected) {
-        //console.log('creating sphere of radius ' + radius);
-        var landmark = new THREE.Mesh(lmGeometry, lmMaterialForSelected[selected]);
-        landmark.name = 'Landmark ' + landmark.id;
-        landmark.position.copy(v);
-        return landmark;
-    },
-
-    updateSymbol: function () {
-        this.symbol.position.copy(this.model.point());
-        var selected = this.model.isSelected();
-        this.symbol.material = lmMaterialForSelected[selected];
-    },
-
-    dispose: function () {
-        if (this.symbol) {
-            this.viewport.s_lms.remove(this.symbol);
-            this.symbol = null;
-        }
-    },
-
-    changeLandmarkSize: function () {
-        if (this.symbol) {
-            // have a symbol, and need to change it's size.
-            var r = this.app.get('landmarkSize') * this.viewport.meshScale;
-            this.symbol.scale.set(r, r, r);
-            // tell our viewport to update
-            this.viewport.update();
-        }
-    }
-});
-
-var lineMaterial = new THREE.LineBasicMaterial({
-    color: LM_CONNECTION_LINE_COLOR,
-    linewidth: 1
-});
-
-var LandmarkConnectionTHREEView = Backbone.View.extend({
-
-    initialize: function (options) {
-        // Listen to both models for changes
-        this.listenTo(this.model[0], "change", this.render);
-        this.listenTo(this.model[1], "change", this.render);
-        this.viewport = options.viewport;
-        this.symbol = null; // a THREE object that represents this connection.
-        // null if the landmark isEmpty
-        this.render();
-    },
-
-    render: function () {
-        if (this.symbol !== null) {
-            // this landmark already has an allocated representation..
-            if (this.model[0].isEmpty() || this.model[1].isEmpty()) {
-                // but it's been deleted.
-                this.dispose();
-
-            } else {
-                // the connection may need updating. See what needs to be done
-                this.updateSymbol();
-            }
-        } else {
-            // there is no symbol yet
-            if (!this.model[0].isEmpty() && !this.model[1].isEmpty()) {
-                // and there should be! Make it and update it
-                this.symbol = this.createLine(this.model[0].get('point'),
-                        this.model[1].get('point'));
-                this.updateSymbol();
-                // and add it to the scene
-                this.viewport.s_lmsconnectivity.add(this.symbol);
-            }
-        }
-        // tell our viewport to update
-        this.viewport.update();
-    },
-
-    createLine: function (start, end) {
-        var geometry = new THREE.Geometry();
-        geometry.dynamic = true;
-        geometry.vertices.push(start.clone());
-        geometry.vertices.push(end.clone());
-        return new THREE.Line(geometry, lineMaterial);
-    },
-
-    dispose: function () {
-        if (this.symbol) {
-            this.viewport.s_lmsconnectivity.remove(this.symbol);
-            this.symbol.geometry.dispose();
-            this.symbol = null;
-        }
-    },
-
-    updateSymbol: function () {
-        this.symbol.geometry.vertices[0].copy(this.model[0].point());
-        this.symbol.geometry.vertices[1].copy(this.model[1].point());
-        this.symbol.geometry.verticesNeedUpdate = true;
     }
 });

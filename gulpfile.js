@@ -2,6 +2,7 @@ var gulp = require('gulp');
 var gutil = require('gulp-util');
 var prefix = require('gulp-autoprefixer');
 var browserify = require('browserify');
+var babelify = require('babelify');
 var source = require('vinyl-source-stream');
 var notify = require("gulp-notify");
 var manifest = require('gulp-manifest');
@@ -59,7 +60,7 @@ gulp.task('clean-css', function (cb) {
 
 // Rebuild the JS bundle + issue a notification when done.
 gulp.task('js', function() {
-    var b = browserify(entry.js, {debug: true})
+    var b = browserify(entry.js, {debug: true, transform: [babelify]})
         .bundle();
     return b.on('error', function(e) {
             gutil.log(e);

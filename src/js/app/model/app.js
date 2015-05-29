@@ -17,6 +17,7 @@ var App = Backbone.Model.extend({
             landmarkSize: 0.5,
             mode: 'mesh',
             connectivityOn: true,
+            editingOn: false,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
@@ -30,6 +31,18 @@ var App = Backbone.Model.extend({
 
     toggleConnectivity: function () {
         this.set('connectivityOn', !this.isConnectivityOn());
+    },
+
+    isEditingOn: function () {
+        return this.get('editingOn');
+    },
+
+    toggleEditing: function () {
+        this.set('editingOn', !this.isEditingOn());
+        if (!this.isEditingOn()) {
+            this.landmarks().deselectAll();
+            this.landmarks().resetNextAvailable();
+        }
     },
 
     isHelpOverlayOn: function () {
