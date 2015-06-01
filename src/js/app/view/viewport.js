@@ -10,7 +10,8 @@ var atomic = require('../model/atomic');
 var octree = require('../model/octree');
 
 var { LandmarkConnectionTHREEView,
-      LandmarkTHREEView } = require('./elements');
+      LandmarkTHREEView,
+      LandmarkTargetingTHREEView } = require('./elements');
 
 // uncomment to monitor FPS performance
 //
@@ -323,7 +324,7 @@ exports.Viewport = Backbone.View.extend({
                 deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
                 // update the position
                 positionLmDrag.copy(newPositionLmDrag);
-                var selectedLandmarks = that.landmarks().selected();
+                var selectedLandmarks = that.model.landmarks().selected();
                 var lm, vScreen;
                 for (var i = 0; i < selectedLandmarks.length; i++) {
                     lm = selectedLandmarks[i];
@@ -418,7 +419,7 @@ exports.Viewport = Backbone.View.extend({
                     p = intersectsWithMesh[0].point.clone();
                     // Convert the point back into the mesh space
                     that.s_meshAndLms.worldToLocal(p);
-                    that.landmarks().insertNew(p);
+                    that.model.landmarks().insertNew(p);
                 }
 
                 that.isPressed = false;
@@ -429,7 +430,7 @@ exports.Viewport = Backbone.View.extend({
                 onMouseUpPosition.set(event.clientX, event.clientY);
                 if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
                     // a click on nothing - deselect all
-                    that.landmarks().deselectAll();
+                    that.model.landmarks().deselectAll();
                 }
 
                 that.isPressed = false;
@@ -459,16 +460,11 @@ exports.Viewport = Backbone.View.extend({
 
             var _selectedLm;
 
-
             var _handler = (evt) => {
 
-                var shouldNotAct = (
-                    this.isPressed ||
-                    !this.model.isEditingOn() ||
-                    (evt.ctrlKey && _selectedLm !== undefined)
-                )
+                this.clearCanvas();
 
-                if (shouldNotAct) {
+                if (this.isPressed || !this.model.isEditingOn()) {
                     return null;
                 }
 
@@ -485,41 +481,64 @@ exports.Viewport = Backbone.View.extend({
                     return null;
                 }
 
-                var minDist, dist, i,
-                    lm, lmLoc, closest,
-                    mouseLoc = this.s_meshAndLms.worldToLocal(
-                        intersectsWithMesh[0].point.clone());
+                // Only fetch closests if not ctrl locked or non existant
+                if (!evt.ctrlKey || _selectedLm === undefined) {
+                    var minDist, dist, i,
+                        lm, lmLoc, closest,
+                        mouseLoc = this.s_meshAndLms.worldToLocal(
+                            intersectsWithMesh[0].point.clone());
 
-                for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
-                    lm = lmGroup.landmarks[i];
-                    lmLoc = lm.point();
-                    if (lmLoc !== null) {
-                        dist = mouseLoc.distanceTo(lmLoc);
-                        if (!minDist || dist < minDist) {
-                            [minDist, closest] = [dist, lm];
+                    for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
+                        lm = lmGroup.landmarks[i];
+                        lmLoc = lm.point();
+                        if (lmLoc !== null) {
+                            dist = mouseLoc.distanceTo(lmLoc);
+                            if (!minDist || dist < minDist) {
+                                [minDist, closest] = [dist, lm];
+                            }
                         }
                     }
                 }
 
-                if (closest) {
+                if (closest) { // If we set closests in this handling
                     _selectedLm = closest;
-                    closest.selectAndDeselectRest();
-                    closest.setNextAvailable();
+                }
+
+                if (_selectedLm) { // Always happens while we have _selectedLm
+
+                    _selectedLm.selectAndDeselectRest();
+                    _selectedLm.setNextAvailable();
+
+                    this.drawTargetingLine(
+                        {x: evt.clientX, y: evt.clientY},
+                        this.worldToScreen(
+                            this.s_meshAndLms.localToWorld(
+                                _selectedLm.point().clone())));
                 }
             }
 
             // Throttle for performance, tradeoff with realtiminess of the
             // feedback loop
-            return _.throttle(_handler, 100);
+            return _.throttle(_handler, 50);
         })();
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
+
         this.showConnectivity = true;
-        this.listenTo(this.model, "change:connectivityOn", this.updateConnectivityDisplay);
+        this.listenTo(
+            this.model,
+            "change:connectivityOn",
+            this.updateConnectivityDisplay
+        );
         this.updateConnectivityDisplay();
+
+        this.listenTo(
+            this.model, "change:editingOn", this.updateEditingDisplay);
+        this.updateEditingDisplay();
+
         this.listenTo(atomic, "change:ATOMIC_OPERATION", this.batchHandler);
 
         // trigger resize to initially size the viewport
@@ -534,6 +553,14 @@ exports.Viewport = Backbone.View.extend({
             // uncomment to monitor FPS performance
             //stats.update();
         }
+    },
+
+    drawTargetingLine: function (start, end) {
+        this.ctx.strokeStyle = "#2cfdfe";
+        this.ctx.beginPath();
+        this.ctx.moveTo(start.x, start.y);
+        this.ctx.lineTo(end.x, end.y);
+        this.ctx.stroke();
     },
 
     toggleCamera: function () {
@@ -638,7 +665,6 @@ exports.Viewport = Backbone.View.extend({
 
     events: {
         'mousedown' : "mousedownHandler",
-        'mousemove': "mousemoveHandler"
     },
 
     mousedownHandler: function (event) {
@@ -647,12 +673,18 @@ exports.Viewport = Backbone.View.extend({
         this.handler(event);
     },
 
-    mousemoveHandler: function (event) {
-        this.moveHandler(event);
-    },
-
     updateConnectivityDisplay: atomic.atomicOperation(function () {
         this.showConnectivity = this.model.isConnectivityOn();
+    }),
+
+    updateEditingDisplay: atomic.atomicOperation(function () {
+        this.editingOn = this.model.isEditingOn();
+        // Manually bind to avoid useless function call (even with no effect)
+        if (this.editingOn) {
+            this.$el.on('mousemove', this.moveHandler);
+        } else {
+            this.$el.off('mousemove', this.moveHandler);
+        }
     }),
 
     changeMesh: function () {
@@ -707,10 +739,6 @@ exports.Viewport = Backbone.View.extend({
         return  'geo:' + this.renderer.info.memory.geometries +
                 ' tex:' + this.renderer.info.memory.textures +
                 ' prog:' + this.renderer.info.memory.programs;
-    },
-
-    landmarks: function () {
-        return this.model.get('landmarks');
     },
 
     changeLandmarks: atomic.atomicOperation(function () {
