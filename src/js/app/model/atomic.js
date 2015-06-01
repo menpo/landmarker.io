@@ -34,10 +34,10 @@ var AtomicOperationTracker = Backbone.Model.extend({
                 // we are the highest level atomic lock. Code inside should be
                 // called with a single atomic lock wrapped around it.
 
-                console.log('Starting atomic operation');
+                // console.log('Starting atomic operation');
                 atomicTracker._startAtomicOperation();
                 f.apply(this, arguments);
-                console.log('Ending atomic operation');
+                // console.log('Ending atomic operation');
                 atomicTracker._endAtomicOperation();
             } else {
                 // we are nested inside some other atomic lock. Just call the

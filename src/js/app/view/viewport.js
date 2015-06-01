@@ -457,12 +457,18 @@ exports.Viewport = Backbone.View.extend({
 
         this.moveHandler = (() => {
 
+            var _selectedLm;
+
 
             var _handler = (evt) => {
 
-                var closest;
+                var shouldNotAct = (
+                    this.isPressed ||
+                    !this.model.isEditingOn() ||
+                    (evt.ctrlKey && _selectedLm !== undefined)
+                )
 
-                if (this.isPressed || !this.model.isEditingOn()) {
+                if (shouldNotAct) {
                     return null;
                 }
 
@@ -496,6 +502,7 @@ exports.Viewport = Backbone.View.extend({
                 }
 
                 if (closest) {
+                    _selectedLm = closest;
                     closest.selectAndDeselectRest();
                     closest.setNextAvailable();
                 }
