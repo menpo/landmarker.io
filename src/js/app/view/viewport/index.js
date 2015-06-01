@@ -373,6 +373,7 @@ exports.Viewport = Backbone.View.extend({
 
     updateEditingDisplay: atomic.atomicOperation(function () {
         this.editingOn = this.model.isEditingOn();
+        this.clearCanvas();
         // Manually bind to avoid useless function call (even with no effect)
         if (this.editingOn) {
             this.$el.on('mousemove', this._mouseHandlers.onMouseMove);
@@ -446,16 +447,18 @@ exports.Viewport = Backbone.View.extend({
     // 2D Canvas helper functions
     // =========================================================================
 
-    drawTargetingLine: function (start, end, dashed=false) {
-        this.ctx.strokeStyle = "#2cfdfe";
-
-        if (dashed) {
-            ctx.setLineDash([5, 5]);
+    drawTargetingLine: function (start, end, secondary=false) {
+        this.ctx.beginPath()
+        if (secondary) {
+            this.ctx.strokeStyle = "#7ca5fe";
+            this.ctx.setLineDash([5, 15]);
+        } else {
+            this.ctx.strokeStyle = "#01e6fb";
+            this.ctx.setLineDash([]);
         }
-
-        this.ctx.beginPath();
         this.ctx.moveTo(start.x, start.y);
         this.ctx.lineTo(end.x, end.y);
+        this.ctx.closePath();
         this.ctx.stroke();
     },
 

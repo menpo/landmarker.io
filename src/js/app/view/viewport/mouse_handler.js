@@ -313,27 +313,42 @@ function MouseHandler () {
             return null;
         }
 
-        // Only fetch closests if not ctrl locked or non existant
-        if (!evt.ctrlKey || selectedLm === undefined) {
-            var minDist, dist, i,
-                lm, lmLoc, closest,
-                mouseLoc = this.s_meshAndLms.worldToLocal(
-                    intersectsWithMesh[0].point.clone());
+        var dist, i, j,
+            lm, lmLoc,
+            minDist, minLm,
+            dists = new Array(4), lms= new Array(4),
+            mouseLoc = this.s_meshAndLms.worldToLocal(
+                intersectsWithMesh[0].point.clone());
 
-            for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
-                lm = lmGroup.landmarks[i];
-                lmLoc = lm.point();
-                if (lmLoc !== null) {
-                    dist = mouseLoc.distanceTo(lmLoc);
-                    if (!minDist || dist < minDist) {
-                        [minDist, closest] = [dist, lm];
-                    }
+        for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
+            lm = lmGroup.landmarks[i];
+            lmLoc = lm.point();
+
+            if (lmLoc === null || (evt.ctrlKey && lm === selectedLm)) {
+                continue;
+            }
+
+            dist = mouseLoc.distanceTo(lmLoc);
+
+            // Compare to stored lm in order, 0 being the closest
+            for (j = 0; j < 3; j++) {
+                minDist = dists[j];
+                if (!minDist) {
+                    [dists[j], lms[j]] = [dist, lm];
+                    break;
+                } else if (dist <= minDist) {
+                    dists.splice(j, 0, dist);
+                    lms.splice(j, 0, lm);
+                    break;
                 }
             }
         }
 
-        if (closest) { // If we set closests in this handling
-            selectedLm = closest;
+        if (lms[0] && !evt.ctrlKey) {
+            selectedLm = lms[0];
+            lms = lms.slice(1, 4);
+        } else if (lms[0]) {
+            lms = lms.slice(0, 3);
         }
 
         if (selectedLm) { // Always happens while we have _selectedLm
@@ -346,6 +361,14 @@ function MouseHandler () {
                 this.worldToScreen(
                     this.s_meshAndLms.localToWorld(
                         selectedLm.point().clone())));
+
+            lms.forEach((lm) => {
+                this.drawTargetingLine(
+                    {x: evt.clientX, y: evt.clientY},
+                    this.worldToScreen(
+                        this.s_meshAndLms.localToWorld(
+                            lm.point().clone())), true);
+            });
         }
     };
 
