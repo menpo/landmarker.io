@@ -67,10 +67,7 @@ function MouseHandler () {
         }
 
         // record the position of where the drag started.
-        positionLmDrag.copy(
-            this.worldToScreen(
-                this.s_meshAndLms.localToWorld(
-                    lmPressed.point().clone())));
+        positionLmDrag.copy(this.localToScreen(lmPressed.point()));
         // start listening for dragging landmarks
         $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
         $(document).one(
@@ -162,8 +159,7 @@ function MouseHandler () {
         for (var i = 0; i < selectedLandmarks.length; i++) {
             lm = selectedLandmarks[i];
             // convert to screen coordinates
-            vScreen = this.worldToScreen(this.s_meshAndLms.localToWorld(
-                lm.point().clone()));
+            vScreen = this.localToScreen(lm.point());
 
             // budge the screen coordinate
             vScreen.add(deltaLmDrag);
@@ -358,16 +354,12 @@ function MouseHandler () {
 
             this.drawTargetingLine(
                 {x: evt.clientX, y: evt.clientY},
-                this.worldToScreen(
-                    this.s_meshAndLms.localToWorld(
-                        selectedLm.point().clone())));
+                this.localToScreen(selectedLm.point()));
 
             lms.forEach((lm) => {
                 this.drawTargetingLine(
                     {x: evt.clientX, y: evt.clientY},
-                    this.worldToScreen(
-                        this.s_meshAndLms.localToWorld(
-                            lm.point().clone())), true);
+                    this.localToScreen(lm.point()), true);
             });
         }
     };
