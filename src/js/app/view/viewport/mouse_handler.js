@@ -10,7 +10,7 @@ var _ = require('underscore');
 var THREE = require('three');
 var $ = require('jquery');
 
-var atomic = require('../model/atomic');
+var atomic = require('../../model/atomic');
 
 function MouseHandler () {
 

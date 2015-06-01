@@ -23,7 +23,7 @@
  */
 var $ = require('jquery');
 var _ = require('underscore');
-var Backbone = require('../lib/backbonej');
+var Backbone = require('../../lib/backbonej');
 var THREE = require('three');
 
 var MOUSE_WHEEL_SENSITIVITY = 0.5;

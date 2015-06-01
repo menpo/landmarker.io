@@ -2,14 +2,14 @@
 
 var $ = require('jquery');
 var _ = require('underscore');
-var Backbone = require('../lib/backbonej');
+var Backbone = require('../../lib/backbonej');
 var THREE = require('three');
 
-var Camera = require('./camera');
-var atomic = require('../model/atomic');
-var octree = require('../model/octree');
+var atomic = require('../../model/atomic');
+var octree = require('../../model/octree');
 
 var MouseHandler = require('./mouse_handler');
+var Camera = require('./camera');
 
 var { LandmarkConnectionTHREEView,
       LandmarkTHREEView } = require('./elements');
@@ -47,10 +47,6 @@ exports.Viewport = Backbone.View.extend({
     id: 'canvas',
 
     initialize: function () {
-
-        // to debug window.viewport = this;
-
-
         // ----- CONFIGURATION ----- //
         this.meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
 
@@ -220,12 +216,108 @@ exports.Viewport = Backbone.View.extend({
         }
     },
 
-    drawTargetingLine: function (start, end) {
-        this.ctx.strokeStyle = "#2cfdfe";
-        this.ctx.beginPath();
-        this.ctx.moveTo(start.x, start.y);
-        this.ctx.lineTo(end.x, end.y);
-        this.ctx.stroke();
+    changeMesh: function () {
+        var meshPayload, mesh, up, front;
+        console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
+        // firstly, remove any existing mesh
+        this.removeMeshIfPresent();
+
+        meshPayload = this.model.mesh();
+        if (meshPayload === null) {
+            return;
+        }
+        mesh = meshPayload.mesh;
+        up = meshPayload.up;
+        front = meshPayload.front;
+        this.mesh = mesh;
+
+        if(mesh.geometry instanceof THREE.BufferGeometry) {
+            // octree only makes sense if we are dealing with a true mesh
+            // (not images). Such meshes are always BufferGeometry instances.
+            this.octree = octree.octreeForBufferGeometry(mesh.geometry);
+        }
+
+        this.s_mesh.add(mesh);
+        // Now we need to rescale the s_meshAndLms to fit in the unit sphere
+        // First, the scale
+        this.meshScale = mesh.geometry.boundingSphere.radius;
+        var s = 1.0 / this.meshScale;
+        this.s_scaleRotate.scale.set(s, s, s);
+        this.s_h_scaleRotate.scale.set(s, s, s);
+        this.s_scaleRotate.up.copy(up);
+        this.s_h_scaleRotate.up.copy(up);
+        this.s_scaleRotate.lookAt(front.clone());
+        this.s_h_scaleRotate.lookAt(front.clone());
+        // translation
+        var t = mesh.geometry.boundingSphere.center.clone();
+        t.multiplyScalar(-1.0);
+        this.s_translate.position.copy(t);
+        this.s_h_translate.position.copy(t);
+        this.update();
+    },
+
+    removeMeshIfPresent: function () {
+        if (this.mesh !== null) {
+            this.s_mesh.remove(this.mesh);
+            this.mesh = null;
+            this.octree = null;
+        }
+    },
+
+    memoryString: function () {
+        return  'geo:' + this.renderer.info.memory.geometries +
+                ' tex:' + this.renderer.info.memory.textures +
+                ' prog:' + this.renderer.info.memory.programs;
+    },
+
+    // this is called whenever there is a state change on the THREE scene
+    update: function () {
+        if (!this.renderer) {
+            return;
+        }
+        // if in batch mode - noop.
+        if (atomic.atomicOperationUnderway()) {
+            return;
+        }
+        //console.log('Viewport:update');
+        // 1. Render the main viewport
+        var w, h;
+        w = this.$container.width();
+        h = this.$container.height();
+        this.renderer.setViewport(0, 0, w, h);
+        this.renderer.setScissor(0, 0, w, h);
+        this.renderer.enableScissorTest (true);
+        this.renderer.clear();
+        this.renderer.render(this.scene, this.s_camera);
+
+        if (this.showConnectivity) {
+            this.renderer.clearDepth(); // clear depth buffer
+            // and render the connectivity
+            this.renderer.render(this.sceneHelpers, this.s_camera);
+        }
+
+        // 2. Render the PIP image if in orthographic mode
+        if (this.s_camera === this.s_oCam) {
+            var minX, minY, pipW, pipH;
+            var bounds = this.pilBounds();
+            minX = bounds[0];
+            minY = bounds[1];
+            pipW = bounds[2];
+            pipH = bounds[3];
+            this.renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
+            this.renderer.setViewport(minX, minY, pipW, pipH);
+            this.renderer.setScissor(minX, minY, pipW, pipH);
+            this.renderer.enableScissorTest(true);
+            this.renderer.clear();
+            // render the PIP image
+            this.renderer.render(this.scene, this.s_oCamZoom);
+            if (this.showConnectivity) {
+                this.renderer.clearDepth(); // clear depth buffer
+                // and render the connectivity
+                this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
+            }
+            this.renderer.setClearColor(CLEAR_COLOUR, 1);
+        }
     },
 
     toggleCamera: function () {
@@ -245,9 +337,162 @@ exports.Viewport = Backbone.View.extend({
         this.update();
     },
 
-    // ----- EVENTS ----- //
-    // General function for finding intersections from a mouse click event
-    // to some group of objects in s_scene.
+    pilBounds: function () {
+        var w = this.$container.width();
+        var h = this.$container.height();
+        var maxX = w - PIP_MARGIN;
+        var maxY = h - PIP_MARGIN;
+        var minX = maxX - PIP_WIDTH;
+        var minY = maxY - PIP_HEIGHT;
+        return [minX, minY, PIP_WIDTH, PIP_HEIGHT];
+    },
+
+    resetCamera: function () {
+        // reposition the cameras and focus back to the starting point.
+        var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION : IMAGE_MODE_STARTING_POSITION;
+        this.cameraController.position(v);
+        this.cameraController.focus(this.scene.position);
+        this.update();
+    },
+
+    // Event Handlers
+    // =========================================================================
+
+    events: {
+        'mousedown' : "mousedownHandler",
+    },
+
+    mousedownHandler: function (event) {
+        event.preventDefault();
+        this._mouseHandlers.onMouseDown(event);
+    },
+
+    updateConnectivityDisplay: atomic.atomicOperation(function () {
+        this.showConnectivity = this.model.isConnectivityOn();
+    }),
+
+    updateEditingDisplay: atomic.atomicOperation(function () {
+        this.editingOn = this.model.isEditingOn();
+        // Manually bind to avoid useless function call (even with no effect)
+        if (this.editingOn) {
+            this.$el.on('mousemove', this._mouseHandlers.onMouseMove);
+        } else {
+            this.$el.off('mousemove', this._mouseHandlers.onMouseMove);
+        }
+    }),
+
+    resize: function () {
+        var w, h;
+        w = this.$container.width();
+        h = this.$container.height();
+        // ask the camera controller to update the cameras appropriately
+        this.cameraController.resize(w, h);
+        // update the size of the renderer and the canvas
+        this.renderer.setSize(w, h);
+        this.canvas.width = w;
+        this.canvas.height = h;
+        // clear the canvas to make sure the PIP box is correct
+        this.clearCanvas();
+        this.update();
+    },
+
+    batchHandler: function (dispatcher) {
+        if (dispatcher.atomicOperationFinished()) {
+            // just been turned off - trigger an update.
+            this.update();
+        }
+    },
+
+    changeLandmarks: atomic.atomicOperation(function () {
+        console.log('Viewport: landmarks have changed');
+        var that = this;
+
+        // 1. Dispose of all landmark and connectivity views
+        _.map(this.landmarkViews, function (lmView) {
+            lmView.dispose();
+        });
+        _.map(this.connectivityViews, function (connView) {
+            connView.dispose();
+        });
+
+        // 2. Build a fresh set of views - clear any existing views
+        this.landmarkViews = [];
+        this.connectivityViews = [];
+
+        var landmarks = this.model.get('landmarks');
+        if (landmarks === null) {
+            // no actual landmarks available - return
+            // TODO when can this happen?!
+            return;
+        }
+        landmarks.landmarks.map(function (lm) {
+            that.landmarkViews.push(new LandmarkTHREEView(
+                {
+                    model: lm,
+                    viewport: that
+                }));
+        });
+        landmarks.connectivity.map(function (a_to_b) {
+           that.connectivityViews.push(new LandmarkConnectionTHREEView(
+               {
+                   model: [landmarks.landmarks[a_to_b[0]],
+                           landmarks.landmarks[a_to_b[1]]],
+                   viewport: that
+               }));
+        });
+
+    }),
+
+    // 2D Canvas helper functions
+    // =========================================================================
+
+    drawTargetingLine: function (start, end, dashed=false) {
+        this.ctx.strokeStyle = "#2cfdfe";
+
+        if (dashed) {
+            ctx.setLineDash([5, 5]);
+        }
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(start.x, start.y);
+        this.ctx.lineTo(end.x, end.y);
+        this.ctx.stroke();
+    },
+
+    clearCanvas: function () {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.strokeStyle = '#ffffff';
+        if (this.s_camera === this.s_oCam) {
+            // orthographic means there is the PIP window. Draw the box and
+            // target.
+            var b = this.pilBounds();
+            var minX = b[0];
+            var minY = this.canvas.height - b[1] - b[3];
+            var width = b[2];
+            var height = b[3];
+            var maxX = minX + width;
+            var maxY = minY + height;
+            var midX = (2 * minX + width)/2;
+            var midY = (2 * minY + height) / 2;
+            // vertical line
+            this.ctx.strokeRect(minX, minY, width, height);
+            this.ctx.beginPath();
+            this.ctx.moveTo(midX, minY);
+            this.ctx.lineTo(midX, maxY);
+            this.ctx.closePath();
+            this.ctx.stroke();
+            // horizontal line
+            this.ctx.beginPath();
+            this.ctx.moveTo(minX, midY);
+            this.ctx.lineTo(maxX, midY);
+            this.ctx.closePath();
+            this.ctx.stroke();
+        }
+    },
+
+    // Coordinates and intersection helpers
+    // =========================================================================
+
     getIntersects: function (x, y, object) {
         if (object === null || object.length === 0) {
             return [];
@@ -337,241 +582,4 @@ exports.Viewport = Backbone.View.extend({
         return iMesh.length == 0 || iMesh[0].distance > iLm[0].distance;
     },
 
-    events: {
-        'mousedown' : "mousedownHandler",
-    },
-
-    mousedownHandler: function (event) {
-        event.preventDefault();
-        this._mouseHandlers.onMouseDown(event);
-    },
-
-    updateConnectivityDisplay: atomic.atomicOperation(function () {
-        this.showConnectivity = this.model.isConnectivityOn();
-    }),
-
-    updateEditingDisplay: atomic.atomicOperation(function () {
-        this.editingOn = this.model.isEditingOn();
-        // Manually bind to avoid useless function call (even with no effect)
-        if (this.editingOn) {
-            this.$el.on('mousemove', this._mouseHandlers.onMouseMove);
-        } else {
-            this.$el.off('mousemove', this._mouseHandlers.onMouseMove);
-        }
-    }),
-
-    changeMesh: function () {
-        var meshPayload, mesh, up, front;
-        console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
-        // firstly, remove any existing mesh
-        this.removeMeshIfPresent();
-
-        meshPayload = this.model.mesh();
-        if (meshPayload === null) {
-            return;
-        }
-        mesh = meshPayload.mesh;
-        up = meshPayload.up;
-        front = meshPayload.front;
-        this.mesh = mesh;
-
-        if(mesh.geometry instanceof THREE.BufferGeometry) {
-            // octree only makes sense if we are dealing with a true mesh
-            // (not images). Such meshes are always BufferGeometry instances.
-            this.octree = octree.octreeForBufferGeometry(mesh.geometry);
-        }
-
-        this.s_mesh.add(mesh);
-        // Now we need to rescale the s_meshAndLms to fit in the unit sphere
-        // First, the scale
-        this.meshScale = mesh.geometry.boundingSphere.radius;
-        var s = 1.0 / this.meshScale;
-        this.s_scaleRotate.scale.set(s, s, s);
-        this.s_h_scaleRotate.scale.set(s, s, s);
-        this.s_scaleRotate.up.copy(up);
-        this.s_h_scaleRotate.up.copy(up);
-        this.s_scaleRotate.lookAt(front.clone());
-        this.s_h_scaleRotate.lookAt(front.clone());
-        // translation
-        var t = mesh.geometry.boundingSphere.center.clone();
-        t.multiplyScalar(-1.0);
-        this.s_translate.position.copy(t);
-        this.s_h_translate.position.copy(t);
-        this.update();
-    },
-
-    removeMeshIfPresent: function () {
-        if (this.mesh !== null) {
-            this.s_mesh.remove(this.mesh);
-            this.mesh = null;
-            this.octree = null;
-        }
-    },
-
-    memoryString: function () {
-        return  'geo:' + this.renderer.info.memory.geometries +
-                ' tex:' + this.renderer.info.memory.textures +
-                ' prog:' + this.renderer.info.memory.programs;
-    },
-
-    changeLandmarks: atomic.atomicOperation(function () {
-        console.log('Viewport: landmarks have changed');
-        var that = this;
-
-        // 1. Dispose of all landmark and connectivity views
-        _.map(this.landmarkViews, function (lmView) {
-            lmView.dispose();
-        });
-        _.map(this.connectivityViews, function (connView) {
-            connView.dispose();
-        });
-
-        // 2. Build a fresh set of views - clear any existing views
-        this.landmarkViews = [];
-        this.connectivityViews = [];
-
-        var landmarks = this.model.get('landmarks');
-        if (landmarks === null) {
-            // no actual landmarks available - return
-            // TODO when can this happen?!
-            return;
-        }
-        landmarks.landmarks.map(function (lm) {
-            that.landmarkViews.push(new LandmarkTHREEView(
-                {
-                    model: lm,
-                    viewport: that
-                }));
-        });
-        landmarks.connectivity.map(function (a_to_b) {
-           that.connectivityViews.push(new LandmarkConnectionTHREEView(
-               {
-                   model: [landmarks.landmarks[a_to_b[0]],
-                           landmarks.landmarks[a_to_b[1]]],
-                   viewport: that
-               }));
-        });
-
-    }),
-
-    // this is called whenever there is a state change on the THREE scene
-    update: function () {
-        if (!this.renderer) {
-            return;
-        }
-        // if in batch mode - noop.
-        if (atomic.atomicOperationUnderway()) {
-            return;
-        }
-        //console.log('Viewport:update');
-        // 1. Render the main viewport
-        var w, h;
-        w = this.$container.width();
-        h = this.$container.height();
-        this.renderer.setViewport(0, 0, w, h);
-        this.renderer.setScissor(0, 0, w, h);
-        this.renderer.enableScissorTest (true);
-        this.renderer.clear();
-        this.renderer.render(this.scene, this.s_camera);
-
-        if (this.showConnectivity) {
-            this.renderer.clearDepth(); // clear depth buffer
-            // and render the connectivity
-            this.renderer.render(this.sceneHelpers, this.s_camera);
-        }
-
-        // 2. Render the PIP image if in orthographic mode
-        if (this.s_camera === this.s_oCam) {
-            var minX, minY, pipW, pipH;
-            var bounds = this.pilBounds();
-            minX = bounds[0];
-            minY = bounds[1];
-            pipW = bounds[2];
-            pipH = bounds[3];
-            this.renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
-            this.renderer.setViewport(minX, minY, pipW, pipH);
-            this.renderer.setScissor(minX, minY, pipW, pipH);
-            this.renderer.enableScissorTest(true);
-            this.renderer.clear();
-            // render the PIP image
-            this.renderer.render(this.scene, this.s_oCamZoom);
-            if (this.showConnectivity) {
-                this.renderer.clearDepth(); // clear depth buffer
-                // and render the connectivity
-                this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
-            }
-            this.renderer.setClearColor(CLEAR_COLOUR, 1);
-        }
-    },
-
-    pilBounds: function () {
-        var w = this.$container.width();
-        var h = this.$container.height();
-        var maxX = w - PIP_MARGIN;
-        var maxY = h - PIP_MARGIN;
-        var minX = maxX - PIP_WIDTH;
-        var minY = maxY - PIP_HEIGHT;
-        return [minX, minY, PIP_WIDTH, PIP_HEIGHT];
-    },
-
-    resetCamera: function () {
-        // reposition the cameras and focus back to the starting point.
-        var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION : IMAGE_MODE_STARTING_POSITION;
-        this.cameraController.position(v);
-        this.cameraController.focus(this.scene.position);
-        this.update();
-    },
-
-    clearCanvas: function () {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.strokeStyle = '#ffffff';
-        if (this.s_camera === this.s_oCam) {
-            // orthographic means there is the PIP window. Draw the box and
-            // target.
-            var b = this.pilBounds();
-            var minX = b[0];
-            var minY = this.canvas.height - b[1] - b[3];
-            var width = b[2];
-            var height = b[3];
-            var maxX = minX + width;
-            var maxY = minY + height;
-            var midX = (2 * minX + width)/2;
-            var midY = (2 * minY + height) / 2;
-            // vertical line
-            this.ctx.strokeRect(minX, minY, width, height);
-            this.ctx.beginPath();
-            this.ctx.moveTo(midX, minY);
-            this.ctx.lineTo(midX, maxY);
-            this.ctx.closePath();
-            this.ctx.stroke();
-            // horizontal line
-            this.ctx.beginPath();
-            this.ctx.moveTo(minX, midY);
-            this.ctx.lineTo(maxX, midY);
-            this.ctx.closePath();
-            this.ctx.stroke();
-        }
-    },
-
-    resize: function () {
-        var w, h;
-        w = this.$container.width();
-        h = this.$container.height();
-        // ask the camera controller to update the cameras appropriately
-        this.cameraController.resize(w, h);
-        // update the size of the renderer and the canvas
-        this.renderer.setSize(w, h);
-        this.canvas.width = w;
-        this.canvas.height = h;
-        // clear the canvas to make sure the PIP box is correct
-        this.clearCanvas();
-        this.update();
-    },
-
-    batchHandler: function (dispatcher) {
-        if (dispatcher.atomicOperationFinished()) {
-            // just been turned off - trigger an update.
-            this.update();
-        }
-    }
 });
