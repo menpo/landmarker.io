@@ -7,6 +7,9 @@
     "type": "git",
     "url": "git://github.com/menpo/landmarker.git"
   },
+  "scripts": {
+    "build": "DISABLE_NOTIFIER=true gulp build"
+  },
   "keywords": [
     "webgl",
     "three"
