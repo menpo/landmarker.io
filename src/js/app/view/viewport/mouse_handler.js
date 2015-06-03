@@ -1,9 +1,3 @@
-/*
-    Creates a closured handler for handling mouse events
-    In order to bind the closure to the viewport as `this`, use with apply:
-
-        this.handler = MouseHandler.apply(this);
- */
 "use strict";
 
 var _ = require('underscore');
@@ -14,6 +8,11 @@ var atomic = require('../../model/atomic');
 
 const MOVE_THROTTLE = 50;
 
+/**
+ * Create a closure for handling mouse events in viewport.
+ * Holds state usable by all event handlers and should be bound to the
+ * Viewport view instance.
+ */
 function MouseHandler () {
 
     // Helpers
@@ -79,10 +78,15 @@ function MouseHandler () {
 
     var intersectsWithLms, intersectsWithMesh;
 
+    // Press handling
+    // ------------------------------------------------------------------------
+
     var meshPressed = () => {
         console.log('mesh pressed!');
-        hasGroupSelection = false;
-        if (event.button === 0 && event.shiftKey) {
+        if (hasGroupSelection) {
+            hasGroupSelection = false;
+            nothingPressed();
+        } else if (event.button === 0 && event.shiftKey) {
             shiftPressed();  // LMB + SHIFT
         } else {
             $(document).one('mouseup.viewportMesh', meshOnMouseUp);
@@ -137,9 +141,6 @@ function MouseHandler () {
         $(document).on('mousemove.shiftDrag', shiftOnDrag);
         $(document).one('mouseup.viewportShift', shiftOnMouseUp);
     }
-
-    // Handle pressing the mouse
-    // ------------------------------------------------------------------------
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
