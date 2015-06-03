@@ -12,13 +12,15 @@ var $ = require('jquery');
 
 var atomic = require('../../model/atomic');
 
+const MOVE_THROTTLE = 50;
+
 function MouseHandler () {
 
     // Setup handler state variables
     // ------------------------------------------------------------------------
     var downEvent,
         lmPressed, lmPressedWasSelected,
-        isPressed,
+        isPressed, hasGroupSelection,
         selectedLm;
 
     // x, y position of mouse on click states
@@ -34,6 +36,7 @@ function MouseHandler () {
 
     var meshPressed = () => {
         console.log('mesh pressed!');
+        hasGroupSelection = false;
         if (event.button === 0 && event.shiftKey) {
             shiftPressed();  // LMB + SHIFT
         } else {
@@ -76,6 +79,7 @@ function MouseHandler () {
 
     var nothingPressed = () => {
         console.log('nothing pressed!');
+        hasGroupSelection = false;
         $(document).one(
             'mouseup.viewportNothing', nothingOnMouseUp);
     }
@@ -83,6 +87,7 @@ function MouseHandler () {
     var shiftPressed = () => {
         console.log('shift pressed!');
         // before anything else, disable the camera
+        hasGroupSelection = false;
         this.cameraController.disable();
         $(document).on('mousemove.shiftDrag', shiftOnDrag);
         $(document).one('mouseup.viewportShift', shiftOnMouseUp);
@@ -226,20 +231,16 @@ function MouseHandler () {
                                              max_x, max_y);
 
         // Of these, filter out the ones which are visible (not
-        // obscured)
-        var visibleLms = [];
+        // obscured) and select the rest
         _.each(lms, (lm) => {
             if (this.lmViewVisible(lm)) {
-                visibleLms.push(lm);
+                lm.model.select();
             }
-        });
-
-        _.each(visibleLms, (lm) => {
-            lm.model.select();
         });
 
         this.clearCanvas();
         isPressed = false;
+        hasGroupSelection = true;
     });
 
     var meshOnMouseUp = (event) => {
@@ -254,7 +255,9 @@ function MouseHandler () {
             this.model.landmarks().insertNew(p);
         }
 
+        this.clearCanvas();
         isPressed = false;
+        hasGroupSelection = false;
     };
 
     var nothingOnMouseUp = (event) => {
@@ -265,7 +268,9 @@ function MouseHandler () {
             this.model.landmarks().deselectAll();
         }
 
+        this.clearCanvas();
         isPressed = false;
+        hasGroupSelection = false;
     };
 
     var landmarkOnMouseUp = atomic.atomicOperation((event) => {
@@ -283,6 +288,7 @@ function MouseHandler () {
             }
         }
 
+        this.clearCanvas();
         isPressed = false;
     });
 
@@ -332,7 +338,7 @@ function MouseHandler () {
                 if (!minDist) {
                     [dists[j], lms[j]] = [dist, lm];
                     break;
-                } else if (dist <= minDist) {
+                } else if (dist <= minDist) { // leq to ensure we always have 4
                     dists.splice(j, 0, dist);
                     lms.splice(j, 0, lm);
                     break;
@@ -349,8 +355,10 @@ function MouseHandler () {
 
         if (selectedLm) { // Always happens while we have _selectedLm
 
-            selectedLm.selectAndDeselectRest();
-            selectedLm.setNextAvailable();
+            if (!hasGroupSelection) {
+                selectedLm.selectAndDeselectRest();
+                selectedLm.setNextAvailable();
+            }
 
             this.drawTargetingLine(
                 {x: evt.clientX, y: evt.clientY},
@@ -366,7 +374,8 @@ function MouseHandler () {
 
     return {
         onMouseDown: atomic.atomicOperation(onMouseDown),
-        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove), 50)
+        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove),
+                                MOVE_THROTTLE)
     }
 
 }
