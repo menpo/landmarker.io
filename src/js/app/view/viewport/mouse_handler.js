@@ -37,7 +37,7 @@ function MouseHandler () {
             lm = lmGroup.landmarks[i];
             lmLoc = lm.point();
 
-            if (lmLoc === null || (locked && lm === selectedLm)) {
+            if (lmLoc === null || (locked && lm === beingEditedLandmark)) {
                 continue;
             }
 
@@ -65,7 +65,7 @@ function MouseHandler () {
     var downEvent,
         lmPressed, lmPressedWasSelected,
         isPressed, hasGroupSelection,
-        selectedLm;
+        beingEditedLandmark;
 
     // x, y position of mouse on click states
     var onMouseDownPosition = new THREE.Vector2(),
@@ -162,6 +162,8 @@ function MouseHandler () {
         intersectsWithMesh = this.getIntersectsFromEvent(
             event, this.mesh);
 
+        // Click type, we use MouseEvent.button which is the vanilla JS way
+        // jQuery also exposes event.which which has different bindings
         if (event.button === 0) {  // left mouse button
             if (intersectsWithLms.length > 0 &&
                 intersectsWithMesh.length > 0) {
@@ -183,6 +185,18 @@ function MouseHandler () {
                 // shift trumps all!
                 shiftPressed();
             } else if (intersectsWithMesh.length > 0) {
+                meshPressed();
+            } else {
+                nothingPressed();
+            }
+        } else if (event.button === 2) { // Right click
+            if (intersectsWithLms.length <= 0 &&
+                intersectsWithMesh.length > 0 &&
+                this.model.isEditingOn()
+            ) {
+                this.model.landmarks().deselectAll();
+                this.model.landmarks().resetNextAvailable();
+                beingEditedLandmark = undefined;
                 meshPressed();
             } else {
                 nothingPressed();
@@ -221,8 +235,7 @@ function MouseHandler () {
                 vScreen.y, this.mesh);
             if (intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
-                lm.setPoint(this.s_meshAndLms.worldToLocal(
-                    intersectsWithMesh[0].point.clone()));
+                lm.setPoint(this.worldToLocal(intersectsWithMesh[0].point));
             } else {
                 // don't update point - it would fall off the surface.
                 console.log("fallen off mesh");
@@ -297,8 +310,13 @@ function MouseHandler () {
             //  a click on the mesh
             p = intersectsWithMesh[0].point.clone();
             // Convert the point back into the mesh space
-            this.s_meshAndLms.worldToLocal(p);
-            this.model.landmarks().insertNew(p);
+            this.worldToLocal(p, true);
+
+            if (this.model.isEditingOn() && beingEditedLandmark) {
+                this.model.landmarks().setLmAt(beingEditedLandmark, p);
+            } else {
+                this.model.landmarks().insertNew(p);
+            }
         }
 
         this.clearCanvas();
@@ -361,29 +379,27 @@ function MouseHandler () {
             return null;
         }
 
-        var mouseLoc = this.s_meshAndLms.worldToLocal(
-            intersectsWithMesh[0].point.clone());
+        var mouseLoc = this.worldToLocal(intersectsWithMesh[0].point);
 
         var lms = findClosestLandmarks(lmGroup, mouseLoc,
                                        evt.ctrlKey || evt.metaKey);
 
         if (lms[0] && !evt.ctrlKey) {
-            selectedLm = lms[0];
+            beingEditedLandmark = lms[0];
             lms = lms.slice(1, 4);
         } else if (lms[0]) {
             lms = lms.slice(0, 3);
         }
 
-        if (selectedLm) { // Always happens while we have _selectedLm
+        if (beingEditedLandmark) { // Always happens while we have _beingEditedLandmark
 
             if (!hasGroupSelection) {
-                selectedLm.selectAndDeselectRest();
-                selectedLm.setNextAvailable();
+                beingEditedLandmark.selectAndDeselectRest();
             }
 
             this.drawTargetingLine(
                 {x: evt.clientX, y: evt.clientY},
-                this.localToScreen(selectedLm.point()));
+                this.localToScreen(beingEditedLandmark.point()));
 
             lms.forEach((lm) => {
                 this.drawTargetingLine(

@@ -288,13 +288,17 @@ LandmarkGroup.prototype.insertNew = atomic.atomicOperation(function (v) {
     }
     // we are definitely inserting.
     this.deselectAll();
+    this.setLmAt(lm, v)
+    this.resetNextAvailable();
+});
+
+LandmarkGroup.prototype.setLmAt = atomic.atomicOperation(function (lm, v) {
     lm.set({
         point: v.clone(),
         selected: true,
         isEmpty: false,
         nextAvailable: false
     });
-    this.resetNextAvailable();
 });
 
 

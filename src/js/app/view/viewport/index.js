@@ -544,8 +544,9 @@ exports.Viewport = Backbone.View.extend({
             this.s_meshAndLms.localToWorld(vector.clone()));
     },
 
-    worldToLocal: function (vector) {
-        return this.s_meshAndLms.worldToLocal(vector.clone());
+    worldToLocal: function (vector, inPlace=false) {
+        return inPlace ? this.s_meshAndLms.worldToLocal(vector) :
+                         this.s_meshAndLms.worldToLocal(vector.clone());
     },
 
     lmToScreen: function (lmSymbol) {
