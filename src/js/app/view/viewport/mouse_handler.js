@@ -16,6 +16,51 @@ const MOVE_THROTTLE = 50;
 
 function MouseHandler () {
 
+    // Helpers
+    // ------------------------------------------------------------------------
+
+    /**
+     * Find the 4 landmarks closest to a location (THREE vector)
+     * from a LandmarkGroup
+     *
+     * @param  {LandmarkGroup} lmGroup
+     * @param  {THREE.Vector} loc
+     *
+     * @return {Landmark[]}
+     */
+    var findClosestLandmarks = (lmGroup, loc, locked=false) => {
+        var dist, i, j,
+            lm, lmLoc,
+            minDist, minLm,
+            dists = new Array(4), lms= new Array(4);
+
+        for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
+            lm = lmGroup.landmarks[i];
+            lmLoc = lm.point();
+
+            if (lmLoc === null || (locked && lm === selectedLm)) {
+                continue;
+            }
+
+            dist = loc.distanceTo(lmLoc);
+
+            // Compare to stored lm in order, 0 being the closest
+            for (j = 0; j < 3; j++) {
+                minDist = dists[j];
+                if (!minDist) {
+                    [dists[j], lms[j]] = [dist, lm];
+                    break;
+                } else if (dist <= minDist) { // leq to ensure we always have 4
+                    dists.splice(j, 0, dist);
+                    lms.splice(j, 0, lm);
+                    break;
+                }
+            }
+        }
+
+        return lms;
+    }
+
     // Setup handler state variables
     // ------------------------------------------------------------------------
     var downEvent,
@@ -315,36 +360,11 @@ function MouseHandler () {
             return null;
         }
 
-        var dist, i, j,
-            lm, lmLoc,
-            minDist, minLm,
-            dists = new Array(4), lms= new Array(4),
-            mouseLoc = this.s_meshAndLms.worldToLocal(
-                intersectsWithMesh[0].point.clone());
+        var mouseLoc = this.s_meshAndLms.worldToLocal(
+            intersectsWithMesh[0].point.clone());
 
-        for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
-            lm = lmGroup.landmarks[i];
-            lmLoc = lm.point();
-
-            if (lmLoc === null || (evt.ctrlKey && lm === selectedLm)) {
-                continue;
-            }
-
-            dist = mouseLoc.distanceTo(lmLoc);
-
-            // Compare to stored lm in order, 0 being the closest
-            for (j = 0; j < 3; j++) {
-                minDist = dists[j];
-                if (!minDist) {
-                    [dists[j], lms[j]] = [dist, lm];
-                    break;
-                } else if (dist <= minDist) { // leq to ensure we always have 4
-                    dists.splice(j, 0, dist);
-                    lms.splice(j, 0, lm);
-                    break;
-                }
-            }
-        }
+        var lms = findClosestLandmarks(lmGroup, mouseLoc,
+                                       evt.ctrlKey || evt.metaKey);
 
         if (lms[0] && !evt.ctrlKey) {
             selectedLm = lms[0];
