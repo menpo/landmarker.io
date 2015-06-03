@@ -9,7 +9,7 @@
 #
 
 DEPLOY_BRANCH="master"      # Will be mirrored at the root
-MANIFETS="lmio.appcache"    # Used to check if build has happened
+MANIFEST="lmio.appcache"    # Used to check if build has happened
 
 # Set up for travis environment (branch, repo with push rights)
 # If running locally, the repo and user will automatically be the ones from the
