@@ -7,45 +7,71 @@
 # This script assumes a clean state and enforces it, stash any untracked changes
 # when using locally. This is to ensure we only deploy 'good' files.
 #
+# To allow push access we encrypt the deploy key into the .travis.yml file, see
+# https://gist.github.com/pghalliday/240fe740d523dad21d3f and
+# http://docs.travis-ci.com/user/encrypting-files/ for more information
+#
 
-DEPLOY_BRANCH="master"      # Will be mirrored at the root
+DEPLOY_BRANCH="master"      # Will be mirrored at the root of gh-pages
 MANIFEST="lmio.appcache"    # Used to check if build has happened
 
-# Set up for travis environment (branch, repo with push rights)
-# If running locally, the repo and user will automatically be the ones from the
-# current shell session.
 if [ "$TRAVIS" == "true" ]; then
-  echo "Setting up correct remote for Travis..."
+  # Set up for travis environment (branch, repo with push rights)
+  if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+    echo "Travis should not deploy from pull requests" && exit 0
+  fi
+
+  echo "Setting up correct remote for Travis"
 
   git config --global user.name "Travis-CI"
   git config --global push.default simple
 
-  [[ -z "$GH_TOKEN" ]] && echo "Missing GH_TOKEN env variable, can't deploy" && exit 1
+  [[ -z "$ENCRYPTION_LABEL" ]] && "Missing ENCRYPTION_LABEL env variable" && exit 1
 
-  REPO="https://$GH_TOKEN@github.com/$TRAVIS_REPO_SLUG"
-  git remote rename origin origin.bak
+  ENCRYPTED_KEY_VAR=encrypted_${ENCRYPTION_LABEL}_key
+  ENCRYPTED_IV_VAR=encrypted_${ENCRYPTION_LABEL}_iv
+  ENCRYPTED_KEY=${!ENCRYPTED_KEY_VAR}
+  ENCRYPTED_IV=${!ENCRYPTED_IV_VAR}
+
+  [[ -z "$ENCRYPTED_KEY" || -z "$ENCRYPTED_IV" ]] && echo "Unable to retrieve $ENCRYPTED_KEY_VAR or $ENCRYPTED_IV_VAR" && exit 1
+
+  echo "Decrypting key for label $ENCRYPTION_LABEL"
+
+  # Decrypt the key ecnrypted with travis encrypt-file and add to ssh-agent
+  openssl aes-256-cbc -K "$ENCRYPTED_KEY" -iv "$ENCRYPTED_IV" -in id_rsa.enc -out id_rsa -d
+  chmod 600 id_rsa
+  eval `ssh-agent -s`
+  ssh-add id_rsa
+
+  # Ensure correct ssh remote
+  REPO="git@github.com:/$TRAVIS_REPO_SLUG.git"
+  git remote rename origin origin.bak > /dev/null 2>&1 || exit 1
   git remote add origin $REPO  > /dev/null 2>&1 || exit 1
-  git remote remove origin.bak
+  git remote remove origin.bak > /dev/null 2>&1 || exit 1
 
+  # Setup som useful variables for tracking
   BRANCH="$TRAVIS_BRANCH"
   SLUG="$TRAVIS_REPO_SLUG"
   ACTOR="TRAVIS"
+
 else
+  # Running locally, use the current directory's repo and branch
   BRANCH=$(git rev-parse --abbrev-ref HEAD)
   SLUG=$(git config --get remote.origin.url)
   SLUG=${SLUG#git@github.com:}
   SLUG=${SLUG%.git}
   ACTOR="LOCAL"
+
 fi
 
 shopt -s extglob
 
 git fetch --all  > /dev/null 2>&1 || exit 1 # Make sure we have the latest state
 
-echo "Building gh-pages branch for $BRANCH..."
+echo "Building gh-pages branch for $BRANCH"
 
 # Assume manifest present means build has happened, otherwise rebuild
-[[ ! -e "$MANIFEST" ]] && npm run build
+[[ ! -e "$MANIFEST" ]] && npm run build || echo "Already built"
 
 TMP_DIR=$(mktemp -d "/tmp/landmarker-build-$BRANCH-XXXX")
 mv ./index.html ./bundle-*.* ./*.appcache ./img ./api "$TMP_DIR"
