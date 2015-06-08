@@ -1,0 +1,21 @@
+$breakpointsMobile: 650px;
+
+$mainControlHeight: 40px;
+
+$landmarkSelectorHeight: 30px;
+$landmarkColorEmpty: #2D77C2;
+$landmarkColorValue: #0A4EB2;
+$landmarkColorSelected: #5FB632;
+
+$toolbarBackground: rgba(45, 119, 194, 0.5);
+
+$pagerItemWidth: 75px;
+
+$zIndexCanvas: 1;
+$zIndexUI: 2;
+$zIndexOverlay: 3;
+$zIndexNotifications: 4;
+
+$notificationsColorWarning: rgba(235,149,50,1);
+$notificationsColorError: rgba(239,72,54,1);
+$notificationsColorSuccess: rgba(46,204,113,1);

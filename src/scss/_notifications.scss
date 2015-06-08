@@ -1,0 +1,56 @@
+.NotificationWrapper {
+    z-index: $zIndexNotifications;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.ModalNotification {
+    display: block;
+
+    width: 256px;
+    margin: .4em auto;
+    padding: 1em;
+
+    cursor: pointer;
+    animation-name: notification-open;
+    animation-duration: 1s;
+    text-align: center;
+    pointer-events: auto;
+
+    opacity: .95;
+    color: white;
+    border-radius: 2px;
+
+    font-size: large;
+    font-weight: bold;
+}
+
+.ModalNotification--Closing {
+    animation-name: notification-close;
+    animation-duration: 1s;
+
+    opacity: 0;
+}
+
+.ModalNotification--Warning {
+    background-color: $notificationsColorWarning;
+}
+
+.ModalNotification--Success {
+    background-color: $notificationsColorSuccess;
+}
+
+.ModalNotification--Error {
+   background-color: $notificationsColorError;
+}
+
+@keyframes notification-open {
+    0% { opacity: 0; }
+    100% { opacity: .95; }
+}
+
+@keyframes notification-close {
+    0% { opacity: 0.95; }
+    100% { opacity: 0; }
+}

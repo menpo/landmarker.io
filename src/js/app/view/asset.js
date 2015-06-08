@@ -1,5 +1,6 @@
 var _ = require('underscore');
 var Backbone = require('../lib/backbonej');
+var Notification = require('./notification');
 var $ = require('jquery');
 
 "use strict";
@@ -100,7 +101,26 @@ var AssetIndexView = Backbone.View.extend({
     chooseAssetNumber: function () {
         console.log('AssetIndexView:chooseAssetNumber');
         var newIndex = window.prompt(
-          "Input asset index:", pad(this.model.assetIndex() + 1, 2));
+            "Input asset index:", pad(this.model.assetIndex() + 1, 2));
+
+        if (newIndex === null) { // ESC key or empty prompt, do nothing
+            return null;
+        }
+
+        if (isNaN(newIndex)) {
+          return new Notification.BaseNotification({
+              msg: 'Enter a valid Number', type: 'error'});
+        }
+
+        newIndex = Number(newIndex);
+
+        if (newIndex <= 0 || newIndex > this.model.assetSource().nAssets() ) {
+            return new Notification.BaseNotification({
+                msg: 'Cannot select asset ' + newIndex + ' (out of bounds)',
+                type: 'error'
+            });
+        }
+
         this.model.goToAssetIndex(Number(newIndex) - 1);
     }
 });

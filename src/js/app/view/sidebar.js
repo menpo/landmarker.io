@@ -204,7 +204,6 @@ var SaveRevertView = Backbone.View.extend({
         //this.listenTo(this.model, "all", this.render);
         // make a spinner to listen for save calls on these landmarks
         this.spinner = new Notification.LandmarkSavingNotification();
-        this.notification = new Notification.LandmarkSuccessFailureNotification();
     },
 
     // Hack here to pass the app through to the save revert view just
@@ -228,11 +227,17 @@ var SaveRevertView = Backbone.View.extend({
         this.spinner.start();
         this.model.promiseSave().then(function () {
             that.spinner.stop();
-            that.notification.success();
+            var notification = new Notification.BaseNotification({
+              type: 'success',
+              msg: 'Save Completed'
+            });
         },
         function () {
             that.spinner.stop();
-            that.notification.failure();
+            var notification = new Notification.BaseNotification({
+              type: 'error',
+              msg: 'Save Failed'
+            });
         });
 
     },
@@ -273,7 +278,7 @@ var Sidebar = Backbone.View.extend({
         this.lmView = new LandmarkGroupListView({
             collection: lms.labels
         });
-        $('.Sidebar-LandmarksPanel').html(this.lmView.render().$el)
+        $('#landmarksPanel').html(this.lmView.render().$el)
     }
 
 });

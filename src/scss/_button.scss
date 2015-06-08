@@ -1,0 +1,40 @@
+button,
+.Button {
+    border: none;
+    background: white;
+    outline: none;
+    width: 100%;
+    min-height: $mainControlHeight;
+    line-height: $mainControlHeight;
+    font-weight: 300;
+    font-size: larger;
+    cursor: pointer;
+}
+
+button:active {
+    background: #2D77C2;
+}
+
+.Button-Basic,
+.Button-Save,
+.Button-Revert {
+    color: white;
+}
+
+.Button-Basic {
+    background: #0A4EB2;
+}
+
+.Button-Save {
+    background: #5FB632;
+}
+
+.Button-Revert {
+    background: #B91109;
+}
+
+button:disabled,
+.Button--Disabled {
+    opacity: 0.33;
+    cursor: initial;
+}
