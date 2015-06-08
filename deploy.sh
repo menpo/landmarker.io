@@ -24,6 +24,7 @@ if [ "$TRAVIS" == "true" ]; then
   echo "Setting up correct remote for Travis"
 
   git config --global user.name "Travis-CI"
+  git config --global user.email "$TRAVIS_BUILD_NUMBER-$TRAVIS_JOB_ID@travis-ci.org"
   git config --global push.default simple
 
   [[ -z "$ENCRYPTION_LABEL" ]] && "Missing ENCRYPTION_LABEL env variable" && exit 1
@@ -45,9 +46,9 @@ if [ "$TRAVIS" == "true" ]; then
 
   # Ensure correct ssh remote
   REPO="git@github.com:/$TRAVIS_REPO_SLUG.git"
-  git remote rename origin origin.bak > /dev/null 2>&1 || exit 1
-  git remote add origin $REPO  > /dev/null 2>&1 || exit 1
-  git remote remove origin.bak > /dev/null 2>&1 || exit 1
+  git remote rename origin origin.bak
+  git remote add origin $REPO
+  git remote remove origin.bak
 
   # Setup som useful variables for tracking
   BRANCH="$TRAVIS_BRANCH"
@@ -66,7 +67,7 @@ fi
 
 shopt -s extglob
 
-git fetch --all  > /dev/null 2>&1 || exit 1 # Make sure we have the latest state
+git fetch --all # Make sure we have the latest state
 
 echo "Building gh-pages branch for $BRANCH"
 
@@ -77,20 +78,23 @@ TMP_DIR=$(mktemp -d "/tmp/landmarker-build-$BRANCH-XXXX")
 mv ./index.html ./bundle-*.* ./*.appcache ./img ./api "$TMP_DIR"
 
 # Switch to latests gh-pages branch and enforce correct content
-git checkout gh-pages > /dev/null 2>&1 || exit 1
-git clean -f > /dev/null 2>&1 || exit 1
-git reset --hard > /dev/null 2>&1 || exit 1
+git checkout gh-pages
+git clean -f
+git reset --hard
 
-rm -rf "staging/$BRANCH" 2>&1 || exit 1
-mv -f "$TMP_DIR" "staging/$BRANCH" 2>&1 || exit 1
+rm -rf "staging/$BRANCH"
+mv -f "$TMP_DIR" "staging/$BRANCH"
 
 echo "Deploying $BRANCH to staging/$BRANCH..."
 
 # Update staging/index.html file to link to newly deployed branch
 LINK="<li><a id='$BRANCH' href='$BRANCH'>$BRANCH ($(date))</a></li>"
 LN=$(awk '/end automatic insert/{ print NR; exit }' staging/index.html)
-sed -i "/id='$BRANCH'/d" staging/index.html 2>&1 || exit 1
+echo "($LN) $LINK"
+sed -i "/id='$BRANCH'/d" staging/index.html
 sed -i "${LN}i${LINK}" staging/index.html
+echo "Updated staging/index.html to point to staging/$BRANCH and moved build files"
+ls "staging/$BRANCH"
 
 # master branch is staged but we mirror it at root level
 # Commented out for now to avoid any risk on the deployed branch git
@@ -101,10 +105,10 @@ sed -i "${LN}i${LINK}" staging/index.html
 # fi
 
 # Save updates to repository
-git status -s > /dev/null 2>&1 || exit 1
-git add -A . > /dev/null 2>&1 || exit 1
-git commit --allow-empty -m "[deploy.sh | $ACTOR] $BRANCH ($(date))" > /dev/null 2>&1 || exit 1
-git push > /dev/null 2>&1 || exit 1
+git status -s
+git add -A .
+git commit --allow-empty -m "[deploy.sh | $ACTOR] $BRANCH ($(date))"
+git push
 
 # Clean up
 rm -rf "$TMP_DIR"
