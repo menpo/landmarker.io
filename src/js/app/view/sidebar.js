@@ -14,12 +14,14 @@ var LandmarkView = Backbone.View.extend({
     tagName: "div",
 
     events: {
-        click: "select",
-        dblclick: "selectAll"
+        click: "handleClick",
     },
 
-    initialize: function () {
+    initialize: function ({labelIndex}) {
         this.listenTo(this.model, 'change', this.render);
+        _.bindAll(this, 'select', 'selectGroup', 'handleClick', 'selectAll');
+        this._clickedTimeout = null;
+        this.labelIndex = labelIndex;
     },
 
     render: function () {
@@ -42,10 +44,22 @@ var LandmarkView = Backbone.View.extend({
         return this;
     },
 
+    handleClick: function (event) {
+        if (this._clickedTimeout === null) {
+            this._clickedTimeout = setTimeout(() => {
+                this._clickedTimeout = null;
+                this.select(event);
+            }, 200);
+        } else {
+            clearTimeout(this._clickedTimeout);
+            this._clickedTimeout = null;
+            this.selectGroup(event);
+        }
+    },
+
     select: atomic.atomicOperation(function (event) {
         if (event.shiftKey) {
-            // shift takes precedence.
-            return;
+            this.selectAll(event);
         } else if ((event.ctrlKey || event.metaKey)) {
             if (this.model.isSelected()) {
                 this.model.deselect();
@@ -61,10 +75,22 @@ var LandmarkView = Backbone.View.extend({
         }
     }),
 
-    selectAll: function (event) {
-        // TODO fix up
-        this.model.collection.selectAll();
-    }
+    selectGroup: atomic.atomicOperation(function (event) {
+        this.model.group().deselectAll();
+        this.model.group().labels[this.labelIndex].landmarks.forEach((lm) => {
+            lm.select();
+        });
+
+        $('#viewportContainer').trigger("groupSelected");
+    }),
+
+    selectAll: atomic.atomicOperation(function (event) {
+        this.model.group().landmarks.forEach((lm) => {
+            lm.select("groupSelected");
+        });
+
+        $('#viewportContainer').trigger("groupSelected");
+    })
 });
 
 // Renders the LandmarkList. Don't think this ListView should ever have to
@@ -74,9 +100,10 @@ var LandmarkListView = Backbone.View.extend({
 
     tagName: 'div',
 
-    initialize : function() {
+    initialize : function({labelIndex}) {
         _.bindAll(this, 'render', 'renderOne');
         this.lmViews = [];
+        this.labelIndex = labelIndex;
         this.render();
     },
 
@@ -90,7 +117,7 @@ var LandmarkListView = Backbone.View.extend({
 
     renderOne : function(model) {
         //console.log("NEW: LandmarkView (LandmarkList.renderOne())");
-        var lm = new LandmarkView({model: model});
+        var lm = new LandmarkView({model: model, labelIndex: this.labelIndex});
         // reset the view's element to it's template
         this.$el.append(lm.render().$el);
         this.lmViews.push(lm);
@@ -122,10 +149,11 @@ var LandmarkGroupView = Backbone.View.extend({
 
     tagName: 'div',
 
-    initialize : function() {
+    initialize : function({labelIndex}) {
         _.bindAll(this, 'render');
         this.landmarkList = null;
         this.label = null;
+        this.labelIndex = labelIndex;
         this.render();
     },
 
@@ -134,7 +162,7 @@ var LandmarkGroupView = Backbone.View.extend({
         this.$el.empty();
         this.$el.addClass('LmGroup');
         this.landmarkList = new LandmarkListView(
-            {collection: this.model.landmarks});
+            {collection: this.model.landmarks, labelIndex: this.labelIndex});
         this.label = new LandmarkGroupLabelView({model: this.model});
         this.$el.append(this.label.render().$el);
         this.$el.append(this.landmarkList.render().$el);
@@ -175,8 +203,8 @@ var LandmarkGroupListView = Backbone.View.extend({
         return this;
     },
 
-    renderOne : function(label) {
-        var group = new LandmarkGroupView({model: label});
+    renderOne : function(label, labelIndex) {
+        var group = new LandmarkGroupView({model: label, labelIndex});
         // reset the view's element to it's template
         this.$el.append(group.render().$el);
         this.groups.push(group);

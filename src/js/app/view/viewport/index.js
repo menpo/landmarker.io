@@ -200,6 +200,11 @@ exports.Viewport = Backbone.View.extend({
             this.model, "change:editingOn", this.updateEditingDisplay);
         this.updateEditingDisplay();
 
+        // Reset helper views on wheel to keep scale
+        // this.$el.on('wheel', () => {
+        //     this.clearCanvas();
+        // });
+
         this.listenTo(atomic, "change:ATOMIC_OPERATION", this.batchHandler);
 
         // trigger resize to initially size the viewport
@@ -214,6 +219,10 @@ exports.Viewport = Backbone.View.extend({
             // uncomment to monitor FPS performance
             //stats.update();
         }
+
+        $('#viewportContainer').on('groupSelected', () => {
+            this._mouseHandlers.setGroupSelected(true);
+        });
     },
 
     changeMesh: function () {
@@ -349,7 +358,9 @@ exports.Viewport = Backbone.View.extend({
 
     resetCamera: function () {
         // reposition the cameras and focus back to the starting point.
-        var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION : IMAGE_MODE_STARTING_POSITION;
+        var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION :
+                                        IMAGE_MODE_STARTING_POSITION;
+
         this.cameraController.position(v);
         this.cameraController.focus(this.scene.position);
         this.update();
@@ -374,6 +385,8 @@ exports.Viewport = Backbone.View.extend({
     updateEditingDisplay: atomic.atomicOperation(function () {
         this.editingOn = this.model.isEditingOn();
         this.clearCanvas();
+        this._mouseHandlers.setGroupSelected(false);
+
         // Manually bind to avoid useless function call (even with no effect)
         if (this.editingOn) {
             this.$el.on('mousemove', this._mouseHandlers.onMouseMove);
@@ -568,6 +581,7 @@ exports.Viewport = Backbone.View.extend({
             }
 
         });
+
         return lmsInBox;
     },
 

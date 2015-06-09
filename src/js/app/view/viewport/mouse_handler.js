@@ -108,12 +108,14 @@ function MouseHandler () {
         }
         console.log('Viewport: finding the selected points');
         lmPressedWasSelected = lmPressed.isSelected();
+
         if (!lmPressedWasSelected && !ctrl) {
             // this lm wasn't pressed before and we aren't holding
             // mutliselection down - deselect rest and select this
             console.log("normal click on a unselected lm - deselecting rest and selecting me");
             lmPressed.selectAndDeselectRest();
         }
+
         if (ctrl && !lmPressedWasSelected) {
             lmPressed.select();
         }
@@ -159,8 +161,7 @@ function MouseHandler () {
         // note that we explicitly ask for intersects with the mesh
         // object as we know get intersects will use an octree if
         // present.
-        intersectsWithMesh = this.getIntersectsFromEvent(
-            event, this.mesh);
+        intersectsWithMesh = this.getIntersectsFromEvent(event, this.mesh);
 
         // Click type, we use MouseEvent.button which is the vanilla JS way
         // jQuery also exposes event.which which has different bindings
@@ -349,6 +350,8 @@ function MouseHandler () {
                 lmPressed.deselect();
             } else if (!ctrl) {
                 lmPressed.selectAndDeselectRest();
+            } else {
+                hasGroupSelection = true;
             }
         }
 
@@ -391,11 +394,9 @@ function MouseHandler () {
             lms = lms.slice(0, 3);
         }
 
-        if (beingEditedLandmark) { // Always happens while we have _beingEditedLandmark
+        if (beingEditedLandmark && !hasGroupSelection) {
 
-            if (!hasGroupSelection) {
-                beingEditedLandmark.selectAndDeselectRest();
-            }
+            beingEditedLandmark.selectAndDeselectRest();
 
             this.drawTargetingLine(
                 {x: evt.clientX, y: evt.clientY},
@@ -410,6 +411,10 @@ function MouseHandler () {
     };
 
     return {
+        // State management
+        setGroupSelected: function (val=true) { hasGroupSelection = val; },
+
+        // Exposed handlers
         onMouseDown: atomic.atomicOperation(onMouseDown),
         onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove),
                                 MOVE_THROTTLE)
