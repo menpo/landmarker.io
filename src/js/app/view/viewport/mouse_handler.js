@@ -114,9 +114,7 @@ function MouseHandler () {
             // mutliselection down - deselect rest and select this
             console.log("normal click on a unselected lm - deselecting rest and selecting me");
             lmPressed.selectAndDeselectRest();
-        }
-
-        if (ctrl && !lmPressedWasSelected) {
+        } else if (ctrl && !lmPressedWasSelected) {
             lmPressed.select();
         }
 
@@ -348,9 +346,13 @@ function MouseHandler () {
             // landmark was pressed
             if (lmPressedWasSelected && ctrl) {
                 lmPressed.deselect();
-            } else if (!ctrl) {
+            } else if (!ctrl && !lmPressedWasSelected) {
                 lmPressed.selectAndDeselectRest();
-            } else {
+            } else if (lmPressedWasSelected) {
+                var p = intersectsWithMesh[0].point.clone();
+                this.worldToLocal(p, true);
+                this.model.landmarks().setLmAt(lmPressed, p);
+            } else if (ctrl) {
                 hasGroupSelection = true;
             }
         }
