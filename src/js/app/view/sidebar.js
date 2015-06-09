@@ -98,8 +98,7 @@ var LandmarkListView = Backbone.View.extend({
     },
 
     cleanup: function () {
-        // remove any views we already have bound
-        _.each(this.lmViews, function(lm) {lm.remove()});
+        this.lmViews.forEach(function (lm) { lm.remove() });
         this.lmViews = [];
     }
 
@@ -185,7 +184,7 @@ var LandmarkGroupListView = Backbone.View.extend({
     },
 
     cleanup: function () {
-        _.each(this.groups, function(group) {
+        this.groups.forEach(function (group) {
             group.cleanup();
             group.remove();
         });

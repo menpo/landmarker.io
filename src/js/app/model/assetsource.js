@@ -1,17 +1,14 @@
 var Backbone = require('../lib/backbonej');
-var R = require('ramda');
 var _ = require('underscore');
 var Asset = require('./asset');
 
 "use strict";
 
-var abortAll = R.each(function (x) {
-    x.abort();
-});
-
-var abortAllObj = function (x) {
-    return abortAll(R.values(x));
-};
+function abortAllObj (obj) {
+    _.values(obj).forEach(function (x) {
+        x.abort();
+    });
+}
 
 // Holds a list of available assets.
 var AssetSource = Backbone.Model.extend({
