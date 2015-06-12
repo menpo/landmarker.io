@@ -1,8 +1,8 @@
+"use strict";
+
 var Backbone = require('../lib/backbonej');
 var _ = require('underscore');
 var Asset = require('./asset');
-
-"use strict";
 
 function abortAllObj (obj) {
     _.values(obj).forEach(function (x) {
@@ -15,7 +15,7 @@ var AssetSource = Backbone.Model.extend({
 
     defaults: function () {
         return {
-            assets: new Backbone.Collection,
+            assets: new Backbone.Collection(),
             assetIsLoading: false
         };
     },

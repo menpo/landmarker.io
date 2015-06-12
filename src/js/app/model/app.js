@@ -142,7 +142,7 @@ var App = Backbone.Model.extend({
             }
             console.log("template set to '" + selected + "'");
             this.set('activeTemplate', selected);
-        }, (e) => {
+        }, () => {
             throw new Error('Failed to talk server for templates (is ' +
                             'landmarkerio running from your command line?).');
         });
@@ -162,7 +162,7 @@ var App = Backbone.Model.extend({
             }
             console.log("collection set to '" + selected + "'");
             this.set('activeCollection', selected);
-        }, (e) => {
+        }, () => {
             throw new Error('Failed to talk server for collections (is ' +
                             'landmarkerio running from your command line?).');
         });
@@ -171,7 +171,6 @@ var App = Backbone.Model.extend({
     reloadAssetSource: function () {
         // needs to have an activeCollection to preceed. AssetSource should be
         // updated every time the active collection is updated.
-        var that = this;
         if (!this.get('activeCollection')) {
             // can only proceed with an activeCollection...
             console.log('App:reloadAssetSource with no activeCollection - doing nothing');

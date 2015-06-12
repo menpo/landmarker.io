@@ -7,7 +7,7 @@ var XMLHttpRequestPromise = function (responseType, url) {
     var promise = new Promise(function(resolve, reject) {
         // Do the usual XHR stuff
         xhr.responseType = responseType;
-        if(url.indexOf('https://') == 0) {
+        if(url.indexOf('https://') === 0) {
             // if it's HTTPS request with credentials
             xhr.withCredentials = true;
         }
@@ -15,7 +15,7 @@ var XMLHttpRequestPromise = function (responseType, url) {
         xhr.onload = function() {
             // This is called even on 404 etc
             // so check the status
-            if (xhr.status == 200) {
+            if (xhr.status === 200) {
                     // Resolve the promise with the response text
                 resolve(xhr.response);
             }
@@ -62,7 +62,7 @@ var JSONPutPromise = function (url, json) {
         // Do the usual XHR stuff
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
-        if(url.indexOf('https://') == 0) {
+        if(url.indexOf('https://') === 0) {
             // if it's HTTPS request with credentials
             xhr.withCredentials = true;
         }
@@ -70,7 +70,7 @@ var JSONPutPromise = function (url, json) {
         xhr.onload = function() {
             // This is called even on 404 etc
             // so check the status
-            if (xhr.status == 200) {
+            if (xhr.status === 200) {
                 // Resolve the promise with the response text
                 resolve(xhr.response);
             }

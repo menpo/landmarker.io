@@ -1,22 +1,21 @@
-var Promise = require('promise-polyfill');
-var THREE = require('three');
+var Promise = require('promise-polyfill'),
+    THREE = require('three');
 
-
-window.ImagePromise = function (url) {
+var ImagePromise = function (url) {
     return new Promise(function (resolve, reject) {
 
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.responseType = 'blob';
-        var img = new Image;
+        var img = new Image();
 
-        if(url.indexOf('https://') == 0) {
+        if(url.indexOf('https://') === 0) {
             // if it's HTTPS request with credentials
             xhr.withCredentials = true;
         }
 
         xhr.addEventListener('load', function () {
-            if (this.status == 200) {
+            if (this.status === 200) {
                 var blob = this.response;
                 img.addEventListener('load', function () {
                     window.URL.revokeObjectURL(img.src); // Clean up after ourselves.
@@ -37,7 +36,7 @@ window.ImagePromise = function (url) {
     });
 };
 
-window.TexturePromise = function (url) {
+var TexturePromise = function (url) {
     var texture = new THREE.Texture(undefined, new THREE.UVMapping());
     texture.sourceFile = url;
 
@@ -48,7 +47,7 @@ window.TexturePromise = function (url) {
     });
 };
 
-window.MaterialPromise = function(url) {
+var MaterialPromise = function(url) {
     return TexturePromise(url).then(function (texture) {
         return new THREE.MeshBasicMaterial({map: texture});
     });

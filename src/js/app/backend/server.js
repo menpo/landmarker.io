@@ -12,7 +12,7 @@ var { JSONGetPromise,
 var Base = require('./base');
 
 function Server (url) {
-    this.url = url || this.DEFAULT_API_URL;
+    this.url = url || DEFAULT_API_URL;
     this.version = 2;
     this.demoMode = false;
 

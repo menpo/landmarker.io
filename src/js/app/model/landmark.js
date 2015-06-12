@@ -1,11 +1,9 @@
-var _ = require('underscore');
-var Backbone = require('../lib/backbonej');
-var THREE = require('three');
-var atomicOperation = require('./atomic').atomicOperation;
-var requests = require('../lib/requests');
-
 "use strict";
 
+var _ = require('underscore');
+var Backbone = require('backbone');
+var THREE = require('three');
+var atomicOperation = require('./atomic').atomicOperation;
 
 var indexMaskArray = function (a, mask) {
     var masked = [];
@@ -113,12 +111,13 @@ var Landmark = Backbone.Model.extend({
         var point;
         if (!this.isEmpty()) {
             point = this.point();
-            if (this.nDims() == 2) {
+            if (this.nDims() === 2) {
                 pointJSON = [point.x, point.y];
-            } else
-            pointJSON = [point.x, point.y, point.z];
+            } else {
+                pointJSON = [point.x, point.y, point.z];
+            }
         } else {
-            if (this.nDims() == 2) {
+            if (this.nDims() === 2) {
                 pointJSON = [null, null];
             } else {
                 pointJSON = [null, null, null];
@@ -184,15 +183,15 @@ var LandmarkGroup = function (points, connectivity, labels, id, type, server) {
     // 1. Build landmarks from points
     this.landmarks = points.map(function(p) {
         var lmInitObj = {group: that};
-        if (p.length == 2) {
+        if (p.length === 2) {
             lmInitObj.nDims = 2;
-            if (p[0] != null && p[1] != null) {
+            if (p[0] !== null && p[1] !== null) {
                 // image landmarks always have z = 0
                 lmInitObj.point = new THREE.Vector3(p[0], p[1], 0);
             }
-        } else if (p.length == 3) {
+        } else if (p.length === 3) {
             lmInitObj.nDims = 3;
-            if (p[0] != null && p[1] != null && p[2] != null) {
+            if (p[0] !== null && p[1] !== null && p[2] !== null) {
                 lmInitObj.point = new THREE.Vector3(p[0], p[1], p[2]);
             }
         }
@@ -275,7 +274,7 @@ LandmarkGroup.deleteSelected = atomicOperation(function () {
 
 LandmarkGroup.prototype.insertNew = atomicOperation(function (v) {
     var lm = this.nextAvailable();
-    if (lm == null) {
+    if (lm === null) {
         // nothing left to insert!
         return null;
     }
@@ -326,7 +325,7 @@ LandmarkLabel.prototype.toJSON = function () {
     }
 };
 
-var parseLJSONv1 = function (json, id, type, server) {
+var parseLJSONv1 = function (/*json, id, type, server*/) {
     console.log('parsing v1 landmarks...');
 };
 
