@@ -129,39 +129,8 @@ var Landmark = Backbone.Model.extend({
 
 });
 
-
-var promiseLandmarkGroup = function (id, type, server) {
-    return requests.JSONGetPromise(server.map("landmarks/" + id + '/' + type)).then(
-        function (json) {
-            console.log(json);
-            return parseLJSON[json.version](json, id, type, server);
-        }, function (err) {
-            console.log('Error in fetching landmark JSON file');
-        }
-    );
-};
-
-var parseLJSONv1 = function (json, id, type, server) {
-    console.log('parsing v1 landmarks...');
-};
-
-
-var parseLJSONv2 = function (json, id, type, server) {
-    console.log('parsing v2 landmarks...');
-    return new LandmarkGroup(json.landmarks.points,
-        json.landmarks.connectivity, json.labels, id, type, server);
-};
-
-var parseLJSON = {
-    1: parseLJSONv1,
-    2: parseLJSONv2
-};
-
-
 // Define behavior shared between Lists and Groups
-
 var LandmarkCollectionPrototype = Object.create(null);
-
 
 LandmarkCollectionPrototype.selected = function () {
     return where(this.landmarks, function (lm) {
@@ -189,7 +158,6 @@ LandmarkCollectionPrototype.deleteSelected = atomicOperation(function () {
     this.resetNextAvailable();
 });
 
-
 var _validateConnectivity =  function (nLandmarks, connectivity) {
     var a, b;
     for (var i = 0; i < connectivity.length; i++) {
@@ -204,7 +172,6 @@ var _validateConnectivity =  function (nLandmarks, connectivity) {
 
     }
 };
-
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
 var LandmarkGroup = function (points, connectivity, labels, id, type, server) {
@@ -250,10 +217,6 @@ var LandmarkGroup = function (points, connectivity, labels, id, type, server) {
 };
 
 LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
-
-LandmarkGroup.prototype.url = function () {
-    return this.server.map("landmarks/" + this.id + '/' + this.type)
-};
 
 LandmarkGroup.prototype.nextAvailable = function () {
     for (var i = 0; i < this.landmarks.length; i++) {
@@ -344,9 +307,8 @@ LandmarkGroup.prototype.toJSON = function () {
 };
 
 LandmarkGroup.prototype.promiseSave = function () {
-    return requests.JSONPutPromise(this.url(), this);
+    return this.server.saveLandmarkGroup(this.id, this.type, this.toJSON());
 };
-
 
 // LandmarkLabel is a 'playlist' of landmarks from the LandmarkGroup.
 var LandmarkLabel = function(label, landmarks, mask) {
@@ -364,4 +326,24 @@ LandmarkLabel.prototype.toJSON = function () {
     }
 };
 
-exports.promiseLandmarkGroup = promiseLandmarkGroup;
+var parseLJSONv1 = function (json, id, type, server) {
+    console.log('parsing v1 landmarks...');
+};
+
+
+var parseLJSONv2 = function (json, id, type, server) {
+    console.log('parsing v2 landmarks...');
+    return new LandmarkGroup(json.landmarks.points,
+        json.landmarks.connectivity, json.labels, id, type, server);
+};
+
+var LJSONParsers = {
+    1: parseLJSONv1,
+    2: parseLJSONv2
+};
+
+module.exports = {
+    parseGroup: function (json, id, type, server) {
+        return LJSONParsers[json.version](json, id, type, server);
+    }
+}
