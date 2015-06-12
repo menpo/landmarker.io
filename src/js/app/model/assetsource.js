@@ -20,10 +20,12 @@ var AssetSource = Backbone.Model.extend({
         };
     },
 
-    urlRoot : "collections",
-
-    url: function () {
-        return this.get('server').map(this.urlRoot + '/' + this.id);
+    fetch: function () {
+        return (
+            this.get('server').fetchCollection(this.id).then((response) => {
+                this.set('assets', this.parse(response).assets);
+            })
+        );
     },
 
     asset: function () {
@@ -84,24 +86,20 @@ var AssetSource = Backbone.Model.extend({
 
     updateMesh: function () {
         this.trigger('change:mesh');
-    }
+    },
 });
 
 exports.MeshSource = AssetSource.extend({
 
     parse: function (response) {
-        var that = this;
-        var mesh;
-        var meshes = _.map(response, function (assetId) {
-            mesh = new Asset.Mesh({
+        var meshes = response.map((assetId) => {
+            return new Asset.Mesh({
                 id: assetId,
-                server: that.get('server')
+                server: this.get('server')
             });
-            return mesh;
         });
-        return {
-            assets: meshes
-        };
+
+        return { assets: meshes };
     },
 
     setAsset: function (newMesh) {
@@ -161,18 +159,14 @@ exports.MeshSource = AssetSource.extend({
 exports.ImageSource = AssetSource.extend({
 
     parse: function (response) {
-        var that = this;
-        var image;
-        var images = _.map(response, function (assetId) {
-            image =  new Asset.Image({
+        var images = response.map((assetId) => {
+            return new Asset.Image({
                 id: assetId,
-                server: that.get('server')
+                server: this.get('server')
             });
-            return image;
         });
-        return {
-            assets: images
-        };
+
+        return { assets: images };
     },
 
     setAsset: function (newAsset) {

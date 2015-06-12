@@ -1,12 +1,12 @@
-var _ = require('underscore');
-var Promise = require('promise-polyfill');
-var Backbone = require('../lib/backbonej');
-var Landmark = require('./landmark');
-var Template = require('./template');
-var AssetSource = require('./assetsource');
-var Collection = require('./collection');
-
 "use strict";
+
+var _ = require('underscore'),
+    Promise = require('promise-polyfill');
+
+var Backbone = require('../lib/backbonej');
+
+var Landmark = require('./landmark'),
+    AssetSource = require('./assetsource');
 
 var _instance = null;
 
@@ -117,63 +117,54 @@ var App = Backbone.Model.extend({
         _.bindAll(this, 'assetChanged', 'mesh', 'assetSource', 'landmarks');
 
         // New collection? Need to find the assets on them again
-        this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
+        this.listenTo(
+            this, 'change:activeCollection', this.reloadAssetSource);
 
         this._initTemplates();
         this._initCollections();
     },
 
     _initTemplates: function () {
-        var that = this;
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.
-        var labels;
-        var templates = new Template.TemplateLabels({server: this.server()});
-        this.set('templates', templates);
-        templates.fetch({
-            success: function () {
-                labels = templates.get('labels');
-                var label = labels[0];
-                console.log('Available templates are ' + labels);
-                if (that.has('_activeTemplate')) {
-                    // user has specified a preset! Use that if we can
-                    // TODO should validate here if we can actually use template
-                    label = that.get('_activeTemplate');
-                    console.log("template is preset to '" + label + "'");
+        this.server().fetchTemplates().then((templates) => {
+            console.log('Available templates are ', templates);
+            this.set('templates', templates);
+            let selected = templates[0];
+            if (this.has('_activeTemplate')) {
+                // user has specified a preset! Use that if we can
+                // TODO should validate here if we can actually use template
+                let preset = this.get('_activeTemplate');
+                if (templates.indexOf(preset) > -1) {
+                    selected = preset;
+                    console.log("template is preset to '" + selected + "'");
                 }
-                console.log("template set to '" + label + "'");
-                that.set('activeTemplate', label);
-
-            },
-            error: function () {
-                throw Error('Failed to talk server for templates (is ' +
-                            'landmarkerio running from your command line?).');
             }
+            console.log("template set to '" + selected + "'");
+            this.set('activeTemplate', selected);
+        }, (e) => {
+            throw new Error('Failed to talk server for templates (is ' +
+                            'landmarkerio running from your command line?).');
         });
     },
 
     _initCollections: function () {
-        var that = this;
-        // we also need to find out what collections are available.
-        var labels;
-        var collections = new Collection.CollectionLabels({server: this.server()});
-        this.set('collections', collections);
-        collections.fetch({
-            success: function () {
-                labels = collections.get('labels');
-                console.log('Available collections are ' + labels + ' setting ' +
-                    labels[0] + ' to start');
-                if (that.has('_activeCollection')) {
-                    that.set('activeCollection',
-                        that.get('_activeCollection'));
-                } else {
-                    that.set('activeCollection', labels[0]);
+        this.server().fetchCollections().then((collections) => {
+            console.log('Available collections are ', collections);
+            this.set('collections', collections);
+            let selected = collections[0];
+            if (this.has('_activeCollection')) {
+                let preset = this.get('_activeCollection');
+                if (collections.indexOf(preset) > -1) {
+                    selected = preset;
+                    console.log("collection is preset to '" + selected + "'");
                 }
-            },
-            error: function () {
-                throw Error('Failed to talk server for collections (is ' +
-                            'landmarkerio running from your command line?).');
             }
+            console.log("collection set to '" + selected + "'");
+            this.set('activeCollection', selected);
+        }, (e) => {
+            throw new Error('Failed to talk server for collections (is ' +
+                            'landmarkerio running from your command line?).');
         });
     },
 
@@ -206,22 +197,24 @@ var App = Backbone.Model.extend({
         this.listenTo(assetSource, 'change:asset', this.assetChanged);
         this.listenTo(assetSource, 'change:mesh', this.meshChanged);
 
-        Backbone.promiseFetch(assetSource).then(function () {
-                var i = 0;
-                console.log('assetSource retrieved - setting');
-                if (that.has('_assetIndex')) {
-                    i = that.get('_assetIndex');
-                }
-                if (i < 0 ||  i > (assetSource.nAssets() - 1)) {
-                    throw Error('Error trying to set index to ' + i + ' - needs to'
-                    + ' be in the range 0-' + assetSource.nAssets());
-                }
-                return that.goToAssetIndex(i);
-            },
-            function () {
-                throw Error('Failed to fetch assets (is landmarkerio' +
+        assetSource.fetch().then(() => {
+            let i = 0;
+
+            console.log('assetSource retrieved - setting');
+
+            if (this.has('_assetIndex')) {
+                i = this.get('_assetIndex');
+            }
+
+            if (i < 0 ||  i > assetSource.nAssets() - 1) {
+                throw Error(`Error trying to set index to ${i} - needs to be in the range 0-${assetSource.nAssets()}`);
+            }
+
+            return this.goToAssetIndex(i);
+        }, () => {
+            throw new Error('Failed to fetch assets (is landmarkerio' +
                             'running from your command line?).');
-            });
+        });
     },
 
     _assetSourceConstructor: function () {
@@ -249,20 +242,28 @@ var App = Backbone.Model.extend({
     _promiseLandmarksWithAsset: function (loadAssetPromise) {
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
-        var that = this;
+        //
         // Make a new landmark object for the new asset.
-        var loadLandmarksPromise = Landmark.promiseLandmarkGroup(
-            this.asset().id, this.activeTemplate(), this.get('server'));
+        var loadLandmarksPromise = this.server().fetchLandmarkGroup(
+            this.asset().id,
+            this.activeTemplate()
+        ).then((json) => {
+            return Landmark.parseGroup(
+                json, this.asset().id, this.activeTemplate(), this.server());
+        }, () => {
+            console.log('Error in fetching landmark JSON file');
+        });
+
         // if both come true, then set the landmarks
         return Promise.all([loadLandmarksPromise,
-                            loadAssetPromise]).then(function (args) {
+                            loadAssetPromise]).then((args) => {
             var landmarks = args[0];
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display');
             // now we know that this is resolved we set the landmarks on the
             // app. This way we know the landmarks will always be set with a
             // valid asset.
-            that.set('landmarks', landmarks);
+            this.set('landmarks', landmarks);
         });
     },
 

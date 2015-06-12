@@ -1,68 +1,53 @@
-var $ = require('jquery');
+"use strict";
 
-var DEFAULT_API_URL = 'http://localhost:5000';
+var $ = require('jquery'),
+    url = require('url'),
+    THREE = require('three');
 
+var Server = require('./app/backend/server');
 var Notification = require('./app/view/notification');
 
 function resolveServer(u) {
-    var server;
-    var Server = require('./app/model/server');
-    var apiUrl = DEFAULT_API_URL;
+    var apiUrl;
     if (u.query.hasOwnProperty('server')) {
         if (u.query.server === 'demo') {
-            // in demo mode and have mode set.
             document.title = document.title + ' - demo mode';
-            var $ = require('jquery');
-            server = new Server('');
-            server.demoMode = true;
-            return server;
+            apiUrl = 'demo';
         } else {
             apiUrl = u.query.server;
             console.log('Setting server to provided value: ' + apiUrl);
         }
-    } // if no server provided use the default
+    }
     return new Server(apiUrl);
 }
 
 function resolveMode(server) {
-    var mode = require('./app/model/mode');
-    var modeResolver = new mode.Mode({server: server});
-    modeResolver.fetch({
-        success: _resolveMode,
-        error: function (e) {
-            // could be that there is an old v1 server, let's check
-            server.version = 1;
-            modeResolver.fetch({
-                success: redirectToV1,
-                error: restartInDemoMode
-            })
-        }
+    server.fetchMode().then(function (mode) {
+        _resolveMode(mode, server);
+    }, function (e) {
+        // could be that there is an old v1 server, let's check
+        server.version = 1;
+        server.fetchMode(redirectToV1, restartInDemoMode);
     });
 }
 
 function redirectToV1() {
     // we want to add v1 into the url and leave everything else the same
     console.log('v1 server found - redirecting to legacy landmarker');
-    var url = require('url');
     var u = url.parse(window.location.href, true);
     u.pathname = '/v1/';
     // This will redirect us to v1
     window.location.replace(url.format(u));
 }
 
-function _resolveMode(modeResolver) {
-    var mode;
-    if (modeResolver.has('mesh')) {
-        mode = 'mesh';
-        console.log('Successfully found mode: mesh');
-    } else if (modeResolver.has('image')) {
-        mode = 'image';
-        console.log('Successfully found mode: image');
+function _resolveMode(mode, server) {
+    if (mode === 'mesh' || mode === 'image') {
+        console.log(`Successfully found mode: ${mode}`);
     } else {
         console.log('Error unknown mode - terminating');
         restartInDemoMode();
     }
-    initLandmarker(modeResolver.get('server'), mode);
+    initLandmarker(server, mode);
 }
 
 function restartInDemoMode() {
@@ -79,12 +64,7 @@ function restartInDemoMode() {
 
 function initLandmarker(server, mode) {
     console.log('Starting landmarker in ' + mode + ' mode');
-    var $ = require('jquery');
-
     var App = require('./app/model/app');
-
-    var THREE = require('three');
-    var url = require('url');
     var History = require('./app/view/history');
 
     // allow CORS loading of textures
@@ -94,13 +74,17 @@ function initLandmarker(server, mode) {
     // Parse the current url so we can query the parameters
     var u = url.parse(window.location.href.replace('#', '?'), true);
     u.search = null;  // erase search so query is used in building back URL
+
     var appInit = {server: server, mode: mode};
+
     if (u.query.hasOwnProperty('t')) {
         appInit._activeTemplate = u.query.t;
     }
+
     if (u.query.hasOwnProperty('c')) {
         appInit._activeCollection = u.query.c;
     }
+
     if (u.query.hasOwnProperty('i')) {
         appInit._assetIndex = u.query.i - 1;
     }
@@ -142,11 +126,6 @@ function initLandmarker(server, mode) {
 
     // update the URL of the page as the state changes
     var historyUpdate = new History.HistoryUpdate({model: app});
-
-    // For debugging, attach to the window.
-    window.app = app;
-    window.toolbar = toolbar;
-    window.viewport = viewport;
 
     // ----- KEYBOARD HANDLER ----- //
     $(window).keypress(function(e) {
