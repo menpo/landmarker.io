@@ -26,9 +26,7 @@ function Handler () {
      * @return {Landmark[]}
      */
     var findClosestLandmarks = (lmGroup, loc, locked=false) => {
-        var dist, i, j,
-            lm, lmLoc,
-            minDist, minLm,
+        var dist, i, j, lm, lmLoc, minDist,
             dists = new Array(4), lms= new Array(4);
 
         for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {

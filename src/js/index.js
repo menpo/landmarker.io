@@ -24,7 +24,7 @@ function resolveServer(u) {
 function resolveMode(server) {
     server.fetchMode().then(function (mode) {
         _resolveMode(mode, server);
-    }, function (e) {
+    }, function () {
         // could be that there is an old v1 server, let's check
         server.version = 1;
         server.fetchMode(redirectToV1, restartInDemoMode);
@@ -97,7 +97,7 @@ function initLandmarker(server, mode) {
     var ViewportView = require('./app/view/viewport');
     var HelpOverlay = require('./app/view/help');
 
-//    var preview = new Notification.ThumbnailNotification({model:app});
+    // var preview = new Notification.ThumbnailNotification({model:app});
     var loading = new Notification.AssetLoadingNotification({model:app});
     var sidebar = new SidebarView.Sidebar({model: app});
     var assetView = new AssetView.AssetView({model: app});
@@ -109,7 +109,7 @@ function initLandmarker(server, mode) {
 
     app.on('change:asset', function () {
        console.log('Index: the asset has changed');
-        var mesh = viewport.mesh;
+        // var mesh = viewport.mesh;
         viewport.removeMeshIfPresent();
         if (prevAsset !== null) {
             // clean up previous asset
@@ -117,9 +117,10 @@ function initLandmarker(server, mode) {
             console.log('Before dispose: ' + viewport.memoryString());
             prevAsset.dispose();
             console.log('After dispose: ' + viewport.memoryString());
-            if (mesh !== null) {
-                //mesh.dispose();
-            }
+
+            // if (mesh !== null) {
+            //     mesh.dispose();
+            // }
         }
         prevAsset = app.asset();
     });

@@ -1,9 +1,9 @@
+"use strict";
+
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
 var ArrayBufferGetPromise = require('../lib/requests').ArrayBufferGetPromise;
 var ImagePromise = require('../lib/imagepromise');
-
-"use strict";
 
 var FRONT = {
     image: new THREE.Vector3(0, 0, 1),
