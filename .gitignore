@@ -8,3 +8,4 @@ bundle*css
 index.html
 !src/index.html
 lmio.appcache
+npm-debug.log
