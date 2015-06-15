@@ -8,7 +8,7 @@ var THREE = require('three');
 var atomic = require('../../model/atomic');
 var octree = require('../../model/octree');
 
-var MouseHandler = require('./mouse_handler');
+var Handler = require('./handler');
 var Camera = require('./camera');
 
 var { LandmarkConnectionTHREEView,
@@ -181,7 +181,7 @@ exports.Viewport = Backbone.View.extend({
         // We wrap all this complexity up in a closure so it can enjoy access
         // to the general viewport state without leaking it's state all over
         // the place.
-        this._mouseHandlers = MouseHandler.apply(this);
+        this._handler = Handler.apply(this);
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
@@ -221,7 +221,7 @@ exports.Viewport = Backbone.View.extend({
         }
 
         $('#viewportContainer').on('groupSelected', () => {
-            this._mouseHandlers.setGroupSelected(true);
+            this._handler.setGroupSelected(true);
         });
     },
 
@@ -375,7 +375,7 @@ exports.Viewport = Backbone.View.extend({
 
     mousedownHandler: function (event) {
         event.preventDefault();
-        this._mouseHandlers.onMouseDown(event);
+        this._handler.onMouseDown(event);
     },
 
     updateConnectivityDisplay: atomic.atomicOperation(function () {
@@ -385,15 +385,22 @@ exports.Viewport = Backbone.View.extend({
     updateEditingDisplay: atomic.atomicOperation(function () {
         this.editingOn = this.model.isEditingOn();
         this.clearCanvas();
-        this._mouseHandlers.setGroupSelected(false);
+        this._handler.setGroupSelected(false);
 
         // Manually bind to avoid useless function call (even with no effect)
         if (this.editingOn) {
-            this.$el.on('mousemove', this._mouseHandlers.onMouseMove);
+            this.$el.on('mousemove', this._handler.onMouseMove);
         } else {
-            this.$el.off('mousemove', this._mouseHandlers.onMouseMove);
+            this.$el.off('mousemove', this._handler.onMouseMove);
         }
     }),
+
+    deselectAll: function () {
+        let lms = this.model.get('landmarks');
+        if (lms) {
+            lms.deselectAll();
+        }
+    },
 
     resize: function () {
         var w, h;
