@@ -37,7 +37,7 @@ function Handler () {
             lm = lmGroup.landmarks[i];
             lmLoc = lm.point();
 
-            if (lmLoc === null || (locked && lm === beingEditedLandmark)) {
+            if (lmLoc === null || (locked && lm === currentTargetLm)) {
                 continue;
             }
 
@@ -65,7 +65,7 @@ function Handler () {
     var downEvent,
         lmPressed, lmPressedWasSelected,
         isPressed, groupSelected,
-        beingEditedLandmark;
+        currentTargetLm;
 
     // x, y position of mouse on click states
     var onMouseDownPosition = new THREE.Vector2(),
@@ -184,16 +184,17 @@ function Handler () {
                 nothingPressed();
             }
         } else if (event.button === 2) { // Right click
-            if (intersectsWithLms.length <= 0 &&
+            if (
+                intersectsWithLms.length <= 0 &&
                 intersectsWithMesh.length > 0 &&
                 this.model.isEditingOn()
             ) {
                 this.model.landmarks().deselectAll();
                 this.model.landmarks().resetNextAvailable();
-                beingEditedLandmark = undefined;
+                currentTargetLm = undefined;
                 meshPressed();
             } else {
-                nothingPressed();
+                // Pass right click does nothing in most cases
             }
         }
     };
@@ -306,8 +307,8 @@ function Handler () {
             // Convert the point back into the mesh space
             this.worldToLocal(p, true);
 
-            if (this.model.isEditingOn() && beingEditedLandmark) {
-                this.model.landmarks().setLmAt(beingEditedLandmark, p);
+            if (this.model.isEditingOn() && currentTargetLm) {
+                this.model.landmarks().setLmAt(currentTargetLm, p);
             } else {
                 this.model.landmarks().insertNew(p);
             }
@@ -384,19 +385,19 @@ function Handler () {
                                        evt.ctrlKey || evt.metaKey);
 
         if (lms[0] && !evt.ctrlKey) {
-            beingEditedLandmark = lms[0];
+            currentTargetLm = lms[0];
             lms = lms.slice(1, 4);
         } else if (lms[0]) {
             lms = lms.slice(0, 3);
         }
 
-        if (beingEditedLandmark && !groupSelected) {
+        if (currentTargetLm && !groupSelected) {
 
-            beingEditedLandmark.selectAndDeselectRest();
+            currentTargetLm.selectAndDeselectRest();
 
             this.drawTargetingLine(
                 {x: evt.clientX, y: evt.clientY},
-                this.localToScreen(beingEditedLandmark.point()));
+                this.localToScreen(currentTargetLm.point()));
 
             lms.forEach((lm) => {
                 this.drawTargetingLine(

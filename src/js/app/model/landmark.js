@@ -1,7 +1,7 @@
 var _ = require('underscore');
 var Backbone = require('../lib/backbonej');
 var THREE = require('three');
-var atomic = require('./atomic');
+var atomicOperation = require('./atomic').atomicOperation;
 var requests = require('../lib/requests');
 
 "use strict";
@@ -102,8 +102,6 @@ var Landmark = Backbone.Model.extend({
 
     clear: function() {
         this.set({ point: null, selected: false });
-        // reactivate the group to reset next available.
-        this.group().resetNextAvailable();
     },
 
     group: function () {
@@ -171,23 +169,23 @@ LandmarkCollectionPrototype.selected = function () {
     });
 };
 
-LandmarkCollectionPrototype.deselectAll = atomic.atomicOperation(function () {
-    this.landmarks.map(function(lm) {
+LandmarkCollectionPrototype.deselectAll = atomicOperation(function () {
+    this.landmarks.forEach(function(lm) {
         lm.deselect();
     });
 });
 
-LandmarkCollectionPrototype.selectAll = atomic.atomicOperation(function () {
-    this.landmarks.map(function (lm) {
+LandmarkCollectionPrototype.selectAll = atomicOperation(function () {
+    this.landmarks.forEach(function (lm) {
         lm.select();
     });
 });
 
 
-LandmarkCollectionPrototype.deleteSelected = atomic.atomicOperation(function () {
-    this.selected().map(function (lm) {
+LandmarkCollectionPrototype.deleteSelected = atomicOperation(function () {
+    this.selected().forEach(function (lm) {
         lm.clear();
-    })
+    });
 });
 
 
@@ -198,8 +196,9 @@ var _validateConnectivity =  function (nLandmarks, connectivity) {
         b = connectivity[i][1];
         if (a < 0 || a >= nLandmarks || b < 0 || b >= nLandmarks) {
             // we have bad connectivity!
-            throw "Illegal connectivity encountered - [" + a + ", " + b +
-            "] not permitted in group of " + nLandmarks + " landmarks";
+            throw new Error(
+                "Illegal connectivity encountered - [" + a + ", " + b +
+                "] not permitted in group of " + nLandmarks + " landmarks");
         }
 
     }
@@ -265,22 +264,52 @@ LandmarkGroup.prototype.nextAvailable = function () {
 };
 
 LandmarkGroup.prototype.clearAllNextAvailable = function () {
-    this.landmarks.map(function (l) {
+    this.landmarks.forEach(function (l) {
         l.clearNextAvailable();
     });
 };
 
-LandmarkGroup.prototype.resetNextAvailable = function () {
-    this.clearAllNextAvailable();
-    for (var i = 0; i < this.landmarks.length; i++) {
-        if (this.landmarks[i].isEmpty()) {
-            this.landmarks[i].setNextAvailable();
-            return;
+/**
+ * Sets the next available landmark to be either the first empty one,
+ * or if originLm is provided from the set, the first empty on after
+ * the originLm in storage order which is assumed to be logical order
+ * (Loop over all lms to clear the next available flag)
+ *
+ * @param {Landmark} originLm
+ * @return {Landmark | undefined}
+ */
+LandmarkGroup.prototype.resetNextAvailable = function (originLm) {
+
+    let first, next, pastOrigin = !originLm;
+
+    this.landmarks.forEach((lm) => {
+        lm.clearNextAvailable();
+        pastOrigin = pastOrigin || lm === originLm;
+
+        if (lm.isEmpty() && (!next || !first)) {
+            if (!next && pastOrigin) {
+                next = lm;
+            } else if (!first && !pastOrigin) {
+                first = lm;
+            }
         }
-    }
+    });
+
+    next = !next ? first : next;          // Nothing was found after the origin
+    if (next) next.setNextAvailable();
+
+    return next;
 };
 
-LandmarkGroup.prototype.insertNew = atomic.atomicOperation(function (v) {
+LandmarkGroup.deleteSelected = atomicOperation(function () {
+    this.selected().forEach(function (lm) {
+        lm.clear();
+    });
+    // reactivate the group to reset next available.
+    this.resetNextAvailable();
+});
+
+LandmarkGroup.prototype.insertNew = atomicOperation(function (v) {
     var lm = this.nextAvailable();
     if (lm == null) {
         // nothing left to insert!
@@ -289,10 +318,10 @@ LandmarkGroup.prototype.insertNew = atomic.atomicOperation(function (v) {
     // we are definitely inserting.
     this.deselectAll();
     this.setLmAt(lm, v)
-    this.resetNextAvailable();
+    this.resetNextAvailable(lm);
 });
 
-LandmarkGroup.prototype.setLmAt = atomic.atomicOperation(function (lm, v) {
+LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
     lm.set({
         point: v.clone(),
         selected: true,
