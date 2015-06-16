@@ -4,26 +4,88 @@ var $ = require('jquery'),
     url = require('url'),
     THREE = require('three');
 
-var Server = require('./app/backend/server');
-var Notification = require('./app/view/notification');
+var utils = require('./app/lib/utils');
 
-function resolveServer(u) {
-    var apiUrl;
-    if (u.query.hasOwnProperty('server')) {
-        if (u.query.server === 'demo') {
-            document.title = document.title + ' - demo mode';
-            apiUrl = 'demo';
-        } else {
-            apiUrl = u.query.server;
-            console.log('Setting server to provided value: ' + apiUrl);
+var cfg = require('./app/model/config')();
+
+var Server = require('./app/backend/server'),
+    Dropbox = require('./app/backend/dropbox');
+
+function resolveBackend (u) {
+    console.log('Resolving which backend to use for url:', u);
+
+    // We were waiting for an OAuth flow to complete
+    if (cfg.get('storageEngine') && cfg.get('authenticated') === false) {
+        switch (cfg.get('storageEngine')) {
+            case 'dropbox':
+                console.log('OADBX');
+                if (u.query.state === cfg.get('OAuthState')) {
+                    cfg.set('uid', u.query.uid);
+                    cfg.set('token', u.query['access_token']);
+                    cfg.set('authenticated', true);
+                    cfg.save();
+
+                    let dropbox = new Dropbox();
+                    dropbox.setToken(cfg.get('token'));
+
+                    return resolveMode(dropbox);
+                } else {
+                    return console.log("State doesn't match");
+                }
+            default:
+                return console.log('Received invalid oauth call');
         }
     }
-    return new Server(apiUrl);
+
+    // We found an authenticated storage engine
+    if (cfg.get('storageEngine') && cfg.get('authenticated') === true) {
+        switch (cfg.get('storageEngine')) {
+            case 'dropbox':
+                console.log('Found a dropbox client');
+                let dropbox = new Dropbox();
+                dropbox.setToken(cfg.get('token'));
+                // Test connection and redo handshake if needed
+                return resolveMode(dropbox);
+            default:
+                return console.log('Invalid Engine');
+        }
+    }
+
+    if (u.query.server) {
+        // Found a server parameter >> traditionnal mode
+        let server = new Server(u.query.server);
+        return resolveMode(server);
+    } else if (u.query.store) {
+        // Found a store parameter, start the process
+        console.log("Found storage engine", u.query.store);
+        let backend, storeId = u.query.store.toLowerCase();
+
+        switch (storeId) {
+            case 'dropbox':
+                let stateString = utils.randomString(100);
+                cfg.set('OAuthState', stateString); {}
+                cfg.set('storageEngine', 'dropbox');
+                cfg.set('authenticated', false);
+                cfg.save();
+                return Dropbox.authorize(stateString);
+            default:
+                return restartInDemoMode();
+        }
+    } else {
+        // Nothing found, give the user a choice
+        console.log("Coudn't infer a suitable backend");
+    }
 }
 
-function resolveMode(server) {
+function resolveMode (server) {
     server.fetchMode().then(function (mode) {
-        _resolveMode(mode, server);
+        if (mode === 'mesh' || mode === 'image') {
+            console.log(`Successfully found mode: ${mode}`);
+        } else {
+            console.log('Error unknown mode - terminating');
+            restartInDemoMode();
+        }
+        initLandmarker(server, mode);
     }, function () {
         // could be that there is an old v1 server, let's check
         server.version = 1;
@@ -40,16 +102,6 @@ function redirectToV1() {
     window.location.replace(url.format(u));
 }
 
-function _resolveMode(mode, server) {
-    if (mode === 'mesh' || mode === 'image') {
-        console.log(`Successfully found mode: ${mode}`);
-    } else {
-        console.log('Error unknown mode - terminating');
-        restartInDemoMode();
-    }
-    initLandmarker(server, mode);
-}
-
 function restartInDemoMode() {
     // load the url module and parse our URL
     var url = require('url');
@@ -64,6 +116,11 @@ function restartInDemoMode() {
 
 function initLandmarker(server, mode) {
     console.log('Starting landmarker in ' + mode + ' mode');
+
+    if (server.demoMode) {
+        document.title = document.title + ' - demo mode';
+    }
+
     var App = require('./app/model/app');
     var History = require('./app/view/history');
 
@@ -245,14 +302,10 @@ document.addEventListener('DOMContentLoaded', function () {
         })
     }
 
-    var url = require('url');
+    cfg.load();
+
     // Parse the current url so we can query the parameters
     var u = url.parse(window.location.href.replace('#', '?'), true);
     u.search = null;  // erase search so query is used in building back URL
-
-    var server = resolveServer(u);
-    // by this point definitely have a correctly set server.
-
-    // check the mode of the server.
-    resolveMode(server);
+    resolveBackend(u);
 });
