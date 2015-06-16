@@ -1,15 +1,28 @@
-var Promise = require('promise-polyfill');
+"use strict";
 
-var XMLHttpRequestPromise = function (responseType, url) {
+var Promise = require('promise-polyfill'),
+    QS = require('querystring');
+
+var XMLHttpRequestPromise = function (responseType, url, type='GET', data) {
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', url);
+    xhr.open(type, url);
     // Return a new promise.
     var promise = new Promise(function(resolve, reject) {
         // Do the usual XHR stuff
         xhr.responseType = responseType;
-        if(url.indexOf('https://') === 0) {
-            // if it's HTTPS request with credentials
-            xhr.withCredentials = true;
+
+        // if(url.indexOf('https://') === 0) {
+        //     // if it's HTTPS request with credentials
+        //     xhr.withCredentials = true;
+        // }
+
+        let params;
+
+        if (type === 'POST') {
+            data = data || {};
+            xhr.setRequestHeader(
+                "Content-type", "application/x-www-form-urlencoded");
+            params = QS.stringify(data);
         }
 
         xhr.onload = function() {
@@ -32,7 +45,11 @@ var XMLHttpRequestPromise = function (responseType, url) {
         };
 
         // Make the request
-        xhr.send();
+        if (params) {
+            xhr.send(params);
+        } else {
+            xhr.send();
+        }
     });
 
     // for compatibility, want to be able to get access to the underlying
@@ -45,13 +62,17 @@ var XMLHttpRequestPromise = function (responseType, url) {
 };
 
 
-exports.ArrayBufferGetPromise = function (url) {
+module.exports.ArrayBufferGetPromise = function (url) {
     return XMLHttpRequestPromise('arraybuffer', url);
 };
 
-exports.JSONGetPromise = function (url) {
+module.exports.JSONGetPromise = function (url) {
     return XMLHttpRequestPromise('json', url);
 };
+
+module.exports.JSONPostPromise = function (url, data={}) {
+    return XMLHttpRequestPromise('json', url, 'POST', data);
+}
 
 
 var JSONPutPromise = function (url, json) {
@@ -99,4 +120,4 @@ var JSONPutPromise = function (url, json) {
     return promise;
 };
 
-exports.JSONPutPromise = JSONPutPromise;
+module.exports.JSONPutPromise = JSONPutPromise;

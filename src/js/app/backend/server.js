@@ -2,7 +2,7 @@
 
 var DEFAULT_API_URL = 'http://localhost:5000';
 
-var extend = require('../lib/oop').extend,
+var extend = require('../lib/utils').extend,
     ImagePromise = require('../lib/imagepromise');
 
 var { JSONGetPromise,
@@ -13,8 +13,8 @@ var Base = require('./base');
 
 function Server (url) {
     this.url = url || DEFAULT_API_URL;
-    this.version = 2;
     this.demoMode = false;
+    this.version = 2;
 
     if (this.url === 'demo') {
         this.url = '';
