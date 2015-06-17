@@ -1,37 +1,19 @@
-.BackendSelectionWrapper {
-    background-color: rgba(0, 0, 0, .6);
-    pointer-events: auto;
-    opacity: 0;
-    visibility: hidden;
-
-    &.-is-visible {
-        opacity: 1;
-        visibility: visible;
-    }
-
-    &, & > * {
-        transition: visibility .25s ease-in-out,
-                    opacity .25s ease-in-out;
-    }
+.BackendChoices {
+    display: flex;
+    flex-direction: row;
 }
 
-.BackendSelection {
-    width: auto;
-    background: white;
-    border-radius: 2px;
-}
-
-.BackendChoice {
+div[class^="BackendOption"] {
     display: block;
-    width: 128px;
-    height: 128px;
+    flex: 1;
+    height: 44px;
     margin: 1em;
-    border: 1px solid #f0f0f0;
+    border: 1px solid #e5e5e5;
     border-radius: 2px;
     float: left;
     cursor: pointer;
     text-align: center;
-    line-height: 128px;
+    line-height: 44px;
 
     &:hover {
         background-color: #f0f0f0;
