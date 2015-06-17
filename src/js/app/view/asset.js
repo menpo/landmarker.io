@@ -1,5 +1,5 @@
 var _ = require('underscore');
-var Backbone = require('../lib/backbonej');
+var Backbone = require('backbone');
 var Notification = require('./notification');
 var $ = require('jquery');
 

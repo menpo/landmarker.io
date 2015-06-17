@@ -3,7 +3,7 @@
 var _ = require('underscore'),
     Promise = require('promise-polyfill');
 
-var Backbone = require('../lib/backbonej');
+var Backbone = require('backbone');
 
 var Landmark = require('./landmark'),
     AssetSource = require('./assetsource');
