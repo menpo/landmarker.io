@@ -24,6 +24,8 @@ function Server (url) {
 
 extend(Server, Base);
 
+Server.TYPE = 'LANDMARKER SERVER';
+
 Server.prototype.apiHeader = function () {
     return `/api/v${this.version}/`;
 }

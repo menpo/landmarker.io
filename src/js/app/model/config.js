@@ -1,3 +1,8 @@
+/**
+ * Persistable config object with get and set logic
+ * Requires localstorage to work properly (throws Error otherwise),
+ * serialisation is simple JSON
+ */
 "use strict";
 
 var Backbone = require('backbone'),
@@ -14,7 +19,7 @@ var LOCALSTORAGE_EXISTS = (function () {
     }
 })();
 
-var LOCALSTORAGE_KEY = 'lmio#Config';
+var LOCALSTORAGE_KEY = 'LMIO#CONFIG';
 
 function Config ()  {
     this._data = {};
@@ -27,6 +32,10 @@ Config.prototype.get = function (key) {
     } else {
         return this._data[key];
     }
+};
+
+Config.prototype.delete = function (key)  {
+    delete this._data[key];
 };
 
 Config.prototype.set = function (key, value) {
