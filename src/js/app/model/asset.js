@@ -1,6 +1,6 @@
 "use strict";
 
-var Backbone = require('../lib/backbonej');
+var Backbone = require('backbone');
 var THREE = require('three');
 var ArrayBufferGetPromise = require('../lib/requests').ArrayBufferGetPromise;
 var ImagePromise = require('../lib/imagepromise');

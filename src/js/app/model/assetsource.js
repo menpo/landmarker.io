@@ -1,6 +1,6 @@
 "use strict";
 
-var Backbone = require('../lib/backbonej');
+var Backbone = require('backbone');
 var _ = require('underscore');
 var Asset = require('./asset');
 

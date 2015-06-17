@@ -1,5 +1,5 @@
 var _ = require('underscore');
-var Backbone = require('../lib/backbonej');
+var Backbone = require('backbone');
 var $ = require('jquery');
 var atomic = require('../model/atomic');
 
