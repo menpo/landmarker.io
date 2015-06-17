@@ -8,72 +8,86 @@ var utils = require('./app/lib/utils');
 
 var cfg = require('./app/model/config')();
 
+var BackendSelection = require('./app/view/backend_selection');
+
 var Server = require('./app/backend/server'),
     Dropbox = require('./app/backend/dropbox');
 
 function resolveBackend (u) {
     console.log('Resolving which backend to use for url:', u);
 
-    // We were waiting for an OAuth flow to complete
-    if (cfg.get('storageEngine') && cfg.get('authenticated') === false) {
-        switch (cfg.get('storageEngine')) {
-            case 'dropbox':
-                console.log('OADBX');
-                if (u.query.state === cfg.get('OAuthState')) {
-                    cfg.set('uid', u.query.uid);
-                    cfg.set('token', u.query['access_token']);
-                    cfg.set('authenticated', true);
-                    cfg.save();
+    let server;
+    u.search = null;
 
-                    let dropbox = new Dropbox();
-                    dropbox.setToken(cfg.get('token'));
+    // Found a server parameter >> override to traditionnal mode
+    if (u.query.server) {
+        server = new Server(u.query.server);
 
-                    return resolveMode(dropbox);
-                } else {
-                    return console.log("State doesn't match");
-                }
-            default:
-                return console.log('Received invalid oauth call');
+        cfg.clear();
+
+        if (!server.demoMode) { // Don't persist demo mode
+            cfg.set('storageEngine', Server.TYPE);
+            cfg.set('serverUrl', u.query.server);
+            cfg.set('authenticated', true);
+            cfg.save();
         }
     }
+
+    let storageEngine = cfg.get('storageEngine'),
+        authenticated = cfg.get('authenticated');
 
     // We found an authenticated storage engine
-    if (cfg.get('storageEngine') && cfg.get('authenticated') === true) {
-        switch (cfg.get('storageEngine')) {
-            case 'dropbox':
+    if (storageEngine && authenticated) {
+        switch (storageEngine) {
+            case Dropbox.TYPE:
                 console.log('Found a dropbox client');
-                let dropbox = new Dropbox();
-                dropbox.setToken(cfg.get('token'));
-                // Test connection and redo handshake if needed
-                return resolveMode(dropbox);
+                server = new Dropbox(cfg.get('OAuthToken'));
+                break;
+            case Server.TYPE:
+                server = new Server(cfg.get('serverUrl'));
+                u.query.server = cfg.get('serverUrl');
+                window.location.replace(url.format(u).replace('?', '#'));
+                break;
             default:
-                return console.log('Invalid Engine');
+                console.log('Invalid Engine');
         }
     }
 
-    if (u.query.server) {
-        // Found a server parameter >> traditionnal mode
-        let server = new Server(u.query.server);
-        return resolveMode(server);
-    } else if (u.query.store) {
-        // Found a store parameter, start the process
-        console.log("Found storage engine", u.query.store);
-        let backend, storeId = u.query.store.toLowerCase();
+    // We were waiting for an OAuth flow to complete
+    if (storageEngine && !authenticated) {
+        switch (storageEngine) {
+            case Dropbox.TYPE:
+                if (u.query.state === cfg.get('OAuthState')) {
+                    cfg.set('uid', u.query.uid);
+                    cfg.set('OAuthToken', u.query['access_token']);
+                    cfg.set('authenticated', true);
+                    cfg.delete('OAuthState');
+                    cfg.save();
 
-        switch (storeId) {
-            case 'dropbox':
-                let stateString = utils.randomString(100);
-                cfg.set('OAuthState', stateString); {}
-                cfg.set('storageEngine', 'dropbox');
-                cfg.set('authenticated', false);
-                cfg.save();
-                return Dropbox.authorize(stateString);
+                    // Cleam up url
+                    delete u.query['access_token'];
+                    delete u.query['token_type'];
+                    delete u.query['state'];
+                    delete u.query['uid'];
+                    window.location.replace(url.format(u) + '#');
+
+                    server = new Dropbox(cfg.get('OAuthToken'));
+                    break;
+                } else {
+                    console.log("State doesn't match");
+                }
             default:
-                return restartInDemoMode();
+                console.log('Received invalid oauth call');
         }
-    } else {
-        // Nothing found, give the user a choice
+    }
+
+    // Nothing found >> give the user a choice and reset any data we have
+    if (!server) {
         console.log("Coudn't infer a suitable backend");
+        cfg.clear();
+        BackendSelection.show();
+    } else {
+        resolveMode(server);
     }
 }
 
@@ -89,7 +103,7 @@ function resolveMode (server) {
     }, function () {
         // could be that there is an old v1 server, let's check
         server.version = 1;
-        server.fetchMode(redirectToV1, restartInDemoMode);
+        server.fetchMode(redirectToV1, restartAndClear);
     });
 }
 
@@ -102,20 +116,20 @@ function redirectToV1() {
     window.location.replace(url.format(u));
 }
 
-function restartInDemoMode() {
-    // load the url module and parse our URL
-    var url = require('url');
-    var u = url.parse(window.location.href.replace('#', '?'), true);
-    u.search = null;
-    u.query.server = 'demo';
-    window.location.replace(url.format(u).replace('?', '#'));
-    // the url is seemingly the same as we use a # not a ?. As such a reload
-    // is needed.
-    window.location.reload();
+function restartAndClear () {
+    cfg.clear();
+    window.location = window.location.origin;
+}
+
+function restartInDemoMode () {
+    cfg.clear();
+    window.location = window.location.origin + '?server=demo';
 }
 
 function initLandmarker(server, mode) {
+
     console.log('Starting landmarker in ' + mode + ' mode');
+    BackendSelection.hide();
 
     if (server.demoMode) {
         document.title = document.title + ' - demo mode';
@@ -303,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     cfg.load();
-
+    BackendSelection.init();
     // Parse the current url so we can query the parameters
     var u = url.parse(window.location.href.replace('#', '?'), true);
     u.search = null;  // erase search so query is used in building back URL

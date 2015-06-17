@@ -13,29 +13,33 @@ var API_KEY = "zt5w1eymrntgmvo";
 var Promise = require('promise-polyfill'),
     url = require('url');
 
-var {extend, irp} = require('../lib/utils');
+var cfg = require('../model/config')();
+
+var { extend, irp, randomString } = require('../lib/utils');
 var { JSONPostPromise, JSONGetPromise } = require('../lib/requests');
 var Base = require('./base');
 
-function Dropbox () {
-    this._token = undefined;
+function Dropbox (token) {
+    this._token = token;
 }
 
 extend(Dropbox, Base);
 
-Dropbox.version = 2;
-Dropbox.demoMode = false;
-
-Dropbox.prototype.fetchMode = function () {
-    return irp('image');
-};
+Dropbox.TYPE = 'DROPBOX';
 
 /**
  * Builds an authentication URL for Dropbox OAuth2 flow and
  * redirects the user
  * @param  {string} stateString [to be sent back and verified]
  */
-Dropbox.authorize = function (stateString) {
+Dropbox.authorize = function () {
+    // Persist authentication status and data for page reload
+    let stateString = randomString(100);
+    cfg.set('OAuthState', stateString);
+    cfg.set('storageEngine', Dropbox.TYPE);
+    cfg.set('authenticated', false);
+    cfg.save();
+
     let u = url.format({
         protocol: 'https',
         host: 'www.dropbox.com',
@@ -46,15 +50,8 @@ Dropbox.authorize = function (stateString) {
                  'client_id': API_KEY }
     });
 
+    // Redirect to Dropbox authentication page
     window.location = u;
-};
-
-Dropbox.prototype.setToken = function (token) {
-    this._token = token;
-};
-
-Dropbox.prototype.getToken = function () {
-    return this._token;
 };
 
 Dropbox.prototype.headers = function () {
@@ -62,6 +59,15 @@ Dropbox.prototype.headers = function () {
         throw new Error("Can't proceed without an access token");
     }
     return { "Authorization": `Bearer ${this._token}`};
+};
+
+Dropbox.prototype.accountInfo = function () {
+    return JSONGetPromise(
+        'https://api.dropbox.com/1/account/info', this.headers());
 }
+
+Dropbox.prototype.fetchMode = function () {
+    return irp('image');
+};
 
 module.exports = Dropbox;

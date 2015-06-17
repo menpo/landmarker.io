@@ -20,4 +20,7 @@ function Base () {}
     }
 });
 
+Base.prototype.demoMode = false;
+Base.prototype.version = 2;
+
 module.exports = Base;
