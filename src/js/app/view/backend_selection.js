@@ -3,18 +3,34 @@
 var Backbone = require('backbone'),
     $ = require('jquery');
 
+var Modal = require('./modal');
+
 var Dropbox = require('../backend/dropbox');
 
-var BackendSelectionView = Backbone.View.extend({
-    'el': '#backendSelection',
+var BackendSelectionModal = Modal.extend({
+
+    closable: false,
+
+    choices: [
+        ['Dropbox', 'Dropbox'],
+        ['Server', 'Managed Server'],
+        ['Demo', 'Demo']
+    ],
 
     events: {
-        'click .BackendChoice--Dropbox': 'startDropbox',
-        'click .BackendChoice--Server': 'startServer',
-        'click .BackendChoice--Demo': 'startDemo'
+        'click .BackendOption--Dropbox': 'startDropbox',
+        'click .BackendOption--Server': 'startServer',
+        'click .BackendOption--Demo': 'startDemo'
     },
 
-    initialize: function () {},
+    content: function () {
+        let $div = $('<div></div>');
+        $div.addClass('BackendChoices');
+        this.choices.forEach(function ([cls, text]) {
+            $div.append($(`<div class='BackendOption--${cls}'>${text}</div>`));
+        });
+        return $div;
+    },
 
     startDropbox: function () {
         Dropbox.authorize();
@@ -30,26 +46,31 @@ var BackendSelectionView = Backbone.View.extend({
         }
     },
 
-    startDemo: function () { _restartWithServer('demo'); }
+    startDemo: function () {
+        _restartWithServer('demo');
+    }
 });
 
 var _restartWithServer = function (u) {
     window.location = `${window.location.origin}?server=${u}`;
 }
 
+var _view;
+
 module.exports.show = function () {
-    $('#backendSelectionWrapper').addClass('-is-visible');
+    if (_view) _view.open();
 };
 
 module.exports.hide = function () {
-    $('#backendSelectionWrapper').removeClass('-is-visible');
+    if (_view) _view.close();
 };
-
-var _view;
 
 module.exports.init = function () {
     if (_view) {
-        _view.undelegateEvents();
+        if (_view.isOpen) {
+            _view.close();
+        }
+        _view.dispose();
     }
-    _view = new BackendSelectionView();
-}
+    _view = new BackendSelectionModal({title: 'Select a datasource'});
+};

@@ -1,0 +1,74 @@
+.ModalsWrapper {
+    z-index: $zIndexOverlay;
+    background-color: rgba(0, 0, 0, .6);
+    pointer-events: auto;
+    justify-content: flex-start;
+
+    opacity: 0;
+    visibility: hidden;
+
+    &, & > * {
+        transition: visibility .25s ease-in-out,
+                    opacity .25s ease-in-out;
+    }
+}
+
+.ModalsWrapper--Open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.ModalWindow {
+
+    transform: transale3d(0,0,0);
+    margin-top: 64px;
+
+    &, & * {
+      box-sizing: border-box;
+      }
+
+    background: white;
+    border-radius: 3px;
+    width: 96%;
+    max-width: 640px;
+    position: relative;
+
+    transition: all .2s ease-in-out;
+    box-shadow: 0 16px 16px rgba(0,0,0,.1);
+
+    opacity: 0;
+    visibility: hidden;
+}
+
+.ModalWindow--Open {
+    opacity: 1;
+    visibility: visible;
+    overflow: auto;
+}
+
+.ModalWindow__Close {
+    cursor: pointer;
+    transition: color .25s ease-in-out;
+    position: absolute;
+    font-weight: bold;
+    top: .75em;
+    right: .75em;
+
+    max-height: 0;
+    transition: max-height .01s linear .2s;
+
+    &:hover {
+        color: red;
+    }
+}
+
+.ModalWindow__Content,
+.ModalWindow__Title {
+    padding: 1em;
+}
+
+.ModalWindow__Title {
+    border-bottom: 1px solid #e5e5e5;
+    font-size: 1.2em;
+    font-weight: medium;
+}
