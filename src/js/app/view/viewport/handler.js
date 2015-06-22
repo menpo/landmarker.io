@@ -6,7 +6,7 @@ var $ = require('jquery');
 
 var atomic = require('../../model/atomic');
 
-const MOVE_THROTTLE = 50;
+const MOVE_TO = 50;
 
 /**
  * Create a closure for handling mouse events in viewport.
@@ -133,6 +133,11 @@ function Handler () {
         console.log('shift pressed!');
         // before anything else, disable the camera
         this.cameraController.disable();
+
+        if (!(downEvent.ctrlKey || downEvent.metaKey)) {
+            this.model.landmarks().deselectAll();
+        }
+
         $(document).on('mousemove.shiftDrag', shiftOnDrag);
         $(document).one('mouseup.viewportShift', shiftOnMouseUp);
     }
@@ -169,8 +174,10 @@ function Handler () {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
                         shiftPressed();
-                    } else {
+                    } else if (this.model.isEditingOn()) {
                         meshPressed();
+                    } else {
+                        nothingPressed();
                     }
                 }
             } else if (intersectsWithLms.length > 0) {
@@ -178,7 +185,10 @@ function Handler () {
             } else if (event.shiftKey) {
                 // shift trumps all!
                 shiftPressed();
-            } else if (intersectsWithMesh.length > 0) {
+            } else if (
+                intersectsWithMesh.length > 0 &&
+                this.model.isEditingOn()
+            ) {
                 meshPressed();
             } else {
                 nothingPressed();
@@ -186,8 +196,7 @@ function Handler () {
         } else if (event.button === 2) { // Right click
             if (
                 intersectsWithLms.length <= 0 &&
-                intersectsWithMesh.length > 0 &&
-                this.model.isEditingOn()
+                intersectsWithMesh.length > 0
             ) {
                 this.model.landmarks().deselectAll();
                 this.model.landmarks().resetNextAvailable();
@@ -380,6 +389,7 @@ function Handler () {
         }
 
         var mouseLoc = this.worldToLocal(intersectsWithMesh[0].point);
+        var previousTargetLm = currentTargetLm;
 
         var lms = findClosestLandmarks(lmGroup, mouseLoc,
                                        evt.ctrlKey || evt.metaKey);
@@ -393,7 +403,10 @@ function Handler () {
 
         if (currentTargetLm && !groupSelected) {
 
-            currentTargetLm.selectAndDeselectRest();
+            if (currentTargetLm !== previousTargetLm) {
+                // Linear operation hence protected
+                currentTargetLm.selectAndDeselectRest();
+            }
 
             this.drawTargetingLine(
                 {x: evt.clientX, y: evt.clientY},
@@ -461,6 +474,11 @@ function Handler () {
 
     var setGroupSelected = (val=true) => {
         let _val = !!val; // Force cast to boolean
+
+        if (_val === groupSelected) {
+            return; // Nothing to do here
+        }
+
         groupSelected = _val;
 
         if (_val) {
@@ -470,16 +488,44 @@ function Handler () {
             this.deselectAll();
             $(window).off('keydown', onKeypressTranslate);
         }
+
+        this.clearCanvas();
+    };
+
+    var completeGroupSelection = () => {
+
+        this.model.landmarks().labels.forEach((label) => {
+
+            let labelSelection = false;
+
+            for (var i = 0; i < label.landmarks.length; i++) {
+                if (label.landmarks[i].isSelected()) {
+                    labelSelection = true;
+                    break;
+                }
+            }
+
+            console.log(label, labelSelection);
+
+            if (labelSelection) {
+                label.landmarks.forEach((lm) => {
+                    lm.select();
+                });
+            }
+        });
+
+        setGroupSelected(true);
     };
 
     return {
         // State management
-        setGroupSelected: setGroupSelected,
+        setGroupSelected: atomic.atomicOperation(setGroupSelected),
+        completeGroupSelection: completeGroupSelection,
+
         // Exposed handlers
         onMouseDown: atomic.atomicOperation(onMouseDown),
-        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove),
-                                MOVE_THROTTLE)
-    }
+        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove), MOVE_TO)
+    };
 
 }
 

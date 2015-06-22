@@ -223,6 +223,14 @@ exports.Viewport = Backbone.View.extend({
         $('#viewportContainer').on('groupSelected', () => {
             this._handler.setGroupSelected(true);
         });
+
+        $('#viewportContainer').on('groupDeselected', () => {
+            this._handler.setGroupSelected(false);
+        });
+
+        $('#viewportContainer').on('completeGroupSelection', () => {
+            this._handler.completeGroupSelection();
+        });
     },
 
     changeMesh: function () {

@@ -17,7 +17,7 @@ var App = Backbone.Model.extend({
             landmarkSize: 0.5,
             mode: 'mesh',
             connectivityOn: true,
-            editingOn: false,
+            editingOn: true,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,

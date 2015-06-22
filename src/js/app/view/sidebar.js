@@ -75,22 +75,22 @@ var LandmarkView = Backbone.View.extend({
         }
     }),
 
-    selectGroup: atomic.atomicOperation(function (event) {
+    selectGroup: function (event) {
         this.model.group().deselectAll();
         this.model.group().labels[this.labelIndex].landmarks.forEach((lm) => {
             lm.select();
         });
 
         $('#viewportContainer').trigger("groupSelected");
-    }),
+    },
 
-    selectAll: atomic.atomicOperation(function (event) {
+    selectAll: function (event) {
         this.model.group().landmarks.forEach((lm) => {
             lm.select("groupSelected");
         });
 
         $('#viewportContainer').trigger("groupSelected");
-    })
+    }
 });
 
 // Renders the LandmarkList. Don't think this ListView should ever have to

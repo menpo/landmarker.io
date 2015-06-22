@@ -155,6 +155,7 @@ function initLandmarker(server, mode) {
                 break;
             case 113:  // q = deselect all
                 app.landmarks().deselectAll();
+                $('#viewportContainer').trigger("groupDeselected");
                 break;
             case 114:  // r = [r]eset camera
                 // TODO fix for multiple cameras (should be in camera controller)
@@ -167,6 +168,10 @@ function initLandmarker(server, mode) {
                 break;
             case 97:  // a = select [a]ll
                 app.landmarks().selectAll();
+                $('#viewportContainer').trigger("groupSelected");
+                break;
+            case 103:  // g = complete [g]roup selection
+                $('#viewportContainer').trigger("completeGroupSelection");
                 break;
             case 99:  // c = toggle [c]amera mode
                 if (app.meshMode()) {
