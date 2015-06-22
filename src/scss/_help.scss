@@ -26,4 +26,13 @@
         text-align: right;
     }
 
+    tr.title {
+        text-transform: uppercase;
+        font-weight: bolder;
+
+        td {
+          text-align: left;
+        }
+    }
+
 }
