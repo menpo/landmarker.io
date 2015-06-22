@@ -68,6 +68,7 @@ fi
 shopt -s extglob
 
 git fetch --all # Make sure we have the latest state
+LAST_COMMIT=$(git log -n 1 --pretty=oneline)
 
 echo "Building gh-pages branch for $BRANCH"
 
@@ -88,7 +89,7 @@ mv -f "$TMP_DIR" "staging/$BRANCH"
 echo "Deploying $BRANCH to staging/$BRANCH..."
 
 # Update staging/index.html file to link to newly deployed branch
-LINK="<li><a id='$BRANCH' href='$BRANCH'>$BRANCH ($(date))</a></li>"
+LINK="<li><a id='$BRANCH' href='$BRANCH'>$BRANCH ($(date) | $LAST_COMMIT</a></li>"
 LN=$(awk '/end automatic insert/{ print NR; exit }' staging/index.html)
 echo "($LN) $LINK"
 sed -i "/id='$BRANCH'/d" staging/index.html
