@@ -1,0 +1,19 @@
+# author: "Charles Lirsac <c.lirsac@gmail.com>"
+# Simple facial landmarks template in yaml format
+
+mouth:
+  points: 6
+nose:
+  points: 3
+  connectivity:
+    - 0 1
+    - 1 2
+l_eye:
+  points: 8
+  connectivity:
+    - 0:7
+    - 7 0
+r_eye:
+  points: 8
+  connectivity: cycle
+chin: 1
