@@ -42,14 +42,15 @@ describe('Template$constructor', function () {
 });
 
 describe('Template$parseYAML', function () {
-    var yamlTmpl, jsonTmpl;
+    var yamlTmpl, jsonTmpl, faceYAML;
 
     before(function (done) {
-        var faceYAML = fs.readFile(faceYAMLPath, function (err, data) {
+        fs.readFile(faceYAMLPath, function (err, data) {
             if (err) {
                 throw err;
             }
-            yamlTmpl = Template.parseYAML(data);
+            faceYAML = data.toString();
+            yamlTmpl = Template.parseYAML(faceYAML);
             jsonTmpl = new Template(faceJSON);
             done();
         });
@@ -57,6 +58,22 @@ describe('Template$parseYAML', function () {
 
     it('should have the same JSON representation', function () {
         assert.deepEqual(yamlTmpl.toJSON(), jsonTmpl.toJSON());
+    });
+});
+
+describe('Template$parseLJSON', function () {
+    var ljsonTmpl, jsonTmpl;
+
+    before(function () {
+        jsonTmpl = new Template(faceJSON);
+        ljsonTmpl = Template.parseLJSON(jsonTmpl.emptyLJSON(2));
+    });
+
+    it('should have the correct data', function () {
+        assert.sameMembers(Object.keys(ljsonTmpl._template),
+                           Object.keys(jsonTmpl._template));
+        assert.deepEqual(ljsonTmpl.groups, jsonTmpl.groups);
+        assert.deepEqual(ljsonTmpl.size, jsonTmpl.size);
     });
 });
 
