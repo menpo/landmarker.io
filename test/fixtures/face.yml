@@ -1,6 +1,3 @@
-# author: "Charles Lirsac <c.lirsac@gmail.com>"
-# Simple facial landmarks template in yaml format
-
 mouth:
   points: 6
 nose:

@@ -62,6 +62,21 @@ Template.parseYAML = function (rawData) {
     return new Template(json);
 }
 
+Template.parseLJSON = function (ljson) {
+    let template = {};
+    ljson.labels.forEach(function ({label, mask}) {
+        template[label] = {points: mask.length, connectivity: []};
+        ljson.landmarks.connectivity.forEach(function ([x1, x2]) {
+            if (mask.indexOf(x1) > -1) {
+                let offset = mask[0]
+                template[label].connectivity.push(
+                    `${x1 - offset} ${x2 - offset}`);
+            }
+        });
+    });
+    return new Template(template);
+}
+
 Template.prototype.toYAML = function () {
     return yaml.safeDump(this._template);
 }
