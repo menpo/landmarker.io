@@ -38,12 +38,14 @@
 
     opacity: 0;
     visibility: hidden;
+    display: none;
 }
 
 .ModalWindow--Open {
     opacity: 1;
     visibility: visible;
     overflow: auto;
+    display: block;
 }
 
 .ModalWindow__Close {
@@ -53,9 +55,6 @@
     font-weight: bold;
     top: .75em;
     right: .75em;
-
-    max-height: 0;
-    transition: max-height .01s linear .2s;
 
     &:hover {
         color: red;

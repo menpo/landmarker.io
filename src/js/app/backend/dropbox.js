@@ -19,13 +19,22 @@ var { extend, irp, randomString } = require('../lib/utils');
 var { JSONPostPromise, JSONGetPromise } = require('../lib/requests');
 var Base = require('./base');
 
-function Dropbox (token) {
+function Dropbox (token, assetsFolder) {
     this._token = token;
+    this._assetsFolder = assetsFolder;
 }
 
 extend(Dropbox, Base);
 
 Dropbox.TYPE = 'DROPBOX';
+
+Dropbox.prototype.isReady = function () {
+    return (this._token && this._assetsFolder);
+}
+
+Dropbox.prototype.landmarkPath = function (assetPath, type) {
+    return `${assetPath}_landmarks_${type}.ljson`;
+}
 
 /**
  * Builds an authentication URL for Dropbox OAuth2 flow and
@@ -64,10 +73,40 @@ Dropbox.prototype.headers = function () {
 Dropbox.prototype.accountInfo = function () {
     return JSONGetPromise(
         'https://api.dropbox.com/1/account/info', this.headers());
-}
+};
 
 Dropbox.prototype.fetchMode = function () {
     return irp('image');
+};
+
+Dropbox.prototype.list = function (
+    path='/', { foldersOnly=true, showHidden=false, extensions=[] }={}
+) {
+    let opts = {list: true};
+
+    return JSONGetPromise(
+        `https://api.dropbox.com/1/metadata/auto/${path}`, this.headers(), opts
+    ).then((data) => {
+        return data.contents.filter(function (item) {
+            if (!showHidden &&
+                item.path.split('/').pop().charAt(0) === '.'
+            ) {
+                return false;
+            }
+
+            if (foldersOnly && !item.is_dir) {
+                return false;
+            }
+
+            if (extensions.length && !item.is_dir &&
+                extensions.indexOf(item.path.split('.').pop()) === -1
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+    });
 };
 
 module.exports = Dropbox;

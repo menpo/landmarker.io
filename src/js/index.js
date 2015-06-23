@@ -8,7 +8,8 @@ var utils = require('./app/lib/utils');
 
 var cfg = require('./app/model/config')();
 
-var BackendSelection = require('./app/view/backend_selection');
+var BackendSelection = require('./app/view/backend_selection'),
+    DropboxSelect = require('./app/view/dropbox_select');
 
 var Server = require('./app/backend/server'),
     Dropbox = require('./app/backend/dropbox');
@@ -87,6 +88,12 @@ function resolveBackend (u) {
         cfg.clear();
         BackendSelection.show();
     } else {
+        if (server instanceof Dropbox) {
+            window.DSlct = new DropboxSelect({
+                dropbox: server, selectFoldersOnly: true});
+            DSlct.open();
+            return;
+        }
         resolveMode(server);
     }
 }
