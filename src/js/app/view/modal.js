@@ -24,11 +24,16 @@ var Modal = Backbone.View.extend({
 
         _modals[this.key] = this;
 
-        this.opts = this.parseOpts(opts);
+        if (opts.title) {
+            this.title = opts.title;
+        }
+
+        this.init(opts);
 
         _.bindAll(
             this,
-            'render', 'dispose', 'close', 'open', 'content', 'parseOpts'
+            'render', 'dispose', 'close', 'open',
+            'content', 'init', 'afterRender'
         );
 
         this.render();
@@ -44,10 +49,9 @@ var Modal = Backbone.View.extend({
         }
 
 
-        let title = this.opts.title;
-        if (title) {
+        if (this.title) {
             this.$el.append(
-                $(`<div class=${this.className}__Title>${title}</div>`)
+                $(`<div class=${this.className}__Title>${this.title}</div>`)
             );
         }
 
@@ -58,7 +62,7 @@ var Modal = Backbone.View.extend({
         }
 
         this.$el.appendTo(this.container);
-
+        this.afterRender();
     },
 
     open: function () {
@@ -94,9 +98,8 @@ var Modal = Backbone.View.extend({
             'Not implemented, add a content function to your implementation');
     },
 
-    parseOpts: function (opts) {
-        return opts;
-    }
+    init: function (opts) {},
+    afterRender: function () {}
 });
 
 module.exports = Modal;

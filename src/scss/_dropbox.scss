@@ -1,0 +1,142 @@
+.DropboxSelect {
+    border: 1px solid #e5e5e5;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.DropboxSelectExplore,
+.DropboxSelectList,
+.DropboxSelectSubmit {
+    width: 100%;
+    display: flex;
+    padding: 0;
+}
+
+.DropboxSelectExplore,
+.DropboxSelectSubmit {
+    flex-flow: row;
+    height: 44px;
+    line-height: 44px;
+}
+
+.DropboxSelectExplore {
+
+    border-bottom: 2px solid #e5e5e5;
+    display: flex;
+    flex-direction: row;
+
+    .Action {
+        width: 38px;
+        line-height: 44px;
+        text-align: center;
+        cursor: pointer;
+
+        span {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            border-radius: 2px;
+            background: #e5e5e5;
+            color: #919191;
+            transition: all .25s ease-in-out;
+        }
+
+        &:hover span {
+          color: white;
+          background: #1690e5;
+        }
+
+        &.Unavailable {
+          display: none;
+        }
+    }
+
+    .Path {
+        padding: 0 8px;
+        flex: 1;
+    }
+}
+
+
+.DropboxSelectSubmit {
+
+    > span, > div {
+        background: #e5e5e5;
+        padding: 0 8px;
+    }
+
+    > span {
+        flex: 3;
+    }
+
+    > div {
+        flex: 1;
+        background: #1690e5;
+        color: white;
+        cursor: pointer;
+        text-align: center;
+    }
+}
+
+.DropboxSelectList {
+    max-height: 640px;
+    overflow: scroll;
+
+    &.Empty {
+        justify-content: space-between;
+        padding: 16px;
+    }
+
+    > ul {
+        padding: 0;
+        margin: 0;
+        list-style-type: none;
+        display: flex;
+        align-items: flex-start;
+        flex-flow: row wrap;
+        justify-content: flex-start;
+    }
+}
+
+li.DropboxSelectListItem {
+
+    margin: 12px 5px;
+    padding: 0 auto;
+    width: 96px;
+    line-height: auto;
+    text-align: center;
+
+    > span {
+        display: block;
+        width: 64px;
+        height: 64px;
+        border: 2px solid #e5e5e5;
+        transition: all .25s ease-in-out;
+        border-radius: 3px;
+        color: #919191;
+        text-align: center;
+        line-height: 64px;
+        margin: 0 auto 12px auto;
+        font-size: large;
+    }
+
+
+    cursor: pointer;
+    word-wrap: break-word;
+
+    &:hover,
+    &.Selected {
+        > span {
+            border-color: #1690e5;
+        }
+    }
+
+    &.Disabled > span {
+      background: #e5e5e5;
+      border-color: #e5e5e5;
+      color: #919191;
+      cursor: default;
+    }
+}

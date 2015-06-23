@@ -89,32 +89,48 @@
     100% { opacity: 0; }
 }
 
-.TopBar {
-    pointer-events: auto;
-    min-height: 38px;
-    line-height: 38px;
-    background-color: #d64541;
-    color: white;
-    text-align: center;
-    padding: 0 1%;
-    width: 100%;
+.loader:before,
+.loader:after,
+.loader {
+  border-radius: 50%;
+  width: 1em;
+  height: 1em;
+  animation-fill-mode: both;
+  animation: load7 1.8s infinite ease-in-out;
+}
 
-    display: none;
-    opacity: 0;
-    visibility: hidden;
-    transition: all .25s ease-in-out;
+.loader {
+  font-size: 10px;
+  margin: 42px auto;
+  position: relative;
+  text-indent: -9999em;
+  transform: translateZ(0);
+  animation-delay: -0.16s;
+}
 
-    cursor: pointer;
+.loader:before {
+  left: -2em;
+  animation-delay: -0.32s;
+}
 
-    z-index: $zIndexNotifications;
+.loader:after {
+  left: 2em;
+}
 
-    &.Display {
-        display: block;
-        opacity: 1;
-        visibility: visible;
-    }
+.loader:before,
+.loader:after {
+  content: '';
+  position: absolute;
+  top: 0;
+}
 
-    &.Info {
-        background-color: #59abe3;
-    }
+@keyframes load7 {
+  0%,
+  80%,
+  100% {
+    box-shadow: 0 2.5em 0 -1.3em #919191;
+  }
+  40% {
+    box-shadow: 0 2.5em 0 0 #919191;
+  }
 }
