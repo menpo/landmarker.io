@@ -186,6 +186,7 @@ LandmarkCollectionPrototype.deleteSelected = atomicOperation(function () {
     this.selected().forEach(function (lm) {
         lm.clear();
     });
+    this.resetNextAvailable();
 });
 
 
