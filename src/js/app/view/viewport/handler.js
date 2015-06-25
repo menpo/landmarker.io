@@ -199,7 +199,6 @@ function Handler () {
                 intersectsWithMesh.length > 0
             ) {
                 this.model.landmarks().deselectAll();
-                this.model.landmarks().resetNextAvailable();
                 currentTargetLm = undefined;
                 meshPressed();
             } else {
