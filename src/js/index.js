@@ -1,5 +1,6 @@
-var DEFAULT_API_URL = 'http://localhost:5000';
+var $ = require('jquery');
 
+var DEFAULT_API_URL = 'http://localhost:5000';
 
 function resolveServer(u) {
     var server;
@@ -197,8 +198,24 @@ function initLandmarker(server, mode) {
     });
 }
 
+function handleNewVersion () {
+    let $topBar = $('.TopBar');
+    $topBar.addClass('Display');
+    $topBar.text(
+        'New version has been downloaded in the background, click to reload.');
+
+    $topBar.click(function () {
+        window.location.reload(true);
+    });
+}
 
 document.addEventListener('DOMContentLoaded', function () {
+
+    window.applicationCache.addEventListener('updateready', handleNewVersion);
+    if(window.applicationCache.status === window.applicationCache.UPDATEREADY) {
+      handleNewVersion();
+    }
+
     var url = require('url');
     // Parse the current url so we can query the parameters
     var u = url.parse(window.location.href.replace('#', '?'), true);

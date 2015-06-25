@@ -54,3 +54,29 @@
     0% { opacity: 0.95; }
     100% { opacity: 0; }
 }
+
+.TopBar {
+    pointer-events: auto;
+    height: 3vh;
+    line-height: 3vh;
+    background-color: #d64541;
+    color: white;
+    text-align: center;
+    padding: 0 1%;
+    width: 100%;
+
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: all .25s ease-in-out;
+
+    cursor: pointer;
+
+    z-index: $zIndexNotifications;
+
+    &.Display {
+        display: block;
+        opacity: 1;
+        visibility: visible;
+    }
+}
