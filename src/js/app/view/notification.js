@@ -1,5 +1,6 @@
 var _ = require('underscore');
-var Backbone = require('../lib/backbonej');
+var Backbone = require('backbone');
+var $ = require('jquery');
 var Spinner = require('spin.js');
 
 "use strict";
@@ -23,95 +24,148 @@ var spinnerOpts = {
     left: '50%' // Left position relative to parent
 };
 
-exports.ThumbnailNotification = Backbone.View.extend({
+// exports.ThumbnailNotification = Backbone.View.extend({
+//
+//     initialize : function() {
+//         _.bindAll(this, 'render');
+//         this.listenTo(this.model.assetSource(), "change:nPreviews", this.render);
+//     },
+//
+//     render: function () {
+//         var total = this.model.assetSource().nAssets();
+//         var nDone = this.model.assetSource().nPreviews();
+//         if (total === nDone) {
+//             document.getElementById('previewNotification').style.display = 'none';
+//         }
+//         var done = nDone/total;
+//         var todo = 1 - nDone/total;
+//         document.getElementById('previewDone').style.flex = done;
+//         document.getElementById('previewRemaining').style.flex = todo;
+//         return this;
+//     }
+// });
 
-    initialize : function() {
-        _.bindAll(this, 'render');
-        this.listenTo(this.model.assetSource(), "change:nPreviews", this.render);
-    },
+var NOTIFICATION_BASE_CLASS = 'Notification',
+    NOTIFICATION_CLOSING_CLASS = 'Notification--Closing',
+    NOTIFICATION_PERMANENT_CLASS = 'Notification--Permanent',
+    NOTIFICATION_DEFAULT_CLOSE_TIMEOUT = 1500,
+    NOTIFICATION_DEFAULT_TYPE = 'warning',
+    NOTIFICATION_TYPE_CLASSES = { 'success': 'Notification--Success',
+                                  'error': 'Notification--Error',
+                                  'warning': 'Notification--Warning' };
 
-    render: function () {
-        var total = this.model.assetSource().nAssets();
-        var nDone = this.model.assetSource().nPreviews();
-        if (total === nDone) {
-            document.getElementById('previewNotification').style.display = 'none';
-        }
-        var done = nDone/total;
-        var todo = 1 - nDone/total;
-        document.getElementById('previewDone').style.flex = done;
-        document.getElementById('previewRemaining').style.flex = todo;
-        return this;
-    }
-});
-
-// Singleton notification view accepting an option object of the form:
-// {type, msg, closeTimeout, manualClose}
-// automatic dismissal
-// use manualClose: true to disable automatic dismissal (will override
-// closeTimeout)
 exports.BaseNotification = Backbone.View.extend({
 
     tagName: 'div',
+    container: '#notificationOverlay',
 
-    __container: '#notificationOverlay',
-    __baseClass: 'ModalNotification',
-    __closingClass: 'ModalNotification--Closing',
-    __defaultCloseTimeout: 1500,
-    __defaultType: 'warning',
+    initialize: function ({
+        msg='',
+        type=NOTIFICATION_DEFAULT_TYPE,
+        actions=[],
+        onClose,
+        persist=false,
+        closeTimeout=NOTIFICATION_DEFAULT_CLOSE_TIMEOUT
+    }) {
 
-    __types: {
-      'success': true,
-      'error': true
-    },
+        _.bindAll(this, 'render', 'close');
 
-    __classes: {
-      'success': 'ModalNotification--Success',
-      'error': 'ModalNotification--Error',
-      'warning': 'ModalNotification--Warning'
-    },
+        if (!(type in NOTIFICATION_TYPE_CLASSES)) {
+            type = NOTIFICATION_DEFAULT_TYPE;
+        }
 
-    initialize: function (opts) {
+        if (onClose && typeof onClose === 'function') {
+            this.onClose = onClose;
+        }
 
-      opts = opts || {};
+        this.actions = actions.map(([label, func, close]) => {
+            return [label, close ? () => {
+                func();
+                this.close();
+            } : func];
+        });
 
-      _.bindAll(this, 'render', 'close');
+        if (this.actions.length) {
+            closeTimeout = undefined;
+        }
 
-      var msg = opts.msg || '',
-          type = opts.type in this.__types ? opts.type || '' :
-                                             this.__defaultType,
-          closeTimeout = opts.manualClose ?
-                         undefined :
-                         opts.closeTimeout || this.__defaultCloseTimeout;
+        this.persist = persist;
 
-      this.render(type, msg, closeTimeout);
+        this.render(type, msg, closeTimeout);
     },
 
     events: {
-        click: 'close'
+        'click .Notification__Action': 'handleClick'
+    },
+
+    handleClick: function (evt) {
+        if (this.actions.length) {
+            evt.preventDefault();
+            var actionIndex = evt.currentTarget.dataset.index;
+            if (actionIndex > 0 && actionIndex < this.actions.length) {
+                this.actions[actionIndex][1]();
+            }
+        }
     },
 
     render: function (type, msg, timeout) {
-        var _this = this;
 
-        this.$el.addClass([this.__baseClass, this.__classes[type]].join(' '));
-        this.$el.text(msg);
-        this.$el.appendTo(this.__container);
+        this.$el.addClass([
+            NOTIFICATION_BASE_CLASS,
+            NOTIFICATION_TYPE_CLASSES[type]
+        ].join(' '));
+
+        if (msg instanceof $) {
+            this.$el.append(msg);
+        } else {
+            this.$el.append(`<p>${msg}</p>`);
+        }
+
+        if (this.actions.length) {
+            var $actions = $(`<div></div>`);
+            this.actions.forEach(function ([label, func], index) {
+                $actions.append($(`\
+                    <div class='Notification__Action' data-index=${index}>\
+                        ${label}
+                    </div>\
+                `));
+            });
+            this.$el.append($actions);
+        }
+
+        if (this.persist) {
+            this.$el.addClass(NOTIFICATION_PERMANENT_CLASS);
+        }
+
+        this.$el.appendTo(this.container);
 
         if (timeout !== undefined) {
-          setTimeout(_this.close, timeout);
+          setTimeout(this.close, timeout);
         }
     },
 
     close: function () {
-        var _this = this;
-        this.$el.addClass(this.__closingClass);
 
-        setTimeout(function () {
-            _this.unbind();
-            _this.remove();
+        if (this.onClose) {
+            this.onClose();
+        }
+
+        if (this.persist) {
+            return;
+        }
+
+        this.$el.addClass(NOTIFICATION_CLOSING_CLASS);
+
+        setTimeout(() => {
+            this.unbind();
+            this.remove();
         }, 1000);
     }
 });
+
+exports.notify = function (opts) {
+    return new exports.BaseNotification(opts);
+}
 
 exports.AssetLoadingNotification = Backbone.View.extend({
 

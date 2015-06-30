@@ -222,9 +222,10 @@ document.addEventListener('DOMContentLoaded', function () {
         // Found IE, do user agent detection for now
         // https://github.com/menpo/landmarker.io/issues/75 for progess
         $('.App-Flex-Horiz').css('min-height', '100vh');
-        return new Notification.BaseNotification({
+        return Notification.notify({
             msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
-            type: 'error', manualClose: true
+            persist: true,
+            type: 'error'
         });
     }
 
@@ -240,9 +241,10 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch ( e ) { return false; } } )();
 
     if (!webglSupported) {
-        return new Notification.BaseNotification({
-            msg: 'It seems your browser doesn\'t support WebGL, please visit https://get.webgl.org/ for more information',
-            type: 'error', manualClose: true
+        return Notification.notify({
+            msg: $('<p>It seems your browser doesn\'t support WebGL, which is needed by landmarker.io.<br/>Please visit <a href="https://get.webgl.org/">https://get.webgl.org/</a> for more information<p>'),
+            persist: true,
+            type: 'error'
         });
     }
 
