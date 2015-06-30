@@ -3,38 +3,44 @@
  *
  * Until https://github.com/dropbox/dropbox-js/pull/183/ gets merged and
  * related issues are fixed, dropbox-js doesn't work with browserify, given the
- * small subset of api endpoint we use our own http interface for now.
+ * small subset of api endpoint we use, we roll our own http interface for now.
  *
  */
 "use strict";
 
 var API_KEY = "zt5w1eymrntgmvo";
 
-var Promise = require('promise-polyfill'),
-    url = require('url');
+var url = require('url'),
+    Promise = require('promise-polyfill');
 
-var cfg = require('../model/config')();
+var { randomString, basename, extname } = require('../lib/utils');
 
-var { extend, irp, randomString } = require('../lib/utils');
-var { JSONPostPromise, JSONGetPromise } = require('../lib/requests');
-var Base = require('./base');
+var { getJSON, get } = require('../lib/requests'),
+    ImagePromise = require('../lib/imagepromise'),
+    Template = require('../model/template');
 
-function Dropbox (token, assetsFolder) {
+var Dropbox = require('./base').extend(function Dropbox (token, cfg) {
     this._token = token;
-    this._assetsFolder = assetsFolder;
-}
+    this._cfg = cfg;
+    this._templates = {};
 
-extend(Dropbox, Base);
+    this._media = {};
 
-Dropbox.TYPE = 'DROPBOX';
+    this._cfg.set('BACKEND_TYPE', Dropbox.Type);
+    this._cfg.set('BACKEND_DROPBOX_TOKEN', token);
+    this._cfg.save();
+});
 
-Dropbox.prototype.isReady = function () {
-    return (this._token && this._assetsFolder);
-}
+Dropbox.Type = 'DROPBOX';
 
-Dropbox.prototype.landmarkPath = function (assetPath, type) {
-    return `${assetPath}_landmarks_${type}.ljson`;
-}
+Dropbox.TemplateParsers = {
+    'yaml': Template.parseYAML,
+    'yml': Template.parseYAML,
+    'json': Template.parseJSON,
+    'ljson': Template.parseLJSON
+};
+
+Dropbox.AssetExtensions = ['jpeg', 'jpg', 'png'];
 
 /**
  * Builds an authentication URL for Dropbox OAuth2 flow and
@@ -43,11 +49,7 @@ Dropbox.prototype.landmarkPath = function (assetPath, type) {
  */
 Dropbox.authorize = function () {
     // Persist authentication status and data for page reload
-    let stateString = randomString(100);
-    cfg.set('OAuthState', stateString);
-    cfg.set('storageEngine', Dropbox.TYPE);
-    cfg.set('authenticated', false);
-    cfg.save();
+    var oAuthState = randomString(100);
 
     let u = url.format({
         protocol: 'https',
@@ -55,12 +57,12 @@ Dropbox.authorize = function () {
         pathname: '/1/oauth2/authorize',
         query: { 'response_type': 'token',
                  'redirect_uri': window.location.origin,
-                 'state': stateString,
+                 'state': oAuthState,
                  'client_id': API_KEY }
     });
 
     // Redirect to Dropbox authentication page
-    window.location = u;
+    return [u, oAuthState];
 };
 
 Dropbox.prototype.headers = function () {
@@ -70,37 +72,107 @@ Dropbox.prototype.headers = function () {
     return { "Authorization": `Bearer ${this._token}`};
 };
 
+Dropbox.prototype.setTemplates = function (path) {
+    if (!path) return Promise.resolve(null);;
+    this._templates = {};
+
+    return this.list(path, {
+        extensions: Object.keys(Dropbox.TemplateParsers),
+        filesOnly: true
+    }).then((tmpls) => {
+        return Promise.all(tmpls.map((tmpl) => {
+            return this.setTemplate(tmpl.path);
+        }));
+    }, (err) => {
+        if (err.message && err.message.indexOf('not a directory')) {
+            return this.setTemplate(path); // We selected a file
+        } else {
+            throw err;
+        }
+    }).then(() => {
+
+        let keys = Object.keys(this._templates);
+        let raw = keys.map((key) => {
+            return this._templates[key].toJSON();
+        });
+
+        this._cfg.set({
+            'BACKEND_DROPBOX_TEMPLATES': keys,
+            'BACKEND_DROPBOX_TEMPLATES_DATA': raw,
+        }, true);
+    });
+}
+
+Dropbox.prototype.setTemplate = function (path) {
+    let ext = extname(path);
+    if (!(ext in Dropbox.TemplateParsers)) return;
+
+    return this.download(path).then((data) => {
+        this._templates[basename(path, true)] =
+            Dropbox.TemplateParsers[ext](data);
+    });
+};
+
+Dropbox.prototype.setAssets = function (path) {
+    if (!path) return Promise.resolve(null);
+
+    this._assetsPath = path;
+
+    return this.list(path, {
+        filesOnly: true,
+        extensions: Dropbox.AssetExtensions
+    }).then((items) => {
+        console.log('Found assets', items);
+        this._assets = items.map(function (item) {
+            return item.path;
+        });
+
+        this._cfg.set({
+            'BACKEND_DROPBOX_ASSETS_PATH': this._assetsPath,
+            'BACKEND_DROPBOX_ASSETS': this._assets,
+        }, true);
+    });
+}
+
 Dropbox.prototype.accountInfo = function () {
-    return JSONGetPromise(
+    return getJSON(
         'https://api.dropbox.com/1/account/info', this.headers());
 };
 
-Dropbox.prototype.fetchMode = function () {
-    return irp('image');
-};
-
-Dropbox.prototype.list = function (
-    path='/', { foldersOnly=true, showHidden=false, extensions=[] }={}
-) {
+Dropbox.prototype.list = function (path='/', {
+    foldersOnly=false, filesOnly=false,
+    showHidden=false, extensions=[]
+}={}) {
     let opts = {list: true};
 
-    return JSONGetPromise(
+    return getJSON(
         `https://api.dropbox.com/1/metadata/auto/${path}`, this.headers(), opts
     ).then((data) => {
+
+        if (!data.is_dir) {
+            throw new Error(`${path} is not a directory`);
+        }
+
         return data.contents.filter(function (item) {
-            if (!showHidden &&
-                item.path.split('/').pop().charAt(0) === '.'
-            ) {
+
+            if (!showHidden && basename(item.path).charAt(0) === '.') {
                 return false;
             }
 
-            if (foldersOnly && !item.is_dir) {
-                return false;
+            if (!item.is_dir) {
+                if (foldersOnly) {
+                    return false;
+                }
+
+                if (
+                    extensions.length > 0 && extensions.indexOf(extname(item.path)) === -1
+                ) {
+                    return false;
+                }
+
             }
 
-            if (extensions.length && !item.is_dir &&
-                extensions.indexOf(item.path.split('.').pop()) === -1
-            ) {
+            if (filesOnly && item.is_dir) {
                 return false;
             }
 
@@ -108,5 +180,68 @@ Dropbox.prototype.list = function (
         });
     });
 };
+
+Dropbox.prototype.download = function (path) {
+    return get(
+        `https://api-content.dropbox.com/1/files/auto/${path}`,
+        this.headers()
+    ).then((data) => {
+        return data;
+    }, (err) => {
+        console.log('DL Error', err);
+    });
+};
+
+Dropbox.prototype.mediaURL = function (path, noCache) {
+
+    if (noCache) {
+        delete this._media[path];
+    } else if (path in this._media) {
+        let {expires, url} = this._media[path];
+
+        if (expires > new Date()) {
+            return Promise.resolve(url);
+        }
+    }
+
+    return getJSON(
+        `https://api.dropbox.com/1/media/auto${path}`,
+        this.headers()
+    ).then(({url, expires}) => {
+        this._media[path] = {url, expires: new Date(expires)};
+        return url;
+    });
+
+
+};
+
+Dropbox.prototype.fetchMode = function () {
+    return Promise.resolve('image');
+};
+
+Dropbox.prototype.fetchTemplates = function () {
+    return Promise.resolve(Object.keys(this._templates));
+};
+
+Dropbox.prototype.fetchCollections = function () {
+    return Promise.resolve(['all']);
+};
+
+Dropbox.prototype.fetchCollection = function () {
+    return Promise.resolve(this._assets.map(basename));
+}
+
+Dropbox.prototype.fetchImg = function (assetId) {
+    return this.mediaURL(`${this._assetsPath}/${assetId}`).then((url) => {
+        return ImagePromise(url);
+    });
+}
+
+Dropbox.prototype.fetchThumbnail = Dropbox.prototype.fetchImg;
+Dropbox.prototype.fetchTexture = Dropbox.prototype.fetchImg;
+
+Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
+    return Promise.resolve(this._templates[type].emptyLJSON(2));
+}
 
 module.exports = Dropbox;

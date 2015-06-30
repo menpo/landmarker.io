@@ -2,23 +2,23 @@
 
 var Backbone = require('backbone'),
     $ = require('jquery'),
-    _ = require('underscore');
+    _ = require('underscore'),
+    Promise = require('promise-polyfill');
 
-var { irp } = require('../lib/utils');
+var { basename, extname } = require('../lib/utils');
 
-var Modal = require('./modal');
+var { Modal } = require('./modal');
 
 function _$fileOcticon (item) {
 
     let extension = item.is_dir ? 'folder' :
-                    !!item.mime_type ? item.mime_type.split('/').pop(-1) :
-                    item.path.split('.').pop();
+                    !!item.mime_type ? item.mime_type.split('/').pop() :
+                    extname(item.path);
     let icon = {
         'folder': 'file-directory',
 
         'yaml': 'file-code',
         'yml': 'file-code',
-        'text': 'file-code',
         'json': 'file-code',
         'html': 'file-code',
 
@@ -47,20 +47,19 @@ function _$fileOcticon (item) {
 var DropboxSelect = Modal.extend({
 
     closable: false,
-    title: 'Choose a folder from which to load assets',
 
     events: {
         'click .DropboxSelectListItem': 'handleClick',
         'click .Back': 'back',
         'click .Reload': 'reload',
         'click .Home': 'goHome',
-        'click .Btn': 'handleSubmit'
+        'click .Submit': 'handleSubmit'
     },
 
     init: function ({
         dropbox, submit,
         showFoldersOnly=false, showHidden=false,
-        selectFoldersOnly=false, allowedFileExtensions=[],
+        selectFoldersOnly=false, extensions=[],
         selectFilesOnly=false
     }) {
 
@@ -69,7 +68,7 @@ var DropboxSelect = Modal.extend({
         this.showHidden = showHidden;
         this.selectFoldersOnly = selectFoldersOnly;
         this.selectFilesOnly = !selectFoldersOnly && selectFilesOnly;
-        this.extensions = allowedFileExtensions;
+        this.extensions = extensions;
 
         this._cache = {};
 
@@ -77,20 +76,22 @@ var DropboxSelect = Modal.extend({
 
         this.state = {
             selected: undefined,
+            selectedIsFolder: false,
             root: '/',
             currentList: [],
             history: []
         }
 
         _.bindAll(this, 'fetch', 'makeList', 'update', 'select',
-            'dive', 'canonical', 'handleSubmit', 'reload');
+            'dive', 'handleSubmit', 'reload', 'handleClick');
     },
 
     handleSubmit: function () {
         if (!this.submit || !this.state.selected) {
             return;
         }
-        this.submit(this.state.selected);
+
+        this.submit(this.state.selected, this.state.selectedIsFolder);
     },
 
 
@@ -100,7 +101,7 @@ var DropboxSelect = Modal.extend({
 
         let q;
         if (this._cache[this.state.root]) {
-            q = irp(this._cache[this.state.root]);
+            q = Promise.resolve(this._cache[this.state.root]);
         } else {
             q = this.dropbox.list(this.state.root, {
                 showHidden: this.showHidden,
@@ -118,13 +119,8 @@ var DropboxSelect = Modal.extend({
         });
     },
 
-    canonical: function (fullPath) {
-        let path = fullPath.replace(this.state.root, '')
-        return path.charAt(0) === '/' ? path.slice(1) : path;
-    },
-
     pathId: function (path) {
-        let id = path.replace('/', '').replace('.', '');
+        let id = path.replace(/\W/g, '');
         return `__path__${id}__`;
     },
 
@@ -146,16 +142,18 @@ var DropboxSelect = Modal.extend({
 
             let $item = $(
                 `<li id='${this.pathId(path)}' class='DropboxSelectListItem' data-folder='${item.is_dir}' data-path='${path}'>\
-                    ${this.canonical(path)}\
+                    ${basename(path)}\
                 </li>`);
 
-            let selectable = (
+            let clickable = (
                 item.is_dir ||
-                (this.extensions.length &&
-                 this.extensions.indexOf(item.path.split('.').pop()) === -1)
+                ( !this.selectFoldersOnly &&
+                  ( !this.extensions.length ||
+                    this.extensions.indexOf(extname(path)) > -1 )
+                )
             );
 
-            if (!selectable) {
+            if (!clickable) {
                 $item.addClass('Disabled');
             }
 
@@ -193,12 +191,15 @@ var DropboxSelect = Modal.extend({
         this.$body.find('.DropboxSelectListItem.Selected')
                   .removeClass('Selected');
 
-        this.$body.find('.DropboxSelectSubmit > span')
-                .text(this.state.selected || 'Nothing selected');
+        let $submitText = this.$body.find('.DropboxSelectSubmit > span');
+        $submitText.text(this.state.selected || 'Nothing selected');
 
         if (this.state.selected) {
             this.$body.find(`#${this.pathId(this.state.selected)}`)
                       .addClass('Selected');
+            $submitText.removeClass('Empty');
+        } else {
+            $submitText.addClass('Empty');
         }
     },
 
@@ -209,38 +210,30 @@ var DropboxSelect = Modal.extend({
         }
 
         let path = evt.currentTarget.dataset.path,
-            isFolder = evt.currentTarget.dataset.folder;
+            isFolder = evt.currentTarget.dataset.folder === 'true',
+            selectable = (
+                !(this.selectFilesOnly && isFolder) &&
+                !(this.selectFoldersOnly && !isFolder)
+            );
 
-        let _dive = () => {
-            clearTimeout(this[`clicked##${path}`]);
-            delete this[`clicked##${path}`];
-            this.dive(path);
+        if (selectable) {
+            this.select(path, isFolder);
         }
 
-        if (path === this.state.selected && isFolder) {
-            return _dive();
+        if (isFolder && path === this._lastClickedItem) {
+            this._lastClickedItem = undefined;
+            return this.dive(path);
+        } else if (isFolder) {
+            this._lastClickedItem = path;
+            setTimeout(() => {
+                this._lastClickedItem = undefined;
+            }, 300);
         }
-
-        let selectable = (
-            !(this.selectFilesOnly && isFolder) &&
-            !(this.selectFoldersOnly && !isFolder));
-
-        if (this[`clicked##${path}`]) {
-            return _dive();
-        }
-
-        this[`clicked##${path}`] = setTimeout(() => {
-            delete this[`clicked##${path}`];
-
-            if (selectable) {
-                this.select(path);
-            }
-
-        }, 100);
     },
 
-    select: function (path) {
+    select: function (path, isFolder) {
         this.state.selected = path;
+        this.state.selectedIsFolder = !!isFolder;
         this.updateSelected();
     },
 
@@ -275,8 +268,8 @@ var DropboxSelect = Modal.extend({
                 </div>\
                 <div class='DropboxSelectList'><ul></ul></div>\
                 <div class='DropboxSelectSubmit'>\
-                    <span class='Selection'>Nothing selected</span>\
-                    <div class='Btn'>Submit</div>\
+                    <span>Nothing selected</span>\
+                    <div class='Submit'>Submit</div>\
                 </div>\
             </div>\
         `);

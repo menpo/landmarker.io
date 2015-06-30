@@ -88,6 +88,11 @@ var Modal = Backbone.View.extend({
 
     dispose: function () {
         this.close();
+        if (_activeModal === this) {
+            _activeModal === undefined;
+            $(this.container).removeClass('ModalsWrapper--Open');
+        }
+        delete _modals[this];
         this.remove();
     },
 
@@ -102,4 +107,38 @@ var Modal = Backbone.View.extend({
     afterRender: function () {}
 });
 
-module.exports = Modal;
+var SelectModal = Modal.extend({
+
+    init: function ({closable=false, actions=[], disposeAfter=true}) {
+        this.closable = closable;
+        this.actions = actions;
+        this.disposeAfter = disposeAfter;
+    },
+
+    content: function () {
+        let $div = $(`<div class='ModalOptions'></div>`);
+        this.actions.forEach(([text, func], index) => {
+            $div.append(`\
+                <div class='ModalOption' id='ModalOption_${this.key}_${index}'>\
+                    ${text}\
+                </div>`);
+        });
+        return $div;
+    },
+
+    afterRender: function () {
+        this.actions.forEach(([text, func], index) => {
+            $(`#ModalOption_${this.key}_${index}`).on('click', () => {
+                if (this.isOpen) {
+                    func();
+                }
+
+                if (this.disposeAfter) {
+                    this.dispose();
+                }
+            });
+        });
+    }
+});
+
+module.exports = { Modal, SelectModal };

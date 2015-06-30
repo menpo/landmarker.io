@@ -9,11 +9,6 @@ var ImagePromise = function (url) {
         xhr.responseType = 'blob';
         var img = new Image();
 
-        if(url.indexOf('https://') === 0) {
-            // if it's HTTPS request with credentials
-            xhr.withCredentials = true;
-        }
-
         xhr.addEventListener('load', function () {
             if (this.status === 200) {
                 var blob = this.response;

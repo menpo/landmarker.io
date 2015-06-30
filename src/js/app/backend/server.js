@@ -2,16 +2,10 @@
 
 var DEFAULT_API_URL = 'http://localhost:5000';
 
-var extend = require('../lib/utils').extend,
+var { getJSON, putJSON, getArrayBuffer } = require('../lib/requests'),
     ImagePromise = require('../lib/imagepromise');
 
-var { JSONGetPromise,
-      JSONPutPromise,
-      ArrayBufferGetPromise } = require('../lib/requests');
-
-var Base = require('./base');
-
-function Server (url) {
+var Server = require('./base').extend(function Server (url) {
     this.url = url || DEFAULT_API_URL;
     this.demoMode = false;
     this.version = 2;
@@ -20,11 +14,9 @@ function Server (url) {
         this.url = '';
         this.demoMode = true;
     }
-}
+});
 
-extend(Server, Base);
-
-Server.TYPE = 'LANDMARKER SERVER';
+Server.Type = 'LANDMARKER SERVER';
 
 Server.prototype.apiHeader = function () {
     return `/api/v${this.version}/`;
@@ -54,7 +46,7 @@ Server.prototype.map = function (url) {
 
 Server.prototype.fetchJSON = function (basepath) {
     let url = this.map(basepath);
-    return JSONGetPromise(url);
+    return getJSON(url);
 }
 
 function _capitalize (str) {
@@ -73,11 +65,11 @@ Server.prototype.fetchCollection = function (collectionId) {
 }
 
 Server.prototype.fetchLandmarkGroup = function (id, type) {
-    return JSONGetPromise(this.map(`landmarks/${id}/${type}`));
+    return getJSON(this.map(`landmarks/${id}/${type}`));
 }
 
 Server.prototype.saveLandmarkGroup = function (id, type, json) {
-    return JSONPutPromise(this.map(`landmarks/${id}/${type}`), json);
+    return putJSON(this.map(`landmarks/${id}/${type}`), json);
 }
 
 Server.prototype.fetchThumbnail = function (assetId) {
@@ -89,7 +81,18 @@ Server.prototype.fetchTexture = function (assetId) {
 }
 
 Server.prototype.fetchGeometry = function (assetId) {
-    return ArrayBufferGetPromise(this.map(`meshes/${assetId}`));
+    return getArrayBuffer(this.map(`meshes/${assetId}`));
+}
+
+Server.prototype.testV1 = function (fail) {
+    this.version = 1;
+    this.fetchMode().then(() => {
+        console.log('v1 server found - redirecting to legacy landmarker');
+        // we want to add v1 into the url and leave everything else the same
+        var u = url.parse(window.location.href, true);
+        u.pathname = '/v1/';
+        window.location.replace(url.format(u));
+    }, fail);
 }
 
 module.exports = Server;

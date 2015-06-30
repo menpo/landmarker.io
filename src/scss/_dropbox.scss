@@ -1,5 +1,4 @@
 .DropboxSelect {
-    border: 1px solid #e5e5e5;
     display: flex;
     flex-direction: column;
     padding: 0;
@@ -22,7 +21,7 @@
 
 .DropboxSelectExplore {
 
-    border-bottom: 2px solid #e5e5e5;
+    border-bottom: 1px solid #e5e5e5;
     display: flex;
     flex-direction: row;
 
@@ -62,6 +61,9 @@
 
 .DropboxSelectSubmit {
 
+    line-height: 52px;
+    height: 52px;
+
     > span, > div {
         background: #e5e5e5;
         padding: 0 8px;
@@ -69,6 +71,12 @@
 
     > span {
         flex: 3;
+        color: #019875;
+        font-weight: bold;
+
+        &.Empty {
+            color: #c0392b;
+        }
     }
 
     > div {
@@ -130,6 +138,13 @@ li.DropboxSelectListItem {
     &.Selected {
         > span {
             border-color: #1690e5;
+        }
+    }
+
+    &.Selected {
+        > span {
+            background-color: #1690e5;
+            color: white;
         }
     }
 
