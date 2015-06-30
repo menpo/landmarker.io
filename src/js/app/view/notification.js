@@ -195,12 +195,10 @@ exports.AssetLoadingNotification = Backbone.View.extend({
         var isLoading = this.model.assetSource().assetIsLoading();
         if (isLoading !== this.isSpinning) {
             if (isLoading) {
-                console.log('Spinner on!');
                 // need to set the spinner going
                 this.spinner.spin(this.el);
                 this.isSpinning = true;
             } else {
-                console.log('Spinner off.');
                 this.spinner.stop();
                 this.isSpinning = false;
             }
