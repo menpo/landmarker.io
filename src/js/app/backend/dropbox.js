@@ -5,17 +5,20 @@
  * related issues are fixed, dropbox-js doesn't work with browserify, given the
  * small subset of api endpoint we use, we roll our own http interface for now.
  *
+ * Be aware that a new version of the API is in the works as well:
+ * https://www.dropbox.com/developers-preview/documentation/http#documentation
+ * and we might want to upgrade once it is production ready.
  */
 "use strict";
 
-var API_KEY = "zt5w1eymrntgmvo";
+var API_KEY = "jwda9p0msmkfora";
 
 var url = require('url'),
     Promise = require('promise-polyfill');
 
 var { randomString, basename, extname } = require('../lib/utils');
 
-var { getJSON, get } = require('../lib/requests'),
+var { getJSON, get, putJSON } = require('../lib/requests'),
     ImagePromise = require('../lib/imagepromise'),
     Template = require('../model/template');
 
@@ -25,6 +28,7 @@ var Dropbox = require('./base').extend(function Dropbox (token, cfg) {
     this._templates = {};
 
     this._media = {};
+    this._assetsRequests = {};
 
     this._cfg.set('BACKEND_TYPE', Dropbox.Type);
     this._cfg.set('BACKEND_DROPBOX_TOKEN', token);
@@ -122,7 +126,6 @@ Dropbox.prototype.setAssets = function (path) {
         filesOnly: true,
         extensions: Dropbox.AssetExtensions
     }).then((items) => {
-        console.log('Found assets', items);
         this._assets = items.map(function (item) {
             return item.path;
         });
@@ -194,9 +197,14 @@ Dropbox.prototype.download = function (path) {
 
 Dropbox.prototype.mediaURL = function (path, noCache) {
 
+    if (this._media[path] instanceof Promise) {
+        return this._media[path];
+    }
+
     if (noCache) {
         delete this._media[path];
     } else if (path in this._media) {
+
         let {expires, url} = this._media[path];
 
         if (expires > new Date()) {
@@ -204,13 +212,16 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
         }
     }
 
-    return getJSON(
+    let q = getJSON(
         `https://api.dropbox.com/1/media/auto${path}`,
         this.headers()
     ).then(({url, expires}) => {
         this._media[path] = {url, expires: new Date(expires)};
         return url;
     });
+
+    this._media[path] = q;
+    return q;
 
 
 };
@@ -228,7 +239,9 @@ Dropbox.prototype.fetchCollections = function () {
 };
 
 Dropbox.prototype.fetchCollection = function () {
-    return Promise.resolve(this._assets.map(basename));
+    return Promise.resolve(this._assets.map(function (assetPath) {
+        return basename(assetPath, false);
+    }));
 }
 
 Dropbox.prototype.fetchImg = function (assetId) {
@@ -242,6 +255,18 @@ Dropbox.prototype.fetchTexture = Dropbox.prototype.fetchImg;
 
 Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
     return Promise.resolve(this._templates[type].emptyLJSON(2));
+}
+
+Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
+    let headers = this.headers();
+
+    let path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
+
+    return putJSON(
+        `https://api-content.dropbox.com/1/files_put/auto${path}`,
+        json,
+        headers
+    );
 }
 
 module.exports = Dropbox;
