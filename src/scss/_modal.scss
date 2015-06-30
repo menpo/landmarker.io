@@ -71,3 +71,28 @@
     font-size: 1.2em;
     font-weight: medium;
 }
+
+.ModalOptions {
+    display: flex;
+    flex-direction: row;
+}
+
+.ModalOption {
+    display: block;
+    flex: 1;
+    height: 44px;
+    margin-right: 1em;
+    border-radius: 3px;
+    float: left;
+    cursor: pointer;
+    text-align: center;
+    line-height: 44px;
+
+    &:hover {
+        background-color: #f0f0f0;
+    }
+
+    &:last-of-type {
+      margin-right: 0;
+    }
+}

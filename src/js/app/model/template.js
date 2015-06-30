@@ -3,8 +3,6 @@
 var yaml = require('js-yaml'),
     _ = require('underscore');
 
-var { parseGroup } = require('./landmark');
-
 var CYCLE_CONNECTIVITY_LABELS = ['cycle', 'circular'];
 var NULL_POINT = {2: [null, null], 3: [null, null, null]};
 
@@ -57,11 +55,25 @@ function Template (json) {
     });
 }
 
+/**
+ * parseYAML: read a YAML file and return a valid Template
+ * @param  {string} rawData
+ * @return {Template}
+ */
 Template.parseYAML = function (rawData) {
     let json = yaml.safeLoad(rawData);
     return new Template(json);
 }
 
+Template.parseJSON = function (json) {
+    return new Template(json);
+}
+
+/**
+ * Reverse LJSON from previous landmark and return a compliant template
+ * @param  {Object} ljson
+ * @return {Template}
+ */
 Template.parseLJSON = function (ljson) {
     let template = {};
     ljson.labels.forEach(function ({label, mask}) {
@@ -85,10 +97,12 @@ Template.prototype.toJSON = function () {
     return JSON.stringify(this._template);
 }
 
-// Template.prototype.validateLandmarks = function (landmarkGroup) {
-//
-// }
-
+/**
+ * Lazily return empty landmarking data to be used with a new asset and usable
+ * through LandmarkGroup
+ * @param  {Number} dims=2
+ * @return {Object}
+ */
 Template.prototype.emptyLJSON = function (dims=2) {
 
     if (this._emptyLmGroup[dims]) {

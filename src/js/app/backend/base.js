@@ -1,8 +1,10 @@
 "use strict";
 
+var Promise = require('promise-polyfill');
+
 function Base () {}
 
-// Abstract methods
+// Abstract prototype methods
 [
     'fetchMode',
     'fetchTemplates',
@@ -12,15 +14,18 @@ function Base () {}
     'saveLandmarkGroup',
     'fetchThumbnail',
     'fetchTexture',
-    'fetchGeometry'
+    'fetchGeometry',
 
 ].forEach(function (name) {
     Base.prototype[name] = function () {
-        throw new Error(`${name} not implemented in implementation`);
+        throw new Error(`${name} instance method not implemented`);
     }
 });
 
-Base.prototype.demoMode = false;
-Base.prototype.version = 2;
+Base.extend = function extend (child) {
+  child.prototype = Object.create(Base.prototype);
+  child.prototype.constructor = child;
+  return child;
+};
 
 module.exports = Base;

@@ -8,93 +8,138 @@ var utils = require('./app/lib/utils');
 
 var cfg = require('./app/model/config')();
 
-var BackendSelection = require('./app/view/backend_selection'),
-    DropboxSelect = require('./app/view/dropbox_select');
+var DropboxSelect = require('./app/view/dropbox_select'),
+    { SelectModal } = require('./app/view/modal'),
+    { notify } = require('./app/view/notification');
 
-var Server = require('./app/backend/server'),
-    Dropbox = require('./app/backend/dropbox');
+var Backend = require('./app/backend');
 
 function resolveBackend (u) {
-    console.log('Resolving which backend to use for url:', u);
-
-    let server;
-    u.search = null;
+    console.log(
+        'Resolving which backend to use for url:', window.location.href, u,
+        'and config:', cfg.get());
 
     // Found a server parameter >> override to traditionnal mode
     if (u.query.server) {
-        server = new Server(u.query.server);
-
-        cfg.clear();
+        let serverUrl = utils.stripTrailingSlash(u.query.server);
+        let server = new Backend.Server(serverUrl);
+        cfg.clear(); // Reset all stored data, we use the url
 
         if (!server.demoMode) { // Don't persist demo mode
-            cfg.set('storageEngine', Server.TYPE);
-            cfg.set('serverUrl', u.query.server);
-            cfg.set('authenticated', true);
-            cfg.save();
+            cfg.set({
+                'BACKEND_TYPE': Backend.Server.Type,
+                'BACKEND_SERVER_URL': u.query.server
+            }, true);
         }
+
+        return resolveMode(server);
     }
 
-    let storageEngine = cfg.get('storageEngine'),
-        authenticated = cfg.get('authenticated');
+    let backendType = cfg.get('BACKEND_TYPE');
 
-    // We found an authenticated storage engine
-    if (storageEngine && authenticated) {
-        switch (storageEngine) {
-            case Dropbox.TYPE:
-                console.log('Found a dropbox client');
-                server = new Dropbox(cfg.get('OAuthToken'));
-                break;
-            case Server.TYPE:
-                server = new Server(cfg.get('serverUrl'));
-                u.query.server = cfg.get('serverUrl');
-                window.location.replace(url.format(u).replace('?', '#'));
-                break;
-            default:
-                console.log('Invalid Engine');
-        }
-    }
-
-    // We were waiting for an OAuth flow to complete
-    if (storageEngine && !authenticated) {
-        switch (storageEngine) {
-            case Dropbox.TYPE:
-                if (u.query.state === cfg.get('OAuthState')) {
-                    cfg.set('uid', u.query.uid);
-                    cfg.set('OAuthToken', u.query['access_token']);
-                    cfg.set('authenticated', true);
-                    cfg.delete('OAuthState');
-                    cfg.save();
-
-                    // Cleam up url
-                    delete u.query['access_token'];
-                    delete u.query['token_type'];
-                    delete u.query['state'];
-                    delete u.query['uid'];
-                    window.location.replace(url.format(u) + '#');
-
-                    server = new Dropbox(cfg.get('OAuthToken'));
-                    break;
-                } else {
-                    console.log("State doesn't match");
-                }
-            default:
-                console.log('Received invalid oauth call');
-        }
-    }
-
-    // Nothing found >> give the user a choice and reset any data we have
-    if (!server) {
-        console.log("Coudn't infer a suitable backend");
+    if (!backendType) {
         cfg.clear();
-        BackendSelection.show();
-    } else {
-        if (server instanceof Dropbox) {
-            window.DSlct = new DropboxSelect({
-                dropbox: server, selectFoldersOnly: true});
-            DSlct.open();
-            return;
+        u.search = null;
+        history.replaceState(null, null, url.format(u).replace('?', '#'));
+
+        let selector = new SelectModal({
+            closable: false,
+            disposeAfter: false,
+            title: 'Select a datasource',
+            actions: [
+                ['Dropbox', function () {
+                    var [dropUrl, state] = Backend.Dropbox.authorize();
+                    cfg.set({
+                        'OAUTH_STATE': state,
+                        'BACKEND_TYPE': Backend.Dropbox.Type
+                    }, true);
+                    window.location.replace(dropUrl);
+                }], ['Managed Server', function () {
+                    let u = window.prompt(
+                        'Please provide the url for the landmarker server');
+                    if (u) {
+                        restart(u);
+                    }
+                }], ['Demo Mode', restart.bind(undefined, 'demo')]
+            ]
+        });
+
+        return selector.open();
+    }
+
+    switch (backendType) {
+        case Backend.Dropbox.Type:
+            return _loadDropbox(u);
+        case Backend.Server.Type:
+            return _loadServer(u);
+    }
+}
+
+function restart (serverUrl) {
+    console.log('Hard restart', serverUrl);
+    cfg.clear();
+    let restartUrl = (
+        window.location.origin + (serverUrl ? `?server=${serverUrl}` : ''));
+    window.location.replace(restartUrl);
+}
+
+function _loadServer (u) {
+    let server = new Backend.Server(cfg.get('BACKEND_SERVER_URL'));
+    u.query.server = cfg.get('BACKEND_SERVER_URL');
+    history.replaceState(null, null, url.format(u).replace('?', '#'));
+    resolveMode(server);
+}
+
+function _loadDropbox (u) {
+
+    let dropbox;
+    let oAuthState = cfg.get('OAUTH_STATE'),
+        token = cfg.get('BACKEND_DROPBOX_TOKEN');;
+
+    if (oAuthState) { // We were waiting for redirect
+        if (u.query.state === oAuthState) {
+            cfg.delete('OAUTH_STATE', true);
+            dropbox = new Backend.Dropbox(u.query['access_token'], cfg);
+            delete u.query['access_token'];
+            delete u.query['token_type'];
+            delete u.query['state'];
+            delete u.query['uid'];
+            u.search = null;
+            history.replaceState(null, null, url.format(u).replace('?', '#'));
+        } else {
+            console.log('Failed to authenticate after redirect');
         }
-        resolveMode(server);
+    } else if (token) {
+        dropbox = new Backend.Dropbox(token, cfg);
+    }
+
+    if (dropbox) {
+        let pathModal = new DropboxSelect({
+            dropbox,
+            selectFoldersOnly: true,
+            title: 'Where do you whish to load assets from',
+            submit: function (path) {
+                dropbox.setAssets(path).then(function () {
+
+                    let templateModal = new DropboxSelect({
+                        dropbox,
+                        extensions: Object.keys(Backend.Dropbox.TemplateParsers),
+                        title: 'Select a template to use, you can use an already annotated asset',
+                        submit: function (tmplPath) {
+                            dropbox.setTemplates(tmplPath).then(function () {
+                                templateModal.dispose();
+                                resolveMode(dropbox);
+                            });
+                        }
+                    });
+
+                    pathModal.dispose();
+                    templateModal.open();
+                });
+            }
+        });
+
+        pathModal.open();
     }
 }
 
@@ -104,39 +149,31 @@ function resolveMode (server) {
             console.log(`Successfully found mode: ${mode}`);
         } else {
             console.log('Error unknown mode - terminating');
-            restartInDemoMode();
         }
         initLandmarker(server, mode);
     }, function () {
-        // could be that there is an old v1 server, let's check
-        server.version = 1;
-        server.fetchMode(redirectToV1, restartAndClear);
+        console.log("Error - couldn't get mode");
+        notify({
+            msg: 'Error unknown mode - terminating',
+            type: 'error',
+            actions: [
+                ['Restart', restart],
+                ['See a demo', restart.bind(undefined, 'demo')]
+            ]
+        });
+        return;
+        if (server instanceof Backend.Server) {
+            // could be that there is an old v1 server, let's check
+            server.testV1(function () {
+                console.log("Error - couldn't get mode (even in legacy v1)");
+            });
+        } else {}
     });
-}
-
-function redirectToV1() {
-    // we want to add v1 into the url and leave everything else the same
-    console.log('v1 server found - redirecting to legacy landmarker');
-    var u = url.parse(window.location.href, true);
-    u.pathname = '/v1/';
-    // This will redirect us to v1
-    window.location.replace(url.format(u));
-}
-
-function restartAndClear () {
-    cfg.clear();
-    window.location = window.location.origin;
-}
-
-function restartInDemoMode () {
-    cfg.clear();
-    window.location = window.location.origin + '?server=demo';
 }
 
 function initLandmarker(server, mode) {
 
     console.log('Starting landmarker in ' + mode + ' mode');
-    BackendSelection.hide();
 
     if (server.demoMode) {
         document.title = document.title + ' - demo mode';
@@ -324,9 +361,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     cfg.load();
-    BackendSelection.init();
     // Parse the current url so we can query the parameters
-    var u = url.parse(window.location.href.replace('#', '?'), true);
-    u.search = null;  // erase search so query is used in building back URL
+    var u = url.parse(
+        utils.stripTrailingSlash(window.location.href.replace('#', '?')), true);
     resolveBackend(u);
 });

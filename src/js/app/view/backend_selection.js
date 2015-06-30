@@ -3,13 +3,13 @@
 var Backbone = require('backbone'),
     $ = require('jquery');
 
-var Modal = require('./modal');
-
-var Dropbox = require('../backend/dropbox');
+var Modal = require('./modal'),
+    Dropbox = require('../backend/dropbox');
 
 var BackendSelectionModal = Modal.extend({
 
     closable: false,
+    title: 'Select a datasource',
 
     choices: [
         ['Dropbox', 'Dropbox'],
@@ -32,8 +32,16 @@ var BackendSelectionModal = Modal.extend({
         return $div;
     },
 
+    init: function ({cfg}) {
+        this.cfg = cfg;
+    },
+
     startDropbox: function () {
-        Dropbox.authorize();
+        var [url, state] = Dropbox.authorize();
+        this.cfg.set('OAUTH_STATE', state);
+        this.cfg.set('BACKEND_TYPE', Dropbox.Type);
+        this.cfg.save();
+        window.location = url;
     },
 
     startServer: function () {
@@ -65,12 +73,12 @@ module.exports.hide = function () {
     if (_view) _view.close();
 };
 
-module.exports.init = function () {
+module.exports.init = function (cfg) {
     if (_view) {
         if (_view.isOpen) {
             _view.close();
         }
         _view.dispose();
     }
-    _view = new BackendSelectionModal({title: 'Select a datasource'});
+    _view = new BackendSelectionModal({cfg});
 };

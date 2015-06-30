@@ -2,7 +2,7 @@
 
 var Backbone = require('backbone');
 var THREE = require('three');
-var ArrayBufferGetPromise = require('../lib/requests').ArrayBufferGetPromise;
+var getArrayBuffer = require('../lib/requests').getArrayBuffer;
 var ImagePromise = require('../lib/imagepromise');
 
 var FRONT = {
@@ -65,14 +65,6 @@ var Image = Backbone.Model.extend({
         return {
             textureOn : true
         }
-    },
-
-    thumbnailUrl: function () {
-        return this.get('server').map('thumbnails/' + this.id);
-    },
-
-    textureUrl: function () {
-        return this.get('server').map('textures/' + this.id);
     },
 
     hasTexture: function() {
@@ -191,7 +183,7 @@ var Image = Backbone.Model.extend({
     loadThumbnail: function () {
         var that = this;
         if (!this.hasOwnProperty('_thumbnailPromise')) {
-            this._thumbnailPromise = ImagePromise(this.thumbnailUrl()).then(function(material) {
+            this._thumbnailPromise = this.get('server').fetchThumbnail(this.id).then(function(material) {
                 delete that._thumbnailPromise;
                 console.log('Asset: loaded thumbnail for ' + that.id);
                 that.thumbnail =  material;
@@ -209,7 +201,7 @@ var Image = Backbone.Model.extend({
     loadTexture: function () {
         var that = this;
         if (!this.hasOwnProperty('_texturePromise')) {
-            this._texturePromise = ImagePromise(this.textureUrl()).then(function(material) {
+            this._texturePromise = this.get('server').fetchTexture(this.id).then(function(material) {
                 delete that._texturePromise;
                 console.log('Asset: loaded texture for ' + that.id);
                 that.texture = material;
@@ -282,7 +274,7 @@ var Mesh = Image.extend({
             // already loading this geometry
             return this._geometryPromise;
         }
-        var arrayPromise = ArrayBufferGetPromise(this.geometryUrl());
+        var arrayPromise = getArrayBuffer(this.geometryUrl());
         this._geometryPromise = arrayPromise.then(function (buffer) {
             // now the promise is fullfilled, delete the promise.
             delete that._geometryPromise;

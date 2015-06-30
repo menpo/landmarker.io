@@ -11,7 +11,7 @@ function XMLHttpRequestPromise(
     // Return a new promise.
     var promise = new Promise(function(resolve, reject) {
         // Do the usual XHR stuff
-        xhr.responseType = responseType || 'json';
+        xhr.responseType = responseType || 'text';
 
         Object.keys(headers).forEach(function (key) {
             xhr.setRequestHeader(key, headers[key]);
@@ -57,31 +57,40 @@ function XMLHttpRequestPromise(
     return promise;
 };
 
-module.exports.XMLHttpRequestPromise = XMLHttpRequestPromise;
+module.exports.Request = XMLHttpRequestPromise;
 
-module.exports.ArrayBufferGetPromise = function (url, headers={}) {
+module.exports.getArrayBuffer = function (url, headers={}) {
     return XMLHttpRequestPromise(url, {responseType: 'arraybuffer', headers});
 };
 
-module.exports.JSONGetPromise = function (url, headers={}, data) {
+module.exports.get = function (url, headers={}, data) {
     if (data) {
         url = `${url}?${QS.stringify(data)}`;
     }
     return XMLHttpRequestPromise(url, {headers});
+}
+
+module.exports.getJSON = function (url, headers={}, data) {
+    if (data) {
+        url = `${url}?${QS.stringify(data)}`;
+    }
+    return XMLHttpRequestPromise(url, {responseType: 'json', headers});
 };
 
-module.exports.JSONPostPromise = function (url, data={}, headers={}) {
+module.exports.postJSON = function (url, data={}, headers={}) {
     return XMLHttpRequestPromise(url, {
         headers,
+        responseType: 'json',
         method: 'POST',
         data: QS.stringify(data),
         contentType: "application/x-www-form-urlencoded"
     });
 }
 
-module.exports.JSONPutPromise = function (url, data={}, headers={}) {
+module.exports.putJSON = function (url, data={}, headers={}) {
     return XMLHttpRequestPromise(url, {
         headers,
+        responseType: 'json',
         method: 'PUT',
         data: JSON.stringify(data),
         contentType: "application/json;charset=UTF-8"
