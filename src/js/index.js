@@ -199,14 +199,16 @@ function initLandmarker(server, mode) {
 }
 
 function handleNewVersion () {
-    let $topBar = $('.TopBar');
-    $topBar.addClass('Display');
+
+    let $topBar = $('#newVersionPrompt');
     $topBar.text(
         'New version has been downloaded in the background, click to reload.');
 
     $topBar.click(function () {
         window.location.reload(true);
     });
+
+    $topBar.addClass('Display');
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -214,6 +216,16 @@ document.addEventListener('DOMContentLoaded', function () {
     window.applicationCache.addEventListener('updateready', handleNewVersion);
     if(window.applicationCache.status === window.applicationCache.UPDATEREADY) {
       handleNewVersion();
+    }
+
+    // Temporary message
+    if (localStorage.getItem('LMIO#v150')) {
+        $('#v150Prompt').remove();
+    } else {
+        $('#v150Prompt').click(function () {
+            localStorage.setItem('LMIO#v150', Date().toString());
+            window.location.replace('https://github.com/menpo/landmarker.io/wiki/Introducing-Snap-Mode-(v1.5.0)');
+        })
     }
 
     var url = require('url');
