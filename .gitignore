@@ -3,8 +3,8 @@ node_modules
 # IntelliJ modules
 *.iml
 # On master - we don't want to check in every bundle we make!
-bundle*js
-bundle*css
+bundle*js*
+bundle*css*
 index.html
 !src/index.html
 lmio.appcache

@@ -51,11 +51,11 @@ gulp.task('manifest', function(){
 });
 
 gulp.task('clean-js', function (cb) {
-    del(['./bundle*.js'], cb);
+    del(['./bundle*.js*'], cb);
 });
 
 gulp.task('clean-css', function (cb) {
-    del(['./bundle*.css'], cb);
+    del(['./bundle*.css*'], cb);
 });
 
 // Rebuild the JS bundle + issue a notification when done.
