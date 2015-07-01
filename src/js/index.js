@@ -154,6 +154,7 @@ function initLandmarker(server, mode) {
         switch (key) {
             case 100:  // d = [d]elete selected
                 app.landmarks().deleteSelected();
+                $('#viewportContainer').trigger("groupDeselected");
                 break;
             case 113:  // q = deselect all
                 app.landmarks().deselectAll();
