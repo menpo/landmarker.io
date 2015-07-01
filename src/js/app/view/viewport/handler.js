@@ -85,7 +85,7 @@ function Handler () {
         console.log('mesh pressed!');
         if (groupSelected) {
             nothingPressed();
-        } else if (event.button === 0 && event.shiftKey) {
+        } else if (downEvent.button === 0 && downEvent.shiftKey) {
             shiftPressed();  // LMB + SHIFT
         } else {
             $(document).one('mouseup.viewportMesh', meshOnMouseUp);
