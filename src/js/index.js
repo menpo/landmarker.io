@@ -215,6 +215,7 @@ function handleNewVersion () {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // Test for IE
     if (
         /MSIE (\d+\.\d+);/.test(navigator.userAgent) || !!navigator.userAgent.match(/Trident.*rv[ :]*11\./)
     ) {
@@ -227,6 +228,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Test for webgl
+    var webglSupported = ( function () {
+        try {
+            var canvas = document.createElement('canvas');
+            return !! (
+                window.WebGLRenderingContext &&
+                ( canvas.getContext('webgl') ||
+                  canvas.getContext('experimental-webgl') )
+            );
+        } catch ( e ) { return false; } } )();
+
+    if (!webglSupported) {
+        return new Notification.BaseNotification({
+            msg: 'It seems your browser doesn\'t support WebGL, please visit https://get.webgl.org/ for more information',
+            type: 'error', manualClose: true
+        });
+    }
+
+    // Check for new version (vs current appcache retrieved version)
     window.applicationCache.addEventListener('updateready', handleNewVersion);
     if(window.applicationCache.status === window.applicationCache.UPDATEREADY) {
       handleNewVersion();
