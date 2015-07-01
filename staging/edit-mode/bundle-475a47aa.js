@@ -5,6 +5,8 @@ var $ = require('jquery');
 
 var DEFAULT_API_URL = 'http://localhost:5000';
 
+var Notification = require('./app/view/notification');
+
 function resolveServer(u) {
     var server;
     var Server = require('./app/model/server');
@@ -113,7 +115,6 @@ function initLandmarker(server, mode) {
     var ToolbarView = require('./app/view/toolbar');
     var ViewportView = require('./app/view/viewport');
     var HelpOverlay = require('./app/view/help');
-    var Notification = require('./app/view/notification');
 
     //    var preview = new Notification.ThumbnailNotification({model:app});
     var loading = new Notification.AssetLoadingNotification({ model: app });
@@ -225,15 +226,26 @@ function handleNewVersion() {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    if (/MSIE (\d+\.\d+);/.test(navigator.userAgent) || !!navigator.userAgent.match(/Trident.*rv[ :]*11\./)) {
+        // Found IE, do user agent detection for now
+        // https://github.com/menpo/landmarker.io/issues/75 for progess
+        $('.App-Flex-Horiz').css('min-height', '100vh');
+        return new Notification.BaseNotification({
+            msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
+            type: 'error', manualClose: true
+        });
+    }
+
     window.applicationCache.addEventListener('updateready', handleNewVersion);
     if (window.applicationCache.status === window.applicationCache.UPDATEREADY) {
         handleNewVersion();
     }
 
-    // Temporary message
+    // Temporary message for v1.5.0
     if (localStorage.getItem('LMIO#v150')) {
         $('#v150Prompt').remove();
     } else {
+        $('#v150Prompt').addClass('Display');
         $('#v150Prompt').click(function () {
             localStorage.setItem('LMIO#v150', Date().toString());
             window.location = 'https://github.com/menpo/landmarker.io/wiki/Introducing-Snap-Mode-(v1.5.0)';
@@ -54071,4 +54083,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-db48f4ce.js.map
+//# sourceMappingURL=bundle-475a47aa.js.map
