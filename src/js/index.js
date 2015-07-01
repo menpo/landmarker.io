@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
         $('#v150Prompt').click(function () {
             localStorage.setItem('LMIO#v150', Date().toString());
-            window.location.replace('https://github.com/menpo/landmarker.io/wiki/Introducing-Snap-Mode-(v1.5.0)');
+            window.location = 'https://github.com/menpo/landmarker.io/wiki/Introducing-Snap-Mode-(v1.5.0)';
         })
     }
 
