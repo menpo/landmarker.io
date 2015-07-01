@@ -156,6 +156,7 @@ function initLandmarker(server, mode) {
             case 100:
                 // d = [d]elete selected
                 app.landmarks().deleteSelected();
+                $('#viewportContainer').trigger('groupDeselected');
                 break;
             case 113:
                 // q = deselect all
@@ -54083,4 +54084,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-475a47aa.js.map
+//# sourceMappingURL=bundle-f534ae63.js.map
