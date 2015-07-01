@@ -66,13 +66,12 @@ gulp.task('js', function() {
             gutil.log(e);
             b.end();
         })
-        // Cut out the source map...
-        // .pipe(exorcist('bundle.js.map'))
-        // Pass desired output filename to vinyl-source-stream
         .pipe(source('bundle.js'))
         // Start piping stream to tasks!
         .pipe(buffer())
         .pipe(rev())
+        .pipe(sourcemaps.init({loadMaps: true}))
+        .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('.'))
         //
         // Ideally we would now like to minify the bundle, whilst keeping the
