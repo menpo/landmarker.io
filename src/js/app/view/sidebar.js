@@ -60,11 +60,12 @@ var LandmarkView = Backbone.View.extend({
     select: atomic.atomicOperation(function (event) {
         if (event.shiftKey) {
             this.selectAll(event);
+        } else if (this.model.isSelected()) {
+            this.model.deselect();
         } else if ((event.ctrlKey || event.metaKey)) {
-            if (this.model.isSelected()) {
-                this.model.deselect();
-            } else {
+            if (!this.model.isSelected()) {
                 this.model.select();
+                $('#viewportContainer').trigger("groupSelected");
             }
         } else if (this.model.isEmpty()) {
             // user is clicking on an empty landmark - mark it as the next for
