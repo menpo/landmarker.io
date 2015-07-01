@@ -227,6 +227,7 @@ function handleNewVersion() {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // Test for IE
     if (/MSIE (\d+\.\d+);/.test(navigator.userAgent) || !!navigator.userAgent.match(/Trident.*rv[ :]*11\./)) {
         // Found IE, do user agent detection for now
         // https://github.com/menpo/landmarker.io/issues/75 for progess
@@ -237,6 +238,24 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Test for webgl
+    var webglSupported = (function () {
+        try {
+            var canvas = document.createElement('canvas');
+            return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+        } catch (e) {
+            return false;
+        }
+    })();
+
+    if (!webglSupported) {
+        return new Notification.BaseNotification({
+            msg: 'It seems your browser doesn\'t support WebGL, please visit https://get.webgl.org/ for more information',
+            type: 'error', manualClose: true
+        });
+    }
+
+    // Check for new version (vs current appcache retrieved version)
     window.applicationCache.addEventListener('updateready', handleNewVersion);
     if (window.applicationCache.status === window.applicationCache.UPDATEREADY) {
         handleNewVersion();
@@ -51955,11 +51974,12 @@ var LandmarkView = Backbone.View.extend({
     select: atomic.atomicOperation(function (event) {
         if (event.shiftKey) {
             this.selectAll(event);
+        } else if (this.model.isSelected()) {
+            this.model.deselect();
         } else if (event.ctrlKey || event.metaKey) {
-            if (this.model.isSelected()) {
-                this.model.deselect();
-            } else {
+            if (!this.model.isSelected()) {
                 this.model.select();
+                $('#viewportContainer').trigger('groupSelected');
             }
         } else if (this.model.isEmpty()) {
             // user is clicking on an empty landmark - mark it as the next for
@@ -53045,7 +53065,7 @@ function Handler() {
         console.log('mesh pressed!');
         if (groupSelected) {
             nothingPressed();
-        } else if (event.button === 0 && event.shiftKey) {
+        } else if (downEvent.button === 0 && downEvent.shiftKey) {
             shiftPressed(); // LMB + SHIFT
         } else {
             $(document).one('mouseup.viewportMesh', meshOnMouseUp);
@@ -54084,4 +54104,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-f534ae63.js.map
+//# sourceMappingURL=bundle-e845f21c.js.map
