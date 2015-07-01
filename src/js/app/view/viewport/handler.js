@@ -504,8 +504,6 @@ function Handler () {
                 }
             }
 
-            console.log(label, labelSelection);
-
             if (labelSelection) {
                 label.landmarks.forEach((lm) => {
                     lm.select();
