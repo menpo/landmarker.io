@@ -12,8 +12,7 @@
 # http://docs.travis-ci.com/user/encrypting-files/ for more information
 #
 
-DEPLOY_BRANCH="master"      # Will be mirrored at the root of gh-pages
-MANIFEST="lmio.appcache"    # Used to check if build has happened
+MANIFEST="lmio.appcache"     # Used to check if build has happened
 
 if [ "$TRAVIS" == "true" ]; then
   # Set up for travis environment (branch, repo with push rights)
@@ -47,7 +46,7 @@ if [ "$TRAVIS" == "true" ]; then
   # Ensure correct ssh remote
   REPO="git@github.com:/$TRAVIS_REPO_SLUG.git"
   git remote rename origin origin.bak
-  git remote add origin $REPO
+  git remote add origin "$REPO"
   git remote remove origin.bak
 
   # Setup som useful variables for tracking
@@ -97,13 +96,12 @@ sed -i "${LN}i${LINK}" staging/index.html
 echo "Updated staging/index.html to point to staging/$BRANCH and moved build files"
 ls "staging/$BRANCH"
 
-# master branch is staged but we mirror it at root level
-# Commented out for now to avoid any risk on the deployed branch git
-
-# if [[ "$BRANCH" == "$DEPLOY_BRANCH" ]]; then
-#   rm -fr ./index.html ./bundle-*.* ./*.appcache ./img ./api
-#   cp -r "staging/$BRANCH"/* .
-# fi
+# tags are deployed at root
+if [[ ! -z "$TRAVIS_TAG" ]]; then
+  echo "Deploying tag $TRAVIS_TAG"
+  rm -fr ./index.html ./bundle-*.* ./*.appcache ./img ./api
+  cp -r "staging/$BRANCH"/* .
+fi
 
 # Save updates to repository
 git status -s
