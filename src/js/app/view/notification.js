@@ -5,6 +5,8 @@ var Backbone = require('backbone');
 var $ = require('jquery');
 var Spinner = require('spin.js');
 
+var { randomString } = require('../lib/utils');
+
 var spinnerOpts = {
     lines: 13, // The number of lines to draw
     length: 20, // The length of each line
@@ -24,7 +26,7 @@ var spinnerOpts = {
     left: '50%' // Left position relative to parent
 };
 
-// exports.ThumbnailNotification = Backbone.View.extend({
+// module.exports.ThumbnailNotification = Backbone.View.extend({
 //
 //     initialize : function() {
 //         _.bindAll(this, 'render');
@@ -54,7 +56,7 @@ var NOTIFICATION_BASE_CLASS = 'Notification',
                                   'error': 'Notification--Error',
                                   'warning': 'Notification--Warning' };
 
-exports.BaseNotification = Backbone.View.extend({
+module.exports.BaseNotification = Backbone.View.extend({
 
     tagName: 'div',
     container: '#notificationOverlay',
@@ -163,11 +165,11 @@ exports.BaseNotification = Backbone.View.extend({
     }
 });
 
-exports.notify = function (opts) {
-    return new exports.BaseNotification(opts);
+module.exports.notify = function (opts) {
+    return new module.exports.BaseNotification(opts);
 }
 
-exports.AssetLoadingNotification = Backbone.View.extend({
+module.exports.AssetLoadingNotification = Backbone.View.extend({
 
     initialize : function() {
         _.bindAll(this, 'render');
@@ -207,7 +209,7 @@ exports.AssetLoadingNotification = Backbone.View.extend({
 });
 
 
-exports.LandmarkSavingNotification = Backbone.View.extend({
+module.exports.LandmarkSavingNotification = Backbone.View.extend({
 
     initialize : function() {
         _.bindAll(this, 'start', 'stop');
@@ -232,3 +234,57 @@ exports.LandmarkSavingNotification = Backbone.View.extend({
         }
     }
 });
+
+
+var CornerSpinner = Backbone.View.extend({
+
+    el: '#globalSpinner',
+    initialize: function () {
+        this._operations = {};
+        this._shown = false;
+    },
+
+    render: function (show) {
+
+        if (show === undefined) {
+            show = Object.keys(this._operations).length > 0;
+        }
+
+        if (show && !this._shown) {
+            this.$el.addClass('Display');
+            this._shown = true;
+        } else if (!show) {
+            this.$el.removeClass('Display');
+            this._shown = false;
+        }
+
+    },
+
+    start: function () {
+        let rs = randomString(8, true);
+        this._operations[rs] = true;
+        this.render(true);
+        return rs;
+    },
+
+    stop: function (op) {
+        if (op in this._operations) {
+            delete this._operations[op];
+            this.render();
+        }
+    }
+});
+
+var _gs;
+module.exports.loading = {
+
+    start: function () {
+        _gs = _gs || new CornerSpinner();
+        return _gs.start.call(_gs);
+    },
+
+    stop: function (id) {
+        _gs = _gs || new CornerSpinner();
+        _gs.stop.call(_gs, id);
+    }
+}

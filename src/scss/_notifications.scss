@@ -164,3 +164,58 @@
     box-shadow: 0 2.5em 0 0 #919191;
   }
 }
+
+// Adapated from http://tympanus.net/Development/CreativeLoadingEffects/
+.CornerSpinner {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 300px;
+    height: 300px;
+    background: #59abe3;
+    transition: transform 0.3s;
+    transform: translateX(100%) translateY(-100%) rotate(45deg);
+    pointer-events: none;
+    z-index: $zIndexNotifications;
+
+    &.Display {
+      transform: translateX(50%) translateY(-50%) rotate(45deg);
+    }
+
+    &::before,
+    &::after {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      display: block;
+      border: 5px solid #fff;
+      border-radius: 50%;
+      content: '';
+    }
+
+    &::before {
+      margin-left: -40px;
+      width: 80px;
+      height: 80px;
+      border-right-color: rgba(0, 0, 0, .5);
+      border-left-color: rgba(0, 0, 0, .5);
+      animation: rotation 3s linear infinite;
+    }
+
+    &::after {
+      bottom: 50px;
+      margin-left: -20px;
+      width: 40px;
+      height: 40px;
+      border-top-color: rgba(0, 0, 0, .5);
+      border-bottom-color: rgba(0, 0, 0, .5);
+      animation: rotation 1s linear infinite;
+    }
+
+  }
+
+@keyframes rotation {
+	0% 		{ transform: rotate(0deg); }
+	50% 	{ transform: rotate(180deg); }
+	100% 	{ transform: rotate(360deg); }
+}
