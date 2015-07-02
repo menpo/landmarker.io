@@ -3,15 +3,18 @@
 var Promise = require('promise-polyfill'),
     QS = require('querystring');
 
+var { loading } = require('../view/notification');
+
 function XMLHttpRequestPromise(
-    url, {method, responseType, contentType, headers, data}
+    url, {method='GET', responseType, contentType, headers, data}
 ){
     var xhr = new XMLHttpRequest();
-    xhr.open(method || 'GET', url);
+    xhr.open(method, url);
     // Return a new promise.
     var promise = new Promise(function(resolve, reject) {
         // Do the usual XHR stuff
         xhr.responseType = responseType || 'text';
+        var asyncId = loading.start();
 
         Object.keys(headers).forEach(function (key) {
             xhr.setRequestHeader(key, headers[key]);
@@ -24,6 +27,7 @@ function XMLHttpRequestPromise(
         xhr.onload = function() {
             // This is called even on 404 etc
             // so check the status
+            loading.stop(asyncId);
             if ((xhr.status / 100 || 0) === 2) {
                 // Resolve the promise with the response text
                 resolve(xhr.response);
@@ -36,8 +40,15 @@ function XMLHttpRequestPromise(
         };
 
         // Handle network errors
-        xhr.onerror = function() {
-            reject(Error("Network Error"));
+        xhr.onerror = function () {
+            loading.stop(asyncId);
+            console.log('UNLOADING', asyncId);
+            reject(new Error("Network Error"));
+        };
+
+        xhr.onabort = function () {
+            loading.stop(asyncId);
+            reject(new Error("Aborted"));
         };
 
         // Make the request
