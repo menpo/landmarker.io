@@ -10,16 +10,16 @@
     </script>
     <title>Landmarker.io</title>
     <meta name="mobile-web-app-capable" content="yes">
-    <!-- Not convinced the below is actually doing anything? -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimal-ui">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, minimal-ui">
+    <meta name="apple-mobile-web-app-title" content="Landmarker.io">
     <meta http-equiv="expires" content="0" />
     <!-- inject:css -->
-    <link rel="stylesheet" href="bundle-16ea7d07.css">
+    <link rel="stylesheet" href="bundle-8069ff4c.css">
     <!-- endinject -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css">
     <!-- inject:js -->
-    <script src="bundle-45b294c7.js"></script>
+    <script src="bundle-ff5f5540.js"></script>
     <!-- endinject -->
 </head>
 
@@ -37,6 +37,8 @@
 <div class="Chrome">
     <!-- HTML UI -->
     <div class="App-Flex-Vert">
+        <div class='TopBar' id='newVersionPrompt'></div>
+        <div class='TopBar Info' id='v150Prompt'>There have been some important changes, click here for more information.</div>
         <div class="App-Flex-Horiz">
             <div class="App-Flex-LeftCol LeftSidebar">
                 <!-- Asset information  (top left) -->
@@ -47,7 +49,7 @@
                 <!-- Toolbox itself (bottom left) -->
                 <div class="Toolbar" id="toolbar">
                     <div class="Toolbar-Row" id="editingRow">
-                        <div class="Toolbar-Row-Item">Edit</div>
+                        <div class="Toolbar-Row-Item">Snap</div>
                         <div class="Toolbar-Row-Item">
                             <div class="onoffswitch">
                                 <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="editingToggle">
@@ -113,6 +115,8 @@
     </div>
 </div>
 
+<div class="CornerSpinner" id="globalSpinner"></div>
+
 <div class="FullScreen ModalCentreFlex NotificationWrapper"
      id="notificationOverlay">
     <div id="loadingSpinner"></div>
@@ -122,70 +126,7 @@
 
 <div class="FullScreen ModalCentreFlex">
     <div class="HelpOverlay" id="helpOverlay">
-        <table class="HelpContentTable">
-            <tbody>
-            <tr>
-                <td>l</td>
-                <td class="x">toggle links (landmark connections)</td>
-            </tr>
-            <tr>
-                <td>a</td>
-                <td class="x">select all landmarks in the active group</td>
-            </tr>
-            <tr>
-                <td>d</td>
-                <td class="x">delete selected landmarks</td>
-            </tr>
-            <tr>
-                <td>q</td>
-                <td class="x">clear selection</td>
-            </tr>
-            <tr>
-                <td>j</td>
-                <td class="x">go to the next asset</td>
-            </tr>
-            <tr>
-                <td>k</td>
-                <td class="x">go to the previous asset</td>
-            </tr>
-            <tr>
-                <td>click on a landmark</td>
-                <td class="x">select a landmark</td>
-            </tr>
-            <tr>
-                <td>click + drag on a landmark</td>
-                <td class="x">move landmark points</td>
-            </tr>
-            <tr>
-                <td>shift + drag not on a landmark</td>
-                <td class="x">draw a box to select multiple landmarks</td>
-            </tr>
-            <tr>
-                <td>ctrl/cmd + click on a landmark</td>
-                <td class="x">select and deselect from current selection</td>
-            </tr>
-            <tr>
-                <td>mouse wheel</td>
-                <td class="x">zoom the camera in and out</td>
-            </tr>
-            <tr>
-                <td>right click + drag</td>
-                <td class="x">pan the camera</td>
-            </tr>
-            <tr>
-                <td>r</td>
-                <td class="x">reset the camera to default</td>
-            </tr>
-            <tr>
-                <td>c</td>
-                <td class="x">change between orthographic and perspective rendering <i>mesh mode only</i></td>
-            </tr>
-            <tr>
-                <td>t</td>
-                <td class="x">toggle texture on and off <i>mesh mode only</i></td>
-            </tr>
-            </tbody>
-        </table>
+        <table class="HelpContentTable"><tbody></tbody></table>
     </div>
 </div>
 
