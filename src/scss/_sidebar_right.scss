@@ -61,7 +61,17 @@ is itself a row flexbox */
 }
 
 .RightSidebar-Controls-Item {
-    flex: 1;
+    flex: 2;
+    margin-left: 1px;
+    margin-bottom: 1px;
+
+    &:first-of-type {
+      margin-left: 0;
+    }
+
+    &:last-of-type {
+      flex: 1;
+    }
 }
 
 /* Landmarks selector */

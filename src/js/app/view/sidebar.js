@@ -224,10 +224,10 @@ var LandmarkGroupListView = Backbone.View.extend({
 
 var SaveRevertView = Backbone.View.extend({
 
-    el: '#saveRevert',
+    el: '#lmActionsPanel',
 
     initialize : function() {
-        _.bindAll(this, 'render', 'save', 'revert');
+        _.bindAll(this, 'render', 'save', 'help');
         //this.listenTo(this.model, "all", this.render);
         // make a spinner to listen for save calls on these landmarks
         this.spinner = new Notification.LandmarkSavingNotification();
@@ -237,7 +237,8 @@ var SaveRevertView = Backbone.View.extend({
 
     events: {
         'click #save' : "save",
-        'click #revert' : "revert"
+        'click #help' : "help",
+        'click #download' : "download"
     },
 
     render: function () {
@@ -265,9 +266,21 @@ var SaveRevertView = Backbone.View.extend({
 
     },
 
-    revert: function (e) {
+    help: function (e) {
         e.stopPropagation();  // prevent the event from trigging the help immediately
         this.app.toggleHelpOverlay();
+    },
+
+    download: function (evt) {
+        evt.stopPropagation();
+        if (this.model) {
+
+            var data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.model.toJSON())),
+                filename = `${this.app.asset().id}_${this.app.activeTemplate()}.ljson`;
+
+            var $link = $(`<a href="data:${data}" download="${filename}"></a>`);
+            return $link[0].click();
+        }
     }
 });
 
