@@ -76,7 +76,7 @@ Dropbox.prototype.headers = function () {
     return { "Authorization": `Bearer ${this._token}`};
 };
 
-Dropbox.prototype.setTemplates = function (path) {
+Dropbox.prototype.loadTemplate = function (path) {
 
     if (!path) {
         return Promise.resolve(null);
@@ -84,42 +84,19 @@ Dropbox.prototype.setTemplates = function (path) {
 
     this._templates = {};
 
-    return this.list(path, {
-        extensions: Object.keys(Dropbox.TemplateParsers),
-        filesOnly: true
-    }).then((tmpls) => {
-        return Promise.all(tmpls.map((tmpl) => {
-            return this.loadTemplate(tmpl.path);
-        }));
-    }, (err) => {
-        if (err.message && err.message.indexOf('not a directory')) {
-            return this.loadTemplate(path); // We selected a file
-        } else {
-            throw err;
-        }
-    }).then(() => {
-
-        let keys = Object.keys(this._templates);
-        let raw = keys.map((key) => {
-            return this._templates[key].toJSON();
-        });
-
-        this._cfg.set({
-            'BACKEND_DROPBOX_TEMPLATES': keys,
-            'BACKEND_DROPBOX_TEMPLATES_DATA': raw,
-        }, true);
-    });
-}
-
-Dropbox.prototype.loadTemplate = function (path) {
     let ext = extname(path);
     if (!(ext in Dropbox.TemplateParsers)) {
         return Promise.resolve(null);
     }
 
     return this.download(path).then((data) => {
-        this._templates[basename(path, true)] =
-            Dropbox.TemplateParsers[ext](data);
+         let tmpl = Dropbox.TemplateParsers[ext](data);
+         this._templates[basename(path, true)] = tmpl;
+
+        this._cfg.set({
+            'BACKEND_DROPBOX_TEMPLATE': path,
+            'BACKEND_DROPBOX_TEMPLATE_DATA': tmpl.toJSON(),
+        }, true);
     });
 };
 
@@ -278,7 +255,16 @@ Dropbox.prototype.fetchThumbnail = Dropbox.prototype.fetchImg;
 Dropbox.prototype.fetchTexture = Dropbox.prototype.fetchImg;
 
 Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
-    return Promise.resolve(this._templates[type].emptyLJSON(2));
+
+    let path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
+
+    return new Promise((resolve, reject) => {
+        this.download(path).then((data) => {
+            resolve(JSON.parse(data));
+        }, () => {
+            resolve(this._templates[type].emptyLJSON(2));
+        });
+    });
 }
 
 Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {

@@ -149,6 +149,7 @@ li.DropboxSelectListItem {
     }
 
     &.Disabled > span {
+      opacity: .75;
       background: #e5e5e5;
       border-color: #e5e5e5;
       color: #919191;

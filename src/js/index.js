@@ -123,10 +123,11 @@ function _loadDropbox (u) {
 
                     let templateModal = new DropboxSelect({
                         dropbox,
+                        selectFilesOnly: true,
                         extensions: Object.keys(Backend.Dropbox.TemplateParsers),
                         title: 'Select a template to use, you can use an already annotated asset',
                         submit: function (tmplPath) {
-                            dropbox.setTemplates(tmplPath).then(function () {
+                            dropbox.loadTemplate(tmplPath).then(function () {
                                 templateModal.dispose();
                                 resolveMode(dropbox);
                             });
