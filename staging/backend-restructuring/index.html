@@ -15,11 +15,11 @@
     <meta name="apple-mobile-web-app-title" content="Landmarker.io">
     <meta http-equiv="expires" content="0" />
     <!-- inject:css -->
-    <link rel="stylesheet" href="bundle-8069ff4c.css">
+    <link rel="stylesheet" href="bundle-5667e791.css">
     <!-- endinject -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css">
     <!-- inject:js -->
-    <script src="bundle-ff5f5540.js"></script>
+    <script src="bundle-f1be543e.js"></script>
     <!-- endinject -->
 </head>
 
@@ -99,17 +99,25 @@
             </div>
             <!-- SIDEBAR  -->
             <div class="App-Flex-RightCol RightSidebar">
-                <div class="RightSidebar-Controls" id="saveRevert">
+                <div class="RightSidebar-Controls" id="lmActionsPanel">
                     <div class="RightSidebar-Controls-Item">
-                        <button class="Button-Save"
+                        <button class="Button-Save" title="Save remotely"
                                 id="save">Save</button>
                     </div>
                     <div class="RightSidebar-Controls-Item">
-                        <button class="Button-Revert" id="revert">Help</button>
+                        <button class="Button-Save" title="Download the landmarks locally"
+                                id="download">Download</button>
+                    </div>
+                    <div class="RightSidebar-Controls-Item">
+                        <button class="Button-Help" id="help"><span class="octicon octicon-info"></span></button>
                     </div>
                 </div>
                 <div class="RightSidebar-LandmarksPanel"
                      id="landmarksPanel"></div>
+                <div class="RightSidebar-Template" id="templatePanel">
+                    <span class='octicon octicon-git-commit'></span>
+                    <p>No Template Selected</p>
+                </div>
             </div>
         </div>
     </div>
