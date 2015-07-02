@@ -232,9 +232,10 @@ document.addEventListener('DOMContentLoaded', function () {
         // Found IE, do user agent detection for now
         // https://github.com/menpo/landmarker.io/issues/75 for progess
         $('.App-Flex-Horiz').css('min-height', '100vh');
-        return new Notification.BaseNotification({
+        return Notification.notify({
             msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
-            type: 'error', manualClose: true
+            persist: true,
+            type: 'error'
         });
     }
 
@@ -249,9 +250,10 @@ document.addEventListener('DOMContentLoaded', function () {
     })();
 
     if (!webglSupported) {
-        return new Notification.BaseNotification({
-            msg: 'It seems your browser doesn\'t support WebGL, please visit https://get.webgl.org/ for more information',
-            type: 'error', manualClose: true
+        return Notification.notify({
+            msg: $('<p>It seems your browser doesn\'t support WebGL, which is needed by landmarker.io.<br/>Please visit <a href="https://get.webgl.org/">https://get.webgl.org/</a> for more information<p>'),
+            persist: true,
+            type: 'error'
         });
     }
 
@@ -51730,8 +51732,35 @@ exports.HistoryUpdate = Backbone.View.extend({
 },{"../lib/backbonej":13,"url":7}],29:[function(require,module,exports){
 'use strict';
 
+var _slicedToArray = (function () {
+    function sliceIterator(arr, i) {
+        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
+            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+                _arr.push(_s.value);if (i && _arr.length === i) break;
+            }
+        } catch (err) {
+            _d = true;_e = err;
+        } finally {
+            try {
+                if (!_n && _i['return']) _i['return']();
+            } finally {
+                if (_d) throw _e;
+            }
+        }return _arr;
+    }return function (arr, i) {
+        if (Array.isArray(arr)) {
+            return arr;
+        } else if (Symbol.iterator in Object(arr)) {
+            return sliceIterator(arr, i);
+        } else {
+            throw new TypeError('Invalid attempt to destructure non-iterable instance');
+        }
+    };
+})();
+
 var _ = require('underscore');
-var Backbone = require('../lib/backbonej');
+var Backbone = require('backbone');
+var $ = require('jquery');
 var Spinner = require('spin.js');
 
 'use strict';
@@ -51755,92 +51784,159 @@ var spinnerOpts = {
     left: '50%' // Left position relative to parent
 };
 
-exports.ThumbnailNotification = Backbone.View.extend({
+// exports.ThumbnailNotification = Backbone.View.extend({
+//
+//     initialize : function() {
+//         _.bindAll(this, 'render');
+//         this.listenTo(this.model.assetSource(), "change:nPreviews", this.render);
+//     },
+//
+//     render: function () {
+//         var total = this.model.assetSource().nAssets();
+//         var nDone = this.model.assetSource().nPreviews();
+//         if (total === nDone) {
+//             document.getElementById('previewNotification').style.display = 'none';
+//         }
+//         var done = nDone/total;
+//         var todo = 1 - nDone/total;
+//         document.getElementById('previewDone').style.flex = done;
+//         document.getElementById('previewRemaining').style.flex = todo;
+//         return this;
+//     }
+// });
 
-    initialize: function initialize() {
-        _.bindAll(this, 'render');
-        this.listenTo(this.model.assetSource(), 'change:nPreviews', this.render);
-    },
+var NOTIFICATION_BASE_CLASS = 'Notification',
+    NOTIFICATION_CLOSING_CLASS = 'Notification--Closing',
+    NOTIFICATION_PERMANENT_CLASS = 'Notification--Permanent',
+    NOTIFICATION_DEFAULT_CLOSE_TIMEOUT = 1500,
+    NOTIFICATION_DEFAULT_TYPE = 'warning',
+    NOTIFICATION_TYPE_CLASSES = { 'success': 'Notification--Success',
+    'error': 'Notification--Error',
+    'warning': 'Notification--Warning' };
 
-    render: function render() {
-        var total = this.model.assetSource().nAssets();
-        var nDone = this.model.assetSource().nPreviews();
-        if (total === nDone) {
-            document.getElementById('previewNotification').style.display = 'none';
-        }
-        var done = nDone / total;
-        var todo = 1 - nDone / total;
-        document.getElementById('previewDone').style.flex = done;
-        document.getElementById('previewRemaining').style.flex = todo;
-        return this;
-    }
-});
-
-// Singleton notification view accepting an option object of the form:
-// {type, msg, closeTimeout, manualClose}
-// automatic dismissal
-// use manualClose: true to disable automatic dismissal (will override
-// closeTimeout)
 exports.BaseNotification = Backbone.View.extend({
 
     tagName: 'div',
+    container: '#notificationOverlay',
 
-    __container: '#notificationOverlay',
-    __baseClass: 'ModalNotification',
-    __closingClass: 'ModalNotification--Closing',
-    __defaultCloseTimeout: 1500,
-    __defaultType: 'warning',
+    initialize: function initialize(_ref) {
+        var _this = this;
 
-    __types: {
-        'success': true,
-        'error': true
-    },
-
-    __classes: {
-        'success': 'ModalNotification--Success',
-        'error': 'ModalNotification--Error',
-        'warning': 'ModalNotification--Warning'
-    },
-
-    initialize: function initialize(opts) {
-
-        opts = opts || {};
+        var _ref$msg = _ref.msg;
+        var msg = _ref$msg === undefined ? '' : _ref$msg;
+        var _ref$type = _ref.type;
+        var type = _ref$type === undefined ? NOTIFICATION_DEFAULT_TYPE : _ref$type;
+        var _ref$actions = _ref.actions;
+        var actions = _ref$actions === undefined ? [] : _ref$actions;
+        var onClose = _ref.onClose;
+        var _ref$persist = _ref.persist;
+        var persist = _ref$persist === undefined ? false : _ref$persist;
+        var _ref$closeTimeout = _ref.closeTimeout;
+        var closeTimeout = _ref$closeTimeout === undefined ? NOTIFICATION_DEFAULT_CLOSE_TIMEOUT : _ref$closeTimeout;
 
         _.bindAll(this, 'render', 'close');
 
-        var msg = opts.msg || '',
-            type = opts.type in this.__types ? opts.type || '' : this.__defaultType,
-            closeTimeout = opts.manualClose ? undefined : opts.closeTimeout || this.__defaultCloseTimeout;
+        if (!(type in NOTIFICATION_TYPE_CLASSES)) {
+            type = NOTIFICATION_DEFAULT_TYPE;
+        }
+
+        if (onClose && typeof onClose === 'function') {
+            this.onClose = onClose;
+        }
+
+        this.actions = actions.map(function (_ref2) {
+            var _ref22 = _slicedToArray(_ref2, 3);
+
+            var label = _ref22[0];
+            var func = _ref22[1];
+            var close = _ref22[2];
+
+            return [label, close ? function () {
+                func();
+                _this.close();
+            } : func];
+        });
+
+        if (this.actions.length) {
+            closeTimeout = undefined;
+        }
+
+        this.persist = persist;
 
         this.render(type, msg, closeTimeout);
     },
 
     events: {
-        click: 'close'
+        'click .Notification__Action': 'handleClick'
+    },
+
+    handleClick: function handleClick(evt) {
+        if (this.actions.length) {
+            evt.preventDefault();
+            var actionIndex = evt.currentTarget.dataset.index;
+            if (actionIndex > 0 && actionIndex < this.actions.length) {
+                this.actions[actionIndex][1]();
+            }
+        }
     },
 
     render: function render(type, msg, timeout) {
-        var _this = this;
 
-        this.$el.addClass([this.__baseClass, this.__classes[type]].join(' '));
-        this.$el.text(msg);
-        this.$el.appendTo(this.__container);
+        this.$el.addClass([NOTIFICATION_BASE_CLASS, NOTIFICATION_TYPE_CLASSES[type]].join(' '));
+
+        if (msg instanceof $) {
+            this.$el.append(msg);
+        } else {
+            this.$el.append('<p>' + msg + '</p>');
+        }
+
+        if (this.actions.length) {
+            var $actions = $('<div></div>');
+            this.actions.forEach(function (_ref3, index) {
+                var _ref32 = _slicedToArray(_ref3, 2);
+
+                var label = _ref32[0];
+                var func = _ref32[1];
+
+                $actions.append($('                    <div class=\'Notification__Action\' data-index=' + index + '>                        ' + label + '\n                    </div>                '));
+            });
+            this.$el.append($actions);
+        }
+
+        if (this.persist) {
+            this.$el.addClass(NOTIFICATION_PERMANENT_CLASS);
+        }
+
+        this.$el.appendTo(this.container);
 
         if (timeout !== undefined) {
-            setTimeout(_this.close, timeout);
+            setTimeout(this.close, timeout);
         }
     },
 
     close: function close() {
-        var _this = this;
-        this.$el.addClass(this.__closingClass);
+        var _this2 = this;
+
+        if (this.onClose) {
+            this.onClose();
+        }
+
+        if (this.persist) {
+            return;
+        }
+
+        this.$el.addClass(NOTIFICATION_CLOSING_CLASS);
 
         setTimeout(function () {
-            _this.unbind();
-            _this.remove();
+            _this2.unbind();
+            _this2.remove();
         }, 1000);
     }
 });
+
+exports.notify = function (opts) {
+    return new exports.BaseNotification(opts);
+};
 
 exports.AssetLoadingNotification = Backbone.View.extend({
 
@@ -51907,7 +52003,7 @@ exports.LandmarkSavingNotification = Backbone.View.extend({
     }
 });
 
-},{"../lib/backbonej":13,"spin.js":10,"underscore":12}],30:[function(require,module,exports){
+},{"backbone":2,"jquery":8,"spin.js":10,"underscore":12}],30:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -54104,4 +54200,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-e845f21c.js.map
+//# sourceMappingURL=bundle-b6934ade.js.map
