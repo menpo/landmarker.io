@@ -44,7 +44,7 @@ function _$fileOcticon (item) {
     return $(`<span class='octicon octicon-${icon}'></span>`);
 }
 
-var DropboxSelect = Modal.extend({
+var DropboxPicker = Modal.extend({
 
     closable: false,
 
@@ -127,11 +127,11 @@ var DropboxSelect = Modal.extend({
     makeList: function () {
 
         if (this.state.loading) {
-            return $(`<div class='DropboxSelectList Empty'><div class="loader">Loading...</div></div>`);
+            return $(`<div class='DropboxSelectList Empty'></div>`);
         }
 
         if (this.state.currentList.length === 0) {
-            return $(`<div class='DropboxSelectList Empty'>Empty directory</div>`);
+            return $(`<div class='DropboxSelectList Empty'></div>`);
         }
 
         let $wrapper = $(`<div class='DropboxSelectList'></div>`),
@@ -294,4 +294,4 @@ var DropboxSelect = Modal.extend({
     }
 });
 
-module.exports = DropboxSelect;
+module.exports = DropboxPicker;

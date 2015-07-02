@@ -65,6 +65,7 @@ Template.parseYAML = function (rawData) {
     return new Template(json);
 }
 
+// For compatibility
 Template.parseJSON = function (json) {
     return new Template(json);
 }
@@ -87,6 +88,13 @@ Template.parseLJSON = function (ljson) {
         });
     });
     return new Template(template);
+}
+
+Template.Parsers = {
+    'yaml': Template.parseYAML,
+    'yml': Template.parseYAML,
+    'json': Template.parseJSON,
+    'ljson': Template.parseLJSON
 }
 
 Template.prototype.toYAML = function () {
