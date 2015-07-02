@@ -14,9 +14,41 @@
 }
 
 .RightSidebar-Controls,
-.RightSidebar-LandmarksPanel {
+.RightSidebar-LandmarksPanel,
+.RightSidebar-Template {
     display: flex;
     text-align: center;
+}
+
+.RightSidebar-Template {
+    min-height: $mainControlHeight;
+    line-height: $mainControlHeight;
+    background: #0A4EB2;
+    opacity: 0.75;
+    color: white;
+    cursor: pointer;
+    margin-left: 1px;
+    margin-bottom: 1px;
+    justify-content: space-between;
+    transition: all 0.25s ease-in-out;
+    font-size: larger;
+
+    > span {
+        display: inline-block;
+        text-align: center;
+        line-height: $mainControlHeight;
+        width: $mainControlHeight;
+        font-size: larger;
+    }
+
+    > p {
+        flex: 4;
+        margin: 0;
+    }
+
+    &:hover {
+        opacity: .5;
+    }
 }
 
 /* Special RightSidebar item used for rows (e.g. two buttons).

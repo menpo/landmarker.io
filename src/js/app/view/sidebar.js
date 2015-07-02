@@ -271,6 +271,27 @@ var SaveRevertView = Backbone.View.extend({
     }
 });
 
+var TemplatePanel = Backbone.View.extend({
+    el: '#templatePanel',
+
+    events: {
+        'click': 'click'
+    },
+
+    initialize: function () {
+        _.bindAll(this, "update");
+        this.listenTo(this.model, "change:activeTemplate", this.update);
+    },
+
+    update: function () {
+        this.$el.children('p')
+                .text(this.model.activeTemplate() || 'No Template Selected');
+    },
+
+    click: function (evt) {
+        console.log(evt);
+    }
+});
 
 var Sidebar = Backbone.View.extend({
 
@@ -278,7 +299,8 @@ var Sidebar = Backbone.View.extend({
         _.bindAll(this, "landmarksChange");
         this.listenTo(this.model, "change:landmarks", this.landmarksChange);
         this.saveRevertView = null;
-        this.lmView = null
+        this.lmView = null;
+        this.templatePanel = new TemplatePanel({model: this.model});
     },
 
     landmarksChange: function () {
