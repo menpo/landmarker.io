@@ -8,7 +8,7 @@ var utils = require('./app/lib/utils');
 var Notification = require('./app/view/notification');
 var cfg = require('./app/model/config')();
 
-var DropboxSelect = require('./app/view/dropbox_select'),
+var DropboxPicker = require('./app/view/dropbox_picker'),
     { SelectModal } = require('./app/view/modal'),
     { notify } = require('./app/view/notification');
 
@@ -83,6 +83,14 @@ function restart (serverUrl) {
     window.location.replace(restartUrl);
 }
 
+function retry (msg) {
+    Notification.notify({
+        msg, type: 'error', persist: true,
+        actions: [ ['Restart', restart],
+                   ['Go to Demo', restart.bind(null, 'demo')] ]
+    });
+}
+
 function _loadServer (u) {
     let server = new Backend.Server(cfg.get('BACKEND_SERVER_URL'));
     u.query.server = cfg.get('BACKEND_SERVER_URL');
@@ -97,9 +105,15 @@ function _loadDropbox (u) {
         token = cfg.get('BACKEND_DROPBOX_TOKEN');
 
     if (oAuthState) { // We were waiting for redirect
-        if (u.query.state === oAuthState) {
+
+        let urlOk = [
+            'state', 'access_token', 'uid'
+        ].every(key => u.query.hasOwnProperty(key));
+
+        if (urlOk && u.query.state === oAuthState) {
             cfg.delete('OAUTH_STATE', true);
             dropbox = new Backend.Dropbox(u.query['access_token'], cfg);
+
             delete u.query['access_token'];
             delete u.query['token_type'];
             delete u.query['state'];
@@ -107,40 +121,57 @@ function _loadDropbox (u) {
             u.search = null;
             history.replaceState(null, null, url.format(u).replace('?', '#'));
         } else {
-            console.log('Failed to authenticate after redirect');
+            retry('Incorrect dropbox redirect URL');
         }
     } else if (token) {
         dropbox = new Backend.Dropbox(token, cfg);
     }
 
     if (dropbox) {
-        let pathModal = new DropboxSelect({
-            dropbox,
-            selectFoldersOnly: true,
-            title: 'Where do you whish to load assets from',
-            submit: function (path) {
-                dropbox.setAssets(path).then(function () {
+        _loadDropboxAssets(dropbox);
+    }
+};
 
-                    let templateModal = new DropboxSelect({
-                        dropbox,
-                        selectFilesOnly: true,
-                        extensions: Object.keys(Backend.Dropbox.TemplateParsers),
-                        title: 'Select a template to use, you can use an already annotated asset',
-                        submit: function (tmplPath) {
-                            dropbox.loadTemplate(tmplPath).then(function () {
-                                templateModal.dispose();
-                                resolveMode(dropbox);
-                            });
-                        }
-                    });
+function _loadDropboxAssets (dropbox) {
+    let assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH');
 
-                    pathModal.dispose();
-                    templateModal.open();
-                });
-            }
+    function _pick () {
+        dropbox.pickAssets(function () {
+            _loadDropboxTemplate(dropbox);
+        }, function (err) {
+            retry(`Couldn't find assets: ${err}`);
         });
+    }
 
-        pathModal.open();
+    if (assetsPath) {
+        dropbox.setAssets(assetsPath).then(function () {
+            _loadDropboxTemplate(dropbox);
+        }, _pick);
+    } else {
+        _pick();
+    }
+}
+
+function _loadDropboxTemplate (dropbox) {
+
+    let templatePath = cfg.get('BACKEND_DROPBOX_TEMPLATE_PATH');
+
+    function _pick () {
+        console.log('TMPL PICK');
+        dropbox.pickTemplate(function () {
+            resolveMode(dropbox);
+        }, function (err) {
+            retry(`Couldn't find template: ${err}`);
+        });
+    }
+
+    if (templatePath) {
+        dropbox.setTemplate(templatePath).then(function () {
+            resolveMode(dropbox);
+        }, _pick);
+    } else {
+        console.log('NOT FOUND', cfg.get());
+        _pick();
     }
 }
 
@@ -153,15 +184,7 @@ function resolveMode (server) {
         }
         initLandmarker(server, mode);
     }, function () {
-        console.log("Error - couldn't get mode");
-        notify({
-            msg: 'Error unknown mode - terminating',
-            type: 'error',
-            actions: [
-                ['Restart', restart],
-                ['See a demo', restart.bind(undefined, 'demo')]
-            ]
-        });
+        retry(`Couldn't get mode from server`);
 
         if (server instanceof Backend.Server) {
             // could be that there is an old v1 server, let's check

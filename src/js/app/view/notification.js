@@ -68,7 +68,7 @@ module.exports.BaseNotification = Backbone.View.extend({
         onClose,
         persist=false,
         closeTimeout=NOTIFICATION_DEFAULT_CLOSE_TIMEOUT
-    }) {
+    }={}) {
 
         _.bindAll(this, 'render', 'close');
 
@@ -97,7 +97,8 @@ module.exports.BaseNotification = Backbone.View.extend({
     },
 
     events: {
-        'click .Notification__Action': 'handleClick'
+        'click .Notification__Action': 'handleClick',
+        'click': 'close'
     },
 
     handleClick: function (evt) {
@@ -141,7 +142,7 @@ module.exports.BaseNotification = Backbone.View.extend({
 
         this.$el.appendTo(this.container);
 
-        if (timeout !== undefined) {
+        if (timeout > 0) {
           setTimeout(this.close, timeout);
         }
     },

@@ -22,14 +22,18 @@ var { getJSON, get, putJSON } = require('../lib/requests'),
     ImagePromise = require('../lib/imagepromise'),
     Template = require('../model/template');
 
+var Picker = require('../view/dropbox_picker.js');
+
 var Dropbox = require('./base').extend(function Dropbox (token, cfg) {
     this._token = token;
     this._cfg = cfg;
-    this._templates = {};
 
-    this._media = {};
-    this._assetsRequests = {};
+    // Caches
+    this._mediaCache = {};
+    this._imgCache = {};
+    this._listCache = {};
 
+    // Save config data
     this._cfg.set('BACKEND_TYPE', Dropbox.Type);
     this._cfg.set('BACKEND_DROPBOX_TOKEN', token);
     this._cfg.save();
@@ -37,14 +41,10 @@ var Dropbox = require('./base').extend(function Dropbox (token, cfg) {
 
 Dropbox.Type = 'DROPBOX';
 
-Dropbox.TemplateParsers = {
-    'yaml': Template.parseYAML,
-    'yml': Template.parseYAML,
-    'json': Template.parseJSON,
-    'ljson': Template.parseLJSON
-};
-
-Dropbox.AssetExtensions = ['jpeg', 'jpg', 'png'];
+Dropbox.Extensions = {
+    Images: ['jpeg', 'jpg', 'png'],
+    Meshes: ['obj', 'raw'],
+}
 
 /**
  * Builds an authentication URL for Dropbox OAuth2 flow and
@@ -76,28 +76,72 @@ Dropbox.prototype.headers = function () {
     return { "Authorization": `Bearer ${this._token}`};
 };
 
-Dropbox.prototype.loadTemplate = function (path) {
+Dropbox.prototype.pickTemplate = function (success, error) {
+    let picker = new Picker({
+        dropbox: this,
+        selectFilesOnly: true,
+        extensions: Object.keys(Template.Parsers),
+        title: 'Select a template yaml file to use (you can also use an already annotated asset)',
+        submit: (tmplPath) => {
+            this.setTemplate(tmplPath).then(() => {
+                picker.dispose();
+                success();
+            }, error);
+        }
+    });
+
+    picker.open();
+    return picker;
+};
+
+Dropbox.prototype.setTemplate = function (path, json) {
 
     if (!path) {
         return Promise.resolve(null);
     }
 
-    this._templates = {};
-
     let ext = extname(path);
-    if (!(ext in Dropbox.TemplateParsers)) {
-        return Promise.resolve(null);
+    if (!(ext in Template.Parsers)) {
+        return Promise.reject(
+            new Error(`Incorrect extension ${ext} for template`)
+        );
     }
 
-    return this.download(path).then((data) => {
-         let tmpl = Dropbox.TemplateParsers[ext](data);
-         this._templates[basename(path, true)] = tmpl;
+    let q;
+
+    if (json) {
+        q = Promise.resolve(json);
+    } else {
+        q = this.download(path);
+    }
+
+    return q.then((data) => {
+         let tmpl = Template.Parsers[ext](data);
+         this.templates = {};
+         this.templates[basename(path, true)] = tmpl;
 
         this._cfg.set({
-            'BACKEND_DROPBOX_TEMPLATE': path,
-            'BACKEND_DROPBOX_TEMPLATE_DATA': tmpl.toJSON(),
+            'BACKEND_DROPBOX_TEMPLATE_PATH': path,
+            'BACKEND_DROPBOX_TEMPLATE_CONTENT': tmpl.toJSON(),
         }, true);
     });
+};
+
+Dropbox.prototype.pickAssets = function (success, error) {
+    let picker = new Picker({
+        dropbox: this,
+        selectFoldersOnly: true,
+        title: 'Select a directory from which to load assets',
+        submit: (path) => {
+            this.setAssets(path).then(() => {
+                picker.dispose();
+                success();
+            }, error);
+        }
+    });
+
+    picker.open();
+    return picker;
 };
 
 Dropbox.prototype.setAssets = function (path) {
@@ -110,7 +154,7 @@ Dropbox.prototype.setAssets = function (path) {
 
     return this.list(path, {
         filesOnly: true,
-        extensions: Dropbox.AssetExtensions
+        extensions: Dropbox.Extensions.Images
     }).then((items) => {
         this._assets = items.map(function (item) {
             return item.path;
@@ -120,7 +164,7 @@ Dropbox.prototype.setAssets = function (path) {
             'BACKEND_DROPBOX_ASSETS_PATH': this._assetsPath
         }, true);
     });
-}
+};
 
 Dropbox.prototype.accountInfo = function () {
     return getJSON(
@@ -131,13 +175,25 @@ Dropbox.prototype.list = function (path='/', {
     foldersOnly=false,
     filesOnly=false,
     showHidden=false,
-    extensions=[]
+    extensions=[],
+    noCache=false
 }={}) {
-    let opts = {list: true};
+    let q;
 
-    return getJSON(
-        `https://api.dropbox.com/1/metadata/auto/${path}`, this.headers(), opts
-    ).then((data) => {
+    if (this._listCache[path] && !noCache) {
+        q = Promise.resolve(this._listCache[path]);
+    } else {
+        q = getJSON(
+            `https://api.dropbox.com/1/metadata/auto${path}`,
+            this.headers(),
+            {list: true}
+        ).then((data) => {
+            this._listCache[path] = data;
+            return data;
+        });
+    }
+
+    return q.then((data) => {
 
         if (!data.is_dir) {
             throw new Error(`${path} is not a directory`);
@@ -178,21 +234,21 @@ Dropbox.prototype.download = function (path) {
     ).then((data) => {
         return data;
     }, (err) => {
-        console.log('DL Error', err);
+        throw err;
     });
 };
 
 Dropbox.prototype.mediaURL = function (path, noCache) {
 
-    if (this._media[path] instanceof Promise) {
-        return this._media[path];
+    if (this._mediaCache[path] instanceof Promise) {
+        return this._mediaCache[path];
     }
 
     if (noCache) {
-        delete this._media[path];
-    } else if (path in this._media) {
+        delete this._mediaCache[path];
+    } else if (path in this._mediaCache) {
 
-        let {expires, url} = this._media[path];
+        let {expires, url} = this._mediaCache[path];
 
         if (expires > new Date()) {
             return Promise.resolve(url);
@@ -203,14 +259,12 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
         `https://api.dropbox.com/1/media/auto${path}`,
         this.headers()
     ).then(({url, expires}) => {
-        this._media[path] = {url, expires: new Date(expires)};
+        this._mediaCache[path] = {url, expires: new Date(expires)};
         return url;
     });
 
-    this._media[path] = q;
+    this._mediaCache[path] = q;
     return q;
-
-
 };
 
 Dropbox.prototype.fetchMode = function () {
@@ -218,11 +272,11 @@ Dropbox.prototype.fetchMode = function () {
 };
 
 Dropbox.prototype.fetchTemplates = function () {
-    return Promise.resolve(Object.keys(this._templates));
+    return Promise.resolve(Object.keys(this.templates));
 };
 
 Dropbox.prototype.fetchCollections = function () {
-    return Promise.resolve(['all']);
+    return Promise.resolve([this._assetsPath]);
 };
 
 Dropbox.prototype.fetchCollection = function () {
@@ -233,21 +287,21 @@ Dropbox.prototype.fetchCollection = function () {
 
 Dropbox.prototype.fetchImg = function (assetId) {
 
-    if (this._assetsRequests[assetId]) {
-        return this._assetsRequests[assetId];
+    if (this._imgCache[assetId]) {
+        return this._imgCache[assetId];
     }
 
     let q = this.mediaURL(`${this._assetsPath}/${assetId}`).then((url) => {
         return ImagePromise(url).then((data) => {
-            delete this._assetsRequests[assetId];
+            delete this._imgCache[assetId];
             return data;
         }, (err) => {
-            delete this._assetsRequests[assetId];
+            delete this._imgCache[assetId];
             throw err;
         });
     });
 
-    this._assetsRequests[assetId] = q;
+    this._imgCache[assetId] = q;
     return q;
 }
 
@@ -262,7 +316,7 @@ Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
         this.download(path).then((data) => {
             resolve(JSON.parse(data));
         }, () => {
-            resolve(this._templates[type].emptyLJSON(2));
+            resolve(this.templates[type].emptyLJSON(2));
         });
     });
 }
