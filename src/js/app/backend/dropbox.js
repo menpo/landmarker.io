@@ -85,11 +85,11 @@ Dropbox.prototype.setTemplates = function (path) {
         filesOnly: true
     }).then((tmpls) => {
         return Promise.all(tmpls.map((tmpl) => {
-            return this.setTemplate(tmpl.path);
+            return this.loadTemplate(tmpl.path);
         }));
     }, (err) => {
         if (err.message && err.message.indexOf('not a directory')) {
-            return this.setTemplate(path); // We selected a file
+            return this.loadTemplate(path); // We selected a file
         } else {
             throw err;
         }
@@ -107,7 +107,7 @@ Dropbox.prototype.setTemplates = function (path) {
     });
 }
 
-Dropbox.prototype.setTemplate = function (path) {
+Dropbox.prototype.loadTemplate = function (path) {
     let ext = extname(path);
     if (!(ext in Dropbox.TemplateParsers)) return;
 
@@ -131,8 +131,7 @@ Dropbox.prototype.setAssets = function (path) {
         });
 
         this._cfg.set({
-            'BACKEND_DROPBOX_ASSETS_PATH': this._assetsPath,
-            'BACKEND_DROPBOX_ASSETS': this._assets,
+            'BACKEND_DROPBOX_ASSETS_PATH': this._assetsPath
         }, true);
     });
 }
@@ -186,7 +185,7 @@ Dropbox.prototype.list = function (path='/', {
 
 Dropbox.prototype.download = function (path) {
     return get(
-        `https://api-content.dropbox.com/1/files/auto/${path}`,
+        `https://api-content.dropbox.com/1/files/auto${path}`,
         this.headers()
     ).then((data) => {
         return data;
@@ -245,9 +244,23 @@ Dropbox.prototype.fetchCollection = function () {
 }
 
 Dropbox.prototype.fetchImg = function (assetId) {
-    return this.mediaURL(`${this._assetsPath}/${assetId}`).then((url) => {
-        return ImagePromise(url);
+
+    if (this._assetsRequests[assetId]) {
+        return this._assetsRequests[assetId];
+    }
+
+    let q = this.mediaURL(`${this._assetsPath}/${assetId}`).then((url) => {
+        return ImagePromise(url).then((data) => {
+            delete this._assetsRequests[assetId];
+            return data;
+        }, (err) => {
+            delete this._assetsRequests[assetId];
+            throw err;
+        });
     });
+
+    this._assetsRequests[assetId] = q;
+    return q;
 }
 
 Dropbox.prototype.fetchThumbnail = Dropbox.prototype.fetchImg;
