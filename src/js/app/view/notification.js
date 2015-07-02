@@ -1,9 +1,9 @@
+"use strict";
+
 var _ = require('underscore');
 var Backbone = require('backbone');
 var $ = require('jquery');
 var Spinner = require('spin.js');
-
-"use strict";
 
 var spinnerOpts = {
     lines: 13, // The number of lines to draw

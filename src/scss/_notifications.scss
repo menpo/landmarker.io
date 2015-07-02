@@ -89,6 +89,36 @@
     100% { opacity: 0; }
 }
 
+.TopBar {
+    pointer-events: auto;
+    min-height: 38px;
+    line-height: 38px;
+    background-color: #d64541;
+    color: white;
+    text-align: center;
+    padding: 0 1%;
+    width: 100%;
+
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: all .25s ease-in-out;
+
+    cursor: pointer;
+
+    z-index: $zIndexNotifications;
+
+    &.Display {
+        display: block;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    &.Info {
+        background-color: #59abe3;
+    }
+}
+
 .loader:before,
 .loader:after,
 .loader {

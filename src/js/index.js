@@ -5,7 +5,7 @@ var $ = require('jquery'),
     THREE = require('three');
 
 var utils = require('./app/lib/utils');
-
+var Notification = require('./app/view/notification');
 var cfg = require('./app/model/config')();
 
 var DropboxSelect = require('./app/view/dropbox_select'),
@@ -94,7 +94,7 @@ function _loadDropbox (u) {
 
     let dropbox;
     let oAuthState = cfg.get('OAUTH_STATE'),
-        token = cfg.get('BACKEND_DROPBOX_TOKEN');;
+        token = cfg.get('BACKEND_DROPBOX_TOKEN');
 
     if (oAuthState) { // We were waiting for redirect
         if (u.query.state === oAuthState) {
@@ -161,13 +161,15 @@ function resolveMode (server) {
                 ['See a demo', restart.bind(undefined, 'demo')]
             ]
         });
-        return;
+
         if (server instanceof Backend.Server) {
             // could be that there is an old v1 server, let's check
             server.testV1(function () {
                 console.log("Error - couldn't get mode (even in legacy v1)");
             });
-        } else {}
+        }
+
+        return;
     });
 }
 

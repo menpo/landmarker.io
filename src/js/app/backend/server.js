@@ -89,6 +89,7 @@ Server.prototype.testV1 = function (fail) {
     this.fetchMode().then(() => {
         console.log('v1 server found - redirecting to legacy landmarker');
         // we want to add v1 into the url and leave everything else the same
+        var url = require('url');
         var u = url.parse(window.location.href, true);
         u.pathname = '/v1/';
         window.location.replace(url.format(u));

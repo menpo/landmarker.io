@@ -1,9 +1,8 @@
+"use strict";
+
 var _ = require('underscore');
 var Backbone = require('backbone');
-var $ = require('jquery');
 var atomic = require('../model/atomic');
-
-"use strict";
 
 var LandmarkSizeSlider = Backbone.View.extend({
 
