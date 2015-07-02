@@ -24,7 +24,7 @@ function XMLHttpRequestPromise(
         xhr.onload = function() {
             // This is called even on 404 etc
             // so check the status
-            if ((xhr.status / 100 | 0) === 2) {
+            if ((xhr.status / 100 || 0) === 2) {
                 // Resolve the promise with the response text
                 resolve(xhr.response);
             }
@@ -55,7 +55,7 @@ function XMLHttpRequestPromise(
     };
 
     return promise;
-};
+}
 
 module.exports.Request = XMLHttpRequestPromise;
 
@@ -63,14 +63,14 @@ module.exports.getArrayBuffer = function (url, headers={}) {
     return XMLHttpRequestPromise(url, {responseType: 'arraybuffer', headers});
 };
 
-module.exports.get = function (url, headers={}, data) {
+module.exports.get = function (url, headers={}, data={}) {
     if (data) {
         url = `${url}?${QS.stringify(data)}`;
     }
     return XMLHttpRequestPromise(url, {headers});
 }
 
-module.exports.getJSON = function (url, headers={}, data) {
+module.exports.getJSON = function (url, headers={}, data=undefined) {
     if (data) {
         url = `${url}?${QS.stringify(data)}`;
     }

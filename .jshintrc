@@ -84,6 +84,7 @@
 
     // Custom Globals
     "globals"       : {
-      "Promise": true
+      "Promise": true,
+      "Notification": true
       }
 }

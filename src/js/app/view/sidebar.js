@@ -1,11 +1,10 @@
+"use strict";
+
 var _ = require('underscore');
 var Backbone = require('backbone');
 var $ = require('jquery');
 var Notification = require('./notification');
 var atomic = require('../model/atomic');
-
-"use strict";
-
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -251,14 +250,14 @@ var SaveRevertView = Backbone.View.extend({
         this.spinner.start();
         this.model.promiseSave().then(function () {
             that.spinner.stop();
-            var notification = new Notification.BaseNotification({
+            var notification = Notification.notify({
               type: 'success',
               msg: 'Save Completed'
             });
         },
         function () {
             that.spinner.stop();
-            var notification = new Notification.BaseNotification({
+            var notification = Notification.notify({
               type: 'error',
               msg: 'Save Failed'
             });

@@ -1,7 +1,5 @@
 "use strict";
 
-var Promise = require('promise-polyfill');
-
 function Base () {}
 
 // Abstract prototype methods

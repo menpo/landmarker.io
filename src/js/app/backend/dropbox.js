@@ -77,7 +77,11 @@ Dropbox.prototype.headers = function () {
 };
 
 Dropbox.prototype.setTemplates = function (path) {
-    if (!path) return Promise.resolve(null);;
+
+    if (!path) {
+        return Promise.resolve(null);
+    }
+
     this._templates = {};
 
     return this.list(path, {
@@ -109,7 +113,9 @@ Dropbox.prototype.setTemplates = function (path) {
 
 Dropbox.prototype.loadTemplate = function (path) {
     let ext = extname(path);
-    if (!(ext in Dropbox.TemplateParsers)) return;
+    if (!(ext in Dropbox.TemplateParsers)) {
+        return Promise.resolve(null);
+    }
 
     return this.download(path).then((data) => {
         this._templates[basename(path, true)] =
@@ -118,7 +124,10 @@ Dropbox.prototype.loadTemplate = function (path) {
 };
 
 Dropbox.prototype.setAssets = function (path) {
-    if (!path) return Promise.resolve(null);
+
+    if (!path) {
+        return Promise.resolve(null);
+    }
 
     this._assetsPath = path;
 
@@ -142,8 +151,10 @@ Dropbox.prototype.accountInfo = function () {
 };
 
 Dropbox.prototype.list = function (path='/', {
-    foldersOnly=false, filesOnly=false,
-    showHidden=false, extensions=[]
+    foldersOnly=false,
+    filesOnly=false,
+    showHidden=false,
+    extensions=[]
 }={}) {
     let opts = {list: true};
 
