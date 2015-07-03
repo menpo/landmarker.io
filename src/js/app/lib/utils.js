@@ -19,7 +19,7 @@ module.exports.randomString = function (length, useTime=true) {
 
 module.exports.basename = function (path, removeExt=false) {
     let bn = path.split('/').pop();
-    return removeExt ? bn.split('.').shift() : bn;
+    return removeExt ? bn.split('.').slice(0, -1).join('.') : bn;
 }
 
 module.exports.extname = function (path) {

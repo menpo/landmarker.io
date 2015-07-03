@@ -67,6 +67,9 @@ Template.parseYAML = function (rawData) {
 
 // For compatibility
 Template.parseJSON = function (json) {
+    if (typeof json === 'string') {
+        json = JSON.parse(json);
+    }
     return new Template(json);
 }
 
@@ -76,6 +79,10 @@ Template.parseJSON = function (json) {
  * @return {Template}
  */
 Template.parseLJSON = function (ljson) {
+    if (typeof ljson === 'string') {
+        ljson = JSON.parse(ljson);
+    }
+
     let template = {};
     ljson.labels.forEach(function ({label, mask}) {
         template[label] = {points: mask.length, connectivity: []};
@@ -87,6 +94,7 @@ Template.parseLJSON = function (ljson) {
             }
         });
     });
+
     return new Template(template);
 }
 
