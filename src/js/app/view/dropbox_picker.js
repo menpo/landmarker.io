@@ -96,7 +96,7 @@ var DropboxPicker = Modal.extend({
     },
 
 
-    fetch: function () {
+    fetch: function (noCache=false) {
         this.state.loading = true;
         this.update();
 
@@ -108,6 +108,7 @@ var DropboxPicker = Modal.extend({
                 showHidden: this.showHidden,
                 foldersOnly: this.showFoldersOnly,
                 extensions: this.extensions,
+                noCache
             });
         }
 
@@ -281,7 +282,7 @@ var DropboxPicker = Modal.extend({
 
     reload: function () {
         delete this._cache[this.state.root];
-        this.fetch().then(this.update);
+        this.fetch(true).then(this.update);
     },
 
     goHome: function () {

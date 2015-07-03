@@ -122,8 +122,9 @@ Dropbox.prototype.setTemplate = function (path, json) {
 
     return q.then((data) => {
          let tmpl = Template.Parsers[ext](data);
+         let name = basename(path, true).split('_').pop();
          this.templates = {};
-         this.templates[basename(path, true)] = tmpl;
+         this.templates[name] = tmpl;
 
         this._cfg.set({
             'BACKEND_DROPBOX_TEMPLATE_PATH': path,

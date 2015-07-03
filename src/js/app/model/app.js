@@ -88,7 +88,10 @@ var App = Backbone.Model.extend({
     },
 
     assetIndex: function () {
-        return this.get('assetSource').assetIndex();
+        if (this.has('assetSource')) {
+            return this.get('assetSource').assetIndex();
+        }
+
     },
 
     // returns the currently active Asset (Image or Asset).
@@ -117,28 +120,27 @@ var App = Backbone.Model.extend({
         // New collection? Need to find the assets on them again
         this.listenTo(
             this, 'change:activeCollection', this.reloadAssetSource);
+        this.listenTo(
+            this, 'change:activeTemplate', this.reloadAssetSource);
 
         this._initTemplates();
         this._initCollections();
     },
 
-    _initTemplates: function () {
+    _initTemplates: function (override=false) {
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.
         this.server().fetchTemplates().then((templates) => {
-            console.log('Available templates are ', templates);
             this.set('templates', templates);
             let selected = templates[0];
-            if (this.has('_activeTemplate')) {
+            if (!override && this.has('_activeTemplate')) {
                 // user has specified a preset! Use that if we can
                 // TODO should validate here if we can actually use template
                 let preset = this.get('_activeTemplate');
                 if (templates.indexOf(preset) > -1) {
                     selected = preset;
-                    console.log("template is preset to '" + selected + "'");
                 }
             }
-            console.log("template set to '" + selected + "'");
             this.set('activeTemplate', selected);
         }, () => {
             throw new Error('Failed to talk server for templates (is ' +
@@ -146,19 +148,16 @@ var App = Backbone.Model.extend({
         });
     },
 
-    _initCollections: function () {
+    _initCollections: function (override=false) {
         this.server().fetchCollections().then((collections) => {
-            console.log('Available collections are ', collections);
             this.set('collections', collections);
             let selected = collections[0];
-            if (this.has('_activeCollection')) {
+            if (!override && this.has('_activeCollection')) {
                 let preset = this.get('_activeCollection');
                 if (collections.indexOf(preset) > -1) {
                     selected = preset;
-                    console.log("collection is preset to '" + selected + "'");
                 }
             }
-            console.log("collection set to '" + selected + "'");
             this.set('activeCollection', selected);
         }, () => {
             throw new Error('Failed to talk server for collections (is ' +

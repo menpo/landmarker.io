@@ -5,6 +5,7 @@ var Backbone = require('backbone');
 var $ = require('jquery');
 var Notification = require('./notification');
 var atomic = require('../model/atomic');
+var { Dropbox, Server } = require('../backend');
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -297,7 +298,19 @@ var TemplatePanel = Backbone.View.extend({
     },
 
     click: function (evt) {
-        console.log(evt);
+        let backend = this.model.server();
+        if (backend instanceof Dropbox) {
+            backend.pickTemplate((tmpls) => {
+                this.model._initTemplates(true);
+            }, function (err) {
+                Notification.notify({
+                    type: 'error',
+                    msg: 'Error switching template ' + err
+                });
+            }, true);
+        } else if (backend instanceof Server) {
+            // No UI to handle this atm
+        }
     }
 });
 
