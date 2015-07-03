@@ -18,15 +18,20 @@ exports.HistoryUpdate = Backbone.View.extend({
     assetChanged: function () {
         var u = url.parse(window.location.href.replace('#', '?'), true);
         u.search = null;
-        if (this.model.activeTemplate() == undefined ||
-            this.model.activeCollection() == undefined ||
-            this.model.assetIndex() == undefined) {
-            // only want to set full valid states.
-            return
+
+        if (this.model.activeTemplate()) {
+            u.query.t = this.model.activeTemplate();
         }
-        u.query.t = this.model.activeTemplate();
-        u.query.c = this.model.activeCollection();
-        u.query.i = this.model.assetIndex() + 1;
+
+        if (this.model.activeCollection()) {
+            u.query.c = this.model.activeCollection();
+        }
+
+        if (this.model.assetIndex() !== undefined) {
+            u.query.i = this.model.assetIndex() + 1;
+        }
+
+
         history.replaceState(null, null, url.format(u).replace('?', '#'));
     }
 });
