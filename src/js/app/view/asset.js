@@ -1,17 +1,12 @@
-var _ = require('underscore');
-var Backbone = require('backbone');
-var Notification = require('./notification');
-var $ = require('jquery');
-
 "use strict";
 
-function pad(n, width, z) {
-    z = z || '0';
-    n = n + '';
-    return n.length >= width ? n :
-        new Array(width - n.length + 1).join(z) + n;
-}
+var _ = require('underscore');
+var Backbone = require('backbone');
+var $ = require('jquery');
 
+var Notification = require('./notification');
+var { pad } = require('../lib/utils');
+var { Dropbox, Server } = require('../backend');
 
 var AssetPagerView = Backbone.View.extend({
 
@@ -23,13 +18,11 @@ var AssetPagerView = Backbone.View.extend({
     },
 
     initialize : function() {
-        console.log('AssetPagerView:initialize');
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change:asset", this.render);
     },
 
     render: function () {
-        console.log('AssetPagerView:render');
         this.$el.find('#next').toggleClass('Button--Disabled',
             !this.model.assetSource().hasSuccessor());
         this.$el.find('#previous').toggleClass('Button--Disabled',
@@ -38,12 +31,10 @@ var AssetPagerView = Backbone.View.extend({
     },
 
     next: function () {
-        console.log('AssetPagerView:next');
         this.model.nextAsset();
     },
 
     previous: function () {
-        console.log('AssetPagerView:previous');
         this.model.previousAsset();
     }
 
@@ -59,13 +50,11 @@ var AssetNameView = Backbone.View.extend({
     },
 
     initialize : function() {
-        console.log('AssetNameView:initialize');
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change:asset", this.render);
     },
 
     render: function () {
-        console.log("AssetNameView:render");
         this.$el.html(this.model.asset().id);
         return this;
     },
@@ -85,13 +74,11 @@ var AssetIndexView = Backbone.View.extend({
     },
 
     initialize : function() {
-        console.log('AssetIndexView:initialize');
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change:asset", this.render);
     },
 
     render: function () {
-        console.log("AssetIndexView:assetSource:render");
         var n_str = pad(this.model.assetSource().nAssets(), 2);
         var i_str = pad(this.model.assetIndex() + 1, 2);
         this.$el.html(i_str + "/" + n_str);
@@ -99,7 +86,6 @@ var AssetIndexView = Backbone.View.extend({
     },
 
     chooseAssetNumber: function () {
-        console.log('AssetIndexView:chooseAssetNumber');
         var newIndex = window.prompt(
             "Input asset index:", pad(this.model.assetIndex() + 1, 2));
 
@@ -115,7 +101,7 @@ var AssetIndexView = Backbone.View.extend({
         newIndex = Number(newIndex);
 
         if (newIndex <= 0 || newIndex > this.model.assetSource().nAssets() ) {
-            return new Notification.BaseNotification({
+            return Notification.notify({
                 msg: 'Cannot select asset ' + newIndex + ' (out of bounds)',
                 type: 'error'
             });
@@ -125,11 +111,50 @@ var AssetIndexView = Backbone.View.extend({
     }
 });
 
+var CollectionName = Backbone.View.extend({
+    el: '#collectionName',
+
+    events: {
+        click : "chooseCollection"
+    },
+
+    initialize : function() {
+        _.bindAll(this, 'render');
+        this.listenTo(this.model, "change:activeCollection", this.render);
+    },
+
+    render: function () {
+        this.$el.html(this.model.activeCollection() || 'No Collection');
+        return this;
+    },
+
+    chooseCollection: function () {
+
+        let backend = this.model.server();
+        if (backend instanceof Dropbox) {
+            backend.pickAssets((path) => {
+                this.model.set('activeCollection', path);
+            }, function (err) {
+                Notification.notify({
+                    type: 'error',
+                    msg: 'Error switching assets ' + err
+                });
+            }, true);
+        } else if (backend instanceof Server) {
+            if (this.model.collections().length === 1) {
+                Notification.notify({
+                    msg: 'There is only one available collection'
+                });
+            }
+        }
+    }
+
+});
 
 exports.AssetView = Backbone.View.extend({
 
     initialize : function() {
-        console.log('AssetView:initialize');
+        new CollectionName({model: this.model});
         new AssetPagerView({model: this.model});
         new AssetNameView({model: this.model});
         new AssetIndexView({model: this.model});
