@@ -273,11 +273,15 @@ var App = Backbone.Model.extend({
     },
 
     nextAsset: function () {
-        return this._switchToAsset(this.assetSource().next());
+        if (this.assetSource().hasSuccessor()) {
+            return this._switchToAsset(this.assetSource().next());
+        }
     },
 
     previousAsset: function () {
-        return this._switchToAsset(this.assetSource().previous());
+        if (this.assetSource().hasPredecessor()) {
+            return this._switchToAsset(this.assetSource().previous());
+        }
     },
 
     goToAssetIndex: function (newIndex) {
