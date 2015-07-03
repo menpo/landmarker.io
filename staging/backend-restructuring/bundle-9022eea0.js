@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resolveBackend(u);
 });
 
-},{"./app/backend":47,"./app/lib/support":51,"./app/lib/utils":52,"./app/model/app":53,"./app/model/config":57,"./app/view/asset":61,"./app/view/dropbox_picker":62,"./app/view/help":63,"./app/view/history":64,"./app/view/modal":65,"./app/view/notification":66,"./app/view/sidebar":67,"./app/view/toolbar":68,"./app/view/viewport":72,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
+},{"./app/backend":47,"./app/lib/support":51,"./app/lib/utils":52,"./app/model/app":53,"./app/model/config":57,"./app/view/asset":61,"./app/view/dropbox_picker":62,"./app/view/help":63,"./app/view/history":64,"./app/view/modal":66,"./app/view/notification":67,"./app/view/sidebar":68,"./app/view/toolbar":69,"./app/view/viewport":73,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.2.1
 
@@ -59248,8 +59248,9 @@ Dropbox.prototype.setTemplate = function (path, json) {
 
     return q.then(function (data) {
         var tmpl = Template.Parsers[ext](data);
+        var name = basename(path, true).split("_").pop();
         _this2.templates = {};
-        _this2.templates[basename(path, true)] = tmpl;
+        _this2.templates[name] = tmpl;
 
         _this2._cfg.set({
             "BACKEND_DROPBOX_TEMPLATE_PATH": path,
@@ -59648,7 +59649,7 @@ var MaterialPromise = function MaterialPromise(url) {
 
 module.exports = MaterialPromise;
 
-},{"../view/notification":66,"promise-polyfill":41,"three":43}],50:[function(require,module,exports){
+},{"../view/notification":67,"promise-polyfill":41,"three":43}],50:[function(require,module,exports){
 'use strict';
 
 var Promise = require('promise-polyfill'),
@@ -59779,7 +59780,7 @@ module.exports.putJSON = function (url) {
     });
 };
 
-},{"../view/notification":66,"promise-polyfill":41,"querystring":7}],51:[function(require,module,exports){
+},{"../view/notification":67,"promise-polyfill":41,"querystring":7}],51:[function(require,module,exports){
 'use strict';
 
 module.exports.ie = (function () {
@@ -59832,7 +59833,7 @@ module.exports.basename = function (path) {
     var removeExt = arguments[1] === undefined ? false : arguments[1];
 
     var bn = path.split('/').pop();
-    return removeExt ? bn.split('.').shift() : bn;
+    return removeExt ? bn.split('.').slice(0, -1).join('.') : bn;
 };
 
 module.exports.extname = function (path) {
@@ -59940,7 +59941,9 @@ var App = Backbone.Model.extend({
     },
 
     assetIndex: function assetIndex() {
-        return this.get('assetSource').assetIndex();
+        if (this.has('assetSource')) {
+            return this.get('assetSource').assetIndex();
+        }
     },
 
     // returns the currently active Asset (Image or Asset).
@@ -59968,6 +59971,7 @@ var App = Backbone.Model.extend({
 
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
+        this.listenTo(this, 'change:activeTemplate', this.reloadAssetSource);
 
         this._initTemplates();
         this._initCollections();
@@ -59976,22 +59980,21 @@ var App = Backbone.Model.extend({
     _initTemplates: function _initTemplates() {
         var _this = this;
 
+        var override = arguments[0] === undefined ? false : arguments[0];
+
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.
         this.server().fetchTemplates().then(function (templates) {
-            console.log('Available templates are ', templates);
             _this.set('templates', templates);
             var selected = templates[0];
-            if (_this.has('_activeTemplate')) {
+            if (!override && _this.has('_activeTemplate')) {
                 // user has specified a preset! Use that if we can
                 // TODO should validate here if we can actually use template
                 var preset = _this.get('_activeTemplate');
                 if (templates.indexOf(preset) > -1) {
                     selected = preset;
-                    console.log('template is preset to \'' + selected + '\'');
                 }
             }
-            console.log('template set to \'' + selected + '\'');
             _this.set('activeTemplate', selected);
         }, function () {
             throw new Error('Failed to talk server for templates (is ' + 'landmarkerio running from your command line?).');
@@ -60001,18 +60004,17 @@ var App = Backbone.Model.extend({
     _initCollections: function _initCollections() {
         var _this2 = this;
 
+        var override = arguments[0] === undefined ? false : arguments[0];
+
         this.server().fetchCollections().then(function (collections) {
-            console.log('Available collections are ', collections);
             _this2.set('collections', collections);
             var selected = collections[0];
-            if (_this2.has('_activeCollection')) {
+            if (!override && _this2.has('_activeCollection')) {
                 var preset = _this2.get('_activeCollection');
                 if (collections.indexOf(preset) > -1) {
                     selected = preset;
-                    console.log('collection is preset to \'' + selected + '\'');
                 }
             }
-            console.log('collection set to \'' + selected + '\'');
             _this2.set('activeCollection', selected);
         }, function () {
             throw new Error('Failed to talk server for collections (is ' + 'landmarkerio running from your command line?).');
@@ -60123,11 +60125,15 @@ var App = Backbone.Model.extend({
     },
 
     nextAsset: function nextAsset() {
-        return this._switchToAsset(this.assetSource().next());
+        if (this.assetSource().hasSuccessor()) {
+            return this._switchToAsset(this.assetSource().next());
+        }
     },
 
     previousAsset: function previousAsset() {
-        return this._switchToAsset(this.assetSource().previous());
+        if (this.assetSource().hasPredecessor()) {
+            return this._switchToAsset(this.assetSource().previous());
+        }
     },
 
     goToAssetIndex: function goToAssetIndex(newIndex) {
@@ -61534,6 +61540,9 @@ Template.parseYAML = function (rawData) {
 
 // For compatibility
 Template.parseJSON = function (json) {
+    if (typeof json === 'string') {
+        json = JSON.parse(json);
+    }
     return new Template(json);
 };
 
@@ -61543,6 +61552,10 @@ Template.parseJSON = function (json) {
  * @return {Template}
  */
 Template.parseLJSON = function (ljson) {
+    if (typeof ljson === 'string') {
+        ljson = JSON.parse(ljson);
+    }
+
     var template = {};
     ljson.labels.forEach(function (_ref) {
         var label = _ref.label;
@@ -61561,6 +61574,7 @@ Template.parseLJSON = function (ljson) {
             }
         });
     });
+
     return new Template(template);
 };
 
@@ -61646,6 +61660,8 @@ var _require2 = require('../backend');
 var Dropbox = _require2.Dropbox;
 var Server = _require2.Server;
 
+var ListPicker = require('./list_picker');
+
 var AssetPagerView = Backbone.View.extend({
 
     el: '#assetPager',
@@ -61695,7 +61711,18 @@ var AssetNameView = Backbone.View.extend({
     },
 
     chooseAssetName: function chooseAssetName() {
-        console.log('AssetNameView:chooseAssetName');
+        var source = this.model.assetSource();
+        var assetsList = source.assets().map(function (asset, index) {
+            return [asset.id, index];
+        });
+
+        var picker = new ListPicker({
+            list: assetsList,
+            title: 'Select a new asset to load',
+            closable: true,
+            submit: this.model.goToAssetIndex.bind(this.model)
+        });
+        picker.open();
     }
 });
 
@@ -61796,7 +61823,7 @@ exports.AssetView = Backbone.View.extend({
     }
 });
 
-},{"../backend":47,"../lib/utils":52,"./notification":66,"backbone":2,"jquery":9,"underscore":44}],62:[function(require,module,exports){
+},{"../backend":47,"../lib/utils":52,"./list_picker":65,"./notification":67,"backbone":2,"jquery":9,"underscore":44}],62:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone'),
@@ -61871,6 +61898,8 @@ var DropboxPicker = Modal.extend({
         var selectFilesOnly = _ref$selectFilesOnly === undefined ? false : _ref$selectFilesOnly;
         var _ref$closable = _ref.closable;
         var closable = _ref$closable === undefined ? false : _ref$closable;
+        var _ref$root = _ref.root;
+        var root = _ref$root === undefined ? undefined : _ref$root;
 
         this.disposeOnClose = true;
         this.dropbox = dropbox;
@@ -61893,6 +61922,10 @@ var DropboxPicker = Modal.extend({
             history: []
         };
 
+        if (root) {
+            this.state.root = root;
+        }
+
         _.bindAll(this, 'fetch', 'makeList', 'update', 'select', 'dive', 'handleSubmit', 'reload', 'handleClick');
     },
 
@@ -61907,6 +61940,8 @@ var DropboxPicker = Modal.extend({
     fetch: function fetch() {
         var _this = this;
 
+        var noCache = arguments[0] === undefined ? false : arguments[0];
+
         this.state.loading = true;
         this.update();
 
@@ -61917,7 +61952,8 @@ var DropboxPicker = Modal.extend({
             q = this.dropbox.list(this.state.root, {
                 showHidden: this.showHidden,
                 foldersOnly: this.showFoldersOnly,
-                extensions: this.extensions
+                extensions: this.extensions,
+                noCache: noCache
             });
         }
 
@@ -62056,7 +62092,7 @@ var DropboxPicker = Modal.extend({
 
     reload: function reload() {
         delete this._cache[this.state.root];
-        this.fetch().then(this.update);
+        this.fetch(true).then(this.update);
     },
 
     goHome: function goHome() {
@@ -62072,7 +62108,7 @@ var DropboxPicker = Modal.extend({
 
 module.exports = DropboxPicker;
 
-},{"../lib/utils":52,"./modal":65,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],63:[function(require,module,exports){
+},{"../lib/utils":52,"./modal":66,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],63:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62184,6 +62220,93 @@ exports.HistoryUpdate = Backbone.View.extend({
 });
 
 },{"backbone":2,"url":8}],65:[function(require,module,exports){
+'use strict';
+
+var _slicedToArray = (function () {
+    function sliceIterator(arr, i) {
+        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
+            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+                _arr.push(_s.value);if (i && _arr.length === i) break;
+            }
+        } catch (err) {
+            _d = true;_e = err;
+        } finally {
+            try {
+                if (!_n && _i['return']) _i['return']();
+            } finally {
+                if (_d) throw _e;
+            }
+        }return _arr;
+    }return function (arr, i) {
+        if (Array.isArray(arr)) {
+            return arr;
+        } else if (Symbol.iterator in Object(arr)) {
+            return sliceIterator(arr, i);
+        } else {
+            throw new TypeError('Invalid attempt to destructure non-iterable instance');
+        }
+    };
+})();
+
+var Backbone = require('backbone'),
+    $ = require('jquery'),
+    _ = require('underscore'),
+    Promise = require('promise-polyfill');
+
+var _require = require('../lib/utils');
+
+var basename = _require.basename;
+var extname = _require.extname;
+
+var _require2 = require('./modal');
+
+var Modal = _require2.Modal;
+
+var ListPicker = Modal.extend({
+
+    events: {
+        'click li': 'click'
+    },
+
+    init: function init(_ref) {
+        var list = _ref.list;
+        var submit = _ref.submit;
+        var _ref$closable = _ref.closable;
+        var closable = _ref$closable === undefined ? false : _ref$closable;
+
+        this.disposeOnClose = true;
+        this.list = list;
+        this.submit = submit;
+    },
+
+    content: function content() {
+        var $content = $('<ul class=\'ListPicker\'></ul>');
+        this.list.forEach(function (_ref2, index) {
+            var _ref22 = _slicedToArray(_ref2, 2);
+
+            var content = _ref22[0];
+            var key = _ref22[1];
+
+            if (content instanceof $) {
+                var $li = $('<li data-index=\'' + index + '\'></li>');
+                $li.append(content);
+            } else {
+                $content.append($('<li data-index=\'' + index + '\'>' + content + '</li>'));
+            }
+        });
+        return $content;
+    },
+
+    click: function click(evt) {
+        var idx = evt.currentTarget.dataset.index;
+        this.submit(this.list[idx][1]);
+        this.dispose();
+    }
+});
+
+module.exports = ListPicker;
+
+},{"../lib/utils":52,"./modal":66,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],66:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62366,7 +62489,7 @@ function activeModal() {
 
 module.exports = { Modal: Modal, SelectModal: SelectModal, activeModal: activeModal };
 
-},{"backbone":2,"jquery":9,"underscore":44}],66:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"underscore":44}],67:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62695,7 +62818,7 @@ module.exports.loading = {
     }
 };
 
-},{"../lib/utils":52,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],67:[function(require,module,exports){
+},{"../lib/utils":52,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],68:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -62703,6 +62826,11 @@ var Backbone = require('backbone');
 var $ = require('jquery');
 var Notification = require('./notification');
 var atomic = require('../model/atomic');
+
+var _require = require('../backend');
+
+var Dropbox = _require.Dropbox;
+var Server = _require.Server;
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -62999,7 +63127,19 @@ var TemplatePanel = Backbone.View.extend({
     },
 
     click: function click(evt) {
-        console.log(evt);
+        var _this2 = this;
+
+        var backend = this.model.server();
+        if (backend instanceof Dropbox) {
+            backend.pickTemplate(function (tmpls) {
+                _this2.model._initTemplates(true);
+            }, function (err) {
+                Notification.notify({
+                    type: 'error',
+                    msg: 'Error switching template ' + err
+                });
+            }, true);
+        } else if (backend instanceof Server) {}
     }
 });
 
@@ -63037,7 +63177,9 @@ var Sidebar = Backbone.View.extend({
 
 exports.Sidebar = Sidebar;
 
-},{"../model/atomic":56,"./notification":66,"backbone":2,"jquery":9,"underscore":44}],68:[function(require,module,exports){
+// No UI to handle this atm
+
+},{"../backend":47,"../model/atomic":56,"./notification":67,"backbone":2,"jquery":9,"underscore":44}],69:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63196,7 +63338,7 @@ exports.Toolbar = Backbone.View.extend({
 
 });
 
-},{"../model/atomic":56,"backbone":2,"underscore":44}],69:[function(require,module,exports){
+},{"../model/atomic":56,"backbone":2,"underscore":44}],70:[function(require,module,exports){
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -63595,7 +63737,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     return controller;
 };
 
-},{"backbone":2,"jquery":9,"three":43,"underscore":44}],70:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"three":43,"underscore":44}],71:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63756,7 +63898,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
 
 module.exports = { LandmarkConnectionTHREEView: LandmarkConnectionTHREEView, LandmarkTHREEView: LandmarkTHREEView };
 
-},{"backbone":2,"three":43,"underscore":44}],71:[function(require,module,exports){
+},{"backbone":2,"three":43,"underscore":44}],72:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -64300,7 +64442,7 @@ module.exports = Handler;
 
 // Pass right click does nothing in most cases
 
-},{"../../model/atomic":56,"jquery":9,"three":43,"underscore":44}],72:[function(require,module,exports){
+},{"../../model/atomic":56,"jquery":9,"three":43,"underscore":44}],73:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -64907,7 +65049,7 @@ exports.Viewport = Backbone.View.extend({
 
 });
 
-},{"../../model/atomic":56,"../../model/octree":59,"./camera":69,"./elements":70,"./handler":71,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
+},{"../../model/atomic":56,"../../model/octree":59,"./camera":70,"./elements":71,"./handler":72,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-46efe83f.js.map
+//# sourceMappingURL=bundle-9022eea0.js.map
