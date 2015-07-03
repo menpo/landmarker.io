@@ -32,6 +32,7 @@ var $ = require('jquery'),
     THREE = require('three');
 
 var utils = require('./app/lib/utils');
+var support = require('./app/lib/support');
 var Notification = require('./app/view/notification');
 var cfg = require('./app/model/config')();
 
@@ -40,10 +41,7 @@ var DropboxPicker = require('./app/view/dropbox_picker');
 var _require = require('./app/view/modal');
 
 var SelectModal = _require.SelectModal;
-
-var _require2 = require('./app/view/notification');
-
-var notify = _require2.notify;
+var activeModal = _require.activeModal;
 
 var Backend = require('./app/backend');
 
@@ -74,32 +72,7 @@ function resolveBackend(u) {
         u.search = null;
         history.replaceState(null, null, url.format(u).replace('?', '#'));
 
-        var selector = new SelectModal({
-            closable: false,
-            disposeAfter: false,
-            title: 'Select a datasource',
-            actions: [['Dropbox', function () {
-                var _Backend$Dropbox$authorize = Backend.Dropbox.authorize();
-
-                var _Backend$Dropbox$authorize2 = _slicedToArray(_Backend$Dropbox$authorize, 2);
-
-                var dropUrl = _Backend$Dropbox$authorize2[0];
-                var state = _Backend$Dropbox$authorize2[1];
-
-                cfg.set({
-                    'OAUTH_STATE': state,
-                    'BACKEND_TYPE': Backend.Dropbox.Type
-                }, true);
-                window.location.replace(dropUrl);
-            }], ['Managed Server', function () {
-                var u = window.prompt('Please provide the url for the landmarker server');
-                if (u) {
-                    restart(u);
-                }
-            }], ['Demo Mode', restart.bind(undefined, 'demo')]]
-        });
-
-        return selector.open();
+        return showSelection();
     }
 
     switch (backendType) {
@@ -117,10 +90,47 @@ function restart(serverUrl) {
     window.location.replace(restartUrl);
 }
 
+var goToDemo = restart.bind(undefined, 'demo');
+
+function showSelection() {
+    cfg.clear();
+    history.replaceState(null, null, window.location.origin);
+    var selector = new SelectModal({
+        closable: false,
+        disposeOnClose: true,
+        title: 'Select a datasource',
+        actions: [['Dropbox', function () {
+            if (!support.localstorage) {
+                retry('You browser doesn\'t support localstorage which is required for Dropbox login');
+            }
+
+            var _Backend$Dropbox$authorize = Backend.Dropbox.authorize();
+
+            var _Backend$Dropbox$authorize2 = _slicedToArray(_Backend$Dropbox$authorize, 2);
+
+            var dropUrl = _Backend$Dropbox$authorize2[0];
+            var state = _Backend$Dropbox$authorize2[1];
+
+            cfg.set({
+                'OAUTH_STATE': state,
+                'BACKEND_TYPE': Backend.Dropbox.Type
+            }, true);
+            window.location.replace(dropUrl);
+        }], ['Managed Server', function () {
+            var u = window.prompt('Please provide the url for the landmarker server');
+            if (u) {
+                restart(u);
+            }
+        }], ['Demo Mode', goToDemo]]
+    });
+
+    return selector.open();
+}
+
 function retry(msg) {
     Notification.notify({
         msg: msg, type: 'error', persist: true,
-        actions: [['Restart', restart], ['Go to Demo', restart.bind(null, 'demo')]]
+        actions: [['Restart', restart], ['Go to Demo', goToDemo]]
     });
 }
 
@@ -155,14 +165,28 @@ function _loadDropbox(u) {
             u.search = null;
             history.replaceState(null, null, url.format(u).replace('?', '#'));
         } else {
-            retry('Incorrect dropbox redirect URL');
+            Notification.notify({
+                msg: 'Incorrect Dropbox redirect URL',
+                type: 'error'
+            });
+            showSelection();
         }
     } else if (token) {
         dropbox = new Backend.Dropbox(token, cfg);
     }
 
     if (dropbox) {
-        _loadDropboxAssets(dropbox);
+        return dropbox.accountInfo().then(function () {
+            _loadDropboxAssets(dropbox);
+        }, function () {
+            Notification.notify({
+                msg: 'Could not reach Dropbox servers',
+                type: 'error'
+            });
+            showSelection();
+        });
+    } else {
+        showSelection();
     }
 };
 
@@ -212,22 +236,18 @@ function _loadDropboxTemplate(dropbox) {
 function resolveMode(server) {
     server.fetchMode().then(function (mode) {
         if (mode === 'mesh' || mode === 'image') {
-            console.log('Successfully found mode: ' + mode);
+            initLandmarker(server, mode);
         } else {
-            console.log('Error unknown mode - terminating');
+            retry('Received invalid mode', mode);
         }
-        initLandmarker(server, mode);
     }, function () {
-        retry('Couldn\'t get mode from server');
-
         if (server instanceof Backend.Server) {
-            // could be that there is an old v1 server, let's check
-            server.testV1(function () {
-                console.log('Error - couldn\'t get mode (even in legacy v1)');
+            server.testForV1(function () {
+                retry('Couldn\'t get mode from server');
             });
+        } else {
+            retry('Couldn\'t get mode from server');
         }
-
-        return;
     });
 }
 
@@ -264,7 +284,7 @@ function initLandmarker(server, mode) {
         appInit._assetIndex = u.query.i - 1;
     }
 
-    var app = App(appInit);
+    var app = new App(appInit);
 
     var SidebarView = require('./app/view/sidebar');
     var AssetView = require('./app/view/asset');
@@ -284,7 +304,6 @@ function initLandmarker(server, mode) {
 
     app.on('change:asset', function () {
         console.log('Index: the asset has changed');
-        // var mesh = viewport.mesh;
         viewport.removeMeshIfPresent();
         if (prevAsset !== null) {
             // clean up previous asset
@@ -292,10 +311,6 @@ function initLandmarker(server, mode) {
             console.log('Before dispose: ' + viewport.memoryString());
             prevAsset.dispose();
             console.log('After dispose: ' + viewport.memoryString());
-
-            // if (mesh !== null) {
-            //     mesh.dispose();
-            // }
         }
         prevAsset = app.asset();
     });
@@ -304,6 +319,8 @@ function initLandmarker(server, mode) {
     var historyUpdate = new History.HistoryUpdate({ model: app });
 
     // ----- KEYBOARD HANDLER ----- //
+
+    // Non escape keys
     $(window).keypress(function (e) {
         var key = e.which;
         switch (key) {
@@ -365,6 +382,22 @@ function initLandmarker(server, mode) {
                 break;
         }
     });
+
+    // Escape key
+    $(window).on('keydown', function (evt) {
+
+        if (evt.which !== 27) {
+            return;
+        }
+
+        var modal = activeModal();
+        if (modal) {
+            return modal.close();
+        }
+
+        app.landmarks().deselectAll();
+        $('#viewportContainer').trigger('groupDeselected');
+    });
 }
 
 function handleNewVersion() {
@@ -381,11 +414,16 @@ function handleNewVersion() {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // Check for new version (vs current appcache retrieved version)
+    window.applicationCache.addEventListener('updateready', handleNewVersion);
+    if (window.applicationCache.status === window.applicationCache.UPDATEREADY) {
+        handleNewVersion();
+    }
+
     // Test for IE
-    if (/MSIE (\d+\.\d+);/.test(navigator.userAgent) || !!navigator.userAgent.match(/Trident.*rv[ :]*11\./)) {
+    if (support.ie) {
         // Found IE, do user agent detection for now
         // https://github.com/menpo/landmarker.io/issues/75 for progess
-        $('.App-Flex-Horiz').css('min-height', '100vh');
         return Notification.notify({
             msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
             persist: true,
@@ -394,27 +432,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Test for webgl
-    var webglSupported = (function () {
-        try {
-            var canvas = document.createElement('canvas');
-            return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
-        } catch (e) {
-            return false;
-        }
-    })();
-
-    if (!webglSupported) {
+    if (!support.webgl) {
         return Notification.notify({
             msg: $('<p>It seems your browser doesn\'t support WebGL, which is needed by landmarker.io.<br/>Please visit <a href="https://get.webgl.org/">https://get.webgl.org/</a> for more information<p>'),
             persist: true,
             type: 'error'
         });
-    }
-
-    // Check for new version (vs current appcache retrieved version)
-    window.applicationCache.addEventListener('updateready', handleNewVersion);
-    if (window.applicationCache.status === window.applicationCache.UPDATEREADY) {
-        handleNewVersion();
     }
 
     // Temporary message for v1.5.0
@@ -434,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resolveBackend(u);
 });
 
-},{"./app/backend":47,"./app/lib/utils":51,"./app/model/app":52,"./app/model/config":56,"./app/view/asset":60,"./app/view/dropbox_picker":61,"./app/view/help":62,"./app/view/history":63,"./app/view/modal":64,"./app/view/notification":65,"./app/view/sidebar":66,"./app/view/toolbar":67,"./app/view/viewport":71,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
+},{"./app/backend":47,"./app/lib/support":51,"./app/lib/utils":52,"./app/model/app":53,"./app/model/config":57,"./app/view/asset":61,"./app/view/dropbox_picker":62,"./app/view/help":63,"./app/view/history":64,"./app/view/modal":65,"./app/view/notification":66,"./app/view/sidebar":67,"./app/view/toolbar":68,"./app/view/viewport":72,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.2.1
 
@@ -59169,6 +59192,10 @@ Dropbox.authorize = function () {
     return [u, oAuthState];
 };
 
+Dropbox.prototype.accountInfo = function () {
+    return getJSON("https://api.dropbox.com/1/account/info", this.headers());
+};
+
 Dropbox.prototype.headers = function () {
     if (!this._token) {
         throw new Error("Can't proceed without an access token");
@@ -59179,15 +59206,18 @@ Dropbox.prototype.headers = function () {
 Dropbox.prototype.pickTemplate = function (success, error) {
     var _this = this;
 
+    var closable = arguments[2] === undefined ? false : arguments[2];
+
     var picker = new Picker({
         dropbox: this,
         selectFilesOnly: true,
         extensions: Object.keys(Template.Parsers),
         title: "Select a template yaml file to use (you can also use an already annotated asset)",
+        closable: closable,
         submit: function submit(tmplPath) {
             _this.setTemplate(tmplPath).then(function () {
                 picker.dispose();
-                success();
+                success(_this.templates);
             }, error);
         }
     });
@@ -59231,14 +59261,17 @@ Dropbox.prototype.setTemplate = function (path, json) {
 Dropbox.prototype.pickAssets = function (success, error) {
     var _this3 = this;
 
+    var closable = arguments[2] === undefined ? false : arguments[2];
+
     var picker = new Picker({
         dropbox: this,
         selectFoldersOnly: true,
         title: "Select a directory from which to load assets",
+        closable: closable,
         submit: function submit(path) {
             _this3.setAssets(path).then(function () {
                 picker.dispose();
-                success();
+                success(path);
             }, error);
         }
     });
@@ -59268,10 +59301,6 @@ Dropbox.prototype.setAssets = function (path) {
             "BACKEND_DROPBOX_ASSETS_PATH": _this4._assetsPath
         }, true);
     });
-};
-
-Dropbox.prototype.accountInfo = function () {
-    return getJSON("https://api.dropbox.com/1/account/info", this.headers());
 };
 
 Dropbox.prototype.list = function () {
@@ -59439,7 +59468,7 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
 
 module.exports = Dropbox;
 
-},{"../lib/imagepromise":49,"../lib/requests":50,"../lib/utils":51,"../model/template":59,"../view/dropbox_picker.js":61,"./base":45,"promise-polyfill":41,"url":8}],47:[function(require,module,exports){
+},{"../lib/imagepromise":49,"../lib/requests":50,"../lib/utils":52,"../model/template":60,"../view/dropbox_picker.js":62,"./base":45,"promise-polyfill":41,"url":8}],47:[function(require,module,exports){
 'use strict';
 
 var Dropbox = require('./dropbox'),
@@ -59476,6 +59505,17 @@ Server.Type = 'LANDMARKER SERVER';
 
 Server.prototype.apiHeader = function () {
     return '/api/v' + this.version + '/';
+};
+
+Server.prototype.testForV1 = function (error) {
+    this.version = 1;
+    return this.fetchMode().then(function () {
+        console.log('v1 server found - redirecting to legacy landmarker');
+        var url = require('url');
+        var u = url.parse(window.location.href, true);
+        u.pathname = '/v1/';
+        window.location.replace(url.format(u));
+    }, error);
 };
 
 Server.prototype.map = function (url) {
@@ -59537,18 +59577,6 @@ Server.prototype.fetchTexture = function (assetId) {
 
 Server.prototype.fetchGeometry = function (assetId) {
     return getArrayBuffer(this.map('meshes/' + assetId));
-};
-
-Server.prototype.testV1 = function (fail) {
-    this.version = 1;
-    this.fetchMode().then(function () {
-        console.log('v1 server found - redirecting to legacy landmarker');
-        // we want to add v1 into the url and leave everything else the same
-        var url = require('url');
-        var u = url.parse(window.location.href, true);
-        u.pathname = '/v1/';
-        window.location.replace(url.format(u));
-    }, fail);
 };
 
 module.exports = Server;
@@ -59620,7 +59648,7 @@ var MaterialPromise = function MaterialPromise(url) {
 
 module.exports = MaterialPromise;
 
-},{"../view/notification":65,"promise-polyfill":41,"three":43}],50:[function(require,module,exports){
+},{"../view/notification":66,"promise-polyfill":41,"three":43}],50:[function(require,module,exports){
 'use strict';
 
 var Promise = require('promise-polyfill'),
@@ -59751,7 +59779,34 @@ module.exports.putJSON = function (url) {
     });
 };
 
-},{"../view/notification":65,"promise-polyfill":41,"querystring":7}],51:[function(require,module,exports){
+},{"../view/notification":66,"promise-polyfill":41,"querystring":7}],51:[function(require,module,exports){
+'use strict';
+
+module.exports.ie = (function () {
+    return /MSIE (\d+\.\d+);/.test(navigator.userAgent) || !!navigator.userAgent.match(/Trident.*rv[ :]*11\./);
+})();
+
+module.exports.webgl = (function () {
+    try {
+        var canvas = document.createElement('canvas');
+        return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+    } catch (e) {
+        return false;
+    }
+})();
+
+module.exports.localstorage = (function () {
+    try {
+        localStorage.setItem('TEST_LS', 'TEST_LS');
+        localStorage.removeItem('TEST_LS');
+        return true;
+    } catch (e) {
+        console.log('Couldn\'t find localStorage');
+        return false;
+    }
+})();
+
+},{}],52:[function(require,module,exports){
 'use strict';
 
 module.exports = {};
@@ -59788,7 +59843,13 @@ module.exports.stripTrailingSlash = function (str) {
     return str.substr(-1) === '/' ? str.substr(0, str.length - 1) : str;
 };
 
-},{}],52:[function(require,module,exports){
+module.exports.pad = function (n, width, z) {
+    z = z || '0';
+    n = n + '';
+    return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+};
+
+},{}],53:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore'),
@@ -59798,8 +59859,6 @@ var Backbone = require('backbone');
 
 var Landmark = require('./landmark'),
     AssetSource = require('./assetsource');
-
-var _instance = null;
 
 var App = Backbone.Model.extend({
 
@@ -60077,20 +60136,9 @@ var App = Backbone.Model.extend({
 
 });
 
-module.exports = function (appInit) {
-    if (_instance) {
-        return _instance;
-    }
+module.exports = App;
 
-    if (!appInit) {
-        throw new Error('App requires to be initialised');
-    }
-
-    _instance = new App(appInit);
-    return _instance;
-};
-
-},{"./assetsource":54,"./landmark":57,"backbone":2,"promise-polyfill":41,"underscore":44}],53:[function(require,module,exports){
+},{"./assetsource":55,"./landmark":58,"backbone":2,"promise-polyfill":41,"underscore":44}],54:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60439,7 +60487,7 @@ var Mesh = Image.extend({
 exports.Mesh = Mesh;
 exports.Image = Image;
 
-},{"../lib/imagepromise":49,"../lib/requests":50,"backbone":2,"three":43}],54:[function(require,module,exports){
+},{"../lib/imagepromise":49,"../lib/requests":50,"backbone":2,"three":43}],55:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60650,7 +60698,7 @@ exports.ImageSource = AssetSource.extend({
     }
 });
 
-},{"./asset":53,"backbone":2,"underscore":44}],55:[function(require,module,exports){
+},{"./asset":54,"backbone":2,"underscore":44}],56:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60705,7 +60753,7 @@ var AtomicOperationTracker = Backbone.Model.extend({
 var atomicTracker = new AtomicOperationTracker();
 module.exports = atomicTracker;
 
-},{"backbone":2}],56:[function(require,module,exports){
+},{"backbone":2}],57:[function(require,module,exports){
 /**
  * Persistable config object with get and set logic
  * Requires localstorage to work properly (throws Error otherwise),
@@ -60716,22 +60764,12 @@ module.exports = atomicTracker;
 var Backbone = require('backbone'),
     _ = require('underscore');
 
-var LOCALSTORAGE_EXISTS = (function () {
-    try {
-        localStorage.setItem('TEST_LS', 'TEST_LS');
-        localStorage.removeItem('TEST_LS');
-        return true;
-    } catch (e) {
-        console.log('Couldn\'t find localStorage');
-        return false;
-    }
-})();
+var support = require('../lib/support');
 
 var LOCALSTORAGE_KEY = 'LMIO#CONFIG';
 
 function Config() {
     this._data = {};
-    this.load();
 };
 
 Config.prototype.get = function (key) {
@@ -60772,12 +60810,12 @@ Config.prototype.set = function (arg1, arg2, arg3) {
 };
 
 Config.prototype.save = function () {
-    if (!LOCALSTORAGE_EXISTS) throw new Error('Missing localStorage');
+    if (!support.localstorage) return;
     localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(this._data));
 };
 
 Config.prototype.load = function () {
-    if (!LOCALSTORAGE_EXISTS) throw new Error('Missing localStorage');
+    if (!support.localstorage) return;
     var data = localStorage.getItem(LOCALSTORAGE_KEY);
     if (data) {
         this._data = JSON.parse(data);
@@ -60787,7 +60825,7 @@ Config.prototype.load = function () {
 };
 
 Config.prototype.clear = function () {
-    if (!LOCALSTORAGE_EXISTS) throw new Error('Missing localStorage');
+    if (!support.localstorage) return;
     localStorage.removeItem(LOCALSTORAGE_KEY);
     this._data = {};
 };
@@ -60801,7 +60839,7 @@ module.exports = function () {
     return _configInstance;
 };
 
-},{"backbone":2,"underscore":44}],57:[function(require,module,exports){
+},{"../lib/support":51,"backbone":2,"underscore":44}],58:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -61143,7 +61181,7 @@ module.exports = {
 };
 /*json, id, type, server*/
 
-},{"./atomic":55,"backbone":2,"three":43,"underscore":44}],58:[function(require,module,exports){
+},{"./atomic":56,"backbone":2,"three":43,"underscore":44}],59:[function(require,module,exports){
 'use strict';
 
 var THREE = require('three');
@@ -61392,7 +61430,7 @@ exports.OctreeNode = OctreeNode;
 exports.octreeForBufferGeometry = octreeForBufferGeometry;
 exports.intersetMesh = intersectMesh;
 
-},{"three":43}],59:[function(require,module,exports){
+},{"three":43}],60:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -61590,21 +61628,23 @@ Template.prototype.emptyLJSON = function () {
 
 module.exports = Template;
 
-},{"js-yaml":10,"underscore":44}],60:[function(require,module,exports){
+},{"js-yaml":10,"underscore":44}],61:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
 var Backbone = require('backbone');
-var Notification = require('./notification');
 var $ = require('jquery');
 
-'use strict';
+var Notification = require('./notification');
 
-function pad(n, width, z) {
-    z = z || '0';
-    n = n + '';
-    return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
-}
+var _require = require('../lib/utils');
+
+var pad = _require.pad;
+
+var _require2 = require('../backend');
+
+var Dropbox = _require2.Dropbox;
+var Server = _require2.Server;
 
 var AssetPagerView = Backbone.View.extend({
 
@@ -61616,25 +61656,21 @@ var AssetPagerView = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        console.log('AssetPagerView:initialize');
         _.bindAll(this, 'render');
         this.listenTo(this.model, 'change:asset', this.render);
     },
 
     render: function render() {
-        console.log('AssetPagerView:render');
         this.$el.find('#next').toggleClass('Button--Disabled', !this.model.assetSource().hasSuccessor());
         this.$el.find('#previous').toggleClass('Button--Disabled', !this.model.assetSource().hasPredecessor());
         return this;
     },
 
     next: function next() {
-        console.log('AssetPagerView:next');
         this.model.nextAsset();
     },
 
     previous: function previous() {
-        console.log('AssetPagerView:previous');
         this.model.previousAsset();
     }
 
@@ -61649,13 +61685,11 @@ var AssetNameView = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        console.log('AssetNameView:initialize');
         _.bindAll(this, 'render');
         this.listenTo(this.model, 'change:asset', this.render);
     },
 
     render: function render() {
-        console.log('AssetNameView:render');
         this.$el.html(this.model.asset().id);
         return this;
     },
@@ -61674,13 +61708,11 @@ var AssetIndexView = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        console.log('AssetIndexView:initialize');
         _.bindAll(this, 'render');
         this.listenTo(this.model, 'change:asset', this.render);
     },
 
     render: function render() {
-        console.log('AssetIndexView:assetSource:render');
         var n_str = pad(this.model.assetSource().nAssets(), 2);
         var i_str = pad(this.model.assetIndex() + 1, 2);
         this.$el.html(i_str + '/' + n_str);
@@ -61688,7 +61720,6 @@ var AssetIndexView = Backbone.View.extend({
     },
 
     chooseAssetNumber: function chooseAssetNumber() {
-        console.log('AssetIndexView:chooseAssetNumber');
         var newIndex = window.prompt('Input asset index:', pad(this.model.assetIndex() + 1, 2));
 
         if (newIndex === null) {
@@ -61704,7 +61735,7 @@ var AssetIndexView = Backbone.View.extend({
         newIndex = Number(newIndex);
 
         if (newIndex <= 0 || newIndex > this.model.assetSource().nAssets()) {
-            return new Notification.BaseNotification({
+            return Notification.notify({
                 msg: 'Cannot select asset ' + newIndex + ' (out of bounds)',
                 type: 'error'
             });
@@ -61714,17 +61745,58 @@ var AssetIndexView = Backbone.View.extend({
     }
 });
 
+var CollectionName = Backbone.View.extend({
+    el: '#collectionName',
+
+    events: {
+        click: 'chooseCollection'
+    },
+
+    initialize: function initialize() {
+        _.bindAll(this, 'render');
+        this.listenTo(this.model, 'change:activeCollection', this.render);
+    },
+
+    render: function render() {
+        this.$el.html(this.model.activeCollection() || 'No Collection');
+        return this;
+    },
+
+    chooseCollection: function chooseCollection() {
+        var _this = this;
+
+        var backend = this.model.server();
+        if (backend instanceof Dropbox) {
+            backend.pickAssets(function (path) {
+                _this.model.set('activeCollection', path);
+            }, function (err) {
+                Notification.notify({
+                    type: 'error',
+                    msg: 'Error switching assets ' + err
+                });
+            }, true);
+        } else if (backend instanceof Server) {
+            if (this.model.collections().length === 1) {
+                Notification.notify({
+                    msg: 'There is only one available collection'
+                });
+            }
+        }
+    }
+
+});
+
 exports.AssetView = Backbone.View.extend({
 
     initialize: function initialize() {
-        console.log('AssetView:initialize');
+        new CollectionName({ model: this.model });
         new AssetPagerView({ model: this.model });
         new AssetNameView({ model: this.model });
         new AssetIndexView({ model: this.model });
     }
 });
 
-},{"./notification":65,"backbone":2,"jquery":9,"underscore":44}],61:[function(require,module,exports){
+},{"../backend":47,"../lib/utils":52,"./notification":66,"backbone":2,"jquery":9,"underscore":44}],62:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone'),
@@ -61776,8 +61848,6 @@ function _$fileOcticon(item) {
 
 var DropboxPicker = Modal.extend({
 
-    closable: false,
-
     events: {
         'click .DropboxSelectListItem': 'handleClick',
         'click .Back': 'back',
@@ -61799,13 +61869,17 @@ var DropboxPicker = Modal.extend({
         var extensions = _ref$extensions === undefined ? [] : _ref$extensions;
         var _ref$selectFilesOnly = _ref.selectFilesOnly;
         var selectFilesOnly = _ref$selectFilesOnly === undefined ? false : _ref$selectFilesOnly;
+        var _ref$closable = _ref.closable;
+        var closable = _ref$closable === undefined ? false : _ref$closable;
 
+        this.disposeOnClose = true;
         this.dropbox = dropbox;
         this.showFoldersOnly = showFoldersOnly;
         this.showHidden = showHidden;
         this.selectFoldersOnly = selectFoldersOnly;
         this.selectFilesOnly = !selectFoldersOnly && selectFilesOnly;
         this.extensions = extensions;
+        this.closable = !!closable;
 
         this._cache = {};
 
@@ -61998,7 +62072,7 @@ var DropboxPicker = Modal.extend({
 
 module.exports = DropboxPicker;
 
-},{"../lib/utils":51,"./modal":64,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],62:[function(require,module,exports){
+},{"../lib/utils":52,"./modal":65,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],63:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62069,7 +62143,7 @@ module.exports = Backbone.View.extend({
     }
 });
 
-},{"backbone":2,"jquery":9}],63:[function(require,module,exports){
+},{"backbone":2,"jquery":9}],64:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -62092,18 +62166,24 @@ exports.HistoryUpdate = Backbone.View.extend({
     assetChanged: function assetChanged() {
         var u = url.parse(window.location.href.replace('#', '?'), true);
         u.search = null;
-        if (this.model.activeTemplate() == undefined || this.model.activeCollection() == undefined || this.model.assetIndex() == undefined) {
-            // only want to set full valid states.
-            return;
+
+        if (this.model.activeTemplate()) {
+            u.query.t = this.model.activeTemplate();
         }
-        u.query.t = this.model.activeTemplate();
-        u.query.c = this.model.activeCollection();
-        u.query.i = this.model.assetIndex() + 1;
+
+        if (this.model.activeCollection()) {
+            u.query.c = this.model.activeCollection();
+        }
+
+        if (this.model.assetIndex() !== undefined) {
+            u.query.i = this.model.assetIndex() + 1;
+        }
+
         history.replaceState(null, null, url.format(u).replace('?', '#'));
     }
 });
 
-},{"backbone":2,"url":8}],64:[function(require,module,exports){
+},{"backbone":2,"url":8}],65:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62155,6 +62235,7 @@ var Modal = Backbone.View.extend({
         this.key = _key();
         this.id = 'modalWindow$$' + this.key;
         this.isOpen = false;
+        this.disposeOnClose = !!opts.disposeOnClose;
 
         _modals[this.key] = this;
 
@@ -62174,8 +62255,8 @@ var Modal = Backbone.View.extend({
         this.$el.attr('id', this.id);
 
         if (this.closable) {
-            this.$el.append($('<div class=\'close\'>&times;</div>'));
-            this.$el.on('click .close', this.close);
+            this.$el.append($('<div class=\'ModalWindow__Close\'>&times;</div>'));
+            this.$el.find('.ModalWindow__Close').on('click', this.close);
         }
 
         if (this.title) {
@@ -62202,25 +62283,21 @@ var Modal = Backbone.View.extend({
         _activeModal = this.key;
     },
 
-    close: function close() {
-        var modalOnly = arguments[0] === undefined ? false : arguments[0];
-
+    _close: function _close() {
         if (this.isOpen) {
             this.isOpen = false;
             _activeModal = undefined;
             this.$el.removeClass(this.className + '--Open');
-            if (!modalOnly) {
-                $(this.container).removeClass('ModalsWrapper--Open');
-            }
+            $(this.container).removeClass('ModalsWrapper--Open');
         }
     },
 
+    close: function close() {
+        (this.disposeOnClose ? this.dispose : this._close)();
+    },
+
     dispose: function dispose() {
-        this.close();
-        if (_activeModal === this) {
-            _activeModal === undefined;
-            $(this.container).removeClass('ModalsWrapper--Open');
-        }
+        this._close();
         delete _modals[this];
         this.remove();
     },
@@ -62247,7 +62324,6 @@ var SelectModal = Modal.extend({
 
         this.closable = closable;
         this.actions = actions;
-        this.disposeAfter = disposeAfter;
     },
 
     content: function content() {
@@ -62277,19 +62353,20 @@ var SelectModal = Modal.extend({
             $('#ModalOption_' + _this2.key + '_' + index).on('click', function () {
                 if (_this2.isOpen) {
                     func();
-                }
-
-                if (_this2.disposeAfter) {
-                    _this2.dispose();
+                    _this2.close();
                 }
             });
         });
     }
 });
 
-module.exports = { Modal: Modal, SelectModal: SelectModal };
+function activeModal() {
+    return _modals[_activeModal];
+}
 
-},{"backbone":2,"jquery":9,"underscore":44}],65:[function(require,module,exports){
+module.exports = { Modal: Modal, SelectModal: SelectModal, activeModal: activeModal };
+
+},{"backbone":2,"jquery":9,"underscore":44}],66:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62618,7 +62695,7 @@ module.exports.loading = {
     }
 };
 
-},{"../lib/utils":51,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],66:[function(require,module,exports){
+},{"../lib/utils":52,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],67:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -62852,24 +62929,21 @@ var SaveRevertView = Backbone.View.extend({
 
     el: '#lmActionsPanel',
 
-    initialize: function initialize() {
-        _.bindAll(this, 'render', 'save', 'help');
+    initialize: function initialize(_ref4) {
+        var app = _ref4.app;
+
+        _.bindAll(this, 'save', 'help');
         //this.listenTo(this.model, "all", this.render);
         // make a spinner to listen for save calls on these landmarks
         this.spinner = new Notification.LandmarkSavingNotification();
         // Get the singleton app model separately as model is the landmarks
-        this.app = require('../model/app')();
+        this.app = app;
     },
 
     events: {
         'click #save': 'save',
         'click #help': 'help',
         'click #download': 'download'
-    },
-
-    render: function render() {
-        // TODO grey out save and revert as required
-        return this;
     },
 
     save: function save() {
@@ -62949,7 +63023,7 @@ var Sidebar = Backbone.View.extend({
         if (lms === null) {
             return;
         }
-        this.saveRevertView = new SaveRevertView({ model: lms });
+        this.saveRevertView = new SaveRevertView({ model: lms, app: this.model });
         if (this.lmView) {
             this.lmView.cleanup();
         }
@@ -62963,7 +63037,7 @@ var Sidebar = Backbone.View.extend({
 
 exports.Sidebar = Sidebar;
 
-},{"../model/app":52,"../model/atomic":55,"./notification":65,"backbone":2,"jquery":9,"underscore":44}],67:[function(require,module,exports){
+},{"../model/atomic":56,"./notification":66,"backbone":2,"jquery":9,"underscore":44}],68:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63116,14 +63190,13 @@ exports.Toolbar = Backbone.View.extend({
             this.textureToggle = new TextureToggle({ model: this.model });
         } else {
             // in image mode, we shouldn't even have these controls.
-            this.$el.find('#alphaRow').css('display', 'none');
             this.$el.find('#textureRow').css('display', 'none');
         }
     }
 
 });
 
-},{"../model/atomic":55,"backbone":2,"underscore":44}],68:[function(require,module,exports){
+},{"../model/atomic":56,"backbone":2,"underscore":44}],69:[function(require,module,exports){
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -63522,7 +63595,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     return controller;
 };
 
-},{"backbone":2,"jquery":9,"three":43,"underscore":44}],69:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"three":43,"underscore":44}],70:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63683,7 +63756,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
 
 module.exports = { LandmarkConnectionTHREEView: LandmarkConnectionTHREEView, LandmarkTHREEView: LandmarkTHREEView };
 
-},{"backbone":2,"three":43,"underscore":44}],70:[function(require,module,exports){
+},{"backbone":2,"three":43,"underscore":44}],71:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -64103,7 +64176,7 @@ function Handler() {
             lms = lms.slice(0, 3);
         }
 
-        if (currentTargetLm && !groupSelected) {
+        if (lms[0] && currentTargetLm && !groupSelected) {
 
             if (currentTargetLm !== previousTargetLm) {
                 // Linear operation hence protected
@@ -64121,15 +64194,10 @@ function Handler() {
     // Keyboard handlers
     // ------------------------------------------------------------------------
 
-    var onKeypressTranslate = atomic.atomicOperation(function (evt) {
+    var onKeypress = atomic.atomicOperation(function (evt) {
         // Only work in group selection mode
-        if (!groupSelected) {
+        if (!groupSelected || evt.which < 37 || evt.which > 40) {
             return;
-        }
-
-        // Deselect group on escape key
-        if (evt.which === 27) {
-            return setGroupSelected(false);
         }
 
         // Up and down are inversed due to the way THREE handles coordinates
@@ -64165,7 +64233,7 @@ function Handler() {
 
             if (intersectsWithMesh.length > 0) {
                 lm.setPoint(_this.worldToLocal(intersectsWithMesh[0].point));
-            } else {}
+            }
         });
     });
 
@@ -64185,10 +64253,10 @@ function Handler() {
 
         if (_val) {
             // Use keydown as keypress doesn't register arrows in some context
-            $(window).on('keydown', onKeypressTranslate);
+            $(window).on('keydown', onKeypress);
         } else {
             _this.deselectAll();
-            $(window).off('keydown', onKeypressTranslate);
+            $(window).off('keydown', onKeypress);
         }
 
         _this.clearCanvas();
@@ -64232,9 +64300,7 @@ module.exports = Handler;
 
 // Pass right click does nothing in most cases
 
-// Pass > fallen off mesh
-
-},{"../../model/atomic":55,"jquery":9,"three":43,"underscore":44}],71:[function(require,module,exports){
+},{"../../model/atomic":56,"jquery":9,"three":43,"underscore":44}],72:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -64841,7 +64907,7 @@ exports.Viewport = Backbone.View.extend({
 
 });
 
-},{"../../model/atomic":55,"../../model/octree":58,"./camera":68,"./elements":69,"./handler":70,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
+},{"../../model/atomic":56,"../../model/octree":59,"./camera":69,"./elements":70,"./handler":71,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-f1be543e.js.map
+//# sourceMappingURL=bundle-46efe83f.js.map
