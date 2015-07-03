@@ -457,8 +457,6 @@ function Handler () {
 
             if (intersectsWithMesh.length > 0) {
                 lm.setPoint(this.worldToLocal(intersectsWithMesh[0].point));
-            } else {
-                // Pass > fallen off mesh
             }
         });
     });
