@@ -69,6 +69,10 @@ Dropbox.authorize = function () {
     return [u, oAuthState];
 };
 
+Dropbox.prototype.accountInfo = function () {
+    return getJSON('https://api.dropbox.com/1/account/info', this.headers());
+};
+
 Dropbox.prototype.headers = function () {
     if (!this._token) {
         throw new Error("Can't proceed without an access token");
@@ -76,16 +80,17 @@ Dropbox.prototype.headers = function () {
     return { "Authorization": `Bearer ${this._token}`};
 };
 
-Dropbox.prototype.pickTemplate = function (success, error) {
+Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
     let picker = new Picker({
         dropbox: this,
         selectFilesOnly: true,
         extensions: Object.keys(Template.Parsers),
         title: 'Select a template yaml file to use (you can also use an already annotated asset)',
+        closable,
         submit: (tmplPath) => {
             this.setTemplate(tmplPath).then(() => {
                 picker.dispose();
-                success();
+                success(this.templates);
             }, error);
         }
     });
@@ -127,15 +132,16 @@ Dropbox.prototype.setTemplate = function (path, json) {
     });
 };
 
-Dropbox.prototype.pickAssets = function (success, error) {
+Dropbox.prototype.pickAssets = function (success, error, closable=false) {
     let picker = new Picker({
         dropbox: this,
         selectFoldersOnly: true,
         title: 'Select a directory from which to load assets',
+        closable,
         submit: (path) => {
             this.setAssets(path).then(() => {
                 picker.dispose();
-                success();
+                success(path);
             }, error);
         }
     });
@@ -164,11 +170,6 @@ Dropbox.prototype.setAssets = function (path) {
             'BACKEND_DROPBOX_ASSETS_PATH': this._assetsPath
         }, true);
     });
-};
-
-Dropbox.prototype.accountInfo = function () {
-    return getJSON(
-        'https://api.dropbox.com/1/account/info', this.headers());
 };
 
 Dropbox.prototype.list = function (path='/', {

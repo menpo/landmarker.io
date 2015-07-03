@@ -22,6 +22,17 @@ Server.prototype.apiHeader = function () {
     return `/api/v${this.version}/`;
 }
 
+Server.prototype.testForV1 = function (error) {
+    this.version = 1;
+    return this.fetchMode().then(() => {
+        console.log('v1 server found - redirecting to legacy landmarker');
+        var url = require('url');
+        var u = url.parse(window.location.href, true);
+        u.pathname = '/v1/';
+        window.location.replace(url.format(u));
+    }, error);
+};
+
 Server.prototype.map = function (url) {
     var mapping;
     if (this.demoMode) {
@@ -82,18 +93,6 @@ Server.prototype.fetchTexture = function (assetId) {
 
 Server.prototype.fetchGeometry = function (assetId) {
     return getArrayBuffer(this.map(`meshes/${assetId}`));
-}
-
-Server.prototype.testV1 = function (fail) {
-    this.version = 1;
-    this.fetchMode().then(() => {
-        console.log('v1 server found - redirecting to legacy landmarker');
-        // we want to add v1 into the url and leave everything else the same
-        var url = require('url');
-        var u = url.parse(window.location.href, true);
-        u.pathname = '/v1/';
-        window.location.replace(url.format(u));
-    }, fail);
 }
 
 module.exports = Server;

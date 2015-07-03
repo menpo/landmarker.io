@@ -8,22 +8,12 @@
 var Backbone = require('backbone'),
     _ = require('underscore');
 
-var LOCALSTORAGE_EXISTS = (function () {
-    try {
-        localStorage.setItem('TEST_LS', 'TEST_LS');
-        localStorage.removeItem('TEST_LS');
-        return true;
-    } catch (e) {
-        console.log("Couldn't find localStorage");
-        return false;
-    }
-})();
+var support = require('../lib/support');
 
 var LOCALSTORAGE_KEY = 'LMIO#CONFIG';
 
 function Config ()  {
     this._data = {};
-    this.load();
 };
 
 Config.prototype.get = function (key) {
@@ -61,12 +51,12 @@ Config.prototype.set = function (arg1, arg2, arg3) {
 };
 
 Config.prototype.save = function () {
-    if (!LOCALSTORAGE_EXISTS) throw new Error('Missing localStorage');
+    if (!support.localstorage) return;
     localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(this._data));
 };
 
 Config.prototype.load = function () {
-    if (!LOCALSTORAGE_EXISTS) throw new Error('Missing localStorage');
+    if (!support.localstorage) return;
     var data = localStorage.getItem(LOCALSTORAGE_KEY);
     if (data) {
         this._data = JSON.parse(data);
@@ -76,7 +66,7 @@ Config.prototype.load = function () {
 };
 
 Config.prototype.clear = function () {
-    if (!LOCALSTORAGE_EXISTS) throw new Error('Missing localStorage');
+    if (!support.localstorage) return;
     localStorage.removeItem(LOCALSTORAGE_KEY);
     this._data = {};
 };

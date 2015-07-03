@@ -46,8 +46,6 @@ function _$fileOcticon (item) {
 
 var DropboxPicker = Modal.extend({
 
-    closable: false,
-
     events: {
         'click .DropboxSelectListItem': 'handleClick',
         'click .Back': 'back',
@@ -60,15 +58,18 @@ var DropboxPicker = Modal.extend({
         dropbox, submit,
         showFoldersOnly=false, showHidden=false,
         selectFoldersOnly=false, extensions=[],
-        selectFilesOnly=false
+        selectFilesOnly=false,
+        closable=false
     }) {
 
+        this.disposeOnClose = true;
         this.dropbox = dropbox;
         this.showFoldersOnly = showFoldersOnly;
         this.showHidden = showHidden;
         this.selectFoldersOnly = selectFoldersOnly;
         this.selectFilesOnly = !selectFoldersOnly && selectFilesOnly;
         this.extensions = extensions;
+        this.closable = !!closable;
 
         this._cache = {};
 

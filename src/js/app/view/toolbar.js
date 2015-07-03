@@ -153,7 +153,6 @@ exports.Toolbar = Backbone.View.extend({
             this.textureToggle = new TextureToggle({model: this.model});
         } else {
             // in image mode, we shouldn't even have these controls.
-            this.$el.find('#alphaRow').css("display", "none");
             this.$el.find('#textureRow').css("display", "none");
         }
     }

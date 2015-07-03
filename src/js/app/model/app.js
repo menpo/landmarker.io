@@ -8,8 +8,6 @@ var Backbone = require('backbone');
 var Landmark = require('./landmark'),
     AssetSource = require('./assetsource');
 
-var _instance = null;
-
 var App = Backbone.Model.extend({
 
     defaults: function () {
@@ -289,15 +287,4 @@ var App = Backbone.Model.extend({
 
 });
 
-module.exports = function (appInit) {
-    if (_instance) {
-        return _instance;
-    }
-
-    if (!appInit) {
-        throw new Error('App requires to be initialised');
-    }
-
-    _instance = new App(appInit);
-    return _instance;
-}
+module.exports = App;

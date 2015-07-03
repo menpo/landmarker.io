@@ -13,7 +13,6 @@ function Base () {}
     'fetchThumbnail',
     'fetchTexture',
     'fetchGeometry',
-
 ].forEach(function (name) {
     Base.prototype[name] = function () {
         throw new Error(`${name} instance method not implemented`);
