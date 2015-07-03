@@ -59,7 +59,8 @@ var DropboxPicker = Modal.extend({
         showFoldersOnly=false, showHidden=false,
         selectFoldersOnly=false, extensions=[],
         selectFilesOnly=false,
-        closable=false
+        closable=false,
+        root=undefined
     }) {
 
         this.disposeOnClose = true;
@@ -81,6 +82,10 @@ var DropboxPicker = Modal.extend({
             root: '/',
             currentList: [],
             history: []
+        }
+
+        if (root) {
+            this.state.root = root;
         }
 
         _.bindAll(this, 'fetch', 'makeList', 'update', 'select',

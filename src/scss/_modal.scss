@@ -99,3 +99,21 @@
       margin-right: 0;
     }
 }
+
+.ListPicker {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+        line-height: 48px;
+        padding: 0 1em;
+        cursor: pointer;
+        border-bottom: solid 1px #e5e5e5;
+        transition: all .25s ease-in-out;
+
+        &:hover {
+            background-color: #e5e5e5;
+        }
+    }
+}

@@ -7,6 +7,7 @@ var $ = require('jquery');
 var Notification = require('./notification');
 var { pad } = require('../lib/utils');
 var { Dropbox, Server } = require('../backend');
+var ListPicker = require('./list_picker');
 
 var AssetPagerView = Backbone.View.extend({
 
@@ -60,7 +61,18 @@ var AssetNameView = Backbone.View.extend({
     },
 
     chooseAssetName: function () {
-        console.log('AssetNameView:chooseAssetName');
+        const source = this.model.assetSource();
+        const assetsList = source.assets().map(function (asset, index) {
+            return [asset.id, index];
+        });
+
+        const picker = new ListPicker({
+            list: assetsList,
+            title: 'Select a new asset to load',
+            closable: true,
+            submit: this.model.goToAssetIndex.bind(this.model)
+        });
+        picker.open();
     }
 });
 
