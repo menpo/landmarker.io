@@ -226,24 +226,19 @@ var SaveRevertView = Backbone.View.extend({
 
     el: '#lmActionsPanel',
 
-    initialize : function() {
-        _.bindAll(this, 'render', 'save', 'help');
+    initialize : function({app}) {
+        _.bindAll(this, 'save', 'help');
         //this.listenTo(this.model, "all", this.render);
         // make a spinner to listen for save calls on these landmarks
         this.spinner = new Notification.LandmarkSavingNotification();
         // Get the singleton app model separately as model is the landmarks
-        this.app = require('../model/app')();
+        this.app = app;
     },
 
     events: {
         'click #save' : "save",
         'click #help' : "help",
         'click #download' : "download"
-    },
-
-    render: function () {
-        // TODO grey out save and revert as required
-        return this;
     },
 
     save: function () {
@@ -326,7 +321,7 @@ var Sidebar = Backbone.View.extend({
         if (lms === null) {
             return;
         }
-        this.saveRevertView = new SaveRevertView({model: lms});
+        this.saveRevertView = new SaveRevertView({model: lms, app: this.model});
         if (this.lmView) {
             this.lmView.cleanup();
         }

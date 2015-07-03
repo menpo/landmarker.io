@@ -54,10 +54,11 @@
     position: absolute;
     font-weight: bold;
     top: .75em;
-    right: .75em;
+    right: 1em;
+    color: #333;
 
     &:hover {
-        color: red;
+        color: #d64541;
     }
 }
 

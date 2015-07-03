@@ -419,17 +419,13 @@ function Handler () {
 
     // Keyboard handlers
     // ------------------------------------------------------------------------
-
-    var onKeypressTranslate = atomic.atomicOperation((evt) => {
-
-        // Only work in group selection mode, with landmarks
-        if (!groupSelected || !this.model.landmarks()) {
+    var onKeypress = atomic.atomicOperation((evt) => {
+        // Only work in group selection mode
+        if (
+            !groupSelected || !this.model.landmarks() ||
+            evt.which < 37 || evt.which > 40
+        ) {
             return;
-        }
-
-        // Deselect group on escape key
-        if (evt.which === 27) {
-            return setGroupSelected(false);
         }
 
         // Up and down are inversed due to the way THREE handles coordinates
@@ -486,10 +482,10 @@ function Handler () {
 
         if (_val) {
             // Use keydown as keypress doesn't register arrows in some context
-            $(window).on('keydown', onKeypressTranslate);
+            $(window).on('keydown', onKeypress);
         } else {
             this.deselectAll();
-            $(window).off('keydown', onKeypressTranslate);
+            $(window).off('keydown', onKeypress);
         }
 
         this.clearCanvas();

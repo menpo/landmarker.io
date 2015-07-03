@@ -21,12 +21,14 @@ var Modal = Backbone.View.extend({
         this.key = _key();
         this.id = `modalWindow$$${this.key}`;
         this.isOpen = false;
+        this.disposeOnClose = !!opts.disposeOnClose
 
         _modals[this.key] = this;
 
         if (opts.title) {
             this.title = opts.title;
         }
+
 
         this.init(opts);
 
@@ -44,8 +46,10 @@ var Modal = Backbone.View.extend({
         this.$el.attr('id', this.id);
 
         if (this.closable) {
-            this.$el.append($("<div class='close'>&times;</div>"));
-            this.$el.on('click .close', this.close);
+            this.$el.append(
+                $("<div class='ModalWindow__Close'>&times;</div>")
+            );
+            this.$el.find('.ModalWindow__Close').on('click', this.close);
         }
 
 
@@ -75,23 +79,21 @@ var Modal = Backbone.View.extend({
         _activeModal = this.key;
     },
 
-    close: function (modalOnly=false) {
+    _close: function () {
         if (this.isOpen) {
             this.isOpen = false;
             _activeModal = undefined;
             this.$el.removeClass(`${this.className}--Open`);
-            if (!modalOnly) {
-                $(this.container).removeClass('ModalsWrapper--Open');
-            }
+            $(this.container).removeClass('ModalsWrapper--Open');
         }
     },
 
+    close: function () {
+        (this.disposeOnClose ? this.dispose : this._close)();
+    },
+
     dispose: function () {
-        this.close();
-        if (_activeModal === this) {
-            _activeModal === undefined;
-            $(this.container).removeClass('ModalsWrapper--Open');
-        }
+        this._close();
         delete _modals[this];
         this.remove();
     },
@@ -112,7 +114,6 @@ var SelectModal = Modal.extend({
     init: function ({closable=false, actions=[], disposeAfter=true}) {
         this.closable = closable;
         this.actions = actions;
-        this.disposeAfter = disposeAfter;
     },
 
     content: function () {
@@ -131,14 +132,15 @@ var SelectModal = Modal.extend({
             $(`#ModalOption_${this.key}_${index}`).on('click', () => {
                 if (this.isOpen) {
                     func();
-                }
-
-                if (this.disposeAfter) {
-                    this.dispose();
+                    this.close();
                 }
             });
         });
     }
 });
 
-module.exports = { Modal, SelectModal };
+function activeModal () {
+    return _modals[_activeModal];
+}
+
+module.exports = { Modal, SelectModal, activeModal };

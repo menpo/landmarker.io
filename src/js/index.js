@@ -5,12 +5,12 @@ var $ = require('jquery'),
     THREE = require('three');
 
 var utils = require('./app/lib/utils');
+var support = require('./app/lib/support');
 var Notification = require('./app/view/notification');
 var cfg = require('./app/model/config')();
 
 var DropboxPicker = require('./app/view/dropbox_picker'),
-    { SelectModal } = require('./app/view/modal'),
-    { notify } = require('./app/view/notification');
+    { SelectModal, activeModal } = require('./app/view/modal');
 
 var Backend = require('./app/backend');
 
@@ -42,29 +42,7 @@ function resolveBackend (u) {
         u.search = null;
         history.replaceState(null, null, url.format(u).replace('?', '#'));
 
-        let selector = new SelectModal({
-            closable: false,
-            disposeAfter: false,
-            title: 'Select a datasource',
-            actions: [
-                ['Dropbox', function () {
-                    var [dropUrl, state] = Backend.Dropbox.authorize();
-                    cfg.set({
-                        'OAUTH_STATE': state,
-                        'BACKEND_TYPE': Backend.Dropbox.Type
-                    }, true);
-                    window.location.replace(dropUrl);
-                }], ['Managed Server', function () {
-                    let u = window.prompt(
-                        'Please provide the url for the landmarker server');
-                    if (u) {
-                        restart(u);
-                    }
-                }], ['Demo Mode', restart.bind(undefined, 'demo')]
-            ]
-        });
-
-        return selector.open();
+        return showSelection();
     }
 
     switch (backendType) {
@@ -83,11 +61,43 @@ function restart (serverUrl) {
     window.location.replace(restartUrl);
 }
 
+var goToDemo = restart.bind(undefined, 'demo');
+
+function showSelection () {
+    cfg.clear();
+    history.replaceState(null, null, window.location.origin);
+    let selector = new SelectModal({
+        closable: false,
+        disposeOnClose: true,
+        title: 'Select a datasource',
+        actions: [
+            ['Dropbox', function () {
+                if (!support.localstorage) {
+                    retry(`You browser doesn't support localstorage which is required for Dropbox login`);
+                }
+                var [dropUrl, state] = Backend.Dropbox.authorize();
+                cfg.set({
+                    'OAUTH_STATE': state,
+                    'BACKEND_TYPE': Backend.Dropbox.Type
+                }, true);
+                window.location.replace(dropUrl);
+            }], ['Managed Server', function () {
+                let u = window.prompt(
+                    'Please provide the url for the landmarker server');
+                if (u) {
+                    restart(u);
+                }
+            }], ['Demo Mode', goToDemo]
+        ]
+    });
+
+    return selector.open();
+}
+
 function retry (msg) {
     Notification.notify({
         msg, type: 'error', persist: true,
-        actions: [ ['Restart', restart],
-                   ['Go to Demo', restart.bind(null, 'demo')] ]
+        actions: [['Restart', restart], ['Go to Demo', goToDemo]]
     });
 }
 
@@ -121,14 +131,28 @@ function _loadDropbox (u) {
             u.search = null;
             history.replaceState(null, null, url.format(u).replace('?', '#'));
         } else {
-            retry('Incorrect dropbox redirect URL');
+            Notification.notify({
+                msg: 'Incorrect Dropbox redirect URL',
+                type: 'error'
+            });
+            showSelection();
         }
     } else if (token) {
         dropbox = new Backend.Dropbox(token, cfg);
     }
 
     if (dropbox) {
-        _loadDropboxAssets(dropbox);
+        return dropbox.accountInfo().then(function () {
+            _loadDropboxAssets(dropbox)
+        }, function () {
+            Notification.notify({
+                msg: 'Could not reach Dropbox servers',
+                type: 'error'
+            });
+            showSelection();
+        });
+    } else {
+        showSelection();
     }
 };
 
@@ -178,22 +202,18 @@ function _loadDropboxTemplate (dropbox) {
 function resolveMode (server) {
     server.fetchMode().then(function (mode) {
         if (mode === 'mesh' || mode === 'image') {
-            console.log(`Successfully found mode: ${mode}`);
+            initLandmarker(server, mode);
         } else {
-            console.log('Error unknown mode - terminating');
+            retry('Received invalid mode', mode);
         }
-        initLandmarker(server, mode);
     }, function () {
-        retry(`Couldn't get mode from server`);
-
         if (server instanceof Backend.Server) {
-            // could be that there is an old v1 server, let's check
-            server.testV1(function () {
-                console.log("Error - couldn't get mode (even in legacy v1)");
+            server.testForV1(function () {
+                retry(`Couldn't get mode from server`);
             });
+        } else {
+            retry(`Couldn't get mode from server`);
         }
-
-        return;
     });
 }
 
@@ -230,7 +250,7 @@ function initLandmarker(server, mode) {
         appInit._assetIndex = u.query.i - 1;
     }
 
-    var app = App(appInit);
+    var app = new App(appInit);
 
     var SidebarView = require('./app/view/sidebar');
     var AssetView = require('./app/view/asset');
@@ -250,7 +270,6 @@ function initLandmarker(server, mode) {
 
     app.on('change:asset', function () {
        console.log('Index: the asset has changed');
-        // var mesh = viewport.mesh;
         viewport.removeMeshIfPresent();
         if (prevAsset !== null) {
             // clean up previous asset
@@ -258,10 +277,6 @@ function initLandmarker(server, mode) {
             console.log('Before dispose: ' + viewport.memoryString());
             prevAsset.dispose();
             console.log('After dispose: ' + viewport.memoryString());
-
-            // if (mesh !== null) {
-            //     mesh.dispose();
-            // }
         }
         prevAsset = app.asset();
     });
@@ -270,6 +285,8 @@ function initLandmarker(server, mode) {
     var historyUpdate = new History.HistoryUpdate({model: app});
 
     // ----- KEYBOARD HANDLER ----- //
+
+    // Non escape keys
     $(window).keypress(function(e) {
         var key = e.which;
         switch (key) {
@@ -319,6 +336,22 @@ function initLandmarker(server, mode) {
                 break;
         }
     });
+
+    // Escape key
+    $(window).on('keydown', function (evt) {
+
+        if (evt.which !== 27) {
+            return;
+        }
+
+        const modal = activeModal();
+        if (modal) {
+            return modal.close();
+        }
+
+        app.landmarks().deselectAll();
+        $('#viewportContainer').trigger("groupDeselected");
+    });
 }
 
 function handleNewVersion () {
@@ -336,13 +369,16 @@ function handleNewVersion () {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // Check for new version (vs current appcache retrieved version)
+    window.applicationCache.addEventListener('updateready', handleNewVersion);
+    if(window.applicationCache.status === window.applicationCache.UPDATEREADY) {
+        handleNewVersion();
+    }
+
     // Test for IE
-    if (
-        /MSIE (\d+\.\d+);/.test(navigator.userAgent) || !!navigator.userAgent.match(/Trident.*rv[ :]*11\./)
-    ) {
+    if (support.ie) {
         // Found IE, do user agent detection for now
         // https://github.com/menpo/landmarker.io/issues/75 for progess
-        $('.App-Flex-Horiz').css('min-height', '100vh');
         return Notification.notify({
             msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
             persist: true,
@@ -351,28 +387,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Test for webgl
-    var webglSupported = ( function () {
-        try {
-            var canvas = document.createElement('canvas');
-            return !! (
-                window.WebGLRenderingContext &&
-                ( canvas.getContext('webgl') ||
-                  canvas.getContext('experimental-webgl') )
-            );
-        } catch ( e ) { return false; } } )();
-
-    if (!webglSupported) {
+    if (!support.webgl) {
         return Notification.notify({
             msg: $('<p>It seems your browser doesn\'t support WebGL, which is needed by landmarker.io.<br/>Please visit <a href="https://get.webgl.org/">https://get.webgl.org/</a> for more information<p>'),
             persist: true,
             type: 'error'
         });
-    }
-
-    // Check for new version (vs current appcache retrieved version)
-    window.applicationCache.addEventListener('updateready', handleNewVersion);
-    if(window.applicationCache.status === window.applicationCache.UPDATEREADY) {
-      handleNewVersion();
     }
 
     // Temporary message for v1.5.0
