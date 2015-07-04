@@ -7,23 +7,38 @@ var Backbone = require('backbone'),
 var _modals = {},
     _activeModal = undefined;
 
+/**
+ * Generate a pseudo-random key
+ * @return {Number}
+ */
 function _key () {
     return (new Date()).getTime() + Math.floor(Math.random()) * 1000;
 }
 
+/**
+ * Modal
+ * Extend this View class to display custom windows.
+ *
+ * Only one modal is displayed at any given time and accessible with
+ * Modal.active(), it is tracked in this closure.
+ *
+ * Only the init, content and afterRender methods should be overridden
+ * in subclasses.
+ *
+ */
 var Modal = Backbone.View.extend({
     tagName: 'div',
     container: '#modalsWrapper',
     className: 'ModalWindow',
-    closable: true,
 
     initialize: function (opts={}) {
         this.key = _key();
-        this.id = `modalWindow$$${this.key}`;
-        this.isOpen = false;
-        this.disposeOnClose = !!opts.disposeOnClose
-
         _modals[this.key] = this;
+
+        this.id = `modalWindow:{this.key}`;
+        this.isOpen = false;
+        this.closable = !!opts.closable;
+        this.disposeOnClose = !!opts.disposeOnClose
 
         if (opts.title) {
             this.title = opts.title;
@@ -34,11 +49,12 @@ var Modal = Backbone.View.extend({
 
         _.bindAll(
             this,
-            'render', 'dispose', 'close', 'open',
+            'render', 'dispose', 'close', 'open', '_close', 'isActive',
             'content', 'init', 'afterRender'
         );
 
         this.render();
+        this.afterRender();
     },
 
     render: function () {
@@ -66,13 +82,12 @@ var Modal = Backbone.View.extend({
         }
 
         this.$el.appendTo(this.container);
-        this.afterRender();
     },
 
     open: function () {
         this.isOpen = true;
         if (_activeModal) {
-            _modals[_activeModal].close(true);
+            _modals[_activeModal].close();
         }
         $(this.container).addClass('ModalsWrapper--Open');
         this.$el.addClass(`${this.className}--Open`);
@@ -98,49 +113,28 @@ var Modal = Backbone.View.extend({
         this.remove();
     },
 
-    // Implement these method as well as events in your subclass of Modal to
-    // populate the modal
+    isActive: function () {
+        return this.key === _activeModal;
+    },
+
+    // Implement these method as well as events in your subclass
+    // -------------------------------------------------------------------------
+
+    // Generate the jQuey object to be appended as body of the modal
     content: function () {
         throw new Error(
             'Not implemented, add a content function to your implementation');
     },
 
+    // Is called before render and passed the object received by initialize
     init: function (opts) {},
+
+    // Called after render with no arguments
     afterRender: function () {}
 });
 
-var SelectModal = Modal.extend({
-
-    init: function ({closable=false, actions=[], disposeAfter=true}) {
-        this.closable = closable;
-        this.actions = actions;
-    },
-
-    content: function () {
-        let $div = $(`<div class='ModalOptions'></div>`);
-        this.actions.forEach(([text, func], index) => {
-            $div.append(`\
-                <div class='ModalOption' id='ModalOption_${this.key}_${index}'>\
-                    ${text}\
-                </div>`);
-        });
-        return $div;
-    },
-
-    afterRender: function () {
-        this.actions.forEach(([text, func], index) => {
-            $(`#ModalOption_${this.key}_${index}`).on('click', () => {
-                if (this.isOpen) {
-                    func();
-                    this.close();
-                }
-            });
-        });
-    }
-});
-
-function activeModal () {
+Modal.active = function () {
     return _modals[_activeModal];
 }
 
-module.exports = { Modal, SelectModal, activeModal };
+module.exports = Modal;
