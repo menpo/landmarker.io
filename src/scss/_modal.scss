@@ -74,6 +74,25 @@
     padding-right: 2em;
 }
 
+.ModalWindow__Content {
+
+  > input {
+      margin: .25em 0;
+      padding: 0 1em;
+      line-height: 48px;
+      border: 1px solid #e5e5e5;
+      border-radius: 1px;
+      outline: none;
+      width: 100%;
+      transition: all .25s ease-in-out;
+
+      &:active,
+      &:focus {
+          border: 1px solid #1690e5;
+      }
+  }
+}
+
 .ModalOptions {
     display: flex;
     flex-direction: row;
@@ -101,19 +120,32 @@
 }
 
 .ListPicker {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
+
+    ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
 
     li {
         line-height: 48px;
+        max-height: 256px;
         padding: 0 1em;
         cursor: pointer;
         border-bottom: solid 1px #e5e5e5;
         transition: all .25s ease-in-out;
+        opacity: 1;
+        visibility: visible;
+        transform: translate3d(0,0,0);
 
         &:hover {
             background-color: #e5e5e5;
+        }
+
+        &.Hidden {
+            opacity: 0;
+            visibility: hidden;
+            max-height: 0;
         }
     }
 }

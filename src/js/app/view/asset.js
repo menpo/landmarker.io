@@ -57,6 +57,9 @@ var AssetNameView = Backbone.View.extend({
 
     render: function () {
         this.$el.html(this.model.asset().id);
+        if (this.model.assetSource().nAssets() <= 1) {
+            this.$el.addClass('Disabled');
+        }
         return this;
     },
 
@@ -66,10 +69,15 @@ var AssetNameView = Backbone.View.extend({
             return [asset.id, index];
         });
 
+        if (assetsList.length <= 1) {
+            return;
+        }
+
         const picker = new ListPicker({
             list: assetsList,
             title: 'Select a new asset to load',
             closable: true,
+            useFilter: true,
             submit: this.model.goToAssetIndex.bind(this.model)
         });
         picker.open();
@@ -94,10 +102,18 @@ var AssetIndexView = Backbone.View.extend({
         var n_str = pad(this.model.assetSource().nAssets(), 2);
         var i_str = pad(this.model.assetIndex() + 1, 2);
         this.$el.html(i_str + "/" + n_str);
+        if (this.model.assetSource().nAssets() <= 1) {
+            this.$el.addClass('Disabled');
+        }
         return this;
     },
 
     chooseAssetNumber: function () {
+
+        if (this.model.assetSource().nAssets() <= 1) {
+            return;
+        }
+
         var newIndex = window.prompt(
             "Input asset index:", pad(this.model.assetIndex() + 1, 2));
 
@@ -137,6 +153,9 @@ var CollectionName = Backbone.View.extend({
 
     render: function () {
         this.$el.html(this.model.activeCollection() || 'No Collection');
+        if (this.model.assetSource().nAssets() <= 1) {
+            this.$el.addClass('Disabled');
+        }
         return this;
     },
 
