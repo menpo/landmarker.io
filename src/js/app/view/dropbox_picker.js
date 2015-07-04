@@ -7,40 +7,41 @@ var Backbone = require('backbone'),
 
 var { basename, extname } = require('../lib/utils');
 
-var { Modal } = require('./modal');
+var Modal = require('./modal');
 
-function _$fileOcticon (item) {
+const _icons = {
+    'folder': 'file-directory',
 
-    let extension = item.is_dir ? 'folder' :
-                    !!item.mime_type ? item.mime_type.split('/').pop() :
-                    extname(item.path);
-    let icon = {
-        'folder': 'file-directory',
+    'yaml': 'file-code',
+    'yml': 'file-code',
+    'json': 'file-code',
+    'ljson': 'file-code',
+    'html': 'file-code',
 
-        'yaml': 'file-code',
-        'yml': 'file-code',
-        'json': 'file-code',
-        'html': 'file-code',
+    'pdf': 'file-pdf',
 
-        'pdf': 'file-pdf',
+    'txt': 'file-text',
+    'plain': 'file-text',
+    'text': 'file-text',
+    'md': 'file-text',
+    'markdown': 'file-text',
 
-        'txt': 'file-text',
-        'plain': 'file-text',
-        'text': 'file-text',
-        'md': 'file-text',
-        'markdown': 'file-text',
+    'raw': 'file-media',
 
-        'raw': 'file-media',
+    'jpg': 'device-camera',
+    'jpeg': 'device-camera',
+    'png': 'device-camera'
+};
 
-        'jpg': 'device-camera',
-        'jpeg': 'device-camera',
-        'png': 'device-camera'
-    }[extension];
-
-    if (!icon) {
-        icon = 'file-binary';
+function Icon (item) {
+    let ext;
+    if (typeof item === 'string') {
+        ext = extname(item);
+    } else {
+        ext = item.is_dir ? 'folder' : extname(item.path);
     }
 
+    const icon = _icons[ext] || 'file-binary';
     return $(`<span class='octicon octicon-${icon}'></span>`);
 }
 
@@ -56,11 +57,8 @@ var DropboxPicker = Modal.extend({
 
     init: function ({
         dropbox, submit,
-        showFoldersOnly=false, showHidden=false,
-        selectFoldersOnly=false, extensions=[],
-        selectFilesOnly=false,
-        closable=false,
-        root=undefined
+        showFoldersOnly=false, showHidden=false, selectFoldersOnly=false,
+        extensions=[], selectFilesOnly=false, root=undefined
     }) {
 
         this.disposeOnClose = true;
@@ -70,7 +68,6 @@ var DropboxPicker = Modal.extend({
         this.selectFoldersOnly = selectFoldersOnly;
         this.selectFilesOnly = !selectFoldersOnly && selectFilesOnly;
         this.extensions = extensions;
-        this.closable = !!closable;
 
         this._cache = {};
 
@@ -164,7 +161,7 @@ var DropboxPicker = Modal.extend({
                 $item.addClass('Disabled');
             }
 
-            $item.prepend(_$fileOcticon(item));
+            $item.prepend(Icon(item));
             $item.appendTo($list);
         });
 

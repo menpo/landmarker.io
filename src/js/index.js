@@ -10,7 +10,8 @@ var Notification = require('./app/view/notification');
 var cfg = require('./app/model/config')();
 
 var DropboxPicker = require('./app/view/dropbox_picker'),
-    { SelectModal, activeModal } = require('./app/view/modal');
+    Modal = require('./app/view/modal'),
+    SelectModal = require('./app/view/select_modal');
 
 var Backend = require('./app/backend');
 
@@ -344,7 +345,7 @@ function initLandmarker(server, mode) {
             return;
         }
 
-        const modal = activeModal();
+        const modal = Modal.active();
         if (modal) {
             return modal.close();
         }

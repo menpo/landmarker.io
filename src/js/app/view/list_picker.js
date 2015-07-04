@@ -7,7 +7,7 @@ var Backbone = require('backbone'),
 
 var { basename, extname } = require('../lib/utils');
 
-var { Modal } = require('./modal');
+var Modal = require('./modal');
 
 var ListPicker = Modal.extend({
 
@@ -15,12 +15,7 @@ var ListPicker = Modal.extend({
         'click li': 'click'
     },
 
-    init: function ({
-        list,
-        submit,
-        closable=false
-    }) {
-        this.disposeOnClose = true;
+    init: function ({list, submit}) {
         this.list = list;
         this.submit = submit;
     },
@@ -41,7 +36,7 @@ var ListPicker = Modal.extend({
     click: function (evt) {
         const idx = evt.currentTarget.dataset.index;
         this.submit(this.list[idx][1]);
-        this.dispose();
+        this.close();
     }
 });
 
