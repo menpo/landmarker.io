@@ -36,12 +36,9 @@ var support = require('./app/lib/support');
 var Notification = require('./app/view/notification');
 var cfg = require('./app/model/config')();
 
-var DropboxPicker = require('./app/view/dropbox_picker');
-
-var _require = require('./app/view/modal');
-
-var SelectModal = _require.SelectModal;
-var activeModal = _require.activeModal;
+var DropboxPicker = require('./app/view/dropbox_picker'),
+    Modal = require('./app/view/modal'),
+    SelectModal = require('./app/view/select_modal');
 
 var Backend = require('./app/backend');
 
@@ -322,6 +319,11 @@ function initLandmarker(server, mode) {
 
     // Non escape keys
     $(window).keypress(function (e) {
+
+        if ($(e.target).closest('input')[0]) {
+            return;
+        }
+
         var key = e.which;
         switch (key) {
             case 100:
@@ -390,7 +392,7 @@ function initLandmarker(server, mode) {
             return;
         }
 
-        var modal = activeModal();
+        var modal = Modal.active();
         if (modal) {
             return modal.close();
         }
@@ -457,7 +459,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resolveBackend(u);
 });
 
-},{"./app/backend":47,"./app/lib/support":51,"./app/lib/utils":52,"./app/model/app":53,"./app/model/config":57,"./app/view/asset":61,"./app/view/dropbox_picker":62,"./app/view/help":63,"./app/view/history":64,"./app/view/modal":66,"./app/view/notification":67,"./app/view/sidebar":68,"./app/view/toolbar":69,"./app/view/viewport":73,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
+},{"./app/backend":47,"./app/lib/support":51,"./app/lib/utils":52,"./app/model/app":53,"./app/model/config":57,"./app/view/asset":61,"./app/view/dropbox_picker":62,"./app/view/help":63,"./app/view/history":64,"./app/view/modal":66,"./app/view/notification":67,"./app/view/select_modal":68,"./app/view/sidebar":69,"./app/view/toolbar":70,"./app/view/viewport":74,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.2.1
 
@@ -61707,6 +61709,9 @@ var AssetNameView = Backbone.View.extend({
 
     render: function render() {
         this.$el.html(this.model.asset().id);
+        if (this.model.assetSource().nAssets() <= 1) {
+            this.$el.addClass('Disabled');
+        }
         return this;
     },
 
@@ -61716,10 +61721,15 @@ var AssetNameView = Backbone.View.extend({
             return [asset.id, index];
         });
 
+        if (assetsList.length <= 1) {
+            return;
+        }
+
         var picker = new ListPicker({
             list: assetsList,
             title: 'Select a new asset to load',
             closable: true,
+            useFilter: true,
             submit: this.model.goToAssetIndex.bind(this.model)
         });
         picker.open();
@@ -61743,10 +61753,18 @@ var AssetIndexView = Backbone.View.extend({
         var n_str = pad(this.model.assetSource().nAssets(), 2);
         var i_str = pad(this.model.assetIndex() + 1, 2);
         this.$el.html(i_str + '/' + n_str);
+        if (this.model.assetSource().nAssets() <= 1) {
+            this.$el.addClass('Disabled');
+        }
         return this;
     },
 
     chooseAssetNumber: function chooseAssetNumber() {
+
+        if (this.model.assetSource().nAssets() <= 1) {
+            return;
+        }
+
         var newIndex = window.prompt('Input asset index:', pad(this.model.assetIndex() + 1, 2));
 
         if (newIndex === null) {
@@ -61786,6 +61804,9 @@ var CollectionName = Backbone.View.extend({
 
     render: function render() {
         this.$el.html(this.model.activeCollection() || 'No Collection');
+        if (this.model.assetSource().nAssets() <= 1) {
+            this.$el.addClass('Disabled');
+        }
         return this;
     },
 
@@ -61836,40 +61857,41 @@ var _require = require('../lib/utils');
 var basename = _require.basename;
 var extname = _require.extname;
 
-var _require2 = require('./modal');
+var Modal = require('./modal');
 
-var Modal = _require2.Modal;
+var _icons = {
+    'folder': 'file-directory',
 
-function _$fileOcticon(item) {
+    'yaml': 'file-code',
+    'yml': 'file-code',
+    'json': 'file-code',
+    'ljson': 'file-code',
+    'html': 'file-code',
 
-    var extension = item.is_dir ? 'folder' : !!item.mime_type ? item.mime_type.split('/').pop() : extname(item.path);
-    var icon = ({
-        'folder': 'file-directory',
+    'pdf': 'file-pdf',
 
-        'yaml': 'file-code',
-        'yml': 'file-code',
-        'json': 'file-code',
-        'html': 'file-code',
+    'txt': 'file-text',
+    'plain': 'file-text',
+    'text': 'file-text',
+    'md': 'file-text',
+    'markdown': 'file-text',
 
-        'pdf': 'file-pdf',
+    'raw': 'file-media',
 
-        'txt': 'file-text',
-        'plain': 'file-text',
-        'text': 'file-text',
-        'md': 'file-text',
-        'markdown': 'file-text',
+    'jpg': 'device-camera',
+    'jpeg': 'device-camera',
+    'png': 'device-camera'
+};
 
-        'raw': 'file-media',
-
-        'jpg': 'device-camera',
-        'jpeg': 'device-camera',
-        'png': 'device-camera'
-    })[extension];
-
-    if (!icon) {
-        icon = 'file-binary';
+function Icon(item) {
+    var ext = undefined;
+    if (typeof item === 'string') {
+        ext = extname(item);
+    } else {
+        ext = item.is_dir ? 'folder' : extname(item.path);
     }
 
+    var icon = _icons[ext] || 'file-binary';
     return $('<span class=\'octicon octicon-' + icon + '\'></span>');
 }
 
@@ -61896,8 +61918,6 @@ var DropboxPicker = Modal.extend({
         var extensions = _ref$extensions === undefined ? [] : _ref$extensions;
         var _ref$selectFilesOnly = _ref.selectFilesOnly;
         var selectFilesOnly = _ref$selectFilesOnly === undefined ? false : _ref$selectFilesOnly;
-        var _ref$closable = _ref.closable;
-        var closable = _ref$closable === undefined ? false : _ref$closable;
         var _ref$root = _ref.root;
         var root = _ref$root === undefined ? undefined : _ref$root;
 
@@ -61908,7 +61928,6 @@ var DropboxPicker = Modal.extend({
         this.selectFoldersOnly = selectFoldersOnly;
         this.selectFilesOnly = !selectFoldersOnly && selectFilesOnly;
         this.extensions = extensions;
-        this.closable = !!closable;
 
         this._cache = {};
 
@@ -61996,7 +62015,7 @@ var DropboxPicker = Modal.extend({
                 $item.addClass('Disabled');
             }
 
-            $item.prepend(_$fileOcticon(item));
+            $item.prepend(Icon(item));
             $item.appendTo($list);
         });
 
@@ -62258,29 +62277,46 @@ var _require = require('../lib/utils');
 var basename = _require.basename;
 var extname = _require.extname;
 
-var _require2 = require('./modal');
-
-var Modal = _require2.Modal;
+var Modal = require('./modal');
 
 var ListPicker = Modal.extend({
 
     events: {
-        'click li': 'click'
+        'click li': 'click',
+        'keydown input': 'filter'
     },
 
     init: function init(_ref) {
         var list = _ref.list;
         var submit = _ref.submit;
-        var _ref$closable = _ref.closable;
-        var closable = _ref$closable === undefined ? false : _ref$closable;
+        var useFilter = _ref.useFilter;
 
-        this.disposeOnClose = true;
         this.list = list;
+        this._list = list;
         this.submit = submit;
+        this.useFilter = !!useFilter;
+        _.bindAll(this, 'filter');
     },
 
+    filter: _.debounce(function (evt) {
+        var value = evt.currentTarget.value.toLowerCase();
+        this.$el.find('li').each(function (index, li) {
+            if (li.dataset.value.toLowerCase().indexOf(value) > -1) {
+                $(li).removeClass('Hidden');
+            } else {
+                $(li).addClass('Hidden');
+            }
+        });
+    }, 100),
+
     content: function content() {
-        var $content = $('<ul class=\'ListPicker\'></ul>');
+        var $content = $('<div class=\'ListPicker\'></div>');
+
+        if (this.useFilter) {
+            $content.append('<input placeholder=\'Search\'/>');
+        }
+
+        var $ul = $('<ul></ul>');
         this.list.forEach(function (_ref2, index) {
             var _ref22 = _slicedToArray(_ref2, 2);
 
@@ -62290,17 +62326,19 @@ var ListPicker = Modal.extend({
             if (content instanceof $) {
                 var $li = $('<li data-index=\'' + index + '\'></li>');
                 $li.append(content);
+                $ul.append($li);
             } else {
-                $content.append($('<li data-index=\'' + index + '\'>' + content + '</li>'));
+                $ul.append($('<li data-value=\'' + content + '\' data-index=\'' + index + '\'>' + content + '</li>'));
             }
         });
+        $content.append($ul);
         return $content;
     },
 
     click: function click(evt) {
         var idx = evt.currentTarget.dataset.index;
         this.submit(this.list[idx][1]);
-        this.dispose();
+        this.close();
     }
 });
 
@@ -62309,32 +62347,6 @@ module.exports = ListPicker;
 },{"../lib/utils":52,"./modal":66,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],66:[function(require,module,exports){
 'use strict';
 
-var _slicedToArray = (function () {
-    function sliceIterator(arr, i) {
-        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
-            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
-                _arr.push(_s.value);if (i && _arr.length === i) break;
-            }
-        } catch (err) {
-            _d = true;_e = err;
-        } finally {
-            try {
-                if (!_n && _i['return']) _i['return']();
-            } finally {
-                if (_d) throw _e;
-            }
-        }return _arr;
-    }return function (arr, i) {
-        if (Array.isArray(arr)) {
-            return arr;
-        } else if (Symbol.iterator in Object(arr)) {
-            return sliceIterator(arr, i);
-        } else {
-            throw new TypeError('Invalid attempt to destructure non-iterable instance');
-        }
-    };
-})();
-
 var Backbone = require('backbone'),
     _ = require('underscore'),
     $ = require('jquery');
@@ -62342,25 +62354,40 @@ var Backbone = require('backbone'),
 var _modals = {},
     _activeModal = undefined;
 
+/**
+ * Generate a pseudo-random key
+ * @return {Number}
+ */
 function _key() {
     return new Date().getTime() + Math.floor(Math.random()) * 1000;
 }
 
+/**
+ * Modal
+ * Extend this View class to display custom windows.
+ *
+ * Only one modal is displayed at any given time and accessible with
+ * Modal.active(), it is tracked in this closure.
+ *
+ * Only the init, content and afterRender methods should be overridden
+ * in subclasses.
+ *
+ */
 var Modal = Backbone.View.extend({
     tagName: 'div',
     container: '#modalsWrapper',
     className: 'ModalWindow',
-    closable: true,
 
     initialize: function initialize() {
         var opts = arguments[0] === undefined ? {} : arguments[0];
 
         this.key = _key();
-        this.id = 'modalWindow$$' + this.key;
-        this.isOpen = false;
-        this.disposeOnClose = !!opts.disposeOnClose;
-
         _modals[this.key] = this;
+
+        this.id = 'modalWindow:{this.key}';
+        this.isOpen = false;
+        this.closable = !!opts.closable;
+        this.disposeOnClose = !!opts.disposeOnClose;
 
         if (opts.title) {
             this.title = opts.title;
@@ -62368,9 +62395,10 @@ var Modal = Backbone.View.extend({
 
         this.init(opts);
 
-        _.bindAll(this, 'render', 'dispose', 'close', 'open', 'content', 'init', 'afterRender');
+        _.bindAll(this, 'render', 'dispose', 'close', 'open', '_close', 'isActive', 'content', 'init', 'afterRender');
 
         this.render();
+        this.afterRender();
     },
 
     render: function render() {
@@ -62393,13 +62421,12 @@ var Modal = Backbone.View.extend({
         }
 
         this.$el.appendTo(this.container);
-        this.afterRender();
     },
 
     open: function open() {
         this.isOpen = true;
         if (_activeModal) {
-            _modals[_activeModal].close(true);
+            _modals[_activeModal].close();
         }
         $(this.container).addClass('ModalsWrapper--Open');
         this.$el.addClass(this.className + '--Open');
@@ -62425,69 +62452,30 @@ var Modal = Backbone.View.extend({
         this.remove();
     },
 
-    // Implement these method as well as events in your subclass of Modal to
-    // populate the modal
+    isActive: function isActive() {
+        return this.key === _activeModal;
+    },
+
+    // Implement these method as well as events in your subclass
+    // -------------------------------------------------------------------------
+
+    // Generate the jQuey object to be appended as body of the modal
     content: function content() {
         throw new Error('Not implemented, add a content function to your implementation');
     },
 
+    // Is called before render and passed the object received by initialize
     init: function init(opts) {},
+
+    // Called after render with no arguments
     afterRender: function afterRender() {}
 });
 
-var SelectModal = Modal.extend({
-
-    init: function init(_ref) {
-        var _ref$closable = _ref.closable;
-        var closable = _ref$closable === undefined ? false : _ref$closable;
-        var _ref$actions = _ref.actions;
-        var actions = _ref$actions === undefined ? [] : _ref$actions;
-        var _ref$disposeAfter = _ref.disposeAfter;
-        var disposeAfter = _ref$disposeAfter === undefined ? true : _ref$disposeAfter;
-
-        this.closable = closable;
-        this.actions = actions;
-    },
-
-    content: function content() {
-        var _this = this;
-
-        var $div = $('<div class=\'ModalOptions\'></div>');
-        this.actions.forEach(function (_ref2, index) {
-            var _ref22 = _slicedToArray(_ref2, 2);
-
-            var text = _ref22[0];
-            var func = _ref22[1];
-
-            $div.append('                <div class=\'ModalOption\' id=\'ModalOption_' + _this.key + '_' + index + '\'>                    ' + text + '                </div>');
-        });
-        return $div;
-    },
-
-    afterRender: function afterRender() {
-        var _this2 = this;
-
-        this.actions.forEach(function (_ref3, index) {
-            var _ref32 = _slicedToArray(_ref3, 2);
-
-            var text = _ref32[0];
-            var func = _ref32[1];
-
-            $('#ModalOption_' + _this2.key + '_' + index).on('click', function () {
-                if (_this2.isOpen) {
-                    func();
-                    _this2.close();
-                }
-            });
-        });
-    }
-});
-
-function activeModal() {
+Modal.active = function () {
     return _modals[_activeModal];
-}
+};
 
-module.exports = { Modal: Modal, SelectModal: SelectModal, activeModal: activeModal };
+module.exports = Modal;
 
 },{"backbone":2,"jquery":9,"underscore":44}],67:[function(require,module,exports){
 'use strict';
@@ -62821,6 +62809,80 @@ module.exports.loading = {
 },{"../lib/utils":52,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],68:[function(require,module,exports){
 'use strict';
 
+var _slicedToArray = (function () {
+    function sliceIterator(arr, i) {
+        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
+            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+                _arr.push(_s.value);if (i && _arr.length === i) break;
+            }
+        } catch (err) {
+            _d = true;_e = err;
+        } finally {
+            try {
+                if (!_n && _i['return']) _i['return']();
+            } finally {
+                if (_d) throw _e;
+            }
+        }return _arr;
+    }return function (arr, i) {
+        if (Array.isArray(arr)) {
+            return arr;
+        } else if (Symbol.iterator in Object(arr)) {
+            return sliceIterator(arr, i);
+        } else {
+            throw new TypeError('Invalid attempt to destructure non-iterable instance');
+        }
+    };
+})();
+
+var Backbone = require('backbone'),
+    _ = require('underscore'),
+    $ = require('jquery');
+
+var Modal = require('./modal');
+
+var SelectModal = Modal.extend({
+
+    events: {
+        'click .ModalOption': 'handleClick'
+    },
+
+    init: function init(_ref) {
+        var _ref$actions = _ref.actions;
+        var actions = _ref$actions === undefined ? [] : _ref$actions;
+
+        this.actions = actions;
+    },
+
+    content: function content() {
+        var _this = this;
+
+        var $div = $('<div class=\'ModalOptions\'></div>');
+        this.actions.forEach(function (_ref2, index) {
+            var _ref22 = _slicedToArray(_ref2, 2);
+
+            var text = _ref22[0];
+            var func = _ref22[1];
+
+            $div.append('                <div class=\'ModalOption\' data-index=\'' + index + '\' id=\'modalOption:' + _this.key + ':' + index + '\'>                    ' + text + '                </div>');
+        });
+        return $div;
+    },
+
+    handleClick: function handleClick(evt) {
+        if (this.isOpen) {
+            var idx = evt.currentTarget.dataset.index;
+            this.actions[idx][1]();
+            this.close();
+        }
+    }
+});
+
+module.exports = SelectModal;
+
+},{"./modal":66,"backbone":2,"jquery":9,"underscore":44}],69:[function(require,module,exports){
+'use strict';
+
 var _ = require('underscore');
 var Backbone = require('backbone');
 var $ = require('jquery');
@@ -63062,8 +63124,6 @@ var SaveRevertView = Backbone.View.extend({
 
         _.bindAll(this, 'save', 'help');
         //this.listenTo(this.model, "all", this.render);
-        // make a spinner to listen for save calls on these landmarks
-        this.spinner = new Notification.LandmarkSavingNotification();
         // Get the singleton app model separately as model is the landmarks
         this.app = app;
     },
@@ -63075,20 +63135,10 @@ var SaveRevertView = Backbone.View.extend({
     },
 
     save: function save() {
-        var that = this;
-        this.spinner.start();
         this.model.promiseSave().then(function () {
-            that.spinner.stop();
-            var notification = Notification.notify({
-                type: 'success',
-                msg: 'Save Completed'
-            });
+            Notification.notify({ type: 'success', msg: 'Save Completed' });
         }, function () {
-            that.spinner.stop();
-            var notification = Notification.notify({
-                type: 'error',
-                msg: 'Save Failed'
-            });
+            Notification.notify({ type: 'error', msg: 'Save Failed' });
         });
     },
 
@@ -63179,7 +63229,7 @@ exports.Sidebar = Sidebar;
 
 // No UI to handle this atm
 
-},{"../backend":47,"../model/atomic":56,"./notification":67,"backbone":2,"jquery":9,"underscore":44}],69:[function(require,module,exports){
+},{"../backend":47,"../model/atomic":56,"./notification":67,"backbone":2,"jquery":9,"underscore":44}],70:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63338,7 +63388,7 @@ exports.Toolbar = Backbone.View.extend({
 
 });
 
-},{"../model/atomic":56,"backbone":2,"underscore":44}],70:[function(require,module,exports){
+},{"../model/atomic":56,"backbone":2,"underscore":44}],71:[function(require,module,exports){
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -63737,7 +63787,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     return controller;
 };
 
-},{"backbone":2,"jquery":9,"three":43,"underscore":44}],71:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"three":43,"underscore":44}],72:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63898,7 +63948,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
 
 module.exports = { LandmarkConnectionTHREEView: LandmarkConnectionTHREEView, LandmarkTHREEView: LandmarkTHREEView };
 
-},{"backbone":2,"three":43,"underscore":44}],72:[function(require,module,exports){
+},{"backbone":2,"three":43,"underscore":44}],73:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -64442,7 +64492,7 @@ module.exports = Handler;
 
 // Pass right click does nothing in most cases
 
-},{"../../model/atomic":56,"jquery":9,"three":43,"underscore":44}],73:[function(require,module,exports){
+},{"../../model/atomic":56,"jquery":9,"three":43,"underscore":44}],74:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -65049,7 +65099,7 @@ exports.Viewport = Backbone.View.extend({
 
 });
 
-},{"../../model/atomic":56,"../../model/octree":59,"./camera":70,"./elements":71,"./handler":72,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
+},{"../../model/atomic":56,"../../model/octree":59,"./camera":71,"./elements":72,"./handler":73,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-9022eea0.js.map
+//# sourceMappingURL=bundle-ec12814a.js.map
