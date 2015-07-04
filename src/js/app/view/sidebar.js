@@ -230,8 +230,6 @@ var SaveRevertView = Backbone.View.extend({
     initialize : function({app}) {
         _.bindAll(this, 'save', 'help');
         //this.listenTo(this.model, "all", this.render);
-        // make a spinner to listen for save calls on these landmarks
-        this.spinner = new Notification.LandmarkSavingNotification();
         // Get the singleton app model separately as model is the landmarks
         this.app = app;
     },
@@ -243,23 +241,11 @@ var SaveRevertView = Backbone.View.extend({
     },
 
     save: function () {
-        var that = this;
-        this.spinner.start();
         this.model.promiseSave().then(function () {
-            that.spinner.stop();
-            var notification = Notification.notify({
-              type: 'success',
-              msg: 'Save Completed'
-            });
-        },
-        function () {
-            that.spinner.stop();
-            var notification = Notification.notify({
-              type: 'error',
-              msg: 'Save Failed'
-            });
+            Notification.notify({type: 'success', msg: 'Save Completed'});
+        }, function () {
+            Notification.notify({type: 'error', msg: 'Save Failed'});
         });
-
     },
 
     help: function (e) {

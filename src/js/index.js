@@ -289,6 +289,11 @@ function initLandmarker(server, mode) {
 
     // Non escape keys
     $(window).keypress(function(e) {
+
+        if ($(e.target).closest("input")[0]) {
+            return;
+        }
+
         var key = e.which;
         switch (key) {
             case 100:  // d = [d]elete selected

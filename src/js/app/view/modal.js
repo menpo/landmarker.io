@@ -35,7 +35,7 @@ var Modal = Backbone.View.extend({
         this.key = _key();
         _modals[this.key] = this;
 
-        this.id = `modalWindow:{this.key}`;
+        this.id = `modalWindow:${this.key}`;
         this.isOpen = false;
         this.closable = !!opts.closable;
         this.disposeOnClose = !!opts.disposeOnClose

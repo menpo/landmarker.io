@@ -1,35 +1,54 @@
 "use strict";
 
-var Backbone = require('backbone'),
-    $ = require('jquery'),
-    _ = require('underscore'),
-    Promise = require('promise-polyfill');
-
-var { basename, extname } = require('../lib/utils');
+var $ = require('jquery'),
+    _ = require('underscore');
 
 var Modal = require('./modal');
 
 var ListPicker = Modal.extend({
 
     events: {
-        'click li': 'click'
+        'click li': 'click',
+        'keydown input': 'filter',
     },
 
-    init: function ({list, submit}) {
+    init: function ({list, submit, useFilter}) {
         this.list = list;
+        this._list = list;
         this.submit = submit;
+        this.useFilter = !!useFilter;
+        _.bindAll(this, 'filter');
     },
+
+    filter: _.debounce(function (evt) {
+        const value = evt.currentTarget.value.toLowerCase();
+        this.$el.find('li').each(function (index, li) {
+            if (li.dataset.value.toLowerCase().indexOf(value) > -1) {
+                $(li).removeClass('Hidden');
+            } else {
+                $(li).addClass('Hidden');
+            }
+        });
+    }, 100),
 
     content: function () {
-        const $content = $('<ul class=\'ListPicker\'></ul>');
+        const $content = $(`<div class='ListPicker'></div>`);
+
+        if (this.useFilter) {
+            $content.append(`<input placeholder='Search'/>`);
+        }
+
+        const $ul = $(`<ul></ul>`);
         this.list.forEach(function ([content, key], index) {
             if (content instanceof $) {
                 const $li = $(`<li data-index='${index}'></li>`);
                 $li.append(content);
+                $ul.append($li);
             } else {
-                $content.append($(`<li data-index='${index}'>${content}</li>`));
+                $ul.append($(`<li data-value='${content}' data-index='${index}'>${content}</li>`));
             }
         });
+        $content.append($ul);
         return $content;
     },
 
