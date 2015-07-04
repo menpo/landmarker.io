@@ -240,11 +240,15 @@ var SaveRevertView = Backbone.View.extend({
         'click #download' : "download"
     },
 
-    save: function () {
-        this.model.promiseSave().then(function () {
+    save: function (evt) {
+        evt.stopPropagation();
+        this.$el.find('#save').addClass('Button--Disabled');
+        this.model.promiseSave().then(() => {
             Notification.notify({type: 'success', msg: 'Save Completed'});
-        }, function () {
+            this.$el.find('#save').removeClass('Button--Disabled');
+        }, () => {
             Notification.notify({type: 'error', msg: 'Save Failed'});
+            this.$el.find('#save').removeClass('Button--Disabled');
         });
     },
 
@@ -256,11 +260,14 @@ var SaveRevertView = Backbone.View.extend({
     download: function (evt) {
         evt.stopPropagation();
         if (this.model) {
-
-            var data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.model.toJSON())),
+            const spinner = Notification.loading.start();
+            this.$el.find('#download').addClass('Button--Disabled');
+            const data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.model.toJSON())),
                 filename = `${this.app.asset().id}_${this.app.activeTemplate()}.ljson`;
 
-            var $link = $(`<a href="data:${data}" download="${filename}"></a>`);
+            const $link = $(`<a href="data:${data}" download="${filename}"></a>`);
+            Notification.loading.stop(spinner);
+            this.$el.find('#download').removeClass('Button--Disabled');
             return $link[0].click();
         }
     }
