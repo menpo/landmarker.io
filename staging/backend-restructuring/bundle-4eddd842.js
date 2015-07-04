@@ -63127,11 +63127,17 @@ var SaveRevertView = Backbone.View.extend({
         'click #download': 'download'
     },
 
-    save: function save() {
+    save: function save(evt) {
+        var _this2 = this;
+
+        evt.stopPropagation();
+        this.$el.find('#save').addClass('Button--Disabled');
         this.model.promiseSave().then(function () {
             Notification.notify({ type: 'success', msg: 'Save Completed' });
+            _this2.$el.find('#save').removeClass('Button--Disabled');
         }, function () {
             Notification.notify({ type: 'error', msg: 'Save Failed' });
+            _this2.$el.find('#save').removeClass('Button--Disabled');
         });
     },
 
@@ -63143,11 +63149,14 @@ var SaveRevertView = Backbone.View.extend({
     download: function download(evt) {
         evt.stopPropagation();
         if (this.model) {
-
+            var spinner = Notification.loading.start();
+            this.$el.find('#download').addClass('Button--Disabled');
             var data = 'text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(this.model.toJSON())),
                 filename = this.app.asset().id + '_' + this.app.activeTemplate() + '.ljson';
 
             var $link = $('<a href="data:' + data + '" download="' + filename + '"></a>');
+            Notification.loading.stop(spinner);
+            this.$el.find('#download').removeClass('Button--Disabled');
             return $link[0].click();
         }
     }
@@ -63170,12 +63179,12 @@ var TemplatePanel = Backbone.View.extend({
     },
 
     click: function click(evt) {
-        var _this2 = this;
+        var _this3 = this;
 
         var backend = this.model.server();
         if (backend instanceof Dropbox) {
             backend.pickTemplate(function (tmpls) {
-                _this2.model._initTemplates(true);
+                _this3.model._initTemplates(true);
             }, function (err) {
                 Notification.notify({
                     type: 'error',
@@ -65095,4 +65104,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":56,"../../model/octree":59,"./camera":71,"./elements":72,"./handler":73,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-50d71018.js.map
+//# sourceMappingURL=bundle-4eddd842.js.map
