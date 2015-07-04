@@ -1,6 +1,10 @@
 .HelpOverlay {
     z-index: $zIndexOverlay;
+<<<<<<< HEAD
     background: rgba(0, 0, 0, .6);
+=======
+    background: black(.6);
+>>>>>>> CSS and color harmonisation
     display: none;
     cursor: pointer;
     pointer-events: auto;
@@ -24,7 +28,11 @@
     }
 
     tr td:first-of-type {
+<<<<<<< HEAD
         background: rgba(33,94,184,1);
+=======
+        background: $colorDarkerBlue;
+>>>>>>> CSS and color harmonisation
         color: white;
         font-weight: bold;
         text-align: right;

@@ -1,5 +1,6 @@
 button,
 .Button {
+    @extend %transitionAll;
     border: none;
     background: white;
     outline: none;
@@ -11,10 +12,6 @@ button,
     cursor: pointer;
 }
 
-button:active {
-    background: #2D77C2;
-}
-
 .Button-Basic,
 .Button-Save,
 .Button-Help {
@@ -22,20 +19,30 @@ button:active {
 }
 
 .Button-Basic {
-    background: #0A4EB2;
+    background: $colorDarkerBlue;
+    &:hover {
+        background: $colorDarkBlue;
+    }
 }
 
 .Button-Save {
-    background: #5FB632;
+    background: $colorGreen;
+    &:hover {
+        background: $colorDarkGreen;
+    }
 }
 
 .Button-Help {
-    background: #B91109;
+    background: $colorRed;
     cursor: help;
+    &:hover {
+        background: $colorDarkRed;
+    }
+    font-size: larger;
 }
 
 button:disabled,
 .Button--Disabled {
-    opacity: 0.33;
-    cursor: initial;
+    opacity: .33;
+    cursor: default;
 }

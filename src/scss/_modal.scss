@@ -1,16 +1,12 @@
 .ModalsWrapper {
+    @extend %transitionAll;
     z-index: $zIndexOverlay;
-    background-color: rgba(0, 0, 0, .6);
+    background-color: black(.6);
     pointer-events: auto;
     justify-content: flex-start;
 
     opacity: 0;
     visibility: hidden;
-
-    &, & > * {
-        transition: visibility .25s ease-in-out,
-                    opacity .25s ease-in-out;
-    }
 }
 
 .ModalsWrapper--Open {
@@ -20,7 +16,7 @@
 
 .ModalWindow {
 
-    transform: transale3d(0,0,0);
+    @extend %transitionAll;
     margin-top: 64px;
 
     &, & * {
@@ -33,8 +29,7 @@
     max-width: 640px;
     position: relative;
 
-    transition: all .2s ease-in-out;
-    box-shadow: 0 16px 16px rgba(0,0,0,.1);
+    box-shadow: 0 16px 16px black(.1);
 
     opacity: 0;
     visibility: hidden;
@@ -49,8 +44,8 @@
 }
 
 .ModalWindow__Close {
+    @extend %transitionAll;
     cursor: pointer;
-    transition: color .25s ease-in-out;
     position: absolute;
     font-weight: bold;
     top: .75em;
@@ -58,7 +53,7 @@
     color: #333;
 
     &:hover {
-        color: #d64541;
+        color: $colorRed;
     }
 }
 
@@ -68,7 +63,7 @@
 }
 
 .ModalWindow__Title {
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid $colorLightGray;
     font-size: 1.2em;
     font-weight: medium;
     padding-right: 2em;
@@ -77,18 +72,18 @@
 .ModalWindow__Content {
 
   > input {
+      @extend %transitionAll;
       margin: .25em 0;
       padding: 0 1em;
       line-height: 48px;
-      border: 1px solid #e5e5e5;
+      border: 1px solid $colorLightGray;
       border-radius: 1px;
       outline: none;
       width: 100%;
-      transition: all .25s ease-in-out;
 
       &:active,
       &:focus {
-          border: 1px solid #1690e5;
+          border: 1px solid $colorBlue;
       }
   }
 }
@@ -100,7 +95,7 @@
 
 .ModalOption {
     display: block;
-    border: 1px solid #e5e5e5;
+    border: 1px solid $colorLightGray;
     flex: 1;
     height: 44px;
     margin-right: 1em;
@@ -111,7 +106,7 @@
     line-height: 44px;
 
     &:hover {
-        background-color: #f0f0f0;
+        background-color: $colorLightGray;
     }
 
     &:last-of-type {
@@ -128,18 +123,18 @@
     }
 
     li {
+        @extend %transitionAll;
         line-height: 48px;
         max-height: 256px;
         padding: 0 1em;
         cursor: pointer;
-        border-bottom: solid 1px #e5e5e5;
-        transition: all .25s ease-in-out;
+        border-bottom: solid 1px $colorLightGray;
         opacity: 1;
         visibility: visible;
         transform: translate3d(0,0,0);
 
         &:hover {
-            background-color: #e5e5e5;
+            background-color: $colorLightGray;
         }
 
         &.Hidden {

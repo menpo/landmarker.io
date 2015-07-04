@@ -2,20 +2,34 @@ $breakpointsMobile: 650px;
 
 $mainControlHeight: 40px;
 
-$landmarkSelectorHeight: 30px;
-$landmarkColorEmpty: #2D77C2;
-$landmarkColorValue: #0A4EB2;
-$landmarkColorSelected: #5FB632;
-
-$toolbarBackground: rgba(45, 119, 194, 0.5);
-
-$pagerItemWidth: 75px;
-
 $zIndexCanvas: 1;
 $zIndexUI: 2;
 $zIndexOverlay: 3;
 $zIndexNotifications: 5;
 
-$notificationsColorWarning: rgba(235,149,50,1);
-$notificationsColorError: rgba(239,72,54,1);
-$notificationsColorSuccess: rgba(46,204,113,1);
+$colorGreen:        rgba(46,204,113,1);
+$colorDarkGreen:    rgba(38,166,91,1);
+$colorBlue:         rgba(89,171,227,1);
+$colorDarkBlue:     rgba(30,139,195,1);
+$colorDarkerBlue:   rgba(10,78,178,1);
+$colorRed:          rgba(237,73,61,1);
+$colorDarkRed:      rgba(192,57,43,1);
+$colorPurple:       rgba(154,92,180,1);
+$colorDarkPurple:   rgba(141,72,171,1);
+$colorOrange:       rgba(235,149,50,1);
+$colorDarkOrange:   rgba(211,84,0,1);
+$colorGray:         rgba(145,145,145,1);
+$colorLightGray:    rgba(229,229,229,1);
+
+@function white($alpha) {
+    @return rgba(255, 255, 255, $alpha);
+}
+
+@function black($alpha) {
+    @return rgba(0, 0, 0, $alpha);
+}
+
+%transitionAll {
+    transform: translate3d(0,0,0);
+    transition: all .2s ease-in-out;
+}

@@ -7,16 +7,15 @@
 // Asset info in top left corner
 .AssetInfo > button {
     display: block;
-    background: white;
     font-size: x-large;
     text-align: left;
     margin: 0;
-    background: rgba(255, 255, 255, 0.7);
+    background: white(.7);
     width: inherit;
 }
 
 .AssetName {
-    color: #B91109;
+    color: $colorDarkRed;
     font-weight: bold;
 }
 
@@ -25,7 +24,8 @@
 }
 
 .Toolbar {
-    background: $toolbarBackground;
+    opacity: .9;
+    background: $colorBlue;
     width: 100%;
     max-width: 170px;
 }
