@@ -47,16 +47,16 @@
 }
 
 .Notification__Action {
+  @extend %transitionAll;
   padding: 0 1em;
   height: 44px;
   line-height: 44px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, .5);
-  transition: all .25s ease-in-out;
+  background: white(.5);
   cursor: pointer;
 
   &:hover {
-    background: rgba(255, 255, 255, .25);
+    background: white(.25);
   }
 }
 
@@ -68,15 +68,15 @@
 }
 
 .Notification--Warning {
-    background-color: $notificationsColorWarning;
+    background-color: $colorOrange;
 }
 
 .Notification--Success {
-    background-color: $notificationsColorSuccess;
+    background-color: $colorGreen;
 }
 
 .Notification--Error {
-   background-color: $notificationsColorError;
+   background-color: $colorRed;
 }
 
 @keyframes notification-open {
@@ -90,10 +90,11 @@
 }
 
 .TopBar {
+    @extend %transitionAll;
     pointer-events: auto;
     min-height: 38px;
     line-height: 38px;
-    background-color: #d64541;
+    background-color: $colorRed;
     color: white;
     text-align: center;
     padding: 0 1%;
@@ -102,7 +103,6 @@
     display: none;
     opacity: 0;
     visibility: hidden;
-    transition: all .25s ease-in-out;
 
     cursor: pointer;
 
@@ -115,7 +115,7 @@
     }
 
     &.Info {
-        background-color: #59abe3;
+        background-color: $colorBlue;
     }
 }
 
@@ -126,7 +126,7 @@
     right: 0;
     width: 300px;
     height: 300px;
-    background: #59abe3;
+    background: $colorBlue;
     transition: transform 0.3s;
     transform: translateX(100%) translateY(-100%) rotate(45deg);
     pointer-events: none;
@@ -151,8 +151,8 @@
       margin-left: -40px;
       width: 80px;
       height: 80px;
-      border-right-color: rgba(0, 0, 0, .5);
-      border-left-color: rgba(0, 0, 0, .5);
+      border-right-color: black(.5);
+      border-left-color: black(.5);
       animation: rotation 3s linear infinite;
     }
 
@@ -161,8 +161,8 @@
       margin-left: -20px;
       width: 40px;
       height: 40px;
-      border-top-color: rgba(0, 0, 0, .5);
-      border-bottom-color: rgba(0, 0, 0, .5);
+      border-top-color: black(.5);
+      border-bottom-color: black(.5);
       animation: rotation 1s linear infinite;
     }
 

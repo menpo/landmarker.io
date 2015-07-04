@@ -21,7 +21,7 @@
 
 .DropboxSelectExplore {
 
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid $colorLightGray;
     display: flex;
     flex-direction: row;
 
@@ -32,19 +32,19 @@
         cursor: pointer;
 
         span {
+            @extend %transitionAll;
             display: inline-block;
             width: 28px;
             height: 28px;
             line-height: 28px;
             border-radius: 2px;
-            background: #e5e5e5;
-            color: #919191;
-            transition: all .25s ease-in-out;
+            background: $colorLightGray;
+            color: $colorGray;
         }
 
         &:hover span {
           color: white;
-          background: #1690e5;
+          background: $colorDarkBlue;
         }
 
         &.Unavailable {
@@ -65,26 +65,31 @@
     height: 52px;
 
     > span, > div {
-        background: #e5e5e5;
+        background: $colorLightGray;
         padding: 0 8px;
     }
 
     > span {
         flex: 3;
-        color: #019875;
+        color: $colorDarkGreen;
         font-weight: bold;
 
         &.Empty {
-            color: #c0392b;
+            color: $colorDarkRed;
         }
     }
 
     > div {
+        @extend %transitionAll;
         flex: 1;
-        background: #1690e5;
+        background: $colorDarkBlue;
         color: white;
         cursor: pointer;
         text-align: center;
+
+        &:hover {
+            background: $colorBlue;
+        }
     }
 }
 
@@ -117,13 +122,13 @@ li.DropboxSelectListItem {
     text-align: center;
 
     > span {
+        @extend %transitionAll;
         display: block;
         width: 64px;
         height: 64px;
-        border: 2px solid #e5e5e5;
-        transition: all .25s ease-in-out;
+        border: 2px solid $colorLightGray;
         border-radius: 3px;
-        color: #919191;
+        color: $colorGray;
         text-align: center;
         line-height: 64px;
         margin: 0 auto 12px auto;
@@ -137,22 +142,22 @@ li.DropboxSelectListItem {
     &:hover,
     &.Selected {
         > span {
-            border-color: #1690e5;
+            border-color: $colorDarkBlue;
         }
     }
 
     &.Selected {
         > span {
-            background-color: #1690e5;
+            background-color: $colorDarkBlue;
             color: white;
         }
     }
 
     &.Disabled > span {
       opacity: .75;
-      background: #e5e5e5;
-      border-color: #e5e5e5;
-      color: #919191;
+      background: $colorLightGray;
+      border-color: $colorLightGray;
+      color: $colorGray;
       cursor: default;
     }
 }

@@ -18,19 +18,19 @@
 .RightSidebar-Template {
     display: flex;
     text-align: center;
+    opacity: .9;
 }
 
 .RightSidebar-Template {
+    @extend %transitionAll;
     min-height: $mainControlHeight;
     line-height: $mainControlHeight;
-    background: #0A4EB2;
-    opacity: 0.75;
+    background: $colorDarkerBlue;
     color: white;
     cursor: pointer;
     margin-left: 1px;
     margin-bottom: 1px;
     justify-content: space-between;
-    transition: all 0.25s ease-in-out;
     font-size: larger;
 
     > span {
@@ -47,7 +47,7 @@
     }
 
     &:hover {
-        opacity: .5;
+        background: $colorDarkBlue;
     }
 }
 
@@ -77,7 +77,6 @@ is itself a row flexbox */
 /* Landmarks selector */
 .RightSidebar-LandmarksPanel {
     flex-direction: column;
-    /*overflow: auto; breaks Safari view? */
     cursor: pointer;
 }
 
@@ -107,30 +106,34 @@ is itself a row flexbox */
 .LmGroup-Flex {
     display: flex;
     align-items: center;
-    opacity: 0.5;
 }
 
 .Lm {
+    @extend %transitionAll;
+    opacity: .5;
     flex: 1;
     height: 30px;
     margin-left: 1px;
     margin-bottom: 1px;
+
+    &:hover {
+        opacity: .75;
+    }
 }
 
 .Lm-Empty {
-    background: #67809f;
+    background: black(.5);
 }
 
 .Lm-Value {
-    background: #0A4EB2;
+    background: $colorDarkerBlue;
 }
 
 .Lm-Selected {
-    background: #bf55ec;
+    background: $colorPurple;
 }
 
 
 .Lm-NextAvailable {
-    border-bottom: solid white;
-    height: 27px;
+    background: $colorOrange;
 }
