@@ -62267,15 +62267,8 @@ var _slicedToArray = (function () {
     };
 })();
 
-var Backbone = require('backbone'),
-    $ = require('jquery'),
-    _ = require('underscore'),
-    Promise = require('promise-polyfill');
-
-var _require = require('../lib/utils');
-
-var basename = _require.basename;
-var extname = _require.extname;
+var $ = require('jquery'),
+    _ = require('underscore');
 
 var Modal = require('./modal');
 
@@ -62344,7 +62337,7 @@ var ListPicker = Modal.extend({
 
 module.exports = ListPicker;
 
-},{"../lib/utils":52,"./modal":66,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],66:[function(require,module,exports){
+},{"./modal":66,"jquery":9,"underscore":44}],66:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone'),
@@ -62384,7 +62377,7 @@ var Modal = Backbone.View.extend({
         this.key = _key();
         _modals[this.key] = this;
 
-        this.id = 'modalWindow:{this.key}';
+        this.id = 'modalWindow:' + this.key;
         this.isOpen = false;
         this.closable = !!opts.closable;
         this.disposeOnClose = !!opts.disposeOnClose;
@@ -65102,4 +65095,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":56,"../../model/octree":59,"./camera":71,"./elements":72,"./handler":73,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-ec12814a.js.map
+//# sourceMappingURL=bundle-50d71018.js.map
