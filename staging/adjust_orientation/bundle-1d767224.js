@@ -53075,6 +53075,25 @@ var atomic = require('../../model/atomic');
 
 var MOVE_TO = 50;
 
+function createHandler(evtType, el, func) {
+
+    var $el = el instanceof $ ? el : $(el);
+
+    func.attach = function () {
+        $el.on(evtType, func);
+    };
+
+    func.attachOnce = function () {
+        $el.one(evtType, func);
+    };
+
+    func.detach = function () {
+        $el.off(evtType, func);
+    };
+
+    return func;
+}
+
 /**
  * Create a closure for handling mouse events in viewport.
  * Holds state usable by all event handlers and should be bound to the
@@ -53082,6 +53101,23 @@ var MOVE_TO = 50;
  */
 function Handler() {
     var _this = this;
+
+    // Setup handler state variables
+    // ------------------------------------------------------------------------
+    var downEvent, lmPressed, lmPressedWasSelected, isPressed, groupSelected, currentTargetLm;
+
+    var isAdjustingUpVector = false;
+
+    // x, y position of mouse on click states
+    var onMouseDownPosition = new THREE.Vector2(),
+        onMouseUpPosition = new THREE.Vector2();
+
+    // current screen position when in drag state
+    var positionLmDrag = new THREE.Vector2();
+    // vector difference in one time step
+    var deltaLmDrag = new THREE.Vector2();
+
+    var intersectsWithLms, intersectsWithMesh;
 
     // Helpers
     // ------------------------------------------------------------------------
@@ -53139,21 +53175,6 @@ function Handler() {
         return lms;
     };
 
-    // Setup handler state variables
-    // ------------------------------------------------------------------------
-    var downEvent, lmPressed, lmPressedWasSelected, isPressed, groupSelected, currentTargetLm;
-
-    // x, y position of mouse on click states
-    var onMouseDownPosition = new THREE.Vector2(),
-        onMouseUpPosition = new THREE.Vector2();
-
-    // current screen position when in drag state
-    var positionLmDrag = new THREE.Vector2();
-    // vector difference in one time step
-    var deltaLmDrag = new THREE.Vector2();
-
-    var intersectsWithLms, intersectsWithMesh;
-
     // Press handling
     // ------------------------------------------------------------------------
 
@@ -53161,6 +53182,8 @@ function Handler() {
         console.log('mesh pressed!');
         if (groupSelected) {
             nothingPressed();
+        } else if (isAdjustingUpVector) {
+            $(document).one('mouseup.viewportMesh', meshOnMouseUp);
         } else if (downEvent.button === 0 && downEvent.shiftKey) {
             shiftPressed(); // LMB + SHIFT
         } else {
@@ -53169,6 +53192,11 @@ function Handler() {
     };
 
     var landmarkPressed = function landmarkPressed() {
+
+        if (isAdjustingUpVector) {
+            return;
+        }
+
         var ctrl = downEvent.ctrlKey || downEvent.metaKey;
         console.log('Viewport: landmark pressed');
         // before anything else, disable the camera
@@ -53201,11 +53229,21 @@ function Handler() {
     };
 
     var nothingPressed = function nothingPressed() {
+
+        if (isAdjustingUpVector) {
+            return;
+        }
+
         console.log('nothing pressed!');
         $(document).one('mouseup.viewportNothing', nothingOnMouseUp);
     };
 
     var shiftPressed = function shiftPressed() {
+
+        if (isAdjustingUpVector) {
+            return;
+        }
+
         console.log('shift pressed!');
         // before anything else, disable the camera
         _this.cameraController.disable();
@@ -53220,7 +53258,7 @@ function Handler() {
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
-    var onMouseDown = function onMouseDown(event) {
+    var onMouseDown = atomic.atomicOperation(function (event) {
         event.preventDefault();
         _this.$el.focus();
 
@@ -53272,7 +53310,7 @@ function Handler() {
                 meshPressed();
             } else {}
         }
-    };
+    });
 
     // Drag Handlers
     // ------------------------------------------------------------------------
@@ -53378,7 +53416,10 @@ function Handler() {
             // Convert the point back into the mesh space
             _this.worldToLocal(p, true);
 
-            if (_this.model.isEditingOn() && currentTargetLm) {
+            if (isAdjustingUpVector) {
+                _this.pointUp(p.clone());
+                // stopOrientationFix();
+            } else if (_this.model.isEditingOn() && currentTargetLm) {
                 _this.model.landmarks().setLmAt(currentTargetLm, p);
             } else {
                 _this.model.landmarks().insertNew(p);
@@ -53430,7 +53471,7 @@ function Handler() {
     // Move handlers
     // ------------------------------------------------------------------------
 
-    var onMouseMove = function onMouseMove(evt) {
+    var onMouseMove = createHandler('mousemove', this.$el, _.throttle(atomic.atomicOperation(function (evt) {
         _this.clearCanvas();
 
         if (isPressed || !_this.model.isEditingOn()) {
@@ -53472,12 +53513,12 @@ function Handler() {
                 _this.drawTargetingLine({ x: evt.clientX, y: evt.clientY }, _this.localToScreen(lm.point()), true);
             });
         }
-    };
+    }), MOVE_TO));
 
     // Keyboard handlers
     // ------------------------------------------------------------------------
 
-    var onKeypressTranslate = atomic.atomicOperation(function (evt) {
+    var onKeypressTranslate = createHandler('keydown', window, atomic.atomicOperation(function (evt) {
         // Only work in group selection mode
         if (!groupSelected) {
             return;
@@ -53523,13 +53564,17 @@ function Handler() {
                 lm.setPoint(_this.worldToLocal(intersectsWithMesh[0].point));
             } else {}
         });
-    });
+    }));
 
     // Group Selection hook
     // ------------------------------------------------------------------------
 
-    var setGroupSelected = function setGroupSelected() {
+    var setGroupSelected = atomic.atomicOperation(function () {
         var val = arguments[0] === undefined ? true : arguments[0];
+
+        if (isAdjustingUpVector) {
+            return;
+        }
 
         var _val = !!val; // Force cast to boolean
 
@@ -53541,16 +53586,24 @@ function Handler() {
 
         if (_val) {
             // Use keydown as keypress doesn't register arrows in some context
-            $(window).on('keydown', onKeypressTranslate);
+            onKeypressTranslate.attach();
+            onMouseMove.detach();
         } else {
             _this.deselectAll();
-            $(window).off('keydown', onKeypressTranslate);
+            onKeypressTranslate.detach();
+            if (_this.editingOn) {
+                onMouseMove.attach();
+            }
         }
 
         _this.clearCanvas();
-    };
+    });
 
     var completeGroupSelection = function completeGroupSelection() {
+
+        if (isAdjustingUpVector) {
+            return;
+        }
 
         _this.model.landmarks().labels.forEach(function (label) {
 
@@ -53573,14 +53626,32 @@ function Handler() {
         setGroupSelected(true);
     };
 
+    // Orientation Adjustments
+    // ------------------------------------------------------------------------
+
+    var startOrientationFix = function startOrientationFix() {
+        isAdjustingUpVector = true;
+        _this.clearCanvas();
+        onMouseMove.detach();
+    };
+
+    var stopOrientationFix = function stopOrientationFix() {
+        isAdjustingUpVector = false;
+        if (_this.editingOn) {
+            onMouseMove.attach();
+        }
+    };
+
+    // ------------------------------------------------------------------------
     return {
         // State management
-        setGroupSelected: atomic.atomicOperation(setGroupSelected),
+        setGroupSelected: setGroupSelected,
         completeGroupSelection: completeGroupSelection,
-
-        // Exposed handlers
-        onMouseDown: atomic.atomicOperation(onMouseDown),
-        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove), MOVE_TO)
+        startOrientationFix: startOrientationFix,
+        stopOrientationFix: stopOrientationFix,
+        // Exposed handler objects
+        onMouseDown: onMouseDown,
+        onMouseMove: onMouseMove
     };
 }
 
@@ -53593,36 +53664,12 @@ module.exports = Handler;
 },{"../../model/atomic":19,"jquery":8,"three":11,"underscore":12}],35:[function(require,module,exports){
 'use strict';
 
-var _slicedToArray = (function () {
-    function sliceIterator(arr, i) {
-        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
-            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
-                _arr.push(_s.value);if (i && _arr.length === i) break;
-            }
-        } catch (err) {
-            _d = true;_e = err;
-        } finally {
-            try {
-                if (!_n && _i['return']) _i['return']();
-            } finally {
-                if (_d) throw _e;
-            }
-        }return _arr;
-    }return function (arr, i) {
-        if (Array.isArray(arr)) {
-            return arr;
-        } else if (Symbol.iterator in Object(arr)) {
-            return sliceIterator(arr, i);
-        } else {
-            throw new TypeError('Invalid attempt to destructure non-iterable instance');
-        }
-    };
-})();
-
 var $ = require('jquery');
 var _ = require('underscore');
 var Backbone = require('../../lib/backbonej');
 var THREE = require('three');
+
+window.THREE = THREE;
 
 var atomic = require('../../model/atomic');
 var octree = require('../../model/octree');
@@ -53655,6 +53702,22 @@ var CLEAR_COLOUR_PIP = 0xCCCCCC;
 
 var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5);
 var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
+
+var COORDS = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1)];
+var ORIGINAL_UP_VECTOR = COORDS[2];
+
+function mainDirection(v) {
+    var dist = 0,
+        main = undefined;
+    COORDS.forEach(function (c) {
+        var d = v.distanceTo(c);
+        if (d < dist || !main) {
+            dist = d;
+            main = c;
+        }
+    });
+    return main;
+}
 
 var PIP_WIDTH = 300;
 var PIP_HEIGHT = 300;
@@ -53696,6 +53759,7 @@ exports.Viewport = Backbone.View.extend({
         this.ctx = this.canvas.getContext('2d');
 
         // ------ SCENE GRAPH CONSTRUCTION ----- //
+        this._upVector = ORIGINAL_UP_VECTOR;
         this.scene = new THREE.Scene();
 
         // we use an initial top level to handle the absolute positioning of
@@ -53766,12 +53830,31 @@ exports.Viewport = Backbone.View.extend({
         // attach the render on the element we picked out earlier
         this.$webglel.html(this.renderer.domElement);
 
+        // we  build a second scene for various helpers we may need
+        // (intersection planes) and for connectivity information (so it
+        // shows through)
+        this.sceneHelpers = new THREE.Scene();
+
+        // s_lmsconnectivity is used to store the connectivity representation
+        // of the mesh. Note that we want
+        this.s_lmsconnectivity = new THREE.Object3D();
+        // we want to replicate the mesh scene graph in the scene helpers, so we can
+        // have show-though connectivity..
+        this.s_h_scaleRotate = new THREE.Object3D();
+        this.s_h_translate = new THREE.Object3D();
+        this.s_h_meshAndLms = new THREE.Object3D();
+        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
+        this.s_h_translate.add(this.s_h_meshAndLms);
+        this.s_h_scaleRotate.add(this.s_h_translate);
+        this.sceneHelpers.add(this.s_h_scaleRotate);
+
         // add mesh if there already is one present (we could have missed a
         // backbone callback).
         this.changeMesh();
 
         // make an empty list of landmark views
         this.landmarkViews = [];
+        this.connectivityViews = [];
 
         // Tools for moving between screen and world coordinates
         this.ray = new THREE.Raycaster();
@@ -53829,6 +53912,47 @@ exports.Viewport = Backbone.View.extend({
         });
     },
 
+    //
+    // Perform a rotation to match the up vector with the closest unit vector
+    // to provided vector.
+    //
+    // This assumes 'up' will always be on one of the axis (no completely messed
+    // up coordinates) so we match to the closest axis and perform the 90deg
+    // rotation to match current up vector with target. (or -180 to invert)
+    //
+    pointUp: atomic.atomicOperation(function (v) {
+        var axis = undefined,
+            angle = undefined;
+        var newUpVector = mainDirection(v.clone().normalize());
+
+        if (newUpVector === this._upVector) {
+            return;
+        }
+
+        var s = new THREE.Vector3().addVectors(newUpVector, this._upVector);
+
+        for (var i = 0; i < 5; i += 2) {
+            axis = COORDS[i];
+            var d = s.dot(axis);
+            if (d === 0) {
+                break;
+            }
+        }
+
+        if (s.length() === 0) {
+            // Need to invert the axis, -180deg rotation
+            angle = -1 * Math.PI;
+        } else {
+            s.add(axis);
+            var multiplier = s.x * s.y * s.z;
+            angle = multiplier * Math.PI / 2;
+        }
+
+        this._upVector = newUpVector;
+        this.s_scaleRotate.rotateOnAxis(axis, angle);
+        this.s_h_scaleRotate.rotateOnAxis(axis, angle);
+    }),
+
     changeMesh: function changeMesh() {
         var meshPayload, mesh, up, front;
         console.log('Viewport:changeMesh - memory before: ' + this.memoryString());
@@ -53856,12 +53980,16 @@ exports.Viewport = Backbone.View.extend({
         this.meshScale = mesh.geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
         this.s_scaleRotate.scale.set(s, s, s);
+        this.s_h_scaleRotate.scale.set(s, s, s);
         this.s_scaleRotate.up.copy(up);
+        this.s_h_scaleRotate.up.copy(up);
         this.s_scaleRotate.lookAt(front.clone());
+        this.s_h_scaleRotate.lookAt(front.clone());
         // translation
         var t = mesh.geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
         this.s_translate.position.copy(t);
+        this.s_h_translate.position.copy(t);
         this.update();
     },
 
@@ -53886,7 +54014,7 @@ exports.Viewport = Backbone.View.extend({
         if (atomic.atomicOperationUnderway()) {
             return;
         }
-
+        //console.log('Viewport:update');
         // 1. Render the main viewport
         var w, h;
         w = this.$container.width();
@@ -53896,6 +54024,12 @@ exports.Viewport = Backbone.View.extend({
         this.renderer.enableScissorTest(true);
         this.renderer.clear();
         this.renderer.render(this.scene, this.s_camera);
+
+        if (this.showConnectivity) {
+            this.renderer.clearDepth(); // clear depth buffer
+            // and render the connectivity
+            this.renderer.render(this.sceneHelpers, this.s_camera);
+        }
 
         // 2. Render the PIP image if in orthographic mode
         if (this.s_camera === this.s_oCam) {
@@ -53912,6 +54046,11 @@ exports.Viewport = Backbone.View.extend({
             this.renderer.clear();
             // render the PIP image
             this.renderer.render(this.scene, this.s_oCamZoom);
+            if (this.showConnectivity) {
+                this.renderer.clearDepth(); // clear depth buffer
+                // and render the connectivity
+                this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
+            }
             this.renderer.setClearColor(CLEAR_COLOUR, 1);
         }
     },
@@ -53975,9 +54114,10 @@ exports.Viewport = Backbone.View.extend({
 
         // Manually bind to avoid useless function call (even with no effect)
         if (this.editingOn) {
-            this.$el.on('mousemove', this._handler.onMouseMove);
+            console.log(this._handler.onMouseMove);
+            this._handler.onMouseMove.attach();
         } else {
-            this.$el.off('mousemove', this._handler.onMouseMove);
+            this._handler.onMouseMove.detach();
         }
     }),
 
@@ -54007,7 +54147,6 @@ exports.Viewport = Backbone.View.extend({
         if (dispatcher.atomicOperationFinished()) {
             // just been turned off - trigger an update.
             this.update();
-            this.drawConnectivity();
         }
     },
 
@@ -54019,9 +54158,13 @@ exports.Viewport = Backbone.View.extend({
         _.map(this.landmarkViews, function (lmView) {
             lmView.dispose();
         });
+        _.map(this.connectivityViews, function (connView) {
+            connView.dispose();
+        });
 
         // 2. Build a fresh set of views - clear any existing views
         this.landmarkViews = [];
+        this.connectivityViews = [];
 
         var landmarks = this.model.get('landmarks');
         if (landmarks === null) {
@@ -54035,6 +54178,12 @@ exports.Viewport = Backbone.View.extend({
                 viewport: that
             }));
         });
+        landmarks.connectivity.map(function (a_to_b) {
+            that.connectivityViews.push(new LandmarkConnectionTHREEView({
+                model: [landmarks.landmarks[a_to_b[0]], landmarks.landmarks[a_to_b[1]]],
+                viewport: that
+            }));
+        });
     }),
 
     // 2D Canvas helper functions
@@ -54043,48 +54192,18 @@ exports.Viewport = Backbone.View.extend({
     drawTargetingLine: function drawTargetingLine(start, end) {
         var secondary = arguments[2] === undefined ? false : arguments[2];
 
-        var _ref = secondary ? ['#7ca5fe', [5, 15]] : ['#01e6fb', []];
-
-        var _ref2 = _slicedToArray(_ref, 2);
-
-        var color = _ref2[0];
-        var dash = _ref2[1];
-
-        this.drawLine(start, end, color, dash);
-    },
-
-    drawLine: function drawLine(start, end) {
-        var color = arguments[2] === undefined ? '#fffd37' : arguments[2];
-        var dash = arguments[3] === undefined ? [] : arguments[3];
-
         this.ctx.beginPath();
-        this.ctx.strokeStyle = color;
-        this.ctx.setLineDash(dash);
+        if (secondary) {
+            this.ctx.strokeStyle = '#7ca5fe';
+            this.ctx.setLineDash([5, 15]);
+        } else {
+            this.ctx.strokeStyle = '#01e6fb';
+            this.ctx.setLineDash([]);
+        }
         this.ctx.moveTo(start.x, start.y);
         this.ctx.lineTo(end.x, end.y);
         this.ctx.closePath();
         this.ctx.stroke();
-    },
-
-    drawConnectivity: function drawConnectivity() {
-        var _this2 = this;
-
-        var lms = this.model.get('landmarks');
-        if (!lms) {
-            return;
-        }
-
-        lms.connectivity.forEach(function (_ref3) {
-            var _ref32 = _slicedToArray(_ref3, 2);
-
-            var lm1 = _ref32[0];
-            var lm2 = _ref32[1];
-            var _ref4 = [lms.landmarks[lm1], lms.landmarks[lm2]];
-            lm1 = _ref4[0];
-            lm2 = _ref4[1];
-
-            _this2.drawLine(_this2.localToScreen(lm1.point()), _this2.localToScreen(lm2.point()));
-        });
     },
 
     clearCanvas: function clearCanvas() {
@@ -54116,7 +54235,6 @@ exports.Viewport = Backbone.View.extend({
             this.ctx.closePath();
             this.ctx.stroke();
         }
-        // this.drawConnectivity();
     },
 
     // Coordinates and intersection helpers
@@ -54214,4 +54332,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-3ee4bbc9.js.map
+//# sourceMappingURL=bundle-1d767224.js.map
