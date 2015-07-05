@@ -5,6 +5,8 @@ var _ = require('underscore');
 var Backbone = require('../../lib/backbonej');
 var THREE = require('three');
 
+window.THREE = THREE;
+
 var atomic = require('../../model/atomic');
 var octree = require('../../model/octree');
 
@@ -34,6 +36,25 @@ var CLEAR_COLOUR_PIP = 0xCCCCCC;
 
 var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5);
 var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
+
+const COORDS = [
+    new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0),
+    new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0),
+    new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1)
+]
+const ORIGINAL_UP_VECTOR = COORDS[2];
+
+function mainDirection (v) {
+    let dist = 0, main;
+    COORDS.forEach(function (c) {
+        const d = v.distanceTo(c);
+        if (d < dist || !main) {
+            dist = d;
+            main = c;
+        }
+    })
+    return main;
+}
 
 var PIP_WIDTH = 300;
 var PIP_HEIGHT = 300;
@@ -74,6 +95,7 @@ exports.Viewport = Backbone.View.extend({
         this.ctx = this.canvas.getContext('2d');
 
         // ------ SCENE GRAPH CONSTRUCTION ----- //
+        this._upVector = ORIGINAL_UP_VECTOR;
         this.scene = new THREE.Scene();
 
         // we use an initial top level to handle the absolute positioning of
@@ -232,6 +254,45 @@ exports.Viewport = Backbone.View.extend({
             this._handler.completeGroupSelection();
         });
     },
+
+    //
+    // Perform a rotation to match the up vector with the closest unit vector
+    // to provided vector.
+    //
+    // This assumes 'up' will always be on one of the axis (no completely messed
+    // up coordinates) so we match to the closest axis and perform the 90deg
+    // rotation to match current up vector with target. (or -180 to invert)
+    //
+    pointUp: atomic.atomicOperation(function (v) {
+        let axis, angle;
+        const newUpVector = mainDirection(v.clone().normalize());
+
+        if (newUpVector === this._upVector) {
+            return;
+        }
+
+        const s = new THREE.Vector3().addVectors(newUpVector, this._upVector);
+
+        for (let i = 0; i < 5; i += 2) {
+            axis = COORDS[i];
+            const d = s.dot(axis);
+            if (d === 0) {
+                break;
+            }
+        }
+
+        if (s.length() === 0) { // Need to invert the axis, -180deg rotation
+            angle = -1 * Math.PI;
+        } else {
+            s.add(axis);
+            const multiplier = s.x * s.y * s.z;
+            angle = multiplier * Math.PI / 2;
+        }
+
+        this._upVector = newUpVector;
+        this.s_scaleRotate.rotateOnAxis(axis, angle);
+        this.s_h_scaleRotate.rotateOnAxis(axis, angle);
+    }),
 
     changeMesh: function () {
         var meshPayload, mesh, up, front;
@@ -397,9 +458,10 @@ exports.Viewport = Backbone.View.extend({
 
         // Manually bind to avoid useless function call (even with no effect)
         if (this.editingOn) {
-            this.$el.on('mousemove', this._handler.onMouseMove);
+            console.log(this._handler.onMouseMove);
+            this._handler.onMouseMove.attach();
         } else {
-            this.$el.off('mousemove', this._handler.onMouseMove);
+            this._handler.onMouseMove.detach();
         }
     }),
 

@@ -8,12 +8,51 @@ var atomic = require('../../model/atomic');
 
 const MOVE_TO = 50;
 
+function createHandler (evtType, el, func) {
+
+    const $el = el instanceof $ ? el : $(el);
+
+    func.attach = function () {
+        $el.on(evtType, func);
+    }
+
+    func.attachOnce = function () {
+        $el.one(evtType, func);
+    }
+
+    func.detach = function () {
+        $el.off(evtType, func);
+    }
+
+    return func;
+}
+
 /**
  * Create a closure for handling mouse events in viewport.
  * Holds state usable by all event handlers and should be bound to the
  * Viewport view instance.
  */
 function Handler () {
+
+    // Setup handler state variables
+    // ------------------------------------------------------------------------
+    var downEvent,
+        lmPressed, lmPressedWasSelected,
+        isPressed, groupSelected,
+        currentTargetLm;
+
+    var isAdjustingUpVector = false;
+
+    // x, y position of mouse on click states
+    var onMouseDownPosition = new THREE.Vector2(),
+        onMouseUpPosition = new THREE.Vector2();
+
+    // current screen position when in drag state
+    var positionLmDrag = new THREE.Vector2();
+    // vector difference in one time step
+    var deltaLmDrag = new THREE.Vector2();
+
+    var intersectsWithLms, intersectsWithMesh;
 
     // Helpers
     // ------------------------------------------------------------------------
@@ -60,24 +99,6 @@ function Handler () {
         return lms;
     }
 
-    // Setup handler state variables
-    // ------------------------------------------------------------------------
-    var downEvent,
-        lmPressed, lmPressedWasSelected,
-        isPressed, groupSelected,
-        currentTargetLm;
-
-    // x, y position of mouse on click states
-    var onMouseDownPosition = new THREE.Vector2(),
-        onMouseUpPosition = new THREE.Vector2();
-
-    // current screen position when in drag state
-    var positionLmDrag = new THREE.Vector2();
-    // vector difference in one time step
-    var deltaLmDrag = new THREE.Vector2();
-
-    var intersectsWithLms, intersectsWithMesh;
-
     // Press handling
     // ------------------------------------------------------------------------
 
@@ -85,6 +106,8 @@ function Handler () {
         console.log('mesh pressed!');
         if (groupSelected) {
             nothingPressed();
+        } else if (isAdjustingUpVector) {
+            $(document).one('mouseup.viewportMesh', meshOnMouseUp);
         } else if (downEvent.button === 0 && downEvent.shiftKey) {
             shiftPressed();  // LMB + SHIFT
         } else {
@@ -93,6 +116,11 @@ function Handler () {
     }
 
     var landmarkPressed = () => {
+
+        if (isAdjustingUpVector) {
+            return;
+        }
+
         var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
         console.log('Viewport: landmark pressed');
         // before anything else, disable the camera
@@ -125,11 +153,21 @@ function Handler () {
     }
 
     var nothingPressed = () => {
+
+        if (isAdjustingUpVector) {
+            return;
+        }
+
         console.log('nothing pressed!');
         $(document).one('mouseup.viewportNothing', nothingOnMouseUp);
     }
 
     var shiftPressed = () => {
+
+        if (isAdjustingUpVector) {
+            return;
+        }
+
         console.log('shift pressed!');
         // before anything else, disable the camera
         this.cameraController.disable();
@@ -144,7 +182,7 @@ function Handler () {
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
-    var onMouseDown = (event) => {
+    var onMouseDown = atomic.atomicOperation((event) => {
         event.preventDefault();
         this.$el.focus();
 
@@ -205,7 +243,7 @@ function Handler () {
                 // Pass right click does nothing in most cases
             }
         }
-    };
+    });
 
 
     // Drag Handlers
@@ -315,7 +353,10 @@ function Handler () {
             // Convert the point back into the mesh space
             this.worldToLocal(p, true);
 
-            if (this.model.isEditingOn() && currentTargetLm) {
+            if (isAdjustingUpVector) {
+                this.pointUp(p.clone());
+                // stopOrientationFix();
+            } else if (this.model.isEditingOn() && currentTargetLm) {
                 this.model.landmarks().setLmAt(currentTargetLm, p);
             } else {
                 this.model.landmarks().insertNew(p);
@@ -367,7 +408,11 @@ function Handler () {
     // Move handlers
     // ------------------------------------------------------------------------
 
-    var onMouseMove = (evt) => {
+    var onMouseMove = createHandler(
+        'mousemove',
+        this.$el,
+        _.throttle(atomic.atomicOperation(
+    (evt) => {
         this.clearCanvas();
 
         if (isPressed || !this.model.isEditingOn()) {
@@ -417,12 +462,16 @@ function Handler () {
                     this.localToScreen(lm.point()), true);
             });
         }
-    };
+    }), MOVE_TO));
 
     // Keyboard handlers
     // ------------------------------------------------------------------------
 
-    var onKeypressTranslate = atomic.atomicOperation((evt) => {
+    var onKeypressTranslate = createHandler(
+        'keydown',
+        window,
+        atomic.atomicOperation(
+    (evt) => {
         // Only work in group selection mode
         if (!groupSelected) {
             return;
@@ -454,7 +503,7 @@ function Handler () {
         move.set(x * dx, y * dy);
 
         this.model.landmarks().selected().forEach((lm) => {
-            let lmScreen = this.localToScreen(lm.point());
+            const lmScreen = this.localToScreen(lm.point());
             lmScreen.add(move);
 
             let intersectsWithMesh = this.getIntersects(
@@ -466,13 +515,18 @@ function Handler () {
                 // Pass > fallen off mesh
             }
         });
-    });
+    }));
 
     // Group Selection hook
     // ------------------------------------------------------------------------
 
-    var setGroupSelected = (val=true) => {
-        let _val = !!val; // Force cast to boolean
+    const setGroupSelected = atomic.atomicOperation((val=true) => {
+
+        if (isAdjustingUpVector) {
+            return;
+        }
+
+        const _val = !!val; // Force cast to boolean
 
         if (_val === groupSelected) {
             return; // Nothing to do here
@@ -482,16 +536,24 @@ function Handler () {
 
         if (_val) {
             // Use keydown as keypress doesn't register arrows in some context
-            $(window).on('keydown', onKeypressTranslate);
+            onKeypressTranslate.attach();
+            onMouseMove.detach();
         } else {
             this.deselectAll();
-            $(window).off('keydown', onKeypressTranslate);
+            onKeypressTranslate.detach();
+            if (this.editingOn) {
+                onMouseMove.attach();
+            }
         }
 
         this.clearCanvas();
-    };
+    });
 
-    var completeGroupSelection = () => {
+    const completeGroupSelection = () => {
+
+        if (isAdjustingUpVector) {
+            return;
+        }
 
         this.model.landmarks().labels.forEach((label) => {
 
@@ -514,14 +576,33 @@ function Handler () {
         setGroupSelected(true);
     };
 
+    // Orientation Adjustments
+    // ------------------------------------------------------------------------
+
+    const startOrientationFix = () => {
+        isAdjustingUpVector = true;
+        this.clearCanvas();
+        onMouseMove.detach();
+    };
+
+    const stopOrientationFix = () => {
+        isAdjustingUpVector = false;
+        if (this.editingOn) {
+            onMouseMove.attach();
+        }
+    };
+
+
+    // ------------------------------------------------------------------------
     return {
         // State management
-        setGroupSelected: atomic.atomicOperation(setGroupSelected),
-        completeGroupSelection: completeGroupSelection,
-
-        // Exposed handlers
-        onMouseDown: atomic.atomicOperation(onMouseDown),
-        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove), MOVE_TO)
+        setGroupSelected,
+        completeGroupSelection,
+        startOrientationFix,
+        stopOrientationFix,
+        // Exposed handler objects
+        onMouseDown,
+        onMouseMove
     };
 
 }
