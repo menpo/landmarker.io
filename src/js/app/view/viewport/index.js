@@ -146,31 +146,12 @@ exports.Viewport = Backbone.View.extend({
         // attach the render on the element we picked out earlier
         this.$webglel.html(this.renderer.domElement);
 
-        // we  build a second scene for various helpers we may need
-        // (intersection planes) and for connectivity information (so it
-        // shows through)
-        this.sceneHelpers = new THREE.Scene();
-
-        // s_lmsconnectivity is used to store the connectivity representation
-        // of the mesh. Note that we want
-        this.s_lmsconnectivity = new THREE.Object3D();
-        // we want to replicate the mesh scene graph in the scene helpers, so we can
-        // have show-though connectivity..
-        this.s_h_scaleRotate = new THREE.Object3D();
-        this.s_h_translate = new THREE.Object3D();
-        this.s_h_meshAndLms = new THREE.Object3D();
-        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
-        this.s_h_translate.add(this.s_h_meshAndLms);
-        this.s_h_scaleRotate.add(this.s_h_translate);
-        this.sceneHelpers.add(this.s_h_scaleRotate);
-
         // add mesh if there already is one present (we could have missed a
         // backbone callback).
         this.changeMesh();
 
         // make an empty list of landmark views
         this.landmarkViews = [];
-        this.connectivityViews = [];
 
         // Tools for moving between screen and world coordinates
         this.ray = new THREE.Raycaster();
@@ -260,16 +241,12 @@ exports.Viewport = Backbone.View.extend({
         this.meshScale = mesh.geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
         this.s_scaleRotate.scale.set(s, s, s);
-        this.s_h_scaleRotate.scale.set(s, s, s);
         this.s_scaleRotate.up.copy(up);
-        this.s_h_scaleRotate.up.copy(up);
         this.s_scaleRotate.lookAt(front.clone());
-        this.s_h_scaleRotate.lookAt(front.clone());
         // translation
         var t = mesh.geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
         this.s_translate.position.copy(t);
-        this.s_h_translate.position.copy(t);
         this.update();
     },
 
@@ -296,7 +273,7 @@ exports.Viewport = Backbone.View.extend({
         if (atomic.atomicOperationUnderway()) {
             return;
         }
-        //console.log('Viewport:update');
+
         // 1. Render the main viewport
         var w, h;
         w = this.$container.width();
@@ -306,12 +283,6 @@ exports.Viewport = Backbone.View.extend({
         this.renderer.enableScissorTest (true);
         this.renderer.clear();
         this.renderer.render(this.scene, this.s_camera);
-
-        if (this.showConnectivity) {
-            this.renderer.clearDepth(); // clear depth buffer
-            // and render the connectivity
-            this.renderer.render(this.sceneHelpers, this.s_camera);
-        }
 
         // 2. Render the PIP image if in orthographic mode
         if (this.s_camera === this.s_oCam) {
@@ -328,11 +299,6 @@ exports.Viewport = Backbone.View.extend({
             this.renderer.clear();
             // render the PIP image
             this.renderer.render(this.scene, this.s_oCamZoom);
-            if (this.showConnectivity) {
-                this.renderer.clearDepth(); // clear depth buffer
-                // and render the connectivity
-                this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
-            }
             this.renderer.setClearColor(CLEAR_COLOUR, 1);
         }
     },
@@ -429,6 +395,7 @@ exports.Viewport = Backbone.View.extend({
         if (dispatcher.atomicOperationFinished()) {
             // just been turned off - trigger an update.
             this.update();
+            this.drawConnectivity();
         }
     },
 
@@ -440,13 +407,9 @@ exports.Viewport = Backbone.View.extend({
         _.map(this.landmarkViews, function (lmView) {
             lmView.dispose();
         });
-        _.map(this.connectivityViews, function (connView) {
-            connView.dispose();
-        });
 
         // 2. Build a fresh set of views - clear any existing views
         this.landmarkViews = [];
-        this.connectivityViews = [];
 
         var landmarks = this.model.get('landmarks');
         if (landmarks === null) {
@@ -461,33 +424,38 @@ exports.Viewport = Backbone.View.extend({
                     viewport: that
                 }));
         });
-        landmarks.connectivity.map(function (a_to_b) {
-           that.connectivityViews.push(new LandmarkConnectionTHREEView(
-               {
-                   model: [landmarks.landmarks[a_to_b[0]],
-                           landmarks.landmarks[a_to_b[1]]],
-                   viewport: that
-               }));
-        });
-
     }),
 
     // 2D Canvas helper functions
     // =========================================================================
 
     drawTargetingLine: function (start, end, secondary=false) {
+        const [color, dash] =
+            secondary ? ["#7ca5fe", [5, 15]] : ["#01e6fb", []];
+        this.drawLine(start, end, color, dash);
+    },
+
+    drawLine: function (start, end, color="#fffd37", dash=[]) {
         this.ctx.beginPath()
-        if (secondary) {
-            this.ctx.strokeStyle = "#7ca5fe";
-            this.ctx.setLineDash([5, 15]);
-        } else {
-            this.ctx.strokeStyle = "#01e6fb";
-            this.ctx.setLineDash([]);
-        }
+        this.ctx.strokeStyle = color;
+        this.ctx.setLineDash(dash);
         this.ctx.moveTo(start.x, start.y);
         this.ctx.lineTo(end.x, end.y);
         this.ctx.closePath();
         this.ctx.stroke();
+    },
+
+    drawConnectivity: function () {
+        const lms = this.model.get('landmarks');
+        if (!lms) {
+            return;
+        }
+
+        lms.connectivity.forEach(([lm1, lm2]) => {
+            [lm1, lm2] = [lms.landmarks[lm1], lms.landmarks[lm2]];
+            this.drawLine(this.localToScreen(lm1.point()),
+                          this.localToScreen(lm2.point()));
+        });
     },
 
     clearCanvas: function () {
@@ -519,6 +487,7 @@ exports.Viewport = Backbone.View.extend({
             this.ctx.closePath();
             this.ctx.stroke();
         }
+        // this.drawConnectivity();
     },
 
     // Coordinates and intersection helpers
