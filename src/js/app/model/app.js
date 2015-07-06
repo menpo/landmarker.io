@@ -173,6 +173,7 @@ var App = Backbone.Model.extend({
             console.log('App:reloadAssetSource with no activeCollection - doing nothing');
             return;
         }
+
         console.log('App: reloading asset source');
 
         // Construct an asset source (which can query for asset information

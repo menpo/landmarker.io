@@ -1,12 +1,27 @@
 "use strict";
 
 var Promise = require('promise-polyfill'),
-    QS = require('querystring');
+    querystring = require('querystring');
 
 var { loading } = require('../view/notification');
 
+function _url(url, data) {
+    if (!data || Object.keys(data).length === 0) {
+        return url;
+    } else {
+        return `${url}?${querystring.stringify(data)}`;
+    }
+}
+
 function XMLHttpRequestPromise(
-    url, {method='GET', responseType, contentType, headers, data}
+    url, {
+        method='GET',
+        responseType,
+        contentType,
+        headers={},
+        data,
+        auth=false
+    }
 ){
     var xhr = new XMLHttpRequest();
     xhr.open(method, url);
@@ -15,6 +30,8 @@ function XMLHttpRequestPromise(
         // Do the usual XHR stuff
         xhr.responseType = responseType || 'text';
         var asyncId = loading.start();
+
+        xhr.withCredentials = !!auth;
 
         Object.keys(headers).forEach(function (key) {
             xhr.setRequestHeader(key, headers[key]);
@@ -70,39 +87,26 @@ function XMLHttpRequestPromise(
 
 module.exports.Request = XMLHttpRequestPromise;
 
-module.exports.getArrayBuffer = function (url, headers={}) {
-    return XMLHttpRequestPromise(url, {responseType: 'arraybuffer', headers});
+// Below are some shortcuts around the basic Request object for common
+// network calls
+module.exports.getArrayBuffer = function (url, {headers={}, auth=false}) {
+    return XMLHttpRequestPromise(
+        url, {responseType: 'arraybuffer', headers, auth});
 };
 
-module.exports.get = function (url, headers={}, data={}) {
-    if (data) {
-        url = `${url}?${QS.stringify(data)}`;
-    }
-    return XMLHttpRequestPromise(url, {headers});
+module.exports.get = function (url, {headers={}, data={}, auth=false}) {
+    return XMLHttpRequestPromise(
+        _url(url, data), {headers, auth});
 }
 
-module.exports.getJSON = function (url, headers={}, data=undefined) {
-    if (data) {
-        url = `${url}?${QS.stringify(data)}`;
-    }
-    return XMLHttpRequestPromise(url, {responseType: 'json', headers});
+module.exports.getJSON = function (url, {headers={}, data={}, auth=false}) {
+    return XMLHttpRequestPromise(
+        _url(url, data), {responseType: 'json', headers, auth});
 };
 
-module.exports.postJSON = function (url, data={}, headers={}) {
+module.exports.putJSON = function (url, {headers={}, data={}, auth=false}) {
     return XMLHttpRequestPromise(url, {
-        headers,
-        responseType: 'json',
-        method: 'POST',
-        data: QS.stringify(data),
-        contentType: "application/x-www-form-urlencoded"
-    });
-}
-
-module.exports.putJSON = function (url, data={}, headers={}) {
-    return XMLHttpRequestPromise(url, {
-        headers,
-        responseType: 'json',
-        method: 'PUT',
+        headers, auth, responseType: 'json', method: 'PUT',
         data: JSON.stringify(data),
         contentType: "application/json;charset=UTF-8"
     });

@@ -55,10 +55,12 @@ function resolveBackend (u) {
 }
 
 function restart (serverUrl) {
-    console.log('Hard restart', serverUrl);
     cfg.clear();
     let restartUrl = (
-        window.location.origin + (serverUrl ? `?server=${serverUrl}` : ''));
+        window.location.origin +
+        window.location.pathname +
+        (serverUrl ? `?server=${serverUrl}` : '')
+    );
     window.location.replace(restartUrl);
 }
 
@@ -274,7 +276,6 @@ function initLandmarker(server, mode) {
         viewport.removeMeshIfPresent();
         if (prevAsset !== null) {
             // clean up previous asset
-            console.log('Index: cleaning up asset');
             console.log('Before dispose: ' + viewport.memoryString());
             prevAsset.dispose();
             console.log('After dispose: ' + viewport.memoryString());

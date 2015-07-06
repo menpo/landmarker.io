@@ -36,3 +36,7 @@ module.exports.pad = function (n, width, z) {
     return n.length >= width ? n :
         new Array(width - n.length + 1).join(z) + n;
 }
+
+module.exports.capitalize = function (str) {
+    return str.charAt(0).toUpperCase() + str.slice(1)
+}

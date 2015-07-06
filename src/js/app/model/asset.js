@@ -274,7 +274,7 @@ var Mesh = Image.extend({
             // already loading this geometry
             return this._geometryPromise;
         }
-        var arrayPromise = getArrayBuffer(this.geometryUrl());
+        var arrayPromise = this.get('server').fetchGeometry(this.id);
         this._geometryPromise = arrayPromise.then(function (buffer) {
             // now the promise is fullfilled, delete the promise.
             delete that._geometryPromise;
