@@ -56,7 +56,7 @@ var AssetNameView = Backbone.View.extend({
     },
 
     render: function () {
-        this.$el.html(this.model.asset().id);
+        this.$el.find('.content').html(this.model.asset().id);
         if (this.model.assetSource().nAssets() <= 1) {
             this.$el.addClass('Disabled');
         }
@@ -101,7 +101,7 @@ var AssetIndexView = Backbone.View.extend({
     render: function () {
         var n_str = pad(this.model.assetSource().nAssets(), 2);
         var i_str = pad(this.model.assetIndex() + 1, 2);
-        this.$el.html(i_str + "/" + n_str);
+        this.$el.find('.content').html(i_str + "/" + n_str);
         if (this.model.assetSource().nAssets() <= 1) {
             this.$el.addClass('Disabled');
         }
@@ -152,7 +152,8 @@ var CollectionName = Backbone.View.extend({
     },
 
     render: function () {
-        this.$el.html(this.model.activeCollection() || 'No Collection');
+        this.$el.find('.content').html(
+            this.model.activeCollection() || 'No Collection');
         if (this.model.assetSource().nAssets() <= 1) {
             this.$el.addClass('Disabled');
         }
