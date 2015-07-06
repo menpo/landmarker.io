@@ -14,43 +14,48 @@ var NULL_POINT = {2: [null, null], 3: [null, null, null]};
  * @param {Object} json
  */
 function Template (json) {
-    this._template = json;
+    this._template = json.groups || json.template;
+
+    if (!this._template) {
+        throw new ReferenceError(
+            'Missing top-level "groups" or "template" key');
+    }
+
+    if (!Array.isArray(this._template)) {
+        throw new Error('Groups should be an array');
+    }
+
     this._emptyLmGroup = { 2: undefined, 3: undefined };
 
     this.size = 0;
     this.groups = [];
 
-    Object.keys(this._template).forEach((label) => {
+    this._template.forEach(group => {
 
-        let group = this._template[label],
-            connectivity = [],
-            size;
+        let connectivity = [],
+            label = group.label;
 
-        if (!isNaN(group)) {
-            size = Number(group);
-        } else {
-            let rawConnectivity = group['connectivity'] || [];
-            size = group['points'];
+        let rawConnectivity = group['connectivity'] || [];
+        let size = group['points'];
 
-            if (CYCLE_CONNECTIVITY_LABELS.indexOf(rawConnectivity) > -1) {
-                rawConnectivity = [`0:${size - 1}`, `${size - 1} 0`];
-            } else if (!Array.isArray(connectivity)) {
-                rawConnectivity = [];
-            }
-
-            rawConnectivity.forEach(function (item) {
-                if (item.indexOf(':') > -1) {
-                    let [start, end] = item.split(':').map(Number);
-                    for (var i = start; i < end; i++) {
-                        connectivity.push([i, i+1]);
-                    }
-                } else {
-                    connectivity.push(item.split(' ').map(Number));
-                }
-            });
+        if (CYCLE_CONNECTIVITY_LABELS.indexOf(rawConnectivity) > -1) {
+            rawConnectivity = [`0:${size - 1}`, `${size - 1} 0`];
+        } else if (!Array.isArray(connectivity)) {
+            rawConnectivity = [];
         }
 
-        this.groups.push({label, size, connectivity });
+        rawConnectivity.forEach(function (item) {
+            if (item.indexOf(':') > -1) {
+                let [start, end] = item.split(':').map(Number);
+                for (var i = start; i < end; i++) {
+                    connectivity.push([i, i+1]);
+                }
+            } else {
+                connectivity.push(item.split(' ').map(Number));
+            }
+        });
+
+        this.groups.push({label, size, connectivity});
         this.size += size;
     });
 }
@@ -83,19 +88,19 @@ Template.parseLJSON = function (ljson) {
         ljson = JSON.parse(ljson);
     }
 
-    let template = {};
+    let template = [];
     ljson.labels.forEach(function ({label, mask}) {
-        template[label] = {points: mask.length, connectivity: []};
+        let group = {label, points: mask.length, connectivity: []};
         ljson.landmarks.connectivity.forEach(function ([x1, x2]) {
             if (mask.indexOf(x1) > -1) {
                 let offset = mask[0]
-                template[label].connectivity.push(
-                    `${x1 - offset} ${x2 - offset}`);
+                group.connectivity.push(`${x1 - offset} ${x2 - offset}`);
             }
         });
+        template.push(group);
     });
 
-    return new Template(template);
+    return new Template({template});
 }
 
 Template.Parsers = {
