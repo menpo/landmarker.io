@@ -265,6 +265,9 @@ var App = Backbone.Model.extend({
     },
 
     _switchToAsset: function (newAssetPromise) {
+        if (!newAssetPromise) {
+            return;
+        }
         this.set('landmarks', null);
         // The asset promise should come from the assetSource and will only
         // resolve when all the key data for annotating is loaded, the
