@@ -199,7 +199,7 @@ var App = Backbone.Model.extend({
 
             console.log('assetSource retrieved - setting');
 
-            if (this.has('_assetIndex')) {
+            if (this.has('_assetIndex') && !this.hasChanged('activeCollection')) {
                 i = this.get('_assetIndex');
             }
 

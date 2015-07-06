@@ -172,11 +172,19 @@ var CollectionName = Backbone.View.extend({
                 });
             }, true);
         } else if (backend instanceof Server) {
-            if (this.model.collections().length === 1) {
-                Notification.notify({
-                    msg: 'There is only one available collection'
-                });
-            }
+
+            const collections = this.model.collections().map(c => [c, c]);
+
+            const picker = new ListPicker({
+                list: collections,
+                title: 'Select a new collection to load',
+                closable: true,
+                useFilter: true,
+                submit: (collection) => {
+                    this.model.set({'activeCollection': collection});
+                }
+            });
+            picker.open();
         }
     }
 
