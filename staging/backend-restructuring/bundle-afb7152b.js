@@ -81,9 +81,8 @@ function resolveBackend(u) {
 }
 
 function restart(serverUrl) {
-    console.log('Hard restart', serverUrl);
     cfg.clear();
-    var restartUrl = window.location.origin + (serverUrl ? '?server=' + serverUrl : '');
+    var restartUrl = window.location.origin + window.location.pathname + (serverUrl ? '?server=' + serverUrl : '');
     window.location.replace(restartUrl);
 }
 
@@ -304,7 +303,6 @@ function initLandmarker(server, mode) {
         viewport.removeMeshIfPresent();
         if (prevAsset !== null) {
             // clean up previous asset
-            console.log('Index: cleaning up asset');
             console.log('Before dispose: ' + viewport.memoryString());
             prevAsset.dispose();
             console.log('After dispose: ' + viewport.memoryString());
@@ -59106,9 +59104,10 @@ function Base() {}
     };
 });
 
-Base.extend = function extend(child) {
+Base.extend = function extend(type, child) {
     child.prototype = Object.create(Base.prototype);
     child.prototype.constructor = child;
+    child.Type = type;
     return child;
 };
 
@@ -59128,7 +59127,9 @@ module.exports = Base;
  */
 "use strict";
 
-var API_KEY = "jwda9p0msmkfora";
+var API_KEY = "jwda9p0msmkfora",
+    API_URL = "https://api.dropbox.com/1",
+    CONTENTS_URL = "https://api-content.dropbox.com/1";
 
 var url = require("url"),
     Promise = require("promise-polyfill");
@@ -59149,7 +59150,7 @@ var Template = require("../model/template");
 
 var Picker = require("../view/dropbox_picker.js");
 
-var Dropbox = require("./base").extend(function Dropbox(token, cfg) {
+var Dropbox = require("./base").extend("DROPBOX", function (token, cfg) {
     this._token = token;
     this._cfg = cfg;
 
@@ -59163,8 +59164,6 @@ var Dropbox = require("./base").extend(function Dropbox(token, cfg) {
     this._cfg.set("BACKEND_DROPBOX_TOKEN", token);
     this._cfg.save();
 });
-
-Dropbox.Type = "DROPBOX";
 
 Dropbox.Extensions = {
     Images: ["jpeg", "jpg", "png"],
@@ -59190,12 +59189,7 @@ Dropbox.authorize = function () {
             "client_id": API_KEY }
     });
 
-    // Redirect to Dropbox authentication page
     return [u, oAuthState];
-};
-
-Dropbox.prototype.accountInfo = function () {
-    return getJSON("https://api.dropbox.com/1/account/info", this.headers());
 };
 
 Dropbox.prototype.headers = function () {
@@ -59203,6 +59197,10 @@ Dropbox.prototype.headers = function () {
         throw new Error("Can't proceed without an access token");
     }
     return { "Authorization": "Bearer " + this._token };
+};
+
+Dropbox.prototype.accountInfo = function () {
+    return getJSON(API_URL + "/account/info", { headers: this.headers() });
 };
 
 Dropbox.prototype.pickTemplate = function (success, error) {
@@ -59329,7 +59327,10 @@ Dropbox.prototype.list = function () {
     if (this._listCache[path] && !noCache) {
         q = Promise.resolve(this._listCache[path]);
     } else {
-        q = getJSON("https://api.dropbox.com/1/metadata/auto" + path, this.headers(), { list: true }).then(function (data) {
+        q = getJSON(API_URL + "/metadata/auto" + path, {
+            headers: this.headers(),
+            data: { list: true }
+        }).then(function (data) {
             _this5._listCache[path] = data;
             return data;
         });
@@ -59367,10 +59368,10 @@ Dropbox.prototype.list = function () {
 };
 
 Dropbox.prototype.download = function (path) {
-    return get("https://api-content.dropbox.com/1/files/auto" + path, this.headers()).then(function (data) {
+    return get(CONTENTS_URL + "/files/auto" + path, {
+        headers: this.headers()
+    }).then(function (data) {
         return data;
-    }, function (err) {
-        throw err;
     });
 };
 
@@ -59393,7 +59394,9 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
         }
     }
 
-    var q = getJSON("https://api.dropbox.com/1/media/auto" + path, this.headers()).then(function (_ref2) {
+    var q = getJSON(API_URL + "/media/auto" + path, {
+        headers: this.headers()
+    }).then(function (_ref2) {
         var url = _ref2.url;
         var expires = _ref2.expires;
 
@@ -59462,11 +59465,10 @@ Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
 };
 
 Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
-    var headers = this.headers();
+    var headers = this.headers(),
+        path = this._assetsPath + "/landmarks/" + id + "_" + type + ".ljson";
 
-    var path = this._assetsPath + "/landmarks/" + id + "_" + type + ".ljson";
-
-    return putJSON("https://api-content.dropbox.com/1/files_put/auto" + path, json, headers);
+    return putJSON(CONTENTS_URL + "/files_put/auto" + path, { data: json, headers: headers });
 };
 
 module.exports = Dropbox;
@@ -59491,20 +59493,25 @@ var _require = require('../lib/requests');
 var getJSON = _require.getJSON;
 var putJSON = _require.putJSON;
 var getArrayBuffer = _require.getArrayBuffer;
+
+var _require2 = require('../lib/utils');
+
+var capitalize = _require2.capitalize;
 var ImagePromise = require('../lib/imagepromise');
 
-var Server = require('./base').extend(function Server(url) {
+var Server = require('./base').extend('LANDMARKER SERVER', function (url) {
     this.url = url || DEFAULT_API_URL;
     this.demoMode = false;
     this.version = 2;
+    this.httpAuth = false;
 
     if (this.url === 'demo') {
         this.url = '';
         this.demoMode = true;
     }
-});
 
-Server.Type = 'LANDMARKER SERVER';
+    this.httpAuth = url.indexOf('https://') === 0;
+});
 
 Server.prototype.apiHeader = function () {
     return '/api/v' + this.version + '/';
@@ -59544,15 +59551,11 @@ Server.prototype.map = function (url) {
 
 Server.prototype.fetchJSON = function (basepath) {
     var url = this.map(basepath);
-    return getJSON(url);
+    return getJSON(url, { auth: this.httpAuth });
 };
 
-function _capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
 ['mode', 'templates', 'collections'].forEach(function (path) {
-    var func = 'fetch' + _capitalize(path);
+    var func = 'fetch' + capitalize(path);
     Server.prototype[func] = function () {
         return this.fetchJSON(path);
     };
@@ -59563,28 +59566,33 @@ Server.prototype.fetchCollection = function (collectionId) {
 };
 
 Server.prototype.fetchLandmarkGroup = function (id, type) {
-    return getJSON(this.map('landmarks/' + id + '/' + type));
+    return getJSON(this.map('landmarks/' + id + '/' + type), { auth: this.httpAuth });
 };
 
 Server.prototype.saveLandmarkGroup = function (id, type, json) {
-    return putJSON(this.map('landmarks/' + id + '/' + type), json);
+    return putJSON(this.map('landmarks/' + id + '/' + type), {
+        data: json,
+        auth: this.httpAuth
+    });
 };
 
 Server.prototype.fetchThumbnail = function (assetId) {
-    return ImagePromise(this.map('thumbnails/' + assetId));
+    return ImagePromise(this.map('thumbnails/' + assetId), this.httpAuth);
 };
 
 Server.prototype.fetchTexture = function (assetId) {
-    return ImagePromise(this.map('textures/' + assetId));
+    return ImagePromise(this.map('textures/' + assetId), this.httpAuth);
 };
 
 Server.prototype.fetchGeometry = function (assetId) {
-    return getArrayBuffer(this.map('meshes/' + assetId));
+    return getArrayBuffer(this.map('meshes/' + assetId), {
+        auth: this.httpAuth
+    });
 };
 
 module.exports = Server;
 
-},{"../lib/imagepromise":49,"../lib/requests":50,"./base":45,"url":8}],49:[function(require,module,exports){
+},{"../lib/imagepromise":49,"../lib/requests":50,"../lib/utils":52,"./base":45,"url":8}],49:[function(require,module,exports){
 'use strict';
 
 var Promise = require('promise-polyfill'),
@@ -59595,10 +59603,14 @@ var _require = require('../view/notification');
 var loading = _require.loading;
 
 var ImagePromise = function ImagePromise(url) {
+    var auth = arguments[1] === undefined ? false : arguments[1];
+
     return new Promise(function (resolve, reject) {
 
         var xhr = new XMLHttpRequest();
+
         xhr.open('GET', url, true);
+        xhr.withCredentials = !!auth;
         xhr.responseType = 'blob';
         var img = new Image();
         var asyncId = loading.start();
@@ -59655,19 +59667,30 @@ module.exports = MaterialPromise;
 'use strict';
 
 var Promise = require('promise-polyfill'),
-    QS = require('querystring');
+    querystring = require('querystring');
 
 var _require = require('../view/notification');
 
 var loading = _require.loading;
+
+function _url(url, data) {
+    if (!data || Object.keys(data).length === 0) {
+        return url;
+    } else {
+        return url + '?' + querystring.stringify(data);
+    }
+}
 
 function XMLHttpRequestPromise(url, _ref) {
     var _ref$method = _ref.method;
     var method = _ref$method === undefined ? 'GET' : _ref$method;
     var responseType = _ref.responseType;
     var contentType = _ref.contentType;
-    var headers = _ref.headers;
+    var _ref$headers = _ref.headers;
+    var headers = _ref$headers === undefined ? {} : _ref$headers;
     var data = _ref.data;
+    var _ref$auth = _ref.auth;
+    var auth = _ref$auth === undefined ? false : _ref$auth;
 
     var xhr = new XMLHttpRequest();
     xhr.open(method, url);
@@ -59676,6 +59699,8 @@ function XMLHttpRequestPromise(url, _ref) {
         // Do the usual XHR stuff
         xhr.responseType = responseType || 'text';
         var asyncId = loading.start();
+
+        xhr.withCredentials = !!auth;
 
         Object.keys(headers).forEach(function (key) {
             xhr.setRequestHeader(key, headers[key]);
@@ -59730,53 +59755,49 @@ function XMLHttpRequestPromise(url, _ref) {
 
 module.exports.Request = XMLHttpRequestPromise;
 
-module.exports.getArrayBuffer = function (url) {
-    var headers = arguments[1] === undefined ? {} : arguments[1];
+// Below are some shortcuts around the basic Request object for common
+// network calls
+module.exports.getArrayBuffer = function (url, _ref2) {
+    var _ref2$headers = _ref2.headers;
+    var headers = _ref2$headers === undefined ? {} : _ref2$headers;
+    var _ref2$auth = _ref2.auth;
+    var auth = _ref2$auth === undefined ? false : _ref2$auth;
 
-    return XMLHttpRequestPromise(url, { responseType: 'arraybuffer', headers: headers });
+    return XMLHttpRequestPromise(url, { responseType: 'arraybuffer', headers: headers, auth: auth });
 };
 
-module.exports.get = function (url) {
-    var headers = arguments[1] === undefined ? {} : arguments[1];
-    var data = arguments[2] === undefined ? {} : arguments[2];
+module.exports.get = function (url, _ref3) {
+    var _ref3$headers = _ref3.headers;
+    var headers = _ref3$headers === undefined ? {} : _ref3$headers;
+    var _ref3$data = _ref3.data;
+    var data = _ref3$data === undefined ? {} : _ref3$data;
+    var _ref3$auth = _ref3.auth;
+    var auth = _ref3$auth === undefined ? false : _ref3$auth;
 
-    if (data) {
-        url = url + '?' + QS.stringify(data);
-    }
-    return XMLHttpRequestPromise(url, { headers: headers });
+    return XMLHttpRequestPromise(_url(url, data), { headers: headers, auth: auth });
 };
 
-module.exports.getJSON = function (url) {
-    var headers = arguments[1] === undefined ? {} : arguments[1];
-    var data = arguments[2] === undefined ? undefined : arguments[2];
+module.exports.getJSON = function (url, _ref4) {
+    var _ref4$headers = _ref4.headers;
+    var headers = _ref4$headers === undefined ? {} : _ref4$headers;
+    var _ref4$data = _ref4.data;
+    var data = _ref4$data === undefined ? {} : _ref4$data;
+    var _ref4$auth = _ref4.auth;
+    var auth = _ref4$auth === undefined ? false : _ref4$auth;
 
-    if (data) {
-        url = url + '?' + QS.stringify(data);
-    }
-    return XMLHttpRequestPromise(url, { responseType: 'json', headers: headers });
+    return XMLHttpRequestPromise(_url(url, data), { responseType: 'json', headers: headers, auth: auth });
 };
 
-module.exports.postJSON = function (url) {
-    var data = arguments[1] === undefined ? {} : arguments[1];
-    var headers = arguments[2] === undefined ? {} : arguments[2];
+module.exports.putJSON = function (url, _ref5) {
+    var _ref5$headers = _ref5.headers;
+    var headers = _ref5$headers === undefined ? {} : _ref5$headers;
+    var _ref5$data = _ref5.data;
+    var data = _ref5$data === undefined ? {} : _ref5$data;
+    var _ref5$auth = _ref5.auth;
+    var auth = _ref5$auth === undefined ? false : _ref5$auth;
 
     return XMLHttpRequestPromise(url, {
-        headers: headers,
-        responseType: 'json',
-        method: 'POST',
-        data: QS.stringify(data),
-        contentType: 'application/x-www-form-urlencoded'
-    });
-};
-
-module.exports.putJSON = function (url) {
-    var data = arguments[1] === undefined ? {} : arguments[1];
-    var headers = arguments[2] === undefined ? {} : arguments[2];
-
-    return XMLHttpRequestPromise(url, {
-        headers: headers,
-        responseType: 'json',
-        method: 'PUT',
+        headers: headers, auth: auth, responseType: 'json', method: 'PUT',
         data: JSON.stringify(data),
         contentType: 'application/json;charset=UTF-8'
     });
@@ -59850,6 +59871,10 @@ module.exports.pad = function (n, width, z) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+};
+
+module.exports.capitalize = function (str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
 },{}],53:[function(require,module,exports){
@@ -60033,6 +60058,7 @@ var App = Backbone.Model.extend({
             console.log('App:reloadAssetSource with no activeCollection - doing nothing');
             return;
         }
+
         console.log('App: reloading asset source');
 
         // Construct an asset source (which can query for asset information
@@ -60058,7 +60084,7 @@ var App = Backbone.Model.extend({
 
             console.log('assetSource retrieved - setting');
 
-            if (_this3.has('_assetIndex')) {
+            if (_this3.has('_assetIndex') && !_this3.hasChanged('activeCollection')) {
                 i = _this3.get('_assetIndex');
             }
 
@@ -60118,6 +60144,9 @@ var App = Backbone.Model.extend({
     },
 
     _switchToAsset: function _switchToAsset(newAssetPromise) {
+        if (!newAssetPromise) {
+            return;
+        }
         this.set('landmarks', null);
         // The asset promise should come from the assetSource and will only
         // resolve when all the key data for annotating is loaded, the
@@ -60414,7 +60443,7 @@ var Mesh = Image.extend({
             // already loading this geometry
             return this._geometryPromise;
         }
-        var arrayPromise = getArrayBuffer(this.geometryUrl());
+        var arrayPromise = this.get('server').fetchGeometry(this.id);
         this._geometryPromise = arrayPromise.then(function (buffer) {
             // now the promise is fullfilled, delete the promise.
             delete that._geometryPromise;
@@ -60698,7 +60727,6 @@ exports.ImageSource = AssetSource.extend({
             that.set('assetIsLoading', false);
         }, function (err) {
             console.log('texture.then something went wrong ' + err.stack);
-            that.set('assetIsLoading', false);
         });
         // return the texture promise. Once the texture is ready, landmarks
         // can be displayed.
@@ -61483,47 +61511,51 @@ var NULL_POINT = { 2: [null, null], 3: [null, null, null] };
 function Template(json) {
     var _this = this;
 
-    this._template = json;
+    this._template = json.groups || json.template;
+
+    if (!this._template) {
+        throw new ReferenceError('Missing top-level "groups" or "template" key');
+    }
+
+    if (!Array.isArray(this._template)) {
+        throw new Error('Groups should be an array');
+    }
+
     this._emptyLmGroup = { 2: undefined, 3: undefined };
 
     this.size = 0;
     this.groups = [];
 
-    Object.keys(this._template).forEach(function (label) {
+    this._template.forEach(function (group) {
 
-        var group = _this._template[label],
-            connectivity = [],
-            size = undefined;
+        var connectivity = [],
+            label = group.label;
 
-        if (!isNaN(group)) {
-            size = Number(group);
-        } else {
-            var rawConnectivity = group['connectivity'] || [];
-            size = group['points'];
+        var rawConnectivity = group['connectivity'] || [];
+        var size = group['points'];
 
-            if (CYCLE_CONNECTIVITY_LABELS.indexOf(rawConnectivity) > -1) {
-                rawConnectivity = ['0:' + (size - 1), size - 1 + ' 0'];
-            } else if (!Array.isArray(connectivity)) {
-                rawConnectivity = [];
-            }
-
-            rawConnectivity.forEach(function (item) {
-                if (item.indexOf(':') > -1) {
-                    var _item$split$map = item.split(':').map(Number);
-
-                    var _item$split$map2 = _slicedToArray(_item$split$map, 2);
-
-                    var start = _item$split$map2[0];
-                    var end = _item$split$map2[1];
-
-                    for (var i = start; i < end; i++) {
-                        connectivity.push([i, i + 1]);
-                    }
-                } else {
-                    connectivity.push(item.split(' ').map(Number));
-                }
-            });
+        if (CYCLE_CONNECTIVITY_LABELS.indexOf(rawConnectivity) > -1) {
+            rawConnectivity = ['0:' + (size - 1), size - 1 + ' 0'];
+        } else if (!Array.isArray(connectivity)) {
+            rawConnectivity = [];
         }
+
+        rawConnectivity.forEach(function (item) {
+            if (item.indexOf(':') > -1) {
+                var _item$split$map = item.split(':').map(Number);
+
+                var _item$split$map2 = _slicedToArray(_item$split$map, 2);
+
+                var start = _item$split$map2[0];
+                var end = _item$split$map2[1];
+
+                for (var i = start; i < end; i++) {
+                    connectivity.push([i, i + 1]);
+                }
+            } else {
+                connectivity.push(item.split(' ').map(Number));
+            }
+        });
 
         _this.groups.push({ label: label, size: size, connectivity: connectivity });
         _this.size += size;
@@ -61558,12 +61590,12 @@ Template.parseLJSON = function (ljson) {
         ljson = JSON.parse(ljson);
     }
 
-    var template = {};
+    var template = [];
     ljson.labels.forEach(function (_ref) {
         var label = _ref.label;
         var mask = _ref.mask;
 
-        template[label] = { points: mask.length, connectivity: [] };
+        var group = { label: label, points: mask.length, connectivity: [] };
         ljson.landmarks.connectivity.forEach(function (_ref2) {
             var _ref22 = _slicedToArray(_ref2, 2);
 
@@ -61572,12 +61604,13 @@ Template.parseLJSON = function (ljson) {
 
             if (mask.indexOf(x1) > -1) {
                 var offset = mask[0];
-                template[label].connectivity.push(x1 - offset + ' ' + (x2 - offset));
+                group.connectivity.push(x1 - offset + ' ' + (x2 - offset));
             }
         });
+        template.push(group);
     });
 
-    return new Template(template);
+    return new Template({ template: template });
 };
 
 Template.Parsers = {
@@ -61824,11 +61857,21 @@ var CollectionName = Backbone.View.extend({
                 });
             }, true);
         } else if (backend instanceof Server) {
-            if (this.model.collections().length === 1) {
-                Notification.notify({
-                    msg: 'There is only one available collection'
-                });
-            }
+
+            var collections = this.model.collections().map(function (c) {
+                return [c, c];
+            });
+
+            var picker = new ListPicker({
+                list: collections,
+                title: 'Select a new collection to load',
+                closable: true,
+                useFilter: true,
+                submit: function submit(collection) {
+                    _this.model.set({ 'activeCollection': collection });
+                }
+            });
+            picker.open();
         }
     }
 
@@ -62620,7 +62663,7 @@ module.exports.BaseNotification = Backbone.View.extend({
         if (this.actions.length) {
             evt.preventDefault();
             var actionIndex = evt.currentTarget.dataset.index;
-            if (actionIndex > 0 && actionIndex < this.actions.length) {
+            if (actionIndex >= 0 && actionIndex < this.actions.length) {
                 this.actions[actionIndex][1]();
             }
         }
@@ -63247,7 +63290,6 @@ var LandmarkSizeSlider = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        console.log('LandmarkSizeSlider:initialize');
         _.bindAll(this, 'render', 'changeLandmarkSize');
         this.listenTo(this.model, 'change:landmarkSize', this.render);
         // set the size immediately.
@@ -63255,13 +63297,11 @@ var LandmarkSizeSlider = Backbone.View.extend({
     },
 
     render: function render() {
-        console.log('LandmarkSizeSlider:render');
         this.$el[0].value = this.model.get('landmarkSize') * 100;
         return this;
     },
 
     changeLandmarkSize: atomic.atomicOperation(function (event) {
-        console.log('LandmarkSizeSlider:changeLandmarkSize');
         this.model.set('landmarkSize', Number(event.target.value) / 100);
     })
 });
@@ -63275,7 +63315,6 @@ var TextureToggle = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        console.log('TextureToggle:initialize');
         this.$toggle = this.$el.find('#textureToggle')[0];
         _.bindAll(this, 'changeMesh', 'render', 'textureToggle');
         this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
@@ -63287,7 +63326,6 @@ var TextureToggle = Backbone.View.extend({
     },
 
     changeMesh: function changeMesh() {
-        console.log('TextureToggle:changeMesh');
         if (this.mesh) {
             this.stopListening(this.mesh);
         }
@@ -63296,7 +63334,6 @@ var TextureToggle = Backbone.View.extend({
     },
 
     render: function render() {
-        console.log('TextureToggle:render');
         if (this.mesh) {
             this.$el.toggleClass('Toolbar-Row--Disabled', !this.mesh.hasTexture());
             this.$toggle.checked = this.mesh.isTextureOn();
@@ -63307,7 +63344,6 @@ var TextureToggle = Backbone.View.extend({
     },
 
     textureToggle: function textureToggle() {
-        console.log('TextureToggle:textureToggle');
         if (!this.mesh) {
             return;
         }
@@ -63324,7 +63360,6 @@ var ConnectivityToggle = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        console.log('ConnectivityToggle:initialize');
         this.$toggle = this.$el.find('#connectivityToggle')[0];
         _.bindAll(this, 'render', 'connectivityToggle');
         this.listenTo(this.model, 'change:connectivityOn', this.render);
@@ -63332,13 +63367,11 @@ var ConnectivityToggle = Backbone.View.extend({
     },
 
     render: function render() {
-        console.log('ConnectivityToggle:render');
         this.$toggle.checked = this.model.isConnectivityOn();
         return this;
     },
 
     connectivityToggle: function connectivityToggle() {
-        console.log('ConnectivityToggle:connectivityToggle');
         this.model.toggleConnectivity();
     }
 });
@@ -63352,7 +63385,6 @@ var EditingToggle = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        console.log('ConnectivityToggle:initialize');
         this.$toggle = this.$el.find('#editingToggle')[0];
         _.bindAll(this, 'render', 'editingToggle');
         this.listenTo(this.model, 'change:editingOn', this.render);
@@ -63360,13 +63392,11 @@ var EditingToggle = Backbone.View.extend({
     },
 
     render: function render() {
-        console.log('EditingToggle:render');
         this.$toggle.checked = this.model.isEditingOn();
         return this;
     },
 
     editingToggle: function editingToggle() {
-        console.log('EditingToggle:editingToggle');
         this.model.toggleEditing();
     }
 });
@@ -63376,7 +63406,6 @@ exports.Toolbar = Backbone.View.extend({
     el: '#toolbar',
 
     initialize: function initialize() {
-        console.log('Toolbar:initialize');
         this.lmSizeSlider = new LandmarkSizeSlider({ model: this.model });
         this.connectivityToggle = new ConnectivityToggle({ model: this.model });
         this.editingToggle = new EditingToggle({ model: this.model });
@@ -65104,4 +65133,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":56,"../../model/octree":59,"./camera":71,"./elements":72,"./handler":73,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-4eddd842.js.map
+//# sourceMappingURL=bundle-afb7152b.js.map
