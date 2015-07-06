@@ -7,27 +7,30 @@
 // Asset info in top left corner
 .AssetInfo > button {
     display: block;
-    font-size: x-large;
     text-align: left;
     margin: 0;
-    background: white(.7);
+    background: white(.85);
     width: inherit;
-}
+    font-weight: normal;
 
-.AssetName {
-    color: $colorDarkRed;
-    font-weight: bold;
-}
+    span.label {
+        text-transform: uppercase;
+        font-size: medium;
+        font-weight: bold;
+        margin-right: .2em;
 
-.AssetIndex {
-    color: black;
+        &::after {
+          content: ':';
+        }
+    }
 }
 
 .Toolbar {
     opacity: .9;
-    background: $colorBlue;
+    background: $colorLightBlue;
     width: 100%;
     max-width: 170px;
+    padding: .4em;
 }
 
 .Toolbar-Row {
@@ -47,6 +50,16 @@
 
 .Toolbar-Row-Item {
     flex: 1;
+
+    &:first-of-type {
+        text-transform: uppercase;
+        font-weight: bold;
+        font-size: medium;
+    }
+}
+
+.Toolbar-Slider {
+    padding-left: .4em;
 }
 
 .Toolbar-Row--Disabled{
@@ -54,10 +67,10 @@
     opacity: 0.3;
 }
 
-/* from http://proto.io/freebies/onoff/ */
 .onoffswitch {
-    position: relative; width: 80px;
-    -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
+    position: relative;
+    width: 80px;
+    user-select: none;
 }
 
 .onoffswitch-checkbox {
@@ -65,43 +78,53 @@
 }
 
 .onoffswitch-label {
-    display: block; overflow: hidden; cursor: pointer;
-    border: 2px solid #999999; border-radius: 0px;
+    display: block;
+    overflow: hidden;
+    cursor: pointer;
+    border-radius: 2px;
 }
 
 .onoffswitch-inner {
-    width: 200%; margin-left: -100%;
-    -moz-transition: margin 0.1s ease-in 0s; -webkit-transition: margin 0.1s ease-in 0s;
-    -o-transition: margin 0.1s ease-in 0s; transition: margin 0.1s ease-in 0s;
+    width: 200%;
+    margin-left: -100%;
+    transition: margin 0.15s ease-in 0s;
 }
 
 .onoffswitch-inner:before, .onoffswitch-inner:after {
-    float: left; width: 50%; height: 30px; padding: 0; line-height: 30px;
-    font-size: 14px; color: white; font-family: Trebuchet, Arial, sans-serif; font-weight: bold;
-    -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
+    float: left;
+    width: 50%;
+    height: 30px;
+    padding: 0;
+    line-height: 30px;
+    font-size: 14px;
+    color: white;
+    font-weight: bold;
+    box-sizing: border-box;
 }
 
 .onoffswitch-inner:before {
     content: "ON";
     padding-left: 10px;
-    background-color: #0A4EB2; color: #FFFFFF;
+    background-color: $colorDarkerBlue;
+    color: white;
     text-align: left;
 }
 
 .onoffswitch-inner:after {
     content: "OFF";
     padding-right: 10px;
-    background-color: #EEEEEE; color: #999999;
+    background-color: white;
+    color: $colorGray;
     text-align: right;
 }
 
 .onoffswitch-switch {
-    width: 30px; margin: 0px;
-    background: #FFFFFF;
-    border: 2px solid #999999; border-radius: 0px;
-    position: absolute; top: 0; bottom: 0; right: 46px;
-    -moz-transition: all 0.1s ease-in 0s; -webkit-transition: all 0.1s ease-in 0s;
-    -o-transition: all 0.1s ease-in 0s; transition: all 0.1s ease-in 0s;
+    border-radius: 2px;
+    width: 20px;
+    height: 20px;
+    background: $colorLightGray;
+    position: absolute; top: 5px; bottom: 0; right: 56px;
+    transition: all 0.15s ease-in 0s;
 }
 
 .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
@@ -109,5 +132,49 @@
 }
 
 .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
-    right: 0px;
+    right: 5px;
+}
+
+input[type="range"] {
+    display: block;
+    -webkit-appearance: none;
+    background-color: $colorLightGray;
+    width: auto;
+    height: 5px;
+    border-radius: 5px;
+    margin: 0 auto;
+    outline: 0;
+}
+
+input[type=range]:focus {
+    outline: none;
+}
+
+@mixin rangeThumb {
+    @extend %transitionAll;
+    -webkit-appearance: none;
+    background-color: $colorDarkerBlue;
+    border: 1px solid white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+
+    &:hover {
+        background-color: $colorPurple;
+    }
+
+    &:active {
+        transform: scale(1.2);
+    }
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    @include rangeThumb;
+}
+input[type=range]::-moz-range-thumb {
+    @include rangeThumb;
+}
+input[type=range]::-ms-thumb {
+    @include rangeThumb;
 }

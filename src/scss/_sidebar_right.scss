@@ -82,6 +82,7 @@ is itself a row flexbox */
 
 .LmGroup {
     position: relative;
+    background: white(.75);
 }
 
 .LmGroup-Label,
@@ -100,7 +101,7 @@ is itself a row flexbox */
 }
 
 .LmGroup-Label--Active {
-    font-weight: bold
+    font-weight: 700;
 }
 
 .LmGroup-Flex {

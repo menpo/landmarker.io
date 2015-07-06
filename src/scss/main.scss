@@ -12,14 +12,12 @@ html {
 body {
     height: 100%;
     margin: 0;
-    font-family: "HelveticaNeue-Light", "Helvetica Neue Light",
-        "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
-    font-weight: 300;
+    font-family: $fontFamily;
+    font-weight: 400;
 }
 
 /* Use nice fonts in text boxes */
-input, textarea, select{
-    font-family:inherit;
+input, textarea, select {
     font-size: 150%;
 }
 

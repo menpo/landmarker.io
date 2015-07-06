@@ -3,19 +3,26 @@ button,
     @extend %transitionAll;
     border: none;
     background: white;
+    font-family: $fontFamily;
     outline: none;
     width: 100%;
     min-height: $mainControlHeight;
     line-height: $mainControlHeight;
-    font-weight: 300;
-    font-size: larger;
+    font-weight: bold;
+    font-size: large;
     cursor: pointer;
 }
 
 .Button-Basic,
 .Button-Save,
-.Button-Help {
+.Button-Danger {
     color: white;
+    text-transform: uppercase;
+    font-size: medium;
+}
+
+.Button-Basic#help {
+    font-size: x-large;
 }
 
 .Button-Basic {
@@ -32,7 +39,7 @@ button,
     }
 }
 
-.Button-Help {
+.Button-Danger {
     background: $colorRed;
     cursor: help;
     &:hover {
