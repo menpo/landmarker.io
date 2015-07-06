@@ -19,9 +19,10 @@ function Base () {}
     }
 });
 
-Base.extend = function extend (child) {
+Base.extend = function extend (type, child) {
   child.prototype = Object.create(Base.prototype);
   child.prototype.constructor = child;
+  child.Type = type;
   return child;
 };
 

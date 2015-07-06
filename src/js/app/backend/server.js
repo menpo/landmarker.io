@@ -3,24 +3,26 @@
 var DEFAULT_API_URL = 'http://localhost:5000';
 
 var { getJSON, putJSON, getArrayBuffer } = require('../lib/requests'),
+    { capitalize } = require('../lib/utils'),
     ImagePromise = require('../lib/imagepromise');
 
-var Server = require('./base').extend(function Server (url) {
+var Server = require('./base').extend('LANDMARKER SERVER', function (url) {
     this.url = url || DEFAULT_API_URL;
     this.demoMode = false;
     this.version = 2;
+    this.httpAuth = false;
 
     if (this.url === 'demo') {
         this.url = '';
         this.demoMode = true;
     }
-});
 
-Server.Type = 'LANDMARKER SERVER';
+    this.httpAuth = (url.indexOf('https://') === 0);
+});
 
 Server.prototype.apiHeader = function () {
     return `/api/v${this.version}/`;
-}
+};
 
 Server.prototype.testForV1 = function (error) {
     this.version = 1;
@@ -53,19 +55,15 @@ Server.prototype.map = function (url) {
     } else {
         return this.url + this.apiHeader() + url;
     }
-}
+};
 
 Server.prototype.fetchJSON = function (basepath) {
     let url = this.map(basepath);
-    return getJSON(url);
-}
-
-function _capitalize (str) {
-    return str.charAt(0).toUpperCase() + str.slice(1)
-}
+    return getJSON(url, {auth: this.httpAuth});
+};
 
 ['mode', 'templates', 'collections'].forEach(function (path) {
-    let func = `fetch${_capitalize(path)}`;
+    let func = `fetch${capitalize(path)}`;
     Server.prototype[func] = function () {
         return this.fetchJSON(path);
     }
@@ -76,23 +74,28 @@ Server.prototype.fetchCollection = function (collectionId) {
 }
 
 Server.prototype.fetchLandmarkGroup = function (id, type) {
-    return getJSON(this.map(`landmarks/${id}/${type}`));
+    return getJSON(this.map(`landmarks/${id}/${type}`), {auth: this.httpAuth});
 }
 
 Server.prototype.saveLandmarkGroup = function (id, type, json) {
-    return putJSON(this.map(`landmarks/${id}/${type}`), json);
+    return putJSON(this.map(`landmarks/${id}/${type}`), {
+        data: json,
+        auth: this.httpAuth
+    });
 }
 
 Server.prototype.fetchThumbnail = function (assetId) {
-    return ImagePromise(this.map(`thumbnails/${assetId}`));
+    return ImagePromise(this.map(`thumbnails/${assetId}`), this.httpAuth);
 }
 
 Server.prototype.fetchTexture = function (assetId) {
-    return ImagePromise(this.map(`textures/${assetId}`));
+    return ImagePromise(this.map(`textures/${assetId}`), this.httpAuth);
 }
 
 Server.prototype.fetchGeometry = function (assetId) {
-    return getArrayBuffer(this.map(`meshes/${assetId}`));
+    return getArrayBuffer(this.map(`meshes/${assetId}`), {
+        auth: this.httpAuth
+    });
 }
 
 module.exports = Server;

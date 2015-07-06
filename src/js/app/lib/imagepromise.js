@@ -3,11 +3,13 @@ var Promise = require('promise-polyfill'),
 
 var { loading } = require('../view/notification');
 
-var ImagePromise = function (url) {
+var ImagePromise = function (url, auth=false) {
     return new Promise(function (resolve, reject) {
 
         var xhr = new XMLHttpRequest();
+
         xhr.open('GET', url, true);
+        xhr.withCredentials = !!auth;
         xhr.responseType = 'blob';
         var img = new Image();
         var asyncId = loading.start();

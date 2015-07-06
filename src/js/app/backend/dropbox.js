@@ -11,7 +11,9 @@
  */
 "use strict";
 
-var API_KEY = "jwda9p0msmkfora";
+const API_KEY = "jwda9p0msmkfora",
+      API_URL = "https://api.dropbox.com/1",
+      CONTENTS_URL = "https://api-content.dropbox.com/1";
 
 var url = require('url'),
     Promise = require('promise-polyfill');
@@ -24,7 +26,7 @@ var { getJSON, get, putJSON } = require('../lib/requests'),
 
 var Picker = require('../view/dropbox_picker.js');
 
-var Dropbox = require('./base').extend(function Dropbox (token, cfg) {
+var Dropbox = require('./base').extend('DROPBOX', function (token, cfg) {
     this._token = token;
     this._cfg = cfg;
 
@@ -38,8 +40,6 @@ var Dropbox = require('./base').extend(function Dropbox (token, cfg) {
     this._cfg.set('BACKEND_DROPBOX_TOKEN', token);
     this._cfg.save();
 });
-
-Dropbox.Type = 'DROPBOX';
 
 Dropbox.Extensions = {
     Images: ['jpeg', 'jpg', 'png'],
@@ -65,23 +65,22 @@ Dropbox.authorize = function () {
                  'client_id': API_KEY }
     });
 
-    // Redirect to Dropbox authentication page
     return [u, oAuthState];
-};
-
-Dropbox.prototype.accountInfo = function () {
-    return getJSON('https://api.dropbox.com/1/account/info', this.headers());
 };
 
 Dropbox.prototype.headers = function () {
     if (!this._token) {
         throw new Error("Can't proceed without an access token");
     }
-    return { "Authorization": `Bearer ${this._token}`};
+    return {"Authorization": `Bearer ${this._token}`};
+};
+
+Dropbox.prototype.accountInfo = function () {
+    return getJSON(`${API_URL}/account/info`, {headers: this.headers()});
 };
 
 Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
-    let picker = new Picker({
+    const picker = new Picker({
         dropbox: this,
         selectFilesOnly: true,
         extensions: Object.keys(Template.Parsers),
@@ -134,7 +133,7 @@ Dropbox.prototype.setTemplate = function (path, json) {
 };
 
 Dropbox.prototype.pickAssets = function (success, error, closable=false) {
-    let picker = new Picker({
+    const picker = new Picker({
         dropbox: this,
         selectFoldersOnly: true,
         title: 'Select a directory from which to load assets',
@@ -186,10 +185,10 @@ Dropbox.prototype.list = function (path='/', {
         q = Promise.resolve(this._listCache[path]);
     } else {
         q = getJSON(
-            `https://api.dropbox.com/1/metadata/auto${path}`,
-            this.headers(),
-            {list: true}
-        ).then((data) => {
+            `${API_URL}/metadata/auto${path}`, {
+            headers: this.headers(),
+            data: {list: true}
+        }).then((data) => {
             this._listCache[path] = data;
             return data;
         });
@@ -231,12 +230,10 @@ Dropbox.prototype.list = function (path='/', {
 
 Dropbox.prototype.download = function (path) {
     return get(
-        `https://api-content.dropbox.com/1/files/auto${path}`,
-        this.headers()
-    ).then((data) => {
+        `${CONTENTS_URL}/files/auto${path}`, {
+        headers: this.headers()
+    }).then((data) => {
         return data;
-    }, (err) => {
-        throw err;
     });
 };
 
@@ -258,9 +255,9 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
     }
 
     let q = getJSON(
-        `https://api.dropbox.com/1/media/auto${path}`,
-        this.headers()
-    ).then(({url, expires}) => {
+        `${API_URL}/media/auto${path}`, {
+        headers: this.headers()
+    }).then(({url, expires}) => {
         this._mediaCache[path] = {url, expires: new Date(expires)};
         return url;
     });
@@ -324,15 +321,11 @@ Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
 }
 
 Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
-    let headers = this.headers();
-
-    let path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
+    let headers = this.headers(),
+        path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
 
     return putJSON(
-        `https://api-content.dropbox.com/1/files_put/auto${path}`,
-        json,
-        headers
-    );
+        `${CONTENTS_URL}/files_put/auto${path}`, {data: json, headers});
 }
 
 module.exports = Dropbox;

@@ -105,7 +105,7 @@ module.exports.BaseNotification = Backbone.View.extend({
         if (this.actions.length) {
             evt.preventDefault();
             var actionIndex = evt.currentTarget.dataset.index;
-            if (actionIndex > 0 && actionIndex < this.actions.length) {
+            if (actionIndex >= 0 && actionIndex < this.actions.length) {
                 this.actions[actionIndex][1]();
             }
         }

@@ -196,7 +196,6 @@ exports.ImageSource = AssetSource.extend({
             that.set('assetIsLoading', false);
         }, function (err) {
             console.log('texture.then something went wrong ' + err.stack);
-            that.set('assetIsLoading', false);
         });
         // return the texture promise. Once the texture is ready, landmarks
         // can be displayed.
