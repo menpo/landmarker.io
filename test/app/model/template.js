@@ -7,11 +7,13 @@ var Template = require(cwd + '/src/js/app/model/template');
 
 var faceYAMLPath = cwd + '/test/fixtures/face.yml',
     faceJSON = {
-    "mouth":{ "points":6 },
-    "nose":{ "points":3, "connectivity": ["0 1", "1 2"] },
-    "l_eye":{ "points":8, "connectivity": ["0:7", "7 0"] },
-    "r_eye":{ "points":8, "connectivity":"cycle" },
-    "chin":1
+    "groups": [
+        {"label": "mouth", "points":6 },
+        {"label": "nose", "points":3, "connectivity": ["0 1", "1 2"] },
+        {"label": "l_eye", "points":8, "connectivity": ["0:7", "7 0"] },
+        {"label": "r_eye", "points":8, "connectivity":"cycle" },
+        {"label": "chin", "points": 1}
+    ]
 };
 
 // Taken from python server
@@ -61,22 +63,6 @@ describe('Template$parseYAML', function () {
     });
 });
 
-describe('Template$parseLJSON', function () {
-    var ljsonTmpl, jsonTmpl;
-
-    before(function () {
-        jsonTmpl = new Template(faceJSON);
-        ljsonTmpl = Template.parseLJSON(jsonTmpl.emptyLJSON(2));
-    });
-
-    it('should have the correct data', function () {
-        assert.sameMembers(Object.keys(ljsonTmpl._template),
-                           Object.keys(jsonTmpl._template));
-        assert.deepEqual(ljsonTmpl.groups, jsonTmpl.groups);
-        assert.deepEqual(ljsonTmpl.size, jsonTmpl.size);
-    });
-});
-
 describe('Template#emptyLJSON', function () {
     var tmpl;
 
@@ -92,5 +78,19 @@ describe('Template#emptyLJSON', function () {
     it('should return correct LJSON in 3D', function () {
         var ljson = tmpl.emptyLJSON(3);
         assert.deepEqual(ljson, LJSON3D);
+    });
+});
+
+describe('Template$parseLJSON', function () {
+    var ljsonTmpl, jsonTmpl;
+
+    before(function () {
+        jsonTmpl = new Template(faceJSON);
+        ljsonTmpl = Template.parseLJSON(jsonTmpl.emptyLJSON(2));
+    });
+
+    it('should have the correct data', function () {
+        assert.deepEqual(ljsonTmpl.groups, jsonTmpl.groups);
+        assert.deepEqual(ljsonTmpl.size, jsonTmpl.size);
     });
 });
