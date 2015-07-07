@@ -73,13 +73,13 @@
 
   > input {
       @extend %transitionAll;
-      margin: .25em 0;
-      padding: 0 1em;
+      margin: 2%;
+      padding: 0 .5em;
       line-height: 48px;
       border: 1px solid $colorLightGray;
-      border-radius: 1px;
+      border-radius: 2px;
       outline: none;
-      width: 100%;
+      width: 96%;
 
       &:active,
       &:focus {
@@ -116,10 +116,15 @@
 
 .ListPicker {
 
+    box-shadow: 0 -48px 48px -48px black(.4) inset;
+    padding: 0;
+
     ul {
       list-style-type: none;
       margin: 0;
       padding: 0;
+      max-height: 512px;
+      overflow: scroll;
     }
 
     li {
@@ -141,6 +146,7 @@
             opacity: 0;
             visibility: hidden;
             max-height: 0;
+            border: none;
         }
     }
 }
