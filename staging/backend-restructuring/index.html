@@ -14,12 +14,13 @@
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, minimal-ui">
     <meta name="apple-mobile-web-app-title" content="Landmarker.io">
     <meta http-equiv="expires" content="0" />
-    <!-- inject:css -->
-    <link rel="stylesheet" href="bundle-71cfd44c.css">
-    <!-- endinject -->
+    <link href='http://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css">
+    <!-- inject:css -->
+    <link rel="stylesheet" href="bundle-939f2896.css">
+    <!-- endinject -->
     <!-- inject:js -->
-    <script src="bundle-afb7152b.js"></script>
+    <script src="bundle-70bbe214.js"></script>
     <!-- endinject -->
 </head>
 
@@ -38,14 +39,22 @@
     <!-- HTML UI -->
     <div class="App-Flex-Vert">
         <div class='TopBar' id='newVersionPrompt'></div>
-        <div class='TopBar Info' id='v150Prompt'>There have been some important changes, click here for more information.</div>
         <div class="App-Flex-Horiz">
             <div class="App-Flex-LeftCol LeftSidebar">
                 <!-- Asset information  (top left) -->
                 <div class="AssetInfo">
-                  <button class="CollectionName" id="collectionName">collection_name</button>
-                    <button class="AssetName" id="assetName">mesh_name</button>
-                    <button class="AssetIndex" id="assetIndex">001/999</button>
+                  <button class="CollectionName" id="collectionName">
+                    <span class="label">collection</span>
+                    <span class="content">collection_name</span>
+                  </button>
+                  <button class="AssetName" id="assetName">
+                      <span class="label">asset</span>
+                      <span class="content">mesh_name</span>
+                  </button>
+                  <button class="AssetIndex" id="assetIndex">
+                    <span class="label">index</span>
+                    <span class="content">001/999</span>
+                  </button>
                 </div>
                 <!-- Toolbox itself (bottom left) -->
                 <div class="Toolbar" id="toolbar">
@@ -85,7 +94,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="Toolbar-Row" id="lmSizeRow">&#9679;<input type="range" name="points" min="0" max="100" id="lmSizeSlider">
+                    <div class="Toolbar-Row Toolbar-Slider" id="lmSizeRow">&#9679;<input type="range" name="points" min="0" max="100" id="lmSizeSlider">
                     </div>
                 </div>
             </div>
@@ -110,7 +119,7 @@
                                 id="download">Download</button>
                     </div>
                     <div class="RightSidebar-Controls-Item">
-                        <button class="Button-Help" id="help"><span class="octicon octicon-info"></span></button>
+                        <button class="Button-Basic" id="help"><span class="octicon octicon-info"></span></button>
                     </div>
                 </div>
                 <div class="RightSidebar-LandmarksPanel"

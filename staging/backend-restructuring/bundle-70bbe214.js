@@ -1,32 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
-var _slicedToArray = (function () {
-    function sliceIterator(arr, i) {
-        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
-            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
-                _arr.push(_s.value);if (i && _arr.length === i) break;
-            }
-        } catch (err) {
-            _d = true;_e = err;
-        } finally {
-            try {
-                if (!_n && _i['return']) _i['return']();
-            } finally {
-                if (_d) throw _e;
-            }
-        }return _arr;
-    }return function (arr, i) {
-        if (Array.isArray(arr)) {
-            return arr;
-        } else if (Symbol.iterator in Object(arr)) {
-            return sliceIterator(arr, i);
-        } else {
-            throw new TypeError('Invalid attempt to destructure non-iterable instance');
-        }
-    };
-})();
-
 var $ = require('jquery'),
     url = require('url'),
     THREE = require('three');
@@ -38,7 +12,7 @@ var cfg = require('./app/model/config')();
 
 var DropboxPicker = require('./app/view/dropbox_picker'),
     Modal = require('./app/view/modal'),
-    SelectModal = require('./app/view/select_modal');
+    Intro = require('./app/view/intro');
 
 var Backend = require('./app/backend');
 
@@ -91,36 +65,7 @@ var goToDemo = restart.bind(undefined, 'demo');
 function showSelection() {
     cfg.clear();
     history.replaceState(null, null, window.location.origin);
-    var selector = new SelectModal({
-        closable: false,
-        disposeOnClose: true,
-        title: 'Select a datasource',
-        actions: [['Dropbox', function () {
-            if (!support.localstorage) {
-                retry('You browser doesn\'t support localstorage which is required for Dropbox login');
-            }
-
-            var _Backend$Dropbox$authorize = Backend.Dropbox.authorize();
-
-            var _Backend$Dropbox$authorize2 = _slicedToArray(_Backend$Dropbox$authorize, 2);
-
-            var dropUrl = _Backend$Dropbox$authorize2[0];
-            var state = _Backend$Dropbox$authorize2[1];
-
-            cfg.set({
-                'OAUTH_STATE': state,
-                'BACKEND_TYPE': Backend.Dropbox.Type
-            }, true);
-            window.location.replace(dropUrl);
-        }], ['Managed Server', function () {
-            var u = window.prompt('Please provide the url for the landmarker server');
-            if (u) {
-                restart(u);
-            }
-        }], ['Demo Mode', goToDemo]]
-    });
-
-    return selector.open();
+    Intro.open();
 }
 
 function retry(msg) {
@@ -440,24 +385,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Temporary message for v1.5.0
-    if (localStorage.getItem('LMIO#v150')) {
-        $('#v150Prompt').remove();
-    } else {
-        $('#v150Prompt').addClass('Display');
-        $('#v150Prompt').click(function () {
-            localStorage.setItem('LMIO#v150', Date().toString());
-            window.location = 'https://github.com/menpo/landmarker.io/wiki/Introducing-Snap-Mode-(v1.5.0)';
-        });
-    }
-
     cfg.load();
-    // Parse the current url so we can query the parameters
+    Intro.init({ cfg: cfg, localstorage: support.localstorage });
     var u = url.parse(utils.stripTrailingSlash(window.location.href.replace('#', '?')), true);
     resolveBackend(u);
 });
 
-},{"./app/backend":47,"./app/lib/support":51,"./app/lib/utils":52,"./app/model/app":53,"./app/model/config":57,"./app/view/asset":61,"./app/view/dropbox_picker":62,"./app/view/help":63,"./app/view/history":64,"./app/view/modal":66,"./app/view/notification":67,"./app/view/select_modal":68,"./app/view/sidebar":69,"./app/view/toolbar":70,"./app/view/viewport":74,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
+},{"./app/backend":48,"./app/lib/support":52,"./app/lib/utils":53,"./app/model/app":54,"./app/model/config":58,"./app/view/asset":62,"./app/view/dropbox_picker":63,"./app/view/help":64,"./app/view/history":65,"./app/view/intro":66,"./app/view/modal":68,"./app/view/notification":69,"./app/view/sidebar":70,"./app/view/toolbar":71,"./app/view/viewport":75,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.2.1
 
@@ -59093,6 +59027,64 @@ if (typeof exports !== 'undefined') {
 }.call(this));
 
 },{}],45:[function(require,module,exports){
+module.exports={
+  "name": "landmarker-io",
+  "version": "1.5.1",
+  "description": "3D mesh annotation in your browser.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/menpo/landmarker.git"
+  },
+  "scripts": {
+    "build": "DISABLE_NOTIFIER=true gulp build",
+    "lint": "jshint --config .jshintrc --reporter node_modules/jshint-stylish/index.js src/js/",
+    "test": "mocha --compilers js:babel/register -R dot test/**/*.js"
+  },
+  "keywords": [
+    "webgl",
+    "three"
+  ],
+  "author": "James Booth <jabooth@gmail.com> (github.com/jabooth)",
+  "license": "BSD",
+  "dependencies": {
+    "backbone": "^1.1.2",
+    "gulp-sourcemaps": "^1.5.2",
+    "jquery": "^2.1.3",
+    "js-yaml": "^3.3.1",
+    "jshint": "^2.8.0",
+    "jshint-stylish": "^2.0.0",
+    "promise-polyfill": "^1.1.6",
+    "spin.js": "^2.0.2",
+    "three": "~0.69.0",
+    "underscore": "^1.6.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^5.0.0",
+    "babel": "^5.6.3",
+    "babelify": "^6.1.2",
+    "browserify": "^8.1.1",
+    "chai": "^3.0.0",
+    "del": "^1.1.1",
+    "gulp": "^3.8.10",
+    "gulp-autoprefixer": "^2.1.0",
+    "gulp-buffer": "0.0.2",
+    "gulp-inject": "^1.1.1",
+    "gulp-manifest": "0.0.6",
+    "gulp-notify": "^2.1.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-replace": "^0.5.2",
+    "gulp-rev": "^3.0.0",
+    "gulp-sass": "^2.0.1",
+    "gulp-util": "^3.0.2",
+    "mocha": "^2.2.5",
+    "run-sequence": "^1.0.2",
+    "vinyl-source-stream": "^1.0.0",
+    "watchify": "^3.2.1"
+  }
+}
+
+},{}],46:[function(require,module,exports){
 'use strict';
 
 function Base() {}
@@ -59113,7 +59105,7 @@ Base.extend = function extend(type, child) {
 
 module.exports = Base;
 
-},{}],46:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 /**
  * Dropbox backend interface
  *
@@ -59473,7 +59465,7 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
 
 module.exports = Dropbox;
 
-},{"../lib/imagepromise":49,"../lib/requests":50,"../lib/utils":52,"../model/template":60,"../view/dropbox_picker.js":62,"./base":45,"promise-polyfill":41,"url":8}],47:[function(require,module,exports){
+},{"../lib/imagepromise":50,"../lib/requests":51,"../lib/utils":53,"../model/template":61,"../view/dropbox_picker.js":63,"./base":46,"promise-polyfill":41,"url":8}],48:[function(require,module,exports){
 'use strict';
 
 var Dropbox = require('./dropbox'),
@@ -59483,7 +59475,7 @@ module.exports = {
     Dropbox: Dropbox, Server: Server
 };
 
-},{"./dropbox":46,"./server":48}],48:[function(require,module,exports){
+},{"./dropbox":47,"./server":49}],49:[function(require,module,exports){
 'use strict';
 
 var DEFAULT_API_URL = 'http://localhost:5000';
@@ -59592,7 +59584,7 @@ Server.prototype.fetchGeometry = function (assetId) {
 
 module.exports = Server;
 
-},{"../lib/imagepromise":49,"../lib/requests":50,"../lib/utils":52,"./base":45,"url":8}],49:[function(require,module,exports){
+},{"../lib/imagepromise":50,"../lib/requests":51,"../lib/utils":53,"./base":46,"url":8}],50:[function(require,module,exports){
 'use strict';
 
 var Promise = require('promise-polyfill'),
@@ -59663,7 +59655,7 @@ var MaterialPromise = function MaterialPromise(url) {
 
 module.exports = MaterialPromise;
 
-},{"../view/notification":67,"promise-polyfill":41,"three":43}],50:[function(require,module,exports){
+},{"../view/notification":69,"promise-polyfill":41,"three":43}],51:[function(require,module,exports){
 'use strict';
 
 var Promise = require('promise-polyfill'),
@@ -59803,7 +59795,7 @@ module.exports.putJSON = function (url, _ref5) {
     });
 };
 
-},{"../view/notification":67,"promise-polyfill":41,"querystring":7}],51:[function(require,module,exports){
+},{"../view/notification":69,"promise-polyfill":41,"querystring":7}],52:[function(require,module,exports){
 'use strict';
 
 module.exports.ie = (function () {
@@ -59830,7 +59822,7 @@ module.exports.localstorage = (function () {
     }
 })();
 
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 'use strict';
 
 module.exports = {};
@@ -59877,7 +59869,7 @@ module.exports.capitalize = function (str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-},{}],53:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore'),
@@ -60175,7 +60167,7 @@ var App = Backbone.Model.extend({
 
 module.exports = App;
 
-},{"./assetsource":55,"./landmark":58,"backbone":2,"promise-polyfill":41,"underscore":44}],54:[function(require,module,exports){
+},{"./assetsource":56,"./landmark":59,"backbone":2,"promise-polyfill":41,"underscore":44}],55:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60524,7 +60516,7 @@ var Mesh = Image.extend({
 exports.Mesh = Mesh;
 exports.Image = Image;
 
-},{"../lib/imagepromise":49,"../lib/requests":50,"backbone":2,"three":43}],55:[function(require,module,exports){
+},{"../lib/imagepromise":50,"../lib/requests":51,"backbone":2,"three":43}],56:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60734,7 +60726,7 @@ exports.ImageSource = AssetSource.extend({
     }
 });
 
-},{"./asset":54,"backbone":2,"underscore":44}],56:[function(require,module,exports){
+},{"./asset":55,"backbone":2,"underscore":44}],57:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60789,7 +60781,7 @@ var AtomicOperationTracker = Backbone.Model.extend({
 var atomicTracker = new AtomicOperationTracker();
 module.exports = atomicTracker;
 
-},{"backbone":2}],57:[function(require,module,exports){
+},{"backbone":2}],58:[function(require,module,exports){
 /**
  * Persistable config object with get and set logic
  * Requires localstorage to work properly (throws Error otherwise),
@@ -60875,7 +60867,7 @@ module.exports = function () {
     return _configInstance;
 };
 
-},{"../lib/support":51,"backbone":2,"underscore":44}],58:[function(require,module,exports){
+},{"../lib/support":52,"backbone":2,"underscore":44}],59:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -61217,7 +61209,7 @@ module.exports = {
 };
 /*json, id, type, server*/
 
-},{"./atomic":56,"backbone":2,"three":43,"underscore":44}],59:[function(require,module,exports){
+},{"./atomic":57,"backbone":2,"three":43,"underscore":44}],60:[function(require,module,exports){
 'use strict';
 
 var THREE = require('three');
@@ -61466,7 +61458,7 @@ exports.OctreeNode = OctreeNode;
 exports.octreeForBufferGeometry = octreeForBufferGeometry;
 exports.intersetMesh = intersectMesh;
 
-},{"three":43}],60:[function(require,module,exports){
+},{"three":43}],61:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -61677,7 +61669,7 @@ Template.prototype.emptyLJSON = function () {
 
 module.exports = Template;
 
-},{"js-yaml":10,"underscore":44}],61:[function(require,module,exports){
+},{"js-yaml":10,"underscore":44}],62:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -61741,10 +61733,8 @@ var AssetNameView = Backbone.View.extend({
     },
 
     render: function render() {
-        this.$el.html(this.model.asset().id);
-        if (this.model.assetSource().nAssets() <= 1) {
-            this.$el.addClass('Disabled');
-        }
+        this.$el.find('.content').html(this.model.asset().id);
+        this.$el.toggleClass('Disabled', this.model.assetSource().nAssets() <= 1);
         return this;
     },
 
@@ -61785,10 +61775,8 @@ var AssetIndexView = Backbone.View.extend({
     render: function render() {
         var n_str = pad(this.model.assetSource().nAssets(), 2);
         var i_str = pad(this.model.assetIndex() + 1, 2);
-        this.$el.html(i_str + '/' + n_str);
-        if (this.model.assetSource().nAssets() <= 1) {
-            this.$el.addClass('Disabled');
-        }
+        this.$el.find('.content').html(i_str + '/' + n_str);
+        this.$el.toggleClass('Disabled', this.model.assetSource().nAssets() <= 1);
         return this;
     },
 
@@ -61836,10 +61824,8 @@ var CollectionName = Backbone.View.extend({
     },
 
     render: function render() {
-        this.$el.html(this.model.activeCollection() || 'No Collection');
-        if (this.model.assetSource().nAssets() <= 1) {
-            this.$el.addClass('Disabled');
-        }
+        this.$el.find('.content').html(this.model.activeCollection() || 'No Collection');
+        this.$el.toggleClass('Disabled', this.model.collections().length <= 1 && !(this.model.server() instanceof Dropbox));
         return this;
     },
 
@@ -61857,6 +61843,10 @@ var CollectionName = Backbone.View.extend({
                 });
             }, true);
         } else if (backend instanceof Server) {
+
+            if (this.model.collections().length <= 1) {
+                return;
+            }
 
             var collections = this.model.collections().map(function (c) {
                 return [c, c];
@@ -61887,7 +61877,7 @@ exports.AssetView = Backbone.View.extend({
     }
 });
 
-},{"../backend":47,"../lib/utils":52,"./list_picker":65,"./notification":67,"backbone":2,"jquery":9,"underscore":44}],62:[function(require,module,exports){
+},{"../backend":48,"../lib/utils":53,"./list_picker":67,"./notification":69,"backbone":2,"jquery":9,"underscore":44}],63:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone'),
@@ -62170,7 +62160,7 @@ var DropboxPicker = Modal.extend({
 
 module.exports = DropboxPicker;
 
-},{"../lib/utils":52,"./modal":66,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],63:[function(require,module,exports){
+},{"../lib/utils":53,"./modal":68,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],64:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62241,7 +62231,7 @@ module.exports = Backbone.View.extend({
     }
 });
 
-},{"backbone":2,"jquery":9}],64:[function(require,module,exports){
+},{"backbone":2,"jquery":9}],65:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -62281,7 +62271,132 @@ exports.HistoryUpdate = Backbone.View.extend({
     }
 });
 
-},{"backbone":2,"url":8}],65:[function(require,module,exports){
+},{"backbone":2,"url":8}],66:[function(require,module,exports){
+'use strict';
+
+var _slicedToArray = (function () {
+    function sliceIterator(arr, i) {
+        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
+            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+                _arr.push(_s.value);if (i && _arr.length === i) break;
+            }
+        } catch (err) {
+            _d = true;_e = err;
+        } finally {
+            try {
+                if (!_n && _i['return']) _i['return']();
+            } finally {
+                if (_d) throw _e;
+            }
+        }return _arr;
+    }return function (arr, i) {
+        if (Array.isArray(arr)) {
+            return arr;
+        } else if (Symbol.iterator in Object(arr)) {
+            return sliceIterator(arr, i);
+        } else {
+            throw new TypeError('Invalid attempt to destructure non-iterable instance');
+        }
+    };
+})();
+
+var $ = require('jquery'),
+    _ = require('underscore');
+
+var Modal = require('./modal');
+
+var _require = require('./notification');
+
+var notify = _require.notify;
+
+var Backend = require('../backend');
+
+var version = require('../../../../package.json').version;
+
+var contents = '<div class=\'Intro\'>    <h1>Landmarker.io<h1>    <h3>v' + version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect your own server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div></div>';
+
+var lsWarning = '<p class=\'IntroWarning\'>    Your browser doesn\'t support LocalStorage, so Dropbox login has been    disabled.</p>';
+
+var Intro = Modal.extend({
+
+    closable: false,
+    modifiers: ['Small'],
+
+    events: {
+        'click .IntroItem--Dropbox': 'startDropbox',
+        'click .IntroItem--Server': 'startServer',
+        'click .IntroItem--Demo': 'startDemo'
+    },
+
+    init: function init(_ref) {
+        var cfg = _ref.cfg;
+        var localstorage = _ref.localstorage;
+
+        this.localStorageSupport = localstorage;
+        this._cfg = cfg;
+    },
+
+    content: function content() {
+        var $contents = $(contents);
+        if (!this.localStorageSupport) {
+            $contents.find('.IntroItem--Dropbox').remove();
+            $contents.find('.IntroItems').append($(lsWarning));
+        }
+        return $contents;
+    },
+
+    _restart: function _restart(serverUrl) {
+        this._cfg.clear();
+        var restartUrl = window.location.origin + window.location.pathname + (serverUrl ? '?server=' + serverUrl : '');
+        window.location.replace(restartUrl);
+    },
+
+    startDropbox: function startDropbox() {
+        this._cfg.clear();
+
+        var _Backend$Dropbox$authorize = Backend.Dropbox.authorize();
+
+        var _Backend$Dropbox$authorize2 = _slicedToArray(_Backend$Dropbox$authorize, 2);
+
+        var dropUrl = _Backend$Dropbox$authorize2[0];
+        var state = _Backend$Dropbox$authorize2[1];
+
+        this._cfg.set({
+            'OAUTH_STATE': state,
+            'BACKEND_TYPE': Backend.Dropbox.Type
+        }, true);
+        window.location.replace(dropUrl);
+    },
+
+    startDemo: function startDemo() {
+        this._restart('demo');
+    },
+
+    startServer: function startServer() {
+        var u = window.prompt('Please provide the url for the landmarker server');
+        if (u) {
+            this._restart(u);
+        }
+    }
+});
+
+var instance = undefined;
+module.exports = {
+    init: function init(opts) {
+        instance = new Intro(opts);
+    },
+    open: function open() {
+        instance.open();
+    },
+    close: function close() {
+        instance.close();
+    },
+    initialized: function initialized() {
+        return !!instance;
+    }
+};
+
+},{"../../../../package.json":45,"../backend":48,"./modal":68,"./notification":69,"jquery":9,"underscore":44}],67:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62319,7 +62434,7 @@ var ListPicker = Modal.extend({
 
     events: {
         'click li': 'click',
-        'keydown input': 'filter'
+        'keyup input': 'filter'
     },
 
     init: function init(_ref) {
@@ -62327,23 +62442,57 @@ var ListPicker = Modal.extend({
         var submit = _ref.submit;
         var useFilter = _ref.useFilter;
 
-        this.list = list;
+        this.list = list.map(function (_ref2, i) {
+            var _ref22 = _slicedToArray(_ref2, 2);
+
+            var c = _ref22[0];
+            var k = _ref22[1];
+            return [c, k, i];
+        });
         this._list = list;
         this.submit = submit;
         this.useFilter = !!useFilter;
         _.bindAll(this, 'filter');
     },
 
-    filter: _.debounce(function (evt) {
+    filter: function filter(evt) {
         var value = evt.currentTarget.value.toLowerCase();
-        this.$el.find('li').each(function (index, li) {
-            if (li.dataset.value.toLowerCase().indexOf(value) > -1) {
-                $(li).removeClass('Hidden');
-            } else {
-                $(li).addClass('Hidden');
-            }
+        if (!value || value === '') {
+            this._list = this.list;
+        }
+
+        var pattern = new RegExp(value, 'gi');
+        this._list = this.list.filter(function (_ref3) {
+            var _ref32 = _slicedToArray(_ref3, 3);
+
+            var content = _ref32[0];
+            var key = _ref32[1];
+            var index = _ref32[2];
+
+            return pattern.test(content);
         });
-    }, 100),
+
+        this.update();
+    },
+
+    makeList: function makeList() {
+        var $ul = $('<ul></ul>');
+        this._list.forEach(function (_ref4) {
+            var _ref42 = _slicedToArray(_ref4, 3);
+
+            var content = _ref42[0];
+            var key = _ref42[1];
+            var index = _ref42[2];
+
+            $ul.append($('<li data-value=\'' + content + '\' data-key=\'' + key + '\' data-index=\'' + index + '\'>' + content + '</li>'));
+        });
+        return $ul;
+    },
+
+    update: function update() {
+        this.$content.find('ul').remove();
+        this.$content.append(this.makeList());
+    },
 
     content: function content() {
         var $content = $('<div class=\'ListPicker\'></div>');
@@ -62352,35 +62501,21 @@ var ListPicker = Modal.extend({
             $content.append('<input placeholder=\'Search\'/>');
         }
 
-        var $ul = $('<ul></ul>');
-        this.list.forEach(function (_ref2, index) {
-            var _ref22 = _slicedToArray(_ref2, 2);
-
-            var content = _ref22[0];
-            var key = _ref22[1];
-
-            if (content instanceof $) {
-                var $li = $('<li data-index=\'' + index + '\'></li>');
-                $li.append(content);
-                $ul.append($li);
-            } else {
-                $ul.append($('<li data-value=\'' + content + '\' data-index=\'' + index + '\'>' + content + '</li>'));
-            }
-        });
-        $content.append($ul);
+        $content.append(this.makeList());
+        this.$content = $content;
         return $content;
     },
 
     click: function click(evt) {
-        var idx = evt.currentTarget.dataset.index;
-        this.submit(this.list[idx][1]);
+        var key = evt.currentTarget.dataset.key;
+        this.submit(key);
         this.close();
     }
 });
 
 module.exports = ListPicker;
 
-},{"./modal":66,"jquery":9,"underscore":44}],66:[function(require,module,exports){
+},{"./modal":68,"jquery":9,"underscore":44}],68:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone'),
@@ -62438,7 +62573,15 @@ var Modal = Backbone.View.extend({
     },
 
     render: function render() {
+        var _this = this;
+
         this.$el.addClass(this.className);
+
+        if (Array.isArray(this.modifiers)) {
+            this.modifiers.forEach(function (mod) {
+                _this.$el.addClass(_this.className + '--' + mod);
+            });
+        }
         this.$el.attr('id', this.id);
 
         if (this.closable) {
@@ -62513,7 +62656,7 @@ Modal.active = function () {
 
 module.exports = Modal;
 
-},{"backbone":2,"jquery":9,"underscore":44}],67:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"underscore":44}],69:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62842,81 +62985,7 @@ module.exports.loading = {
     }
 };
 
-},{"../lib/utils":52,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],68:[function(require,module,exports){
-'use strict';
-
-var _slicedToArray = (function () {
-    function sliceIterator(arr, i) {
-        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
-            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
-                _arr.push(_s.value);if (i && _arr.length === i) break;
-            }
-        } catch (err) {
-            _d = true;_e = err;
-        } finally {
-            try {
-                if (!_n && _i['return']) _i['return']();
-            } finally {
-                if (_d) throw _e;
-            }
-        }return _arr;
-    }return function (arr, i) {
-        if (Array.isArray(arr)) {
-            return arr;
-        } else if (Symbol.iterator in Object(arr)) {
-            return sliceIterator(arr, i);
-        } else {
-            throw new TypeError('Invalid attempt to destructure non-iterable instance');
-        }
-    };
-})();
-
-var Backbone = require('backbone'),
-    _ = require('underscore'),
-    $ = require('jquery');
-
-var Modal = require('./modal');
-
-var SelectModal = Modal.extend({
-
-    events: {
-        'click .ModalOption': 'handleClick'
-    },
-
-    init: function init(_ref) {
-        var _ref$actions = _ref.actions;
-        var actions = _ref$actions === undefined ? [] : _ref$actions;
-
-        this.actions = actions;
-    },
-
-    content: function content() {
-        var _this = this;
-
-        var $div = $('<div class=\'ModalOptions\'></div>');
-        this.actions.forEach(function (_ref2, index) {
-            var _ref22 = _slicedToArray(_ref2, 2);
-
-            var text = _ref22[0];
-            var func = _ref22[1];
-
-            $div.append('                <div class=\'ModalOption\' data-index=\'' + index + '\' id=\'modalOption:' + _this.key + ':' + index + '\'>                    ' + text + '                </div>');
-        });
-        return $div;
-    },
-
-    handleClick: function handleClick(evt) {
-        if (this.isOpen) {
-            var idx = evt.currentTarget.dataset.index;
-            this.actions[idx][1]();
-            this.close();
-        }
-    }
-});
-
-module.exports = SelectModal;
-
-},{"./modal":66,"backbone":2,"jquery":9,"underscore":44}],69:[function(require,module,exports){
+},{"../lib/utils":53,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],70:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63274,7 +63343,7 @@ exports.Sidebar = Sidebar;
 
 // No UI to handle this atm
 
-},{"../backend":47,"../model/atomic":56,"./notification":67,"backbone":2,"jquery":9,"underscore":44}],70:[function(require,module,exports){
+},{"../backend":48,"../model/atomic":57,"./notification":69,"backbone":2,"jquery":9,"underscore":44}],71:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63419,7 +63488,7 @@ exports.Toolbar = Backbone.View.extend({
 
 });
 
-},{"../model/atomic":56,"backbone":2,"underscore":44}],71:[function(require,module,exports){
+},{"../model/atomic":57,"backbone":2,"underscore":44}],72:[function(require,module,exports){
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -63818,7 +63887,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     return controller;
 };
 
-},{"backbone":2,"jquery":9,"three":43,"underscore":44}],72:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"three":43,"underscore":44}],73:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63979,7 +64048,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
 
 module.exports = { LandmarkConnectionTHREEView: LandmarkConnectionTHREEView, LandmarkTHREEView: LandmarkTHREEView };
 
-},{"backbone":2,"three":43,"underscore":44}],73:[function(require,module,exports){
+},{"backbone":2,"three":43,"underscore":44}],74:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -64523,7 +64592,7 @@ module.exports = Handler;
 
 // Pass right click does nothing in most cases
 
-},{"../../model/atomic":56,"jquery":9,"three":43,"underscore":44}],74:[function(require,module,exports){
+},{"../../model/atomic":57,"jquery":9,"three":43,"underscore":44}],75:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -65130,7 +65199,7 @@ exports.Viewport = Backbone.View.extend({
 
 });
 
-},{"../../model/atomic":56,"../../model/octree":59,"./camera":71,"./elements":72,"./handler":73,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
+},{"../../model/atomic":57,"../../model/octree":60,"./camera":72,"./elements":73,"./handler":74,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-afb7152b.js.map
+//# sourceMappingURL=bundle-70bbe214.js.map
