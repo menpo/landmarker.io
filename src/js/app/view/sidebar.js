@@ -6,6 +6,7 @@ var $ = require('jquery');
 var Notification = require('./notification');
 var atomic = require('../model/atomic');
 var { Dropbox, Server } = require('../backend');
+var ListPicker = require('./list_picker');
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -286,8 +287,12 @@ var TemplatePanel = Backbone.View.extend({
     },
 
     update: function () {
-        this.$el.children('p')
-                .text(this.model.activeTemplate() || 'No Template Selected');
+        this.$el.toggleClass(
+            'Disabled', ( this.model &&
+                          this.model.templates().length <= 1 &&
+                          this.model.server() instanceof Server )
+        );
+        this.$el.text(this.model.activeTemplate() || 'No Template Selected');
     },
 
     click: function (evt) {
@@ -302,7 +307,22 @@ var TemplatePanel = Backbone.View.extend({
                 });
             }, true);
         } else if (backend instanceof Server) {
-            // No UI to handle this atm
+
+            const tmpls = this.model.templates();
+
+            if (tmpls.length <= 1) {
+                return;
+            }
+
+            const picker = new ListPicker({
+                list: tmpls.map(t => [t, t]),
+                title: 'Select a template',
+                closable: true,
+                disposeOnClose: true,
+                useFilter: tmpls.length > 5,
+                submit: tmpl => this.model.set('activeTemplate', tmpl)
+            });
+            picker.open();
         }
     }
 });

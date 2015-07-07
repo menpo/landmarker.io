@@ -30,24 +30,16 @@
     cursor: pointer;
     margin-left: 1px;
     margin-bottom: 1px;
-    justify-content: space-between;
-    font-size: larger;
-
-    > span {
-        display: inline-block;
-        text-align: center;
-        line-height: $mainControlHeight;
-        width: $mainControlHeight;
-        font-size: larger;
-    }
-
-    > p {
-        flex: 4;
-        margin: 0;
-    }
+    font-size: large;
+    justify-content: center;
 
     &:hover {
         background: $colorDarkBlue;
+    }
+
+    &.Disabled {
+        cursor: default;
+        background: $colorDarkerBlue;
     }
 }
 
