@@ -327,7 +327,7 @@ function initLandmarker(server, mode) {
         }
 
         const modal = Modal.active();
-        if (modal) {
+        if (modal && modal.closable) {
             return modal.close();
         }
 
