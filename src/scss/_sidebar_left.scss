@@ -151,7 +151,7 @@ input[type=range]:focus {
 }
 
 @mixin rangeThumb {
-    @extend %transitionAll;
+    transition: all 0.2s ease-in-out;
     -webkit-appearance: none;
     background-color: $colorDarkerBlue;
     border: 1px solid white;
