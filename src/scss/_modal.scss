@@ -128,3 +128,46 @@
         }
     }
 }
+
+.ConfirmDialog {
+    padding: 0;
+    min-width: 256px;
+    max-width: 380px;
+
+    > p {
+        padding: 2em;
+        margin: 0;
+        line-height: 1.4;
+    }
+}
+
+.ConfirmActions {
+    display: flex;
+    flex-flow: row;
+}
+
+.ConfirmAction {
+    @extend %transitionAll;
+    color: white;
+    flex: 1;
+    cursor: pointer;
+    text-align: center;
+    height: 46px;
+    line-height: 46px;
+}
+
+.ConfirmAction--Yes {
+    @extend .ConfirmAction;
+    background: $colorGreen;
+    &:hover {
+        background: $colorDarkGreen;
+    }
+}
+
+.ConfirmAction--No {
+    @extend .ConfirmAction;
+    background: $colorRed;
+    &:hover {
+        background: $colorDarkRed;
+    }
+}

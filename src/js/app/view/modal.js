@@ -143,4 +143,51 @@ Modal.active = function () {
     return _modals[_activeModal];
 }
 
+var ConfirmDialog = Modal.extend({
+    closable: false,
+    modifiers: ['Small'],
+
+    events: {
+        'click .ConfirmAction--Yes': 'accept',
+        'click .ConfirmAction--No': 'reject',
+    },
+
+    init: function ({text, accept, reject}) {
+        this.text = text;
+        this._accept = accept || function () {};
+        this._reject = reject || function () {};
+    },
+
+    content: function () {
+        return $(`\
+            <div class='ConfirmDialog'>\
+                <p>${this.text}</p>\
+                <div class='ConfirmActions'>\
+                    <div class='ConfirmAction--Yes'>Yes</div>\
+                    <div class='ConfirmAction--No'>No</div>\
+                </div>\
+            </div>`);
+    },
+
+    accept: function () {
+        this._accept();
+        this.close();
+    },
+
+    reject: function () {
+        this._reject();
+        this.close();
+    }
+
+});
+
+Modal.confirm = function (text, accept, reject) {
+    const dialog = new ConfirmDialog({
+        text,
+        accept, reject,
+        disposeOnClose: true
+    });
+    dialog.open();
+}
+
 module.exports = Modal;
