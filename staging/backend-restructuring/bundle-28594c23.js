@@ -61825,7 +61825,7 @@ var CollectionName = Backbone.View.extend({
 
     render: function render() {
         this.$el.find('.content').html(this.model.activeCollection() || 'No Collection');
-        this.$el.toggleClass('Disabled', this.model.collections().length <= 1 && !(this.model.server() instanceof Dropbox));
+        this.$el.toggleClass('Disabled', this.model.collections().length <= 1);
         return this;
     },
 
@@ -65202,4 +65202,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":57,"../../model/octree":60,"./camera":72,"./elements":73,"./handler":74,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-70bbe214.js.map
+//# sourceMappingURL=bundle-28594c23.js.map
