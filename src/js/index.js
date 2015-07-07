@@ -11,7 +11,7 @@ var cfg = require('./app/model/config')();
 
 var DropboxPicker = require('./app/view/dropbox_picker'),
     Modal = require('./app/view/modal'),
-    SelectModal = require('./app/view/select_modal');
+    Intro = require('./app/view/intro');
 
 var Backend = require('./app/backend');
 
@@ -69,32 +69,7 @@ var goToDemo = restart.bind(undefined, 'demo');
 function showSelection () {
     cfg.clear();
     history.replaceState(null, null, window.location.origin);
-    let selector = new SelectModal({
-        closable: false,
-        disposeOnClose: true,
-        title: 'Select a datasource',
-        actions: [
-            ['Dropbox', function () {
-                if (!support.localstorage) {
-                    retry(`You browser doesn't support localstorage which is required for Dropbox login`);
-                }
-                var [dropUrl, state] = Backend.Dropbox.authorize();
-                cfg.set({
-                    'OAUTH_STATE': state,
-                    'BACKEND_TYPE': Backend.Dropbox.Type
-                }, true);
-                window.location.replace(dropUrl);
-            }], ['Managed Server', function () {
-                let u = window.prompt(
-                    'Please provide the url for the landmarker server');
-                if (u) {
-                    restart(u);
-                }
-            }], ['Demo Mode', goToDemo]
-        ]
-    });
-
-    return selector.open();
+    Intro.open();
 }
 
 function retry (msg) {
@@ -403,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     cfg.load();
-    // Parse the current url so we can query the parameters
+    Intro.init({cfg, localstorage: support.localstorage});
     var u = url.parse(
         utils.stripTrailingSlash(window.location.href.replace('#', '?')), true);
     resolveBackend(u);

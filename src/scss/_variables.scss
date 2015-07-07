@@ -25,6 +25,9 @@ $colorDarkGray:     rgba(40,44,52,1);
 $colorGray:         rgba(145,145,145,1);
 $colorLightGray:    rgba(229,229,229,1);
 
+$colorDropboxLightBlue: rgba(205,229,249,1);
+$colorDropboxBlue:      rgba(0,126,229,1);
+
 @function white($alpha) {
     @return rgba(255, 255, 255, $alpha);
 }
