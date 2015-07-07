@@ -336,7 +336,7 @@ function initLandmarker(server, mode) {
         }
 
         var modal = Modal.active();
-        if (modal) {
+        if (modal && modal.closable) {
             return modal.close();
         }
 
@@ -61687,6 +61687,8 @@ var _require2 = require('../backend');
 var Dropbox = _require2.Dropbox;
 var Server = _require2.Server;
 
+var Modal = require('./modal');
+var Intro = require('./intro');
 var ListPicker = require('./list_picker');
 
 var AssetPagerView = Backbone.View.extend({
@@ -61717,6 +61719,42 @@ var AssetPagerView = Backbone.View.extend({
         this.model.previousAsset();
     }
 
+});
+
+var BackendNameView = Backbone.View.extend({
+
+    el: '#backendName',
+
+    events: {
+        click: 'handleClick'
+    },
+
+    initialize: function initialize() {
+        _.bindAll(this, 'render');
+        this.render();
+        this.listenTo(this.model, 'change:server', this.render);
+    },
+
+    render: function render() {
+        var server = this.model.server();
+
+        if (server instanceof Dropbox) {
+            this.$el.find('.content').html('Dropbox');
+            this.$el.addClass('BackendName--Dropbox');
+        } else if (server instanceof Server) {
+            this.$el.find('.content').html(server.demoMode ? 'demo' : server.url);
+            this.$el.addClass('BackendName--Server');
+        } else {
+            this.fadeOut();
+        }
+        return this;
+    },
+
+    handleClick: function handleClick() {
+        if (this.model.has('server')) {
+            Modal.confirm('Log out of the current data source and restart the landmarker ?', Intro.open);
+        }
+    }
 });
 
 var AssetNameView = Backbone.View.extend({
@@ -61752,6 +61790,7 @@ var AssetNameView = Backbone.View.extend({
             list: assetsList,
             title: 'Select a new asset to load',
             closable: true,
+            disposeOnClose: true,
             useFilter: true,
             submit: this.model.goToAssetIndex.bind(this.model)
         });
@@ -61825,7 +61864,7 @@ var CollectionName = Backbone.View.extend({
 
     render: function render() {
         this.$el.find('.content').html(this.model.activeCollection() || 'No Collection');
-        this.$el.toggleClass('Disabled', this.model.collections().length <= 1);
+        this.$el.toggleClass('Disabled', this.model.collections().length <= 1 && !(this.model.server() instanceof Dropbox));
         return this;
     },
 
@@ -61857,6 +61896,7 @@ var CollectionName = Backbone.View.extend({
                 title: 'Select a new collection to load',
                 closable: true,
                 useFilter: true,
+                disposeOnClose: true,
                 submit: function submit(collection) {
                     _this.model.set({ 'activeCollection': collection });
                 }
@@ -61870,6 +61910,7 @@ var CollectionName = Backbone.View.extend({
 exports.AssetView = Backbone.View.extend({
 
     initialize: function initialize() {
+        new BackendNameView({ model: this.model });
         new CollectionName({ model: this.model });
         new AssetPagerView({ model: this.model });
         new AssetNameView({ model: this.model });
@@ -61877,7 +61918,7 @@ exports.AssetView = Backbone.View.extend({
     }
 });
 
-},{"../backend":48,"../lib/utils":53,"./list_picker":67,"./notification":69,"backbone":2,"jquery":9,"underscore":44}],63:[function(require,module,exports){
+},{"../backend":48,"../lib/utils":53,"./intro":66,"./list_picker":67,"./modal":68,"./notification":69,"backbone":2,"jquery":9,"underscore":44}],63:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone'),
@@ -62654,6 +62695,50 @@ Modal.active = function () {
     return _modals[_activeModal];
 };
 
+var ConfirmDialog = Modal.extend({
+    closable: false,
+    modifiers: ['Small'],
+
+    events: {
+        'click .ConfirmAction--Yes': 'accept',
+        'click .ConfirmAction--No': 'reject'
+    },
+
+    init: function init(_ref) {
+        var text = _ref.text;
+        var accept = _ref.accept;
+        var reject = _ref.reject;
+
+        this.text = text;
+        this._accept = accept || function () {};
+        this._reject = reject || function () {};
+    },
+
+    content: function content() {
+        return $('            <div class=\'ConfirmDialog\'>                <p>' + this.text + '</p>                <div class=\'ConfirmActions\'>                    <div class=\'ConfirmAction--Yes\'>Yes</div>                    <div class=\'ConfirmAction--No\'>No</div>                </div>            </div>');
+    },
+
+    accept: function accept() {
+        this._accept();
+        this.close();
+    },
+
+    reject: function reject() {
+        this._reject();
+        this.close();
+    }
+
+});
+
+Modal.confirm = function (text, accept, reject) {
+    var dialog = new ConfirmDialog({
+        text: text,
+        accept: accept, reject: reject,
+        disposeOnClose: true
+    });
+    dialog.open();
+};
+
 module.exports = Modal;
 
 },{"backbone":2,"jquery":9,"underscore":44}],69:[function(require,module,exports){
@@ -62999,6 +63084,8 @@ var _require = require('../backend');
 var Dropbox = _require.Dropbox;
 var Server = _require.Server;
 
+var ListPicker = require('./list_picker');
+
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
 var LandmarkView = Backbone.View.extend({
@@ -63287,7 +63374,8 @@ var TemplatePanel = Backbone.View.extend({
     },
 
     update: function update() {
-        this.$el.children('p').text(this.model.activeTemplate() || 'No Template Selected');
+        this.$el.toggleClass('Disabled', this.model && this.model.templates().length <= 1 && this.model.server() instanceof Server);
+        this.$el.text(this.model.activeTemplate() || 'No Template Selected');
     },
 
     click: function click(evt) {
@@ -63303,7 +63391,28 @@ var TemplatePanel = Backbone.View.extend({
                     msg: 'Error switching template ' + err
                 });
             }, true);
-        } else if (backend instanceof Server) {}
+        } else if (backend instanceof Server) {
+
+            var tmpls = this.model.templates();
+
+            if (tmpls.length <= 1) {
+                return;
+            }
+
+            var picker = new ListPicker({
+                list: tmpls.map(function (t) {
+                    return [t, t];
+                }),
+                title: 'Select a template',
+                closable: true,
+                disposeOnClose: true,
+                useFilter: tmpls.length > 5,
+                submit: function submit(tmpl) {
+                    return _this3.model.set('activeTemplate', tmpl);
+                }
+            });
+            picker.open();
+        }
     }
 });
 
@@ -63341,9 +63450,7 @@ var Sidebar = Backbone.View.extend({
 
 exports.Sidebar = Sidebar;
 
-// No UI to handle this atm
-
-},{"../backend":48,"../model/atomic":57,"./notification":69,"backbone":2,"jquery":9,"underscore":44}],71:[function(require,module,exports){
+},{"../backend":48,"../model/atomic":57,"./list_picker":67,"./notification":69,"backbone":2,"jquery":9,"underscore":44}],71:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -65202,4 +65309,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":57,"../../model/octree":60,"./camera":72,"./elements":73,"./handler":74,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-28594c23.js.map
+//# sourceMappingURL=bundle-ff8d5582.js.map
