@@ -116,6 +116,7 @@ var AssetNameView = Backbone.View.extend({
             list: assetsList,
             title: 'Select a new asset to load',
             closable: true,
+            disposeOnClose: true,
             useFilter: true,
             submit: this.model.goToAssetIndex.bind(this.model)
         });
@@ -225,6 +226,7 @@ var CollectionName = Backbone.View.extend({
                 title: 'Select a new collection to load',
                 closable: true,
                 useFilter: true,
+                disposeOnClose: true,
                 submit: (collection) => {
                     this.model.set({'activeCollection': collection});
                 }
