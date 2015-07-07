@@ -153,7 +153,10 @@ var CollectionName = Backbone.View.extend({
         this.$el.find('.content').html(
             this.model.activeCollection() || 'No Collection');
         this.$el.toggleClass(
-            'Disabled', this.model.collections().length <= 1);
+            'Disabled',
+            ( this.model.collections().length <= 1 &&
+              !(this.model.server() instanceof Dropbox) )
+        );
         return this;
     },
 

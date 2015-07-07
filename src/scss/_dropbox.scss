@@ -44,7 +44,7 @@
 
         &:hover span {
           color: white;
-          background: $colorDarkBlue;
+          background: $colorDropboxBlue;
         }
 
         &.Unavailable {
@@ -71,24 +71,24 @@
 
     > span {
         flex: 3;
-        color: $colorDarkGreen;
+        color: $colorGreen;
         font-weight: bold;
 
         &.Empty {
-            color: $colorDarkRed;
+            color: $colorRed;
         }
     }
 
     > div {
         @extend %transitionAll;
         flex: 1;
-        background: $colorDarkBlue;
+        background: $colorDropboxBlue;
         color: white;
         cursor: pointer;
         text-align: center;
 
         &:hover {
-            background: $colorBlue;
+            background: $colorDropboxLightBlue;
         }
     }
 }
@@ -142,13 +142,13 @@ li.DropboxSelectListItem {
     &:hover,
     &.Selected {
         > span {
-            border-color: $colorDarkBlue;
+            border-color: $colorDropboxBlue;
         }
     }
 
     &.Selected {
         > span {
-            background-color: $colorDarkBlue;
+            background-color: $colorDropboxBlue;
             color: white;
         }
     }
