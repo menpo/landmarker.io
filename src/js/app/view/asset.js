@@ -7,6 +7,8 @@ var $ = require('jquery');
 var Notification = require('./notification');
 var { pad } = require('../lib/utils');
 var { Dropbox, Server } = require('../backend');
+var Modal = require('./modal');
+var Intro = require('./intro');
 var ListPicker = require('./list_picker');
 
 var AssetPagerView = Backbone.View.extend({
@@ -41,6 +43,44 @@ var AssetPagerView = Backbone.View.extend({
 
 });
 
+var BackendNameView = Backbone.View.extend({
+
+    el: '#backendName',
+
+    events: {
+        click : "handleClick"
+    },
+
+    initialize : function() {
+        _.bindAll(this, 'render');
+        this.render();
+        this.listenTo(this.model, "change:server", this.render);
+    },
+
+    render: function () {
+        const server = this.model.server();
+
+        if (server instanceof Dropbox) {
+            this.$el.find('.content').html('Dropbox');
+            this.$el.addClass('BackendName--Dropbox');
+        } else if (server instanceof Server) {
+            this.$el.find('.content').html(
+                server.demoMode ? 'demo' : server.url);
+            this.$el.addClass('BackendName--Server');
+        } else {
+            this.fadeOut();
+        }
+        return this;
+    },
+
+    handleClick: function () {
+        if (this.model.has('server')) {
+            Modal.confirm(
+                'Log out of the current data source and restart the landmarker ?',
+                Intro.open);
+        }
+    }
+});
 
 var AssetNameView = Backbone.View.extend({
 
@@ -198,6 +238,7 @@ var CollectionName = Backbone.View.extend({
 exports.AssetView = Backbone.View.extend({
 
     initialize : function() {
+        new BackendNameView({model: this.model});
         new CollectionName({model: this.model});
         new AssetPagerView({model: this.model});
         new AssetNameView({model: this.model});

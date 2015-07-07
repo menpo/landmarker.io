@@ -12,10 +12,12 @@
     background: white(.85);
     width: inherit;
     font-weight: normal;
+    height: 36px;
+    line-height: 36px;
 
     span.label {
         text-transform: uppercase;
-        font-size: medium;
+        font-size: small;
         font-weight: bold;
         margin-right: .2em;
 
@@ -26,6 +28,40 @@
 
     &.Disabled {
         cursor: default;
+    }
+}
+
+.AssetInfo > button.BackendName {
+    &::before {
+        display: inline-block;
+        height: 28px;
+        margin-right: .5em;
+    }
+}
+
+.AssetInfo > button.BackendName--Dropbox {
+    background-color: $colorDropboxBlue;
+    color: white;
+
+    &::before {
+        content: '';
+        background-size: cover;
+        background-image: url(img/dropbox-white.svg);
+        vertical-align: middle;
+        width: 28px;
+    }
+}
+
+.AssetInfo > button.BackendName--Server {
+    background-color: $colorDarkGray;
+    color: white;
+
+    &:before {
+          content: 'url:';
+          text-transform: uppercase;
+          font-size: small;
+          font-weight: bold;
+          color: white;
     }
 }
 
