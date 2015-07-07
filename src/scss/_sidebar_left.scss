@@ -23,6 +23,10 @@
           content: ':';
         }
     }
+
+    &.Disabled {
+        cursor: default;
+    }
 }
 
 .Toolbar {
@@ -55,6 +59,7 @@
         text-transform: uppercase;
         font-weight: bold;
         font-size: medium;
+        text-align: left;
     }
 }
 
