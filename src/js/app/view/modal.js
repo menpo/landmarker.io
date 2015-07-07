@@ -59,6 +59,12 @@ var Modal = Backbone.View.extend({
 
     render: function () {
         this.$el.addClass(this.className);
+
+        if (Array.isArray(this.modifiers)) {
+            this.modifiers.forEach((mod) => {
+                this.$el.addClass(this.className + '--' + mod);
+            });
+        }
         this.$el.attr('id', this.id);
 
         if (this.closable) {

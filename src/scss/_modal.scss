@@ -36,6 +36,10 @@
     display: none;
 }
 
+.ModalWindow--Small {
+    width: auto;
+}
+
 .ModalWindow--Open {
     opacity: 1;
     visibility: visible;
@@ -86,32 +90,6 @@
           border: 1px solid $colorBlue;
       }
   }
-}
-
-.ModalOptions {
-    display: flex;
-    flex-direction: row;
-}
-
-.ModalOption {
-    display: block;
-    border: 1px solid $colorLightGray;
-    flex: 1;
-    height: 44px;
-    margin-right: 1em;
-    border-radius: 3px;
-    float: left;
-    cursor: pointer;
-    text-align: center;
-    line-height: 44px;
-
-    &:hover {
-        background-color: $colorLightGray;
-    }
-
-    &:last-of-type {
-      margin-right: 0;
-    }
 }
 
 .ListPicker {
