@@ -402,17 +402,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Temporary message for v1.5.0
-    if (localStorage.getItem('LMIO#v150')) {
-        $('#v150Prompt').remove();
-    } else {
-        $('#v150Prompt').addClass('Display');
-        $('#v150Prompt').click(function () {
-            localStorage.setItem('LMIO#v150', Date().toString());
-            window.location = 'https://github.com/menpo/landmarker.io/wiki/Introducing-Snap-Mode-(v1.5.0)';
-        })
-    }
-
     cfg.load();
     // Parse the current url so we can query the parameters
     var u = url.parse(
