@@ -2,7 +2,7 @@
 
 module.exports = {};
 
-module.exports.randomString = function (length, useTime=true) {
+const randomString = function (length, useTime=true) {
     var result = '',
         ch = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -17,26 +17,42 @@ module.exports.randomString = function (length, useTime=true) {
     return result;
 }
 
-module.exports.basename = function (path, removeExt=false) {
+const basename = function (path, removeExt=false) {
     let bn = path.split('/').pop();
     return removeExt ? bn.split('.').slice(0, -1).join('.') : bn;
 }
 
-module.exports.extname = function (path) {
+const extname = function (path) {
     return path.toLowerCase().split('.').pop();
 }
 
-module.exports.stripTrailingSlash = function (str) {
+const stripTrailingSlash = function (str) {
     return str.substr(-1) === '/' ? str.substr(0, str.length - 1) : str;
 }
 
-module.exports.pad = function (n, width, z) {
+const addTrailingSlash = function (str) {
+    return str.substr(-1) === '/' ? str : str + '/';
+}
+
+const baseUrl = function () {
+    return addTrailingSlash(window.location.origin + window.location.pathname);
+}
+
+const pad = function (n, width, z) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n :
         new Array(width - n.length + 1).join(z) + n;
 }
 
-module.exports.capitalize = function (str) {
+const capitalize = function (str) {
     return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+module.exports = {
+    randomString,
+    basename, extname,
+    stripTrailingSlash, addTrailingSlash,
+    baseUrl,
+    capitalize, pad
 }

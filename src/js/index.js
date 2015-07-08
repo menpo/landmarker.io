@@ -43,7 +43,7 @@ function resolveBackend (u) {
         u.search = null;
         history.replaceState(null, null, url.format(u).replace('?', '#'));
 
-        return showSelection();
+        return Intro.open();
     }
 
     switch (backendType) {
@@ -57,20 +57,13 @@ function resolveBackend (u) {
 function restart (serverUrl) {
     cfg.clear();
     let restartUrl = (
-        window.location.origin +
-        window.location.pathname +
+        utils.baseUrl() +
         (serverUrl ? `?server=${serverUrl}` : '')
     );
     window.location.replace(restartUrl);
 }
 
 var goToDemo = restart.bind(undefined, 'demo');
-
-function showSelection () {
-    cfg.clear();
-    history.replaceState(null, null, window.location.origin);
-    Intro.open();
-}
 
 function retry (msg) {
     Notification.notify({
@@ -113,7 +106,7 @@ function _loadDropbox (u) {
                 msg: 'Incorrect Dropbox redirect URL',
                 type: 'error'
             });
-            showSelection();
+            Intro.open();
         }
     } else if (token) {
         dropbox = new Backend.Dropbox(token, cfg);
@@ -127,10 +120,10 @@ function _loadDropbox (u) {
                 msg: 'Could not reach Dropbox servers',
                 type: 'error'
             });
-            showSelection();
+            Intro.open();
         });
     } else {
-        showSelection();
+        Intro.open();
     }
 };
 
