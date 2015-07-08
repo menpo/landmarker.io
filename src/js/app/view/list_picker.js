@@ -9,7 +9,7 @@ var ListPicker = Modal.extend({
 
     events: {
         'click li': 'click',
-        'keyup input': 'filter',
+        'keyup input': 'filter'
     },
 
     init: function ({list, submit, useFilter}) {
@@ -20,7 +20,7 @@ var ListPicker = Modal.extend({
         _.bindAll(this, 'filter');
     },
 
-    filter: function (evt) {
+    filter: _.throttle(function (evt) {
         const value = evt.currentTarget.value.toLowerCase();
         if (!value || value === "") {
             this._list = this.list;
@@ -31,7 +31,7 @@ var ListPicker = Modal.extend({
         });
 
         this.update();
-    },
+    }, 50),
 
     makeList: function () {
         const $ul = $(`<ul></ul>`);
