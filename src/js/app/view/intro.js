@@ -6,6 +6,7 @@ var $ = require('jquery'),
 var Modal = require('./modal');
 var { notify } = require('./notification');
 var Backend = require('../backend');
+var { baseUrl } = require('../lib/utils');
 
 var version = require('../../../../package.json').version;
 
@@ -63,9 +64,7 @@ var Intro = Modal.extend({
     _restart: function (serverUrl) {
         this._cfg.clear();
         let restartUrl = (
-            window.location.origin +
-            window.location.pathname +
-            (serverUrl ? `?server=${serverUrl}` : '')
+            baseUrl() + (serverUrl ? `?server=${serverUrl}` : '')
         );
         window.location.replace(restartUrl);
     },
@@ -96,7 +95,14 @@ var Intro = Modal.extend({
 let instance;
 module.exports = {
     init: function (opts) { instance = new Intro(opts); },
-    open: function () { instance.open(); },
+
+    open: function () {
+        instance._cfg.clear();
+        history.replaceState(
+            null, null, baseUrl());
+        instance.open();
+    },
+
     close: function () { instance.close(); },
     initialized: function () { return !!instance }
 }
