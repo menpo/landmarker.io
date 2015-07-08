@@ -144,7 +144,6 @@ Modal.active = function () {
 }
 
 var ConfirmDialog = Modal.extend({
-    closable: false,
     modifiers: ['Small'],
 
     events: {
@@ -185,7 +184,8 @@ Modal.confirm = function (text, accept, reject) {
     const dialog = new ConfirmDialog({
         text,
         accept, reject,
-        disposeOnClose: true
+        disposeOnClose: true,
+        closable: true,
     });
     dialog.open();
 }
