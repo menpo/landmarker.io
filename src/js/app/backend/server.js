@@ -15,6 +15,8 @@ var Server = require('./base').extend('LANDMARKER SERVER', function (url) {
     if (this.url === 'demo') {
         this.url = '';
         this.demoMode = true;
+    } else if (!/^(?:f|ht)tps?\:\/\//.test(url)) {
+        this.url = 'http://' + this.url;
     }
 
     this.httpAuth = (url.indexOf('https://') === 0);

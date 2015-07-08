@@ -4,14 +4,16 @@ var Promise = require('promise-polyfill'),
 var { loading } = require('../view/notification');
 
 var ImagePromise = function (url, auth=false) {
+
     return new Promise(function (resolve, reject) {
 
         var xhr = new XMLHttpRequest();
 
         xhr.open('GET', url, true);
-        xhr.withCredentials = !!auth;
         xhr.responseType = 'blob';
         var img = new Image();
+
+        xhr.withCredentials = !!auth;
         var asyncId = loading.start();
 
         xhr.addEventListener('load', function () {
@@ -43,19 +45,19 @@ var ImagePromise = function (url, auth=false) {
     });
 };
 
-var TexturePromise = function (url) {
+var TexturePromise = function (url, auth) {
     var texture = new THREE.Texture(undefined, new THREE.UVMapping());
     texture.sourceFile = url;
 
-    return ImagePromise(url).then(function(image) {
+    return ImagePromise(url, auth).then(function(image) {
             texture.image = image;
             texture.needsUpdate = true;
             return texture;
     });
 };
 
-var MaterialPromise = function(url) {
-    return TexturePromise(url).then(function (texture) {
+var MaterialPromise = function(url, auth) {
+    return TexturePromise(url, auth).then(function (texture) {
         return new THREE.MeshBasicMaterial({map: texture});
     });
 };
