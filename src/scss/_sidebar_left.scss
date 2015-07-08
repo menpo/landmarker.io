@@ -187,8 +187,14 @@ input[type="range"] {
     outline: 0;
 }
 
+input[type=range]::-moz-range-track {}
+
 input[type=range]:focus {
     outline: none;
+}
+
+input[type=range]::-moz-focus-outer {
+    border: 0;
 }
 
 @mixin rangeThumb {
