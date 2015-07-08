@@ -61758,12 +61758,15 @@ var BackendNameView = Backbone.View.extend({
     render: function render() {
         var server = this.model.server();
 
+        this.$el.find('.octicon-globe').remove();
+
         if (server instanceof Dropbox) {
             this.$el.find('.content').html('Dropbox');
             this.$el.addClass('BackendName--Dropbox');
         } else if (server instanceof Server) {
             this.$el.find('.content').html(server.demoMode ? 'demo' : server.url);
             this.$el.addClass('BackendName--Server');
+            this.$el.prepend($('<span class="octicon octicon-globe"></span>'));
         } else {
             this.fadeOut();
         }
@@ -65343,4 +65346,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":57,"../../model/octree":60,"./camera":72,"./elements":73,"./handler":74,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-0ddfe891.js.map
+//# sourceMappingURL=bundle-b0493114.js.map
