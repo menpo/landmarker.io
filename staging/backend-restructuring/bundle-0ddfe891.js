@@ -262,6 +262,11 @@ function initLandmarker(server, mode) {
         }
 
         var key = e.which;
+
+        if ((app.isHelpOverlayOn() || !!Modal.active()) && key !== 63) {
+            return; // Do nothing if a modal is up
+        }
+
         switch (key) {
             case 100:
                 // d = [d]elete selected
@@ -329,9 +334,14 @@ function initLandmarker(server, mode) {
             return;
         }
 
+        if (app.isHelpOverlayOn()) {
+            return app.toggleHelpOverlay();
+        }
+
         var modal = Modal.active();
-        if (modal && modal.closable) {
-            return modal.close();
+        if (modal) {
+            if (modal.closable) modal.close();
+            return;
         }
 
         app.landmarks().deselectAll();
@@ -61837,9 +61847,8 @@ var AssetIndexView = Backbone.View.extend({
 
         var newIndex = window.prompt('Input asset index:', pad(this.model.assetIndex() + 1, 2));
 
-        if (newIndex === null) {
-            // ESC key or empty prompt, do nothing
-            return null;
+        if (!newIndex || newIndex === '') {
+            return null; // ESC key or empty prompt, do nothing
         }
 
         if (isNaN(newIndex)) {
@@ -62243,11 +62252,6 @@ var _slicedToArray = (function () {
 var Backbone = require('backbone');
 var $ = require('jquery');
 
-var DISPLAY_STYLE_FOR_HELP_ON = {
-    'true': 'flex',
-    'false': 'none'
-};
-
 var HELP_CONTENTS = [['j', 'go to next asset in collection'], ['k', 'go to previous asset in collection'], [''], ['right click', 'insert next available landmark'], ['snap + click', 'move snapped landmark'], ['snap + ctrl + move', 'lock snapped landmark'], [''], ['a', 'select all landmarks'], ['g', 'select all landmarks in the active group'], ['d', 'delete selected landmarks'], ['q / ESC', 'clear current selection'], ['click outside', 'clear current selection'], ['ctrl/cmd + click on landmark', 'select and deselect from current selection'], ['click on a landmark', 'select a landmark'], ['click + drag on a landmark', 'move landmark points'], ['shift + drag not on a landmark', 'draw a box to select multiple landmarks'], ['ctrl + shift + drag not on a landmark', 'draw a box to add multiple landmarks to current selection'], [''], ['l', 'toggle links (landmark connections)'], ['t', 'toggle textures (<i>mesh mode only</i>)'], ['c', 'change between orthographic and perspective rendering (<i>mesh mode only</i>)'], [''], ['r', 'reset the camera to default'], ['mouse wheel', 'zoom the camera in and out'], ['click + drag', 'rotate camera (<i>mesh mode only</i>)'], ['right click + drag', 'pan the camera'], [''], ['?', 'display this help']];
 
 module.exports = Backbone.View.extend({
@@ -62258,7 +62262,6 @@ module.exports = Backbone.View.extend({
 
     initialize: function initialize() {
         this.listenTo(this.model, 'change:helpOverlayIsDisplayed', this.render);
-        this.el = this.$el[0];
         var $tbody = this.$el.children('table').children('tbody');
         HELP_CONTENTS.forEach(function (_ref) {
             var _ref2 = _slicedToArray(_ref, 2);
@@ -62273,8 +62276,7 @@ module.exports = Backbone.View.extend({
     },
 
     render: function render() {
-        var isOn = this.model.isHelpOverlayOn();
-        this.el.style.display = DISPLAY_STYLE_FOR_HELP_ON[isOn];
+        this.$el.toggleClass('Display', this.model.isHelpOverlayOn());
     },
 
     close: function close() {
@@ -62508,31 +62510,28 @@ var ListPicker = Modal.extend({
             var k = _ref22[1];
             return [c, k, i];
         });
-        this._list = list;
+        this._list = this.list;
         this.submit = submit;
         this.useFilter = !!useFilter;
         _.bindAll(this, 'filter');
     },
 
-    filter: function filter(evt) {
+    filter: _.throttle(function (evt) {
         var value = evt.currentTarget.value.toLowerCase();
         if (!value || value === '') {
             this._list = this.list;
         }
 
-        var pattern = new RegExp(value, 'gi');
         this._list = this.list.filter(function (_ref3) {
-            var _ref32 = _slicedToArray(_ref3, 3);
+            var _ref32 = _slicedToArray(_ref3, 1);
 
             var content = _ref32[0];
-            var key = _ref32[1];
-            var index = _ref32[2];
 
-            return pattern.test(content);
+            return content.toLowerCase().indexOf(value) > -1;
         });
 
         this.update();
-    },
+    }, 50),
 
     makeList: function makeList() {
         var $ul = $('<ul></ul>');
@@ -62714,7 +62713,6 @@ Modal.active = function () {
 };
 
 var ConfirmDialog = Modal.extend({
-    closable: false,
     modifiers: ['Small'],
 
     events: {
@@ -62752,7 +62750,8 @@ Modal.confirm = function (text, accept, reject) {
     var dialog = new ConfirmDialog({
         text: text,
         accept: accept, reject: reject,
-        disposeOnClose: true
+        disposeOnClose: true,
+        closable: true
     });
     dialog.open();
 };
@@ -63371,10 +63370,27 @@ var SaveRevertView = Backbone.View.extend({
             var data = 'text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(this.model.toJSON())),
                 filename = this.app.asset().id + '_' + this.app.activeTemplate() + '.ljson';
 
-            var $link = $('<a href="data:' + data + '" download="' + filename + '"></a>');
+            // Remove previous element from dom
+            var previous = document.getElementById('downloadLMLink');
+            if (!!previous) previous.remove();
+
+            var link = document.createElement('a');
+            link.setAttribute('style', 'display:none;');
+            link.setAttribute('download', filename);
+            link.setAttribute('href', 'data:' + data);
+            link.setAttribute('id', 'downloadLMLink');
+            link.setAttribute('hidden', 'true');
+
+            // target="_blank" for Safari who still does not understand
+            // the download attribute
+            link.setAttribute('target', '_blank');
+
+            // Add to DOM and click
+            document.body.appendChild(link);
+            document.getElementById('downloadLMLink').click();
+
             Notification.loading.stop(spinner);
             this.$el.find('#download').removeClass('Button--Disabled');
-            return $link[0].click();
         }
     }
 });
@@ -65327,4 +65343,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":57,"../../model/octree":60,"./camera":72,"./elements":73,"./handler":74,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-1c66a18d.js.map
+//# sourceMappingURL=bundle-0ddfe891.js.map
