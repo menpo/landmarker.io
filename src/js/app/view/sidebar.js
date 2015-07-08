@@ -266,7 +266,9 @@ var SaveRevertView = Backbone.View.extend({
             const data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.model.toJSON())),
                 filename = `${this.app.asset().id}_${this.app.activeTemplate()}.ljson`;
 
-            const $link = $(`<a href="data:${data}" download="${filename}"></a>`);
+            // target="_blank" for Safari who still does not understand
+            // the download attribute
+            const $link = $(`<a target="_blank" href="data:${data}" download="${filename}"></a>`);
             Notification.loading.stop(spinner);
             this.$el.find('#download').removeClass('Button--Disabled');
             return $link[0].click();
