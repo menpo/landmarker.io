@@ -43,7 +43,7 @@ function resolveBackend(u) {
         u.search = null;
         history.replaceState(null, null, url.format(u).replace('?', '#'));
 
-        return showSelection();
+        return Intro.open();
     }
 
     switch (backendType) {
@@ -56,17 +56,11 @@ function resolveBackend(u) {
 
 function restart(serverUrl) {
     cfg.clear();
-    var restartUrl = window.location.origin + window.location.pathname + (serverUrl ? '?server=' + serverUrl : '');
+    var restartUrl = utils.baseUrl() + (serverUrl ? '?server=' + serverUrl : '');
     window.location.replace(restartUrl);
 }
 
 var goToDemo = restart.bind(undefined, 'demo');
-
-function showSelection() {
-    cfg.clear();
-    history.replaceState(null, null, window.location.origin);
-    Intro.open();
-}
 
 function retry(msg) {
     Notification.notify({
@@ -110,7 +104,7 @@ function _loadDropbox(u) {
                 msg: 'Incorrect Dropbox redirect URL',
                 type: 'error'
             });
-            showSelection();
+            Intro.open();
         }
     } else if (token) {
         dropbox = new Backend.Dropbox(token, cfg);
@@ -124,10 +118,10 @@ function _loadDropbox(u) {
                 msg: 'Could not reach Dropbox servers',
                 type: 'error'
             });
-            showSelection();
+            Intro.open();
         });
     } else {
-        showSelection();
+        Intro.open();
     }
 };
 
@@ -59827,7 +59821,7 @@ module.exports.localstorage = (function () {
 
 module.exports = {};
 
-module.exports.randomString = function (length) {
+var randomString = function randomString(length) {
     var useTime = arguments[1] === undefined ? true : arguments[1];
 
     var result = '',
@@ -59844,29 +59838,45 @@ module.exports.randomString = function (length) {
     return result;
 };
 
-module.exports.basename = function (path) {
+var basename = function basename(path) {
     var removeExt = arguments[1] === undefined ? false : arguments[1];
 
     var bn = path.split('/').pop();
     return removeExt ? bn.split('.').slice(0, -1).join('.') : bn;
 };
 
-module.exports.extname = function (path) {
+var extname = function extname(path) {
     return path.toLowerCase().split('.').pop();
 };
 
-module.exports.stripTrailingSlash = function (str) {
+var stripTrailingSlash = function stripTrailingSlash(str) {
     return str.substr(-1) === '/' ? str.substr(0, str.length - 1) : str;
 };
 
-module.exports.pad = function (n, width, z) {
+var addTrailingSlash = function addTrailingSlash(str) {
+    return str.substr(-1) === '/' ? str : str + '/';
+};
+
+var baseUrl = function baseUrl() {
+    return addTrailingSlash(window.location.origin + window.location.pathname);
+};
+
+var pad = function pad(n, width, z) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
 };
 
-module.exports.capitalize = function (str) {
+var capitalize = function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+module.exports = {
+    randomString: randomString,
+    basename: basename, extname: extname,
+    stripTrailingSlash: stripTrailingSlash, addTrailingSlash: addTrailingSlash,
+    baseUrl: baseUrl,
+    capitalize: capitalize, pad: pad
 };
 
 },{}],54:[function(require,module,exports){
@@ -62352,6 +62362,10 @@ var notify = _require.notify;
 
 var Backend = require('../backend');
 
+var _require2 = require('../lib/utils');
+
+var baseUrl = _require2.baseUrl;
+
 var version = require('../../../../package.json').version;
 
 var contents = '<div class=\'Intro\'>    <h1>Landmarker.io<h1>    <h3>v' + version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect your own server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div></div>';
@@ -62388,7 +62402,7 @@ var Intro = Modal.extend({
 
     _restart: function _restart(serverUrl) {
         this._cfg.clear();
-        var restartUrl = window.location.origin + window.location.pathname + (serverUrl ? '?server=' + serverUrl : '');
+        var restartUrl = baseUrl() + (serverUrl ? '?server=' + serverUrl : '');
         window.location.replace(restartUrl);
     },
 
@@ -62426,9 +62440,13 @@ module.exports = {
     init: function init(opts) {
         instance = new Intro(opts);
     },
+
     open: function open() {
+        instance._cfg.clear();
+        history.replaceState(null, null, baseUrl());
         instance.open();
     },
+
     close: function close() {
         instance.close();
     },
@@ -62437,7 +62455,7 @@ module.exports = {
     }
 };
 
-},{"../../../../package.json":45,"../backend":48,"./modal":68,"./notification":69,"jquery":9,"underscore":44}],67:[function(require,module,exports){
+},{"../../../../package.json":45,"../backend":48,"../lib/utils":53,"./modal":68,"./notification":69,"jquery":9,"underscore":44}],67:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -65309,4 +65327,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":57,"../../model/octree":60,"./camera":72,"./elements":73,"./handler":74,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-ff8d5582.js.map
+//# sourceMappingURL=bundle-1c66a18d.js.map
