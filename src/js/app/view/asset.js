@@ -60,6 +60,8 @@ var BackendNameView = Backbone.View.extend({
     render: function () {
         const server = this.model.server();
 
+        this.$el.find('.octicon-globe').remove();
+
         if (server instanceof Dropbox) {
             this.$el.find('.content').html('Dropbox');
             this.$el.addClass('BackendName--Dropbox');
@@ -67,6 +69,7 @@ var BackendNameView = Backbone.View.extend({
             this.$el.find('.content').html(
                 server.demoMode ? 'demo' : server.url);
             this.$el.addClass('BackendName--Server');
+            this.$el.prepend($('<span class="octicon octicon-globe"></span>'));
         } else {
             this.fadeOut();
         }

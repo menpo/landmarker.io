@@ -4,65 +4,97 @@
     align-items: flex-start;
 }
 
-// Asset info in top left corner
+.AssetInfo > .BackendName,
 .AssetInfo > button {
-    display: block;
-    text-align: left;
     margin: 0;
-    background: white(.85);
     width: inherit;
     font-weight: normal;
     height: 36px;
     line-height: 36px;
-
-    span.label {
-        text-transform: uppercase;
-        font-size: small;
-        font-weight: bold;
-        margin-right: .2em;
-
-        &::after {
-          content: ':';
-        }
-    }
-
-    &.Disabled {
-        cursor: default;
-    }
 }
 
-.AssetInfo > button.BackendName {
-    &::before {
-        display: inline-block;
-        height: 28px;
-        margin-right: .5em;
-    }
+.AssetInfo > button {
+
+  display: block;
+  text-align: left;
+  background: white(.85);
+
+  &:hover {
+      background-color: $colorLightGray;
+  }
+
+  &.Disabled {
+      cursor: default;
+      color: $colorGray;
+
+      &:hover {
+          background-color: white(.85);
+      }
+  }
+
+  span.label {
+      text-transform: uppercase;
+      font-size: small;
+      font-weight: bold;
+      margin-right: .2em;
+
+      &::after {
+        content: ':';
+      }
+  }
 }
 
-.AssetInfo > button.BackendName--Dropbox {
-    background-color: $colorDropboxBlue;
+.AssetInfo > .BackendName {
     color: white;
+
+    &:hover {
+        cursor: pointer;
+    }
+
+    > span,
+    &::before {
+         background: $colorDarkGray;
+         float: left;
+         height: 36px;
+         line-height: 36px;
+         text-align: center;
+    }
+
+    > span.content {
+        padding: 0 .75em;
+    }
+}
+
+.AssetInfo > .BackendName--Dropbox {
+
+    > span.content,
+    &::before {
+        background-color: $colorDropboxBlue;
+    }
 
     &::before {
         content: '';
         background-size: cover;
         background-image: url(img/dropbox-white.svg);
-        vertical-align: middle;
         width: 28px;
     }
 }
 
-.AssetInfo > button.BackendName--Server {
-    background-color: $colorDarkGray;
-    color: white;
-
-    &:before {
-          content: 'url:';
-          text-transform: uppercase;
-          font-size: small;
-          font-weight: bold;
-          color: white;
+.AssetInfo > .BackendName--Server {
+    > span:first-of-type {
+        width: 28px;
+        font-size: larger;
     }
+}
+
+.AssetInfo > .BackendName > span:last-of-type {
+    @extend %transitionAll;
+    background: $colorRed;
+    width: 36px;
+}
+
+.AssetInfo > .BackendName:hover > span:last-of-type {
+    background: $colorDarkRed;
 }
 
 .Toolbar {
