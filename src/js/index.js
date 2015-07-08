@@ -319,9 +319,14 @@ function initLandmarker(server, mode) {
             return;
         }
 
+        if (app.isHelpOverlayOn()) {
+            return app.toggleHelpOverlay();
+        }
+
         const modal = Modal.active();
-        if (modal && modal.closable) {
-            return modal.close();
+        if (modal) {
+            if (modal.closable) modal.close();
+            return;
         }
 
         app.landmarks().deselectAll();
