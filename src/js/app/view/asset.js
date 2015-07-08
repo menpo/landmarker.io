@@ -156,8 +156,8 @@ var AssetIndexView = Backbone.View.extend({
         var newIndex = window.prompt(
             "Input asset index:", pad(this.model.assetIndex() + 1, 2));
 
-        if (newIndex === null) { // ESC key or empty prompt, do nothing
-            return null;
+        if (!newIndex || newIndex === '') {
+            return null; // ESC key or empty prompt, do nothing
         }
 
         if (isNaN(newIndex)) {

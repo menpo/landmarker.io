@@ -259,11 +259,16 @@ function initLandmarker(server, mode) {
     // Non escape keys
     $(window).keypress(function(e) {
 
+        const key = e.which;
+
+        if ((app.isHelpOverlayOn() || !!Modal.active()) && key !== 63) {
+            return; // Do nothing if a modal is up
+        }
+
         if ($(e.target).closest("input")[0]) {
             return;
         }
 
-        var key = e.which;
         switch (key) {
             case 100:  // d = [d]elete selected
                 app.landmarks().deleteSelected();
