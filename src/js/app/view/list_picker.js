@@ -14,7 +14,7 @@ var ListPicker = Modal.extend({
 
     init: function ({list, submit, useFilter}) {
         this.list = list.map(([c, k], i) => [c, k, i]);
-        this._list = list;
+        this._list = this.list;
         this.submit = submit;
         this.useFilter = !!useFilter;
         _.bindAll(this, 'filter');
@@ -26,9 +26,8 @@ var ListPicker = Modal.extend({
             this._list = this.list;
         }
 
-        const pattern = new RegExp(value, "gi");
-        this._list = this.list.filter(([content, key, index]) => {
-            return pattern.test(content);
+        this._list = this.list.filter(([content]) => {
+            return content.toLowerCase().indexOf(value) > -1;
         });
 
         this.update();
