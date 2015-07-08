@@ -266,12 +266,28 @@ var SaveRevertView = Backbone.View.extend({
             const data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.model.toJSON())),
                 filename = `${this.app.asset().id}_${this.app.activeTemplate()}.ljson`;
 
+            // Remove previous element from dom
+            const previous = document.getElementById('downloadLMLink');
+            if (!!previous) previous.remove();
+
+            const link = document.createElement('a');
+            link.setAttribute('style', 'display:none;');
+            link.setAttribute('download', filename);
+            link.setAttribute('href', `data:${data}`);
+            link.setAttribute('id', `downloadLMLink`);
+            link.setAttribute('hidden', `true`);
+
             // target="_blank" for Safari who still does not understand
             // the download attribute
-            const $link = $(`<a target="_blank" href="data:${data}" download="${filename}"></a>`);
+            link.setAttribute('target', '_blank');
+
+            // Add to DOM and click
+            document.body.appendChild(link);
+            document.getElementById('downloadLMLink').click();
+
             Notification.loading.stop(spinner);
             this.$el.find('#download').removeClass('Button--Disabled');
-            return $link[0].click();
+
         }
     }
 });
