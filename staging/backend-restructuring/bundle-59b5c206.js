@@ -59504,6 +59504,8 @@ var Server = require('./base').extend('LANDMARKER SERVER', function (url) {
     if (this.url === 'demo') {
         this.url = '';
         this.demoMode = true;
+    } else if (!/^(?:f|ht)tps?\:\/\//.test(url)) {
+        this.url = 'http://' + this.url;
     }
 
     this.httpAuth = url.indexOf('https://') === 0;
@@ -59606,9 +59608,10 @@ var ImagePromise = function ImagePromise(url) {
         var xhr = new XMLHttpRequest();
 
         xhr.open('GET', url, true);
-        xhr.withCredentials = !!auth;
         xhr.responseType = 'blob';
         var img = new Image();
+
+        xhr.withCredentials = !!auth;
         var asyncId = loading.start();
 
         xhr.addEventListener('load', function () {
@@ -59640,19 +59643,19 @@ var ImagePromise = function ImagePromise(url) {
     });
 };
 
-var TexturePromise = function TexturePromise(url) {
+var TexturePromise = function TexturePromise(url, auth) {
     var texture = new THREE.Texture(undefined, new THREE.UVMapping());
     texture.sourceFile = url;
 
-    return ImagePromise(url).then(function (image) {
+    return ImagePromise(url, auth).then(function (image) {
         texture.image = image;
         texture.needsUpdate = true;
         return texture;
     });
 };
 
-var MaterialPromise = function MaterialPromise(url) {
-    return TexturePromise(url).then(function (texture) {
+var MaterialPromise = function MaterialPromise(url, auth) {
+    return TexturePromise(url, auth).then(function (texture) {
         return new THREE.MeshBasicMaterial({ map: texture });
     });
 };
@@ -65346,4 +65349,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":57,"../../model/octree":60,"./camera":72,"./elements":73,"./handler":74,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-b0493114.js.map
+//# sourceMappingURL=bundle-59b5c206.js.map
