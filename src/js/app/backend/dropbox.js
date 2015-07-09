@@ -15,17 +15,21 @@ const API_KEY = "jwda9p0msmkfora",
       API_URL = "https://api.dropbox.com/1",
       CONTENTS_URL = "https://api-content.dropbox.com/1";
 
-const OBJLoader = require('../lib/obj_loader');
+const IMAGE_EXTENSIONS = ['jpeg', 'jpg', 'png'];
+const MESH_EXTENSIONS = ['obj', 'stl', 'mtl'].concat(IMAGE_EXTENSIONS);
 
 var url = require('url'),
     Promise = require('promise-polyfill');
+
+var OBJLoader = require('../lib/obj_loader'),
+    STLLoader = require('../lib/stl_loader');
 
 var { randomString,
       basename,
       extname,
       stripExtension } = require('../lib/utils');
 
-var { getJSON, get, putJSON } = require('../lib/requests'),
+var { getJSON, get, putJSON, getArrayBuffer } = require('../lib/requests'),
     ImagePromise = require('../lib/imagepromise'),
     Template = require('../model/template');
 
@@ -36,6 +40,7 @@ var Dropbox = require('./base').extend('DROPBOX', function (token, cfg) {
     this._cfg = cfg;
     this.mode = 'image';
     this._meshTextures = {};
+    this._meshMtls = {};
 
     // Caches
     this._mediaCache = {};
@@ -47,11 +52,6 @@ var Dropbox = require('./base').extend('DROPBOX', function (token, cfg) {
     this._cfg.set('BACKEND_DROPBOX_TOKEN', token);
     this._cfg.save();
 });
-
-Dropbox.Extensions = {
-    image: ['jpeg', 'jpg', 'png'],
-    mesh: ['obj', 'jpg', 'jpeg', 'png'],
-}
 
 /**
  * Builds an authentication URL for Dropbox OAuth2 flow and
@@ -87,7 +87,7 @@ Dropbox.prototype.accountInfo = function () {
 };
 
 Dropbox.prototype.setMode = function (mode) {
-    if (mode in Dropbox.Extensions) {
+    if (mode === 'image' || mode === 'mesh') {
         this.mode = mode;
     } else {
         this.mode = this.mode || 'image';
@@ -179,13 +179,16 @@ Dropbox.prototype.setAssets = function (path, mode) {
     this._assetsPath = path;
     this.setMode(mode);
 
+    const exts = this.mode === 'mesh' ? MESH_EXTENSIONS : IMAGE_EXTENSIONS;
+
     return this.list(path, {
         filesOnly: true,
-        extensions: Dropbox.Extensions[this.mode],
+        extensions: exts,
         noCache: true
     }).then((items) => {
         this._assets = [];
         this._meshTextures = {};
+        this._meshMtls = {};
         if (this.mode === 'image') {
             this._setImageAssets(items);
         } else if (this.mode === 'mesh') {
@@ -200,12 +203,26 @@ Dropbox.prototype._setMeshAssets = function (items) {
     const paths = items.map((item) => item.path);
 
     // Find only OBJ files
-    this._assets = paths.filter((p) => extname(p) === 'obj');
+    this._assets = paths.filter((p) => ['obj', 'stl'].indexOf(extname(p)) > -1);
 
     // Initialize texture map
     this._assets.forEach((p) => {
-        this._meshTextures[p] = paths.indexOf(stripExtension(p) + '.jpg') > -1;
+        let ext;
+        for (var i = 0; i < IMAGE_EXTENSIONS.length; i++) {
+            ext = IMAGE_EXTENSIONS[i];
+            if (paths.indexOf(stripExtension(p) + '.' + ext) > -1) {
+                this._meshTextures[p] = stripExtension(p) + '.' + ext;
+                break;
+            }
+        }
+
+        if (paths.indexOf(stripExtension(p) + '.mtl') > -1) {
+            this._meshMtls[p] = stripExtension(p) + '.mtl';
+        }
     });
+
+    console.log('Dropbox::Set mesh and textures',
+                this._assets, this._meshTextures, this._meshMtls);
 };
 
 Dropbox.prototype._setImageAssets = function (items) {
@@ -352,7 +369,7 @@ Dropbox.prototype.fetchTexture = function (assetId) {
     const path = `${this._assetsPath}/${assetId}`;
     if (this.mode === 'mesh') {
         if (this._meshTextures[path]) {
-            return this.fetchImg(stripExtension(path) + '.jpg');
+            return this.fetchImg(this._meshTextures[path]);
         } else {
             return Promise.reject(null);
         }
@@ -363,11 +380,28 @@ Dropbox.prototype.fetchTexture = function (assetId) {
 
 Dropbox.prototype.fetchGeometry = function (assetId) {
 
-    const path = `${this._assetsPath}/${assetId}`;
+    const path = `${this._assetsPath}/${assetId}`,
+          ext = extname(assetId);
 
-    const dl = this.download(path);
+    let loader, dl;
+
+    if (ext === 'obj') {
+        loader = OBJLoader;
+        dl = this.download(path);
+    } else if (ext === 'stl') {
+        loader = STLLoader;
+        dl = this.mediaURL(path).then((url) => {
+            const q = getArrayBuffer(url);
+            dl.xhr = q.xhr;
+            return q;
+        });
+        dl.xhr = function () { return {abort: function () {}}};
+    } else {
+        throw new Error('Invalid mesh extension', ext, path);
+    }
+
     const geometry = dl.then((data) => {
-        return OBJLoader(data);
+        return loader(data);
     });
 
     geometry.xhr = () => dl.xhr(); // compatibility

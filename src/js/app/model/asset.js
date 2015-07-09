@@ -200,7 +200,6 @@ var Image = Backbone.Model.extend({
     loadTexture: function () {
         if (!this.hasOwnProperty('_texturePromise')) {
             this._texturePromise = this.get('server').fetchTexture(this.id).then((material) => {
-                console.log(material);
                 delete this._texturePromise;
                 console.log('Asset: loaded texture for ' + this.id);
                 this.texture = material;
@@ -278,6 +277,8 @@ var Mesh = Image.extend({
             this._geometryPromise = arrayPromise.then((geometry) => {
                 delete this._geometryPromise;
                 geometry.computeBoundingSphere();
+                geometry.computeFaceNormals();
+                geometry.computeVertexNormals();
 
                 this.geometry = geometry;
                 this.trigger('change:geometry');
