@@ -111,6 +111,7 @@ function _loadDropbox(u) {
     }
 
     if (dropbox) {
+        dropbox.setMode(cfg.get('BACKEND_DROPBOX_MODE'));
         return dropbox.accountInfo().then(function () {
             _loadDropboxAssets(dropbox);
         }, function () {
@@ -150,7 +151,6 @@ function _loadDropboxTemplate(dropbox) {
     var templatePath = cfg.get('BACKEND_DROPBOX_TEMPLATE_PATH');
 
     function _pick() {
-        console.log('TMPL PICK');
         dropbox.pickTemplate(function () {
             resolveMode(dropbox);
         }, function (err) {
@@ -163,7 +163,6 @@ function _loadDropboxTemplate(dropbox) {
             resolveMode(dropbox);
         }, _pick);
     } else {
-        console.log('NOT FOUND', cfg.get());
         _pick();
     }
 }
@@ -395,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resolveBackend(u);
 });
 
-},{"./app/backend":48,"./app/lib/support":52,"./app/lib/utils":53,"./app/model/app":54,"./app/model/config":58,"./app/view/asset":62,"./app/view/dropbox_picker":63,"./app/view/help":64,"./app/view/history":65,"./app/view/intro":66,"./app/view/modal":68,"./app/view/notification":69,"./app/view/sidebar":70,"./app/view/toolbar":71,"./app/view/viewport":75,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
+},{"./app/backend":48,"./app/lib/support":53,"./app/lib/utils":54,"./app/model/app":55,"./app/model/config":59,"./app/view/asset":63,"./app/view/dropbox_picker":64,"./app/view/help":65,"./app/view/history":66,"./app/view/intro":67,"./app/view/modal":69,"./app/view/notification":70,"./app/view/sidebar":71,"./app/view/toolbar":72,"./app/view/viewport":76,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.2.1
 
@@ -59127,6 +59126,8 @@ var API_KEY = "jwda9p0msmkfora",
     API_URL = "https://api.dropbox.com/1",
     CONTENTS_URL = "https://api-content.dropbox.com/1";
 
+var OBJLoader = require("../lib/obj_loader");
+
 var url = require("url"),
     Promise = require("promise-polyfill");
 
@@ -59135,6 +59136,7 @@ var _require = require("../lib/utils");
 var randomString = _require.randomString;
 var basename = _require.basename;
 var extname = _require.extname;
+var stripExtension = _require.stripExtension;
 
 var _require2 = require("../lib/requests");
 
@@ -59149,6 +59151,8 @@ var Picker = require("../view/dropbox_picker.js");
 var Dropbox = require("./base").extend("DROPBOX", function (token, cfg) {
     this._token = token;
     this._cfg = cfg;
+    this.mode = "image";
+    this._meshTextures = {};
 
     // Caches
     this._mediaCache = {};
@@ -59162,8 +59166,8 @@ var Dropbox = require("./base").extend("DROPBOX", function (token, cfg) {
 });
 
 Dropbox.Extensions = {
-    Images: ["jpeg", "jpg", "png"],
-    Meshes: ["obj", "raw"]
+    image: ["jpeg", "jpg", "png"],
+    mesh: ["obj", "jpg", "jpeg", "png"]
 };
 
 /**
@@ -59197,6 +59201,15 @@ Dropbox.prototype.headers = function () {
 
 Dropbox.prototype.accountInfo = function () {
     return getJSON(API_URL + "/account/info", { headers: this.headers() });
+};
+
+Dropbox.prototype.setMode = function (mode) {
+    if (mode in Dropbox.Extensions) {
+        this.mode = mode;
+    } else {
+        this.mode = this.mode || "image";
+    }
+    this._cfg.set({ "BACKEND_DROPBOX_MODE": this.mode }, true);
 };
 
 Dropbox.prototype.pickTemplate = function (success, error) {
@@ -59264,9 +59277,15 @@ Dropbox.prototype.pickAssets = function (success, error) {
         dropbox: this,
         selectFoldersOnly: true,
         title: "Select a directory from which to load assets",
+        radios: [{
+            name: "mode",
+            options: [["Image Mode", "image"], ["Mesh Mode", "mesh"]]
+        }],
         closable: closable,
-        submit: function submit(path) {
-            _this3.setAssets(path).then(function () {
+        submit: function submit(path, isFolder, _ref) {
+            var mode = _ref.mode;
+
+            _this3.setAssets(path, mode).then(function () {
                 picker.dispose();
                 success(path);
             }, error);
@@ -59277,7 +59296,7 @@ Dropbox.prototype.pickAssets = function (success, error) {
     return picker;
 };
 
-Dropbox.prototype.setAssets = function (path) {
+Dropbox.prototype.setAssets = function (path, mode) {
     var _this4 = this;
 
     if (!path) {
@@ -59285,38 +59304,66 @@ Dropbox.prototype.setAssets = function (path) {
     }
 
     this._assetsPath = path;
+    this.setMode(mode);
 
     return this.list(path, {
         filesOnly: true,
-        extensions: Dropbox.Extensions.Images
+        extensions: Dropbox.Extensions[this.mode],
+        noCache: true
     }).then(function (items) {
-        _this4._assets = items.map(function (item) {
-            return item.path;
-        });
+        _this4._assets = [];
+        _this4._meshTextures = {};
+        if (_this4.mode === "image") {
+            _this4._setImageAssets(items);
+        } else if (_this4.mode === "mesh") {
+            _this4._setMeshAssets(items);
+        }
 
-        _this4._cfg.set({
-            "BACKEND_DROPBOX_ASSETS_PATH": _this4._assetsPath
-        }, true);
+        _this4._cfg.set({ "BACKEND_DROPBOX_ASSETS_PATH": _this4._assetsPath }, true);
+    });
+};
+
+Dropbox.prototype._setMeshAssets = function (items) {
+    var _this5 = this;
+
+    var paths = items.map(function (item) {
+        return item.path;
+    });
+
+    // Find only OBJ files
+    this._assets = paths.filter(function (p) {
+        return extname(p) === "obj";
+    });
+
+    // Initialize texture map
+    this._assets.forEach(function (p) {
+        _this5._meshTextures[p] = paths.indexOf(stripExtension(p) + ".jpg") > -1;
+    });
+};
+
+Dropbox.prototype._setImageAssets = function (items) {
+    this._assets = items.map(function (item) {
+        return item.path;
     });
 };
 
 Dropbox.prototype.list = function () {
-    var _this5 = this;
+    var _this6 = this;
 
     var path = arguments[0] === undefined ? "/" : arguments[0];
 
-    var _ref = arguments[1] === undefined ? {} : arguments[1];
+    var _ref2 = arguments[1] === undefined ? {} : arguments[1];
 
-    var _ref$foldersOnly = _ref.foldersOnly;
-    var foldersOnly = _ref$foldersOnly === undefined ? false : _ref$foldersOnly;
-    var _ref$filesOnly = _ref.filesOnly;
-    var filesOnly = _ref$filesOnly === undefined ? false : _ref$filesOnly;
-    var _ref$showHidden = _ref.showHidden;
-    var showHidden = _ref$showHidden === undefined ? false : _ref$showHidden;
-    var _ref$extensions = _ref.extensions;
-    var extensions = _ref$extensions === undefined ? [] : _ref$extensions;
-    var _ref$noCache = _ref.noCache;
-    var noCache = _ref$noCache === undefined ? false : _ref$noCache;
+    var _ref2$foldersOnly = _ref2.foldersOnly;
+    var foldersOnly = _ref2$foldersOnly === undefined ? false : _ref2$foldersOnly;
+    var _ref2$filesOnly = _ref2.filesOnly;
+    var filesOnly = _ref2$filesOnly === undefined ? false : _ref2$filesOnly;
+    var _ref2$showHidden = _ref2.showHidden;
+    var showHidden = _ref2$showHidden === undefined ? false : _ref2$showHidden;
+    var _ref2$extensions = _ref2.extensions;
+    var extensions = _ref2$extensions === undefined ? [] : _ref2$extensions;
+    var _ref2$noCache = _ref2.noCache;
+    var noCache = _ref2$noCache === undefined ? false : _ref2$noCache;
 
     var q = undefined;
 
@@ -59327,7 +59374,7 @@ Dropbox.prototype.list = function () {
             headers: this.headers(),
             data: { list: true }
         }).then(function (data) {
-            _this5._listCache[path] = data;
+            _this6._listCache[path] = data;
             return data;
         });
     }
@@ -59364,15 +59411,16 @@ Dropbox.prototype.list = function () {
 };
 
 Dropbox.prototype.download = function (path) {
+    var responseType = arguments[1] === undefined ? "text" : arguments[1];
+
     return get(CONTENTS_URL + "/files/auto" + path, {
-        headers: this.headers()
-    }).then(function (data) {
-        return data;
+        headers: this.headers(),
+        responseType: responseType
     });
 };
 
 Dropbox.prototype.mediaURL = function (path, noCache) {
-    var _this6 = this;
+    var _this7 = this;
 
     if (this._mediaCache[path] instanceof Promise) {
         return this._mediaCache[path];
@@ -59392,11 +59440,11 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
 
     var q = getJSON(API_URL + "/media/auto" + path, {
         headers: this.headers()
-    }).then(function (_ref2) {
-        var url = _ref2.url;
-        var expires = _ref2.expires;
+    }).then(function (_ref3) {
+        var url = _ref3.url;
+        var expires = _ref3.expires;
 
-        _this6._mediaCache[path] = { url: url, expires: new Date(expires) };
+        _this7._mediaCache[path] = { url: url, expires: new Date(expires) };
         return url;
     });
 
@@ -59405,7 +59453,7 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
 };
 
 Dropbox.prototype.fetchMode = function () {
-    return Promise.resolve("image");
+    return Promise.resolve(this.mode);
 };
 
 Dropbox.prototype.fetchTemplates = function () {
@@ -59422,40 +59470,71 @@ Dropbox.prototype.fetchCollection = function () {
     }));
 };
 
-Dropbox.prototype.fetchImg = function (assetId) {
-    var _this7 = this;
+Dropbox.prototype.fetchImg = function (path) {
+    var _this8 = this;
 
-    if (this._imgCache[assetId]) {
-        return this._imgCache[assetId];
+    if (this._imgCache[path]) {
+        return this._imgCache[path];
     }
 
-    var q = this.mediaURL(this._assetsPath + "/" + assetId).then(function (url) {
+    var q = this.mediaURL(path).then(function (url) {
         return ImagePromise(url).then(function (data) {
-            delete _this7._imgCache[assetId];
+            delete _this8._imgCache[path];
             return data;
         }, function (err) {
-            delete _this7._imgCache[assetId];
+            console.log("Failded to fetch img", path);
+            delete _this8._imgCache[path];
             throw err;
         });
     });
 
-    this._imgCache[assetId] = q;
+    this._imgCache[path] = q;
     return q;
 };
 
-Dropbox.prototype.fetchThumbnail = Dropbox.prototype.fetchImg;
-Dropbox.prototype.fetchTexture = Dropbox.prototype.fetchImg;
+Dropbox.prototype.fetchThumbnail = function () {
+    return Promise.reject(null);
+};
+
+Dropbox.prototype.fetchTexture = function (assetId) {
+    var path = this._assetsPath + "/" + assetId;
+    if (this.mode === "mesh") {
+        if (this._meshTextures[path]) {
+            return this.fetchImg(stripExtension(path) + ".jpg");
+        } else {
+            return Promise.reject(null);
+        }
+    } else {
+        return this.fetchImg(path);
+    }
+};
+
+Dropbox.prototype.fetchGeometry = function (assetId) {
+
+    var path = this._assetsPath + "/" + assetId;
+
+    var dl = this.download(path);
+    var geometry = dl.then(function (data) {
+        return OBJLoader(data);
+    });
+
+    geometry.xhr = function () {
+        return dl.xhr();
+    }; // compatibility
+    geometry.isGeometry = true;
+    return geometry;
+};
 
 Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
-    var _this8 = this;
+    var _this9 = this;
 
     var path = this._assetsPath + "/landmarks/" + id + "_" + type + ".ljson";
-
+    var dim = this.mode === "mesh" ? 3 : 2;
     return new Promise(function (resolve, reject) {
-        _this8.download(path).then(function (data) {
+        _this9.download(path).then(function (data) {
             resolve(JSON.parse(data));
         }, function () {
-            resolve(_this8.templates[type].emptyLJSON(2));
+            resolve(_this9.templates[type].emptyLJSON(dim));
         });
     });
 };
@@ -59469,7 +59548,7 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
 
 module.exports = Dropbox;
 
-},{"../lib/imagepromise":50,"../lib/requests":51,"../lib/utils":53,"../model/template":61,"../view/dropbox_picker.js":63,"./base":46,"promise-polyfill":41,"url":8}],48:[function(require,module,exports){
+},{"../lib/imagepromise":50,"../lib/obj_loader":51,"../lib/requests":52,"../lib/utils":54,"../model/template":62,"../view/dropbox_picker.js":64,"./base":46,"promise-polyfill":41,"url":8}],48:[function(require,module,exports){
 'use strict';
 
 var Dropbox = require('./dropbox'),
@@ -59493,6 +59572,7 @@ var getArrayBuffer = _require.getArrayBuffer;
 var _require2 = require('../lib/utils');
 
 var capitalize = _require2.capitalize;
+var randomString = _require2.randomString;
 var ImagePromise = require('../lib/imagepromise');
 
 var Server = require('./base').extend('LANDMARKER SERVER', function (url) {
@@ -59590,7 +59670,7 @@ Server.prototype.fetchGeometry = function (assetId) {
 
 module.exports = Server;
 
-},{"../lib/imagepromise":50,"../lib/requests":51,"../lib/utils":53,"./base":46,"url":8}],50:[function(require,module,exports){
+},{"../lib/imagepromise":50,"../lib/requests":52,"../lib/utils":54,"./base":46,"url":8}],50:[function(require,module,exports){
 'use strict';
 
 var Promise = require('promise-polyfill'),
@@ -59662,7 +59742,293 @@ var MaterialPromise = function MaterialPromise(url, auth) {
 
 module.exports = MaterialPromise;
 
-},{"../view/notification":69,"promise-polyfill":41,"three":43}],51:[function(require,module,exports){
+},{"../view/notification":70,"promise-polyfill":41,"three":43}],51:[function(require,module,exports){
+/**
+ * Adapted from
+ * https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/OBJLoader.js
+ * by mrdoob / http://mrdoob.com/
+ *
+ * in order to work in our browserify context (it's not part of the npm
+ * three.js build)
+ *
+ * Only keeping the parse function and returning the geometry object directly,
+ * instead of a scene as we handle them directly.
+ *
+ */
+
+'use strict';
+
+var THREE = require('three');
+
+function OBJLoader(text) {
+
+    console.time('OBJLoader');
+
+    var object,
+        objects = [];
+    var geometry, material;
+
+    function parseVertexIndex(value) {
+
+        var index = parseInt(value);
+
+        return (index >= 0 ? index - 1 : index + vertices.length / 3) * 3;
+    }
+
+    function parseNormalIndex(value) {
+
+        var index = parseInt(value);
+
+        return (index >= 0 ? index - 1 : index + normals.length / 3) * 3;
+    }
+
+    function parseUVIndex(value) {
+
+        var index = parseInt(value);
+
+        return (index >= 0 ? index - 1 : index + uvs.length / 2) * 2;
+    }
+
+    function addVertex(a, b, c) {
+
+        geometry.vertices.push(vertices[a], vertices[a + 1], vertices[a + 2], vertices[b], vertices[b + 1], vertices[b + 2], vertices[c], vertices[c + 1], vertices[c + 2]);
+    }
+
+    function addNormal(a, b, c) {
+
+        geometry.normals.push(normals[a], normals[a + 1], normals[a + 2], normals[b], normals[b + 1], normals[b + 2], normals[c], normals[c + 1], normals[c + 2]);
+    }
+
+    function addUV(a, b, c) {
+
+        geometry.uvs.push(uvs[a], uvs[a + 1], uvs[b], uvs[b + 1], uvs[c], uvs[c + 1]);
+    }
+
+    function addFace(a, b, c, d, ua, ub, uc, ud, na, nb, nc, nd) {
+
+        var ia = parseVertexIndex(a);
+        var ib = parseVertexIndex(b);
+        var ic = parseVertexIndex(c);
+        var id;
+
+        if (d === undefined) {
+
+            addVertex(ia, ib, ic);
+        } else {
+
+            id = parseVertexIndex(d);
+
+            addVertex(ia, ib, id);
+            addVertex(ib, ic, id);
+        }
+
+        if (ua !== undefined) {
+
+            ia = parseUVIndex(ua);
+            ib = parseUVIndex(ub);
+            ic = parseUVIndex(uc);
+
+            if (d === undefined) {
+
+                addUV(ia, ib, ic);
+            } else {
+
+                id = parseUVIndex(ud);
+
+                addUV(ia, ib, id);
+                addUV(ib, ic, id);
+            }
+        }
+
+        if (na !== undefined) {
+
+            ia = parseNormalIndex(na);
+            ib = parseNormalIndex(nb);
+            ic = parseNormalIndex(nc);
+
+            if (d === undefined) {
+
+                addNormal(ia, ib, ic);
+            } else {
+
+                id = parseNormalIndex(nd);
+
+                addNormal(ia, ib, id);
+                addNormal(ib, ic, id);
+            }
+        }
+    }
+
+    // create mesh if no objects in text
+
+    if (/^o /gm.test(text) === false) {
+
+        geometry = {
+            vertices: [],
+            normals: [],
+            uvs: []
+        };
+
+        material = {
+            name: ''
+        };
+
+        object = {
+            name: '',
+            geometry: geometry,
+            material: material
+        };
+
+        objects.push(object);
+    }
+
+    var vertices = [];
+    var normals = [];
+    var uvs = [];
+
+    // v float float float
+
+    var vertex_pattern = /v( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)/;
+
+    // vn float float float
+
+    var normal_pattern = /vn( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)/;
+
+    // vt float float
+
+    var uv_pattern = /vt( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)/;
+
+    // f vertex vertex vertex ...
+
+    var face_pattern1 = /f( +-?\d+)( +-?\d+)( +-?\d+)( +-?\d+)?/;
+
+    // f vertex/uv vertex/uv vertex/uv ...
+
+    var face_pattern2 = /f( +(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+))?/;
+
+    // f vertex/uv/normal vertex/uv/normal vertex/uv/normal ...
+
+    var face_pattern3 = /f( +(-?\d+)\/(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+)\/(-?\d+))?/;
+
+    // f vertex//normal vertex//normal vertex//normal ...
+
+    var face_pattern4 = /f( +(-?\d+)\/\/(-?\d+))( +(-?\d+)\/\/(-?\d+))( +(-?\d+)\/\/(-?\d+))( +(-?\d+)\/\/(-?\d+))?/;
+
+    //
+
+    var lines = text.split('\n');
+
+    for (var i = 0; i < lines.length; i++) {
+
+        var line = lines[i];
+        line = line.trim();
+
+        var result;
+
+        if (line.length === 0 || line.charAt(0) === '#') {
+
+            continue;
+        } else if ((result = vertex_pattern.exec(line)) !== null) {
+
+            // ["v 1.0 2.0 3.0", "1.0", "2.0", "3.0"]
+
+            vertices.push(parseFloat(result[1]), parseFloat(result[2]), parseFloat(result[3]));
+        } else if ((result = normal_pattern.exec(line)) !== null) {
+
+            // ["vn 1.0 2.0 3.0", "1.0", "2.0", "3.0"]
+
+            normals.push(parseFloat(result[1]), parseFloat(result[2]), parseFloat(result[3]));
+        } else if ((result = uv_pattern.exec(line)) !== null) {
+
+            // ["vt 0.1 0.2", "0.1", "0.2"]
+
+            uvs.push(parseFloat(result[1]), parseFloat(result[2]));
+        } else if ((result = face_pattern1.exec(line)) !== null) {
+
+            // ["f 1 2 3", "1", "2", "3", undefined]
+
+            addFace(result[1], result[2], result[3], result[4]);
+        } else if ((result = face_pattern2.exec(line)) !== null) {
+
+            // ["f 1/1 2/2 3/3", " 1/1", "1", "1", " 2/2", "2", "2", " 3/3", "3", "3", undefined, undefined, undefined]
+
+            addFace(result[2], result[5], result[8], result[11], result[3], result[6], result[9], result[12]);
+        } else if ((result = face_pattern3.exec(line)) !== null) {
+
+            // ["f 1/1/1 2/2/2 3/3/3", " 1/1/1", "1", "1", "1", " 2/2/2", "2", "2", "2", " 3/3/3", "3", "3", "3", undefined, undefined, undefined, undefined]
+
+            addFace(result[2], result[6], result[10], result[14], result[3], result[7], result[11], result[15], result[4], result[8], result[12], result[16]);
+        } else if ((result = face_pattern4.exec(line)) !== null) {
+
+            // ["f 1//1 2//2 3//3", " 1//1", "1", "1", " 2//2", "2", "2", " 3//3", "3", "3", undefined, undefined, undefined]
+
+            addFace(result[2], result[5], result[8], result[11], undefined, undefined, undefined, undefined, result[3], result[6], result[9], result[12]);
+        } else if (/^o /.test(line)) {
+
+            geometry = {
+                vertices: [],
+                normals: [],
+                uvs: []
+            };
+
+            material = {
+                name: ''
+            };
+
+            object = {
+                name: line.substring(2).trim(),
+                geometry: geometry,
+                material: material
+            };
+
+            objects.push(object);
+        } else if (/^g /.test(line)) {} else if (/^usemtl /.test(line)) {
+
+            // material
+
+            material.name = line.substring(7).trim();
+        } else if (/^mtllib /.test(line)) {} else if (/^s /.test(line)) {} else {}
+    }
+
+    for (var i = 0, l = objects.length; i < l; i++) {
+
+        object = objects[i];
+        geometry = object.geometry;
+
+        var buffergeometry = new THREE.BufferGeometry();
+
+        buffergeometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(geometry.vertices), 3));
+
+        if (geometry.normals.length > 0) {
+            buffergeometry.addAttribute('normal', new THREE.BufferAttribute(new Float32Array(geometry.normals), 3));
+        }
+
+        if (geometry.uvs.length > 0) {
+            buffergeometry.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(geometry.uvs), 2));
+        }
+
+        material = new THREE.MeshLambertMaterial();
+        material.name = object.material.name;
+
+        var mesh = new THREE.Mesh(buffergeometry, material);
+        mesh.name = object.name;
+    }
+
+    console.timeEnd('OBJLoader');
+    return buffergeometry;
+}
+
+module.exports = OBJLoader;
+
+// group
+
+// mtl file
+
+// smooth shading
+
+// console.log( "THREE.OBJLoader: Unhandled line " + line );
+
+},{"three":43}],52:[function(require,module,exports){
 'use strict';
 
 var Promise = require('promise-polyfill'),
@@ -59726,7 +60092,6 @@ function XMLHttpRequestPromise(url, _ref) {
         // Handle network errors
         xhr.onerror = function () {
             loading.stop(asyncId);
-            console.log('UNLOADING', asyncId);
             reject(new Error('Network Error'));
         };
 
@@ -59802,7 +60167,7 @@ module.exports.putJSON = function (url, _ref5) {
     });
 };
 
-},{"../view/notification":69,"promise-polyfill":41,"querystring":7}],52:[function(require,module,exports){
+},{"../view/notification":70,"promise-polyfill":41,"querystring":7}],53:[function(require,module,exports){
 'use strict';
 
 module.exports.ie = (function () {
@@ -59829,7 +60194,7 @@ module.exports.localstorage = (function () {
     }
 })();
 
-},{}],53:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 'use strict';
 
 module.exports = {};
@@ -59859,7 +60224,13 @@ var basename = function basename(path) {
 };
 
 var extname = function extname(path) {
-    return path.toLowerCase().split('.').pop();
+    var parts = path.split('.');
+    return parts.length > 1 ? parts.pop().toLowerCase() : undefined;
+};
+
+var stripExtension = function stripExtension(path) {
+    var parts = path.split('.');
+    return parts.length > 1 ? parts.slice(0, -1).join('.') : path;
 };
 
 var stripTrailingSlash = function stripTrailingSlash(str) {
@@ -59886,13 +60257,13 @@ var capitalize = function capitalize(str) {
 
 module.exports = {
     randomString: randomString,
-    basename: basename, extname: extname,
+    basename: basename, extname: extname, stripExtension: stripExtension,
     stripTrailingSlash: stripTrailingSlash, addTrailingSlash: addTrailingSlash,
     baseUrl: baseUrl,
     capitalize: capitalize, pad: pad
 };
 
-},{}],54:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore'),
@@ -59944,6 +60315,10 @@ var App = Backbone.Model.extend({
 
     toggleHelpOverlay: function toggleHelpOverlay() {
         this.set('helpOverlayIsDisplayed', !this.isHelpOverlayOn());
+    },
+
+    mode: function mode() {
+        return this.get('mode');
     },
 
     imageMode: function imageMode() {
@@ -60014,6 +60389,7 @@ var App = Backbone.Model.extend({
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
         this.listenTo(this, 'change:activeTemplate', this.reloadAssetSource);
+        this.listenTo(this, 'change:mode', this.reloadAssetSource);
 
         this._initTemplates();
         this._initCollections();
@@ -60190,7 +60566,7 @@ var App = Backbone.Model.extend({
 
 module.exports = App;
 
-},{"./assetsource":56,"./landmark":59,"backbone":2,"promise-polyfill":41,"underscore":44}],55:[function(require,module,exports){
+},{"./assetsource":57,"./landmark":60,"backbone":2,"promise-polyfill":41,"underscore":44}],56:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60369,37 +60745,40 @@ var Image = Backbone.Model.extend({
     },
 
     loadThumbnail: function loadThumbnail() {
-        var that = this;
+        var _this = this;
+
         if (!this.hasOwnProperty('_thumbnailPromise')) {
             this._thumbnailPromise = this.get('server').fetchThumbnail(this.id).then(function (material) {
-                delete that._thumbnailPromise;
-                console.log('Asset: loaded thumbnail for ' + that.id);
-                that.thumbnail = material;
+                delete _this._thumbnailPromise;
+                console.log('Asset: loaded thumbnail for ' + _this.id);
+                _this.thumbnail = material;
                 var img = material.map.image;
-                that.thumbnailGeometry = mappedPlane(img.width, img.height);
-                that.trigger('change:thumbnail');
+                _this.thumbnailGeometry = mappedPlane(img.width, img.height);
+                _this.trigger('change:thumbnail');
                 return material;
+            }, function () {
+                console.log('Failed to fetch thumbnail for', _this.id);
             });
-        } else {
-            console.log('thumbnailPromise already exists - no need to regrab');
         }
         return this._thumbnailPromise;
     },
 
     loadTexture: function loadTexture() {
-        var that = this;
+        var _this2 = this;
+
         if (!this.hasOwnProperty('_texturePromise')) {
             this._texturePromise = this.get('server').fetchTexture(this.id).then(function (material) {
-                delete that._texturePromise;
-                console.log('Asset: loaded texture for ' + that.id);
-                that.texture = material;
+                console.log(material);
+                delete _this2._texturePromise;
+                console.log('Asset: loaded texture for ' + _this2.id);
+                _this2.texture = material;
                 var img = material.map.image;
-                that.textureGeometry = mappedPlane(img.width, img.height);
-                that.trigger('change:texture');
+                _this2.textureGeometry = mappedPlane(img.width, img.height);
+                _this2.trigger('change:texture');
                 return material;
+            }, function () {
+                console.log('Failed to load texture for', _this2.id);
             });
-        } else {
-            console.log('texturePromise already exists - no need to regrab');
         }
         return this._texturePromise;
     },
@@ -60453,62 +60832,83 @@ var Mesh = Image.extend({
     },
 
     loadGeometry: function loadGeometry() {
-        var that = this;
+        var _this3 = this;
+
         if (this.hasOwnProperty('_geometryPromise')) {
             // already loading this geometry
             return this._geometryPromise;
         }
         var arrayPromise = this.get('server').fetchGeometry(this.id);
-        this._geometryPromise = arrayPromise.then(function (buffer) {
-            // now the promise is fullfilled, delete the promise.
-            delete that._geometryPromise;
-            var geometry;
 
-            var lenMeta = 4;
-            var bytes = 4;
-            var meta = new Uint32Array(buffer, 0, lenMeta);
-            var nTris = meta[0];
-            var isTextured = Boolean(meta[1]);
-            var hasNormals = Boolean(meta[2]);
-            var hasBinning = Boolean(meta[2]); // used for efficient lookup
-            var stride = nTris * 3;
+        if (!!arrayPromise.isGeometry) {
+            // Backend says it parses the geometry
+            this._geometryPromise = arrayPromise.then(function (geometry) {
+                delete _this3._geometryPromise;
+                geometry.computeBoundingSphere();
 
-            // Points
-            var pointsOffset = lenMeta * bytes;
-            var points = new Float32Array(buffer, pointsOffset, stride * 3);
-            var normalOffset = pointsOffset + stride * 3 * bytes;
+                _this3.geometry = geometry;
+                _this3.trigger('change:geometry');
 
-            // Normals (optional)
-            var normals = null; // initialize for no normals
-            var tcoordsOffset = normalOffset; // no normals -> tcoords next
-            if (hasNormals) {
-                // correct if has normals
-                normals = new Float32Array(buffer, normalOffset, stride * 3);
-                // need to advance the pointer on tcoords offset
-                tcoordsOffset = normalOffset + stride * 3 * bytes;
-            }
+                return geometry;
+            }, function (err) {
+                console.log('failed to load geometry (OBJ) for ' + _this3.id);
+                console.log(err);
+            });
+        } else {
+            // Backend sends raw optimised ArrayBuffer through > build 3D
+            this._geometryPromise = arrayPromise.then(function (buffer) {
+                // now the promise is fullfilled, delete the promise.
+                delete _this3._geometryPromise;
+                var geometry;
 
-            // Tcoords (optional)
-            var tcoords = null; // initialize for no tcoords
-            var binningOffset = tcoordsOffset; // no tcoords -> binning next
-            if (isTextured) {
-                tcoords = new Float32Array(buffer, tcoordsOffset, stride * 2);
-                binningOffset = tcoordsOffset + stride * 2 * bytes;
-            }
+                var lenMeta = 4;
+                var bytes = 4;
+                var meta = new Uint32Array(buffer, 0, lenMeta);
+                var nTris = meta[0];
+                var isTextured = Boolean(meta[1]);
+                var hasNormals = Boolean(meta[2]);
+                var hasBinning = Boolean(meta[2]); // used for efficient lookup
+                var stride = nTris * 3;
 
-            // Binning (optional)
-            if (hasBinning) {
-                console.log('ready to read from binning file at ' + binningOffset);
-            }
-            geometry = that._newBufferGeometry(points, normals, tcoords);
-            console.log('Asset: loaded Geometry for ' + that.id);
-            that.geometry = geometry;
-            that.trigger('change:geometry');
+                // Points
+                var pointsOffset = lenMeta * bytes;
+                var points = new Float32Array(buffer, pointsOffset, stride * 3);
+                var normalOffset = pointsOffset + stride * 3 * bytes;
 
-            return geometry;
-        }, function () {
-            console.log('failed to load geometry for ' + that.id);
-        });
+                // Normals (optional)
+                var normals = null; // initialize for no normals
+                var tcoordsOffset = normalOffset; // no normals -> tcoords next
+                if (hasNormals) {
+                    // correct if has normals
+                    normals = new Float32Array(buffer, normalOffset, stride * 3);
+                    // need to advance the pointer on tcoords offset
+                    tcoordsOffset = normalOffset + stride * 3 * bytes;
+                }
+
+                // Tcoords (optional)
+                var tcoords = null; // initialize for no tcoords
+                var binningOffset = tcoordsOffset; // no tcoords -> binning next
+                if (isTextured) {
+                    tcoords = new Float32Array(buffer, tcoordsOffset, stride * 2);
+                    binningOffset = tcoordsOffset + stride * 2 * bytes;
+                }
+
+                // Binning (optional)
+                if (hasBinning) {
+                    console.log('ready to read from binning file at ', binningOffset);
+                }
+                geometry = _this3._newBufferGeometry(points, normals, tcoords);
+                console.log('Asset: loaded Geometry for ' + _this3.id);
+                _this3.geometry = geometry;
+                _this3.trigger('change:geometry');
+
+                return geometry;
+            }, function (err) {
+                console.log('failed to load geometry (AB) for ' + _this3.id);
+                console.log(err);
+            });
+        }
+
         // mirror the arrayPromise xhr() API
         this._geometryPromise.xhr = function () {
             return arrayPromise.xhr();
@@ -60539,7 +60939,7 @@ var Mesh = Image.extend({
 exports.Mesh = Mesh;
 exports.Image = Image;
 
-},{"../lib/imagepromise":50,"../lib/requests":51,"backbone":2,"three":43}],56:[function(require,module,exports){
+},{"../lib/imagepromise":50,"../lib/requests":52,"backbone":2,"three":43}],57:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60749,7 +61149,7 @@ exports.ImageSource = AssetSource.extend({
     }
 });
 
-},{"./asset":55,"backbone":2,"underscore":44}],57:[function(require,module,exports){
+},{"./asset":56,"backbone":2,"underscore":44}],58:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60804,7 +61204,7 @@ var AtomicOperationTracker = Backbone.Model.extend({
 var atomicTracker = new AtomicOperationTracker();
 module.exports = atomicTracker;
 
-},{"backbone":2}],58:[function(require,module,exports){
+},{"backbone":2}],59:[function(require,module,exports){
 /**
  * Persistable config object with get and set logic
  * Requires localstorage to work properly (throws Error otherwise),
@@ -60890,7 +61290,7 @@ module.exports = function () {
     return _configInstance;
 };
 
-},{"../lib/support":52,"backbone":2,"underscore":44}],59:[function(require,module,exports){
+},{"../lib/support":53,"backbone":2,"underscore":44}],60:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -61232,7 +61632,7 @@ module.exports = {
 };
 /*json, id, type, server*/
 
-},{"./atomic":57,"backbone":2,"three":43,"underscore":44}],60:[function(require,module,exports){
+},{"./atomic":58,"backbone":2,"three":43,"underscore":44}],61:[function(require,module,exports){
 'use strict';
 
 var THREE = require('three');
@@ -61481,7 +61881,7 @@ exports.OctreeNode = OctreeNode;
 exports.octreeForBufferGeometry = octreeForBufferGeometry;
 exports.intersetMesh = intersectMesh;
 
-},{"three":43}],61:[function(require,module,exports){
+},{"three":43}],62:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -61692,7 +62092,7 @@ Template.prototype.emptyLJSON = function () {
 
 module.exports = Template;
 
-},{"js-yaml":10,"underscore":44}],62:[function(require,module,exports){
+},{"js-yaml":10,"underscore":44}],63:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -61888,7 +62288,7 @@ var CollectionName = Backbone.View.extend({
     },
 
     render: function render() {
-        this.$el.find('.content').html(this.model.activeCollection() || 'No Collection');
+        this.$el.find('.content').html(this.model.activeCollection() + ' (' + this.model.mode() + ')');
         this.$el.toggleClass('Disabled', this.model.collections().length <= 1 && !(this.model.server() instanceof Dropbox));
         return this;
     },
@@ -61899,6 +62299,7 @@ var CollectionName = Backbone.View.extend({
         var backend = this.model.server();
         if (backend instanceof Dropbox) {
             backend.pickAssets(function (path) {
+                _this.model.set('mode', backend.mode);
                 _this.model.set('activeCollection', path);
             }, function (err) {
                 Notification.notify({
@@ -61943,8 +62344,34 @@ exports.AssetView = Backbone.View.extend({
     }
 });
 
-},{"../backend":48,"../lib/utils":53,"./intro":66,"./list_picker":67,"./modal":68,"./notification":69,"backbone":2,"jquery":9,"underscore":44}],63:[function(require,module,exports){
+},{"../backend":48,"../lib/utils":54,"./intro":67,"./list_picker":68,"./modal":69,"./notification":70,"backbone":2,"jquery":9,"underscore":44}],64:[function(require,module,exports){
 'use strict';
+
+var _slicedToArray = (function () {
+    function sliceIterator(arr, i) {
+        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
+            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+                _arr.push(_s.value);if (i && _arr.length === i) break;
+            }
+        } catch (err) {
+            _d = true;_e = err;
+        } finally {
+            try {
+                if (!_n && _i['return']) _i['return']();
+            } finally {
+                if (_d) throw _e;
+            }
+        }return _arr;
+    }return function (arr, i) {
+        if (Array.isArray(arr)) {
+            return arr;
+        } else if (Symbol.iterator in Object(arr)) {
+            return sliceIterator(arr, i);
+        } else {
+            throw new TypeError('Invalid attempt to destructure non-iterable instance');
+        }
+    };
+})();
 
 var Backbone = require('backbone'),
     $ = require('jquery'),
@@ -61994,6 +62421,23 @@ function Icon(item) {
     return $('<span class=\'octicon octicon-' + icon + '\'></span>');
 }
 
+function DropboxRadio(opts, index) {
+
+    var id = 'dropboxRadios_' + index;
+    var $radio = $('<div class=\'DropboxRadio\' id=\'' + id + '\'></div>');
+
+    opts.forEach(function (_ref, j) {
+        var _ref2 = _slicedToArray(_ref, 2);
+
+        var text = _ref2[0];
+        var key = _ref2[1];
+
+        $radio.append($('            <label class=\'radio\'>                <input id=\'' + id + '_' + j + '\' value=\'' + key + '\' type="radio" name="' + id + '" ' + (j === 0 ? 'checked' : '') + '/>                <span>' + text + '</span>            </label>        '));
+    });
+
+    return $radio;
+}
+
 var DropboxPicker = Modal.extend({
 
     events: {
@@ -62004,21 +62448,23 @@ var DropboxPicker = Modal.extend({
         'click .Submit': 'handleSubmit'
     },
 
-    init: function init(_ref) {
-        var dropbox = _ref.dropbox;
-        var submit = _ref.submit;
-        var _ref$showFoldersOnly = _ref.showFoldersOnly;
-        var showFoldersOnly = _ref$showFoldersOnly === undefined ? false : _ref$showFoldersOnly;
-        var _ref$showHidden = _ref.showHidden;
-        var showHidden = _ref$showHidden === undefined ? false : _ref$showHidden;
-        var _ref$selectFoldersOnly = _ref.selectFoldersOnly;
-        var selectFoldersOnly = _ref$selectFoldersOnly === undefined ? false : _ref$selectFoldersOnly;
-        var _ref$extensions = _ref.extensions;
-        var extensions = _ref$extensions === undefined ? [] : _ref$extensions;
-        var _ref$selectFilesOnly = _ref.selectFilesOnly;
-        var selectFilesOnly = _ref$selectFilesOnly === undefined ? false : _ref$selectFilesOnly;
-        var _ref$root = _ref.root;
-        var root = _ref$root === undefined ? undefined : _ref$root;
+    init: function init(_ref3) {
+        var dropbox = _ref3.dropbox;
+        var submit = _ref3.submit;
+        var _ref3$showFoldersOnly = _ref3.showFoldersOnly;
+        var showFoldersOnly = _ref3$showFoldersOnly === undefined ? false : _ref3$showFoldersOnly;
+        var _ref3$showHidden = _ref3.showHidden;
+        var showHidden = _ref3$showHidden === undefined ? false : _ref3$showHidden;
+        var _ref3$selectFoldersOnly = _ref3.selectFoldersOnly;
+        var selectFoldersOnly = _ref3$selectFoldersOnly === undefined ? false : _ref3$selectFoldersOnly;
+        var _ref3$extensions = _ref3.extensions;
+        var extensions = _ref3$extensions === undefined ? [] : _ref3$extensions;
+        var _ref3$selectFilesOnly = _ref3.selectFilesOnly;
+        var selectFilesOnly = _ref3$selectFilesOnly === undefined ? false : _ref3$selectFilesOnly;
+        var _ref3$root = _ref3.root;
+        var root = _ref3$root === undefined ? undefined : _ref3$root;
+        var _ref3$radios = _ref3.radios;
+        var radios = _ref3$radios === undefined ? [] : _ref3$radios;
 
         this.disposeOnClose = true;
         this.dropbox = dropbox;
@@ -62027,6 +62473,7 @@ var DropboxPicker = Modal.extend({
         this.selectFoldersOnly = selectFoldersOnly;
         this.selectFilesOnly = !selectFoldersOnly && selectFilesOnly;
         this.extensions = extensions;
+        this.radios = radios;
 
         this._cache = {};
 
@@ -62048,11 +62495,23 @@ var DropboxPicker = Modal.extend({
     },
 
     handleSubmit: function handleSubmit() {
+
         if (!this.submit || !this.state.selected) {
             return;
         }
 
-        this.submit(this.state.selected, this.state.selectedIsFolder);
+        var options = {};
+        if (this.radios && this.radios.length) {
+            this.radios.forEach(function (_ref4, index) {
+                var name = _ref4.name;
+
+                var id = 'dropboxRadios_' + index;
+                var value = $('input[name=\'' + id + '\']:checked', '#' + id).val();
+                options[name] = value;
+            });
+        }
+
+        this.submit(this.state.selected, this.state.selectedIsFolder, options);
     },
 
     fetch: function fetch() {
@@ -62202,7 +62661,22 @@ var DropboxPicker = Modal.extend({
     },
 
     content: function content() {
+        var _this4 = this;
+
         var $content = $('            <div class=\'DropboxSelect\'>                <div class=\'DropboxSelectExplore\'>                    <div class=\'Action Back Unavailable\'>                        <span class="octicon octicon-arrow-left"></span>                    </div>                    <div class=\'Action Home\'>                        <span class="octicon octicon-home"></span>                    </div>                    <div class=\'Path\'></div>                    <div class=\'Action Reload\'>                        <span class="octicon octicon-sync"></span>                    </div>                </div>                <div class=\'DropboxSelectList\'><ul></ul></div>                <div class=\'DropboxSelectSubmit\'>                    <span>Nothing selected</span>                    <div class=\'Submit\'>Submit</div>                </div>            </div>        ');
+
+        if (this.radios && this.radios.length > 0) {
+            (function () {
+                var $radios = $('<div class=\'DropboxRadios\'></div>');
+                _this4.radios.forEach(function (_ref5, index) {
+                    var name = _ref5.name;
+                    var options = _ref5.options;
+
+                    $radios.prepend(DropboxRadio(options, index));
+                });
+                $content.prepend($radios);
+            })();
+        }
 
         this.$body = $content;
         return $content;
@@ -62226,7 +62700,7 @@ var DropboxPicker = Modal.extend({
 
 module.exports = DropboxPicker;
 
-},{"../lib/utils":53,"./modal":68,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],64:[function(require,module,exports){
+},{"../lib/utils":54,"./modal":69,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],65:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62290,7 +62764,7 @@ module.exports = Backbone.View.extend({
     }
 });
 
-},{"backbone":2,"jquery":9}],65:[function(require,module,exports){
+},{"backbone":2,"jquery":9}],66:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -62330,7 +62804,7 @@ exports.HistoryUpdate = Backbone.View.extend({
     }
 });
 
-},{"backbone":2,"url":8}],66:[function(require,module,exports){
+},{"backbone":2,"url":8}],67:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62463,7 +62937,7 @@ module.exports = {
     }
 };
 
-},{"../../../../package.json":45,"../backend":48,"../lib/utils":53,"./modal":68,"./notification":69,"jquery":9,"underscore":44}],67:[function(require,module,exports){
+},{"../../../../package.json":45,"../backend":48,"../lib/utils":54,"./modal":69,"./notification":70,"jquery":9,"underscore":44}],68:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62579,7 +63053,7 @@ var ListPicker = Modal.extend({
 
 module.exports = ListPicker;
 
-},{"./modal":68,"jquery":9,"underscore":44}],68:[function(require,module,exports){
+},{"./modal":69,"jquery":9,"underscore":44}],69:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone'),
@@ -62764,7 +63238,7 @@ Modal.confirm = function (text, accept, reject) {
 
 module.exports = Modal;
 
-},{"backbone":2,"jquery":9,"underscore":44}],69:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"underscore":44}],70:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -63093,7 +63567,7 @@ module.exports.loading = {
     }
 };
 
-},{"../lib/utils":53,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],70:[function(require,module,exports){
+},{"../lib/utils":54,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],71:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63490,7 +63964,7 @@ var Sidebar = Backbone.View.extend({
 
 exports.Sidebar = Sidebar;
 
-},{"../backend":48,"../model/atomic":57,"./list_picker":67,"./notification":69,"backbone":2,"jquery":9,"underscore":44}],71:[function(require,module,exports){
+},{"../backend":48,"../model/atomic":58,"./list_picker":68,"./notification":70,"backbone":2,"jquery":9,"underscore":44}],72:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -63635,7 +64109,7 @@ exports.Toolbar = Backbone.View.extend({
 
 });
 
-},{"../model/atomic":57,"backbone":2,"underscore":44}],72:[function(require,module,exports){
+},{"../model/atomic":58,"backbone":2,"underscore":44}],73:[function(require,module,exports){
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -64034,7 +64508,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     return controller;
 };
 
-},{"backbone":2,"jquery":9,"three":43,"underscore":44}],73:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"three":43,"underscore":44}],74:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -64195,7 +64669,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
 
 module.exports = { LandmarkConnectionTHREEView: LandmarkConnectionTHREEView, LandmarkTHREEView: LandmarkTHREEView };
 
-},{"backbone":2,"three":43,"underscore":44}],74:[function(require,module,exports){
+},{"backbone":2,"three":43,"underscore":44}],75:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -64739,7 +65213,7 @@ module.exports = Handler;
 
 // Pass right click does nothing in most cases
 
-},{"../../model/atomic":57,"jquery":9,"three":43,"underscore":44}],75:[function(require,module,exports){
+},{"../../model/atomic":58,"jquery":9,"three":43,"underscore":44}],76:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -65346,7 +65820,7 @@ exports.Viewport = Backbone.View.extend({
 
 });
 
-},{"../../model/atomic":57,"../../model/octree":60,"./camera":72,"./elements":73,"./handler":74,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
+},{"../../model/atomic":58,"../../model/octree":61,"./camera":73,"./elements":74,"./handler":75,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-59b5c206.js.map
+//# sourceMappingURL=bundle-c7007b8d.js.map
