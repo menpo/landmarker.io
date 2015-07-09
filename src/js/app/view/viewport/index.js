@@ -2,7 +2,7 @@
 
 var $ = require('jquery');
 var _ = require('underscore');
-var Backbone = require('../../lib/backbonej');
+var Backbone = require('backbone');
 var THREE = require('three');
 
 var atomic = require('../../model/atomic');
@@ -612,7 +612,7 @@ exports.Viewport = Backbone.View.extend({
             screenCoords.x, screenCoords.y, lmView.symbol);
         // is there no mesh here (pretty rare as landmarks have to be on mesh)
         // or is the mesh behind the landmarks?
-        return iMesh.length == 0 || iMesh[0].distance > iLm[0].distance;
+        return iMesh.length === 0 || iMesh[0].distance > iLm[0].distance;
     },
 
 });
