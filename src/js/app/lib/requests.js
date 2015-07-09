@@ -86,22 +86,22 @@ module.exports.Request = XMLHttpRequestPromise;
 
 // Below are some shortcuts around the basic Request object for common
 // network calls
-module.exports.getArrayBuffer = function (url, {headers={}, auth=false}) {
+module.exports.getArrayBuffer = function (url, {headers={}, auth=false}={}) {
     return XMLHttpRequestPromise(
         url, {responseType: 'arraybuffer', headers, auth});
 };
 
-module.exports.get = function (url, {headers={}, data={}, auth=false}) {
+module.exports.get = function (url, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(
         _url(url, data), {headers, auth});
 };
 
-module.exports.getJSON = function (url, {headers={}, data={}, auth=false}) {
+module.exports.getJSON = function (url, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(
         _url(url, data), {responseType: 'json', headers, auth});
 };
 
-module.exports.putJSON = function (url, {headers={}, data={}, auth=false}) {
+module.exports.putJSON = function (url, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(url, {
         headers, auth, responseType: 'json', method: 'PUT',
         data: JSON.stringify(data),
