@@ -227,16 +227,37 @@ function handleNewVersion() {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // Test for IE
     if (/MSIE (\d+\.\d+);/.test(navigator.userAgent) || !!navigator.userAgent.match(/Trident.*rv[ :]*11\./)) {
         // Found IE, do user agent detection for now
         // https://github.com/menpo/landmarker.io/issues/75 for progess
         $('.App-Flex-Horiz').css('min-height', '100vh');
-        return new Notification.BaseNotification({
+        return Notification.notify({
             msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
-            type: 'error', manualClose: true
+            persist: true,
+            type: 'error'
         });
     }
 
+    // Test for webgl
+    var webglSupported = (function () {
+        try {
+            var canvas = document.createElement('canvas');
+            return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+        } catch (e) {
+            return false;
+        }
+    })();
+
+    if (!webglSupported) {
+        return Notification.notify({
+            msg: $('<p>It seems your browser doesn\'t support WebGL, which is needed by landmarker.io.<br/>Please visit <a href="https://get.webgl.org/">https://get.webgl.org/</a> for more information<p>'),
+            persist: true,
+            type: 'error'
+        });
+    }
+
+    // Check for new version (vs current appcache retrieved version)
     window.applicationCache.addEventListener('updateready', handleNewVersion);
     if (window.applicationCache.status === window.applicationCache.UPDATEREADY) {
         handleNewVersion();
@@ -51711,8 +51732,35 @@ exports.HistoryUpdate = Backbone.View.extend({
 },{"../lib/backbonej":13,"url":7}],29:[function(require,module,exports){
 'use strict';
 
+var _slicedToArray = (function () {
+    function sliceIterator(arr, i) {
+        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
+            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+                _arr.push(_s.value);if (i && _arr.length === i) break;
+            }
+        } catch (err) {
+            _d = true;_e = err;
+        } finally {
+            try {
+                if (!_n && _i['return']) _i['return']();
+            } finally {
+                if (_d) throw _e;
+            }
+        }return _arr;
+    }return function (arr, i) {
+        if (Array.isArray(arr)) {
+            return arr;
+        } else if (Symbol.iterator in Object(arr)) {
+            return sliceIterator(arr, i);
+        } else {
+            throw new TypeError('Invalid attempt to destructure non-iterable instance');
+        }
+    };
+})();
+
 var _ = require('underscore');
-var Backbone = require('../lib/backbonej');
+var Backbone = require('backbone');
+var $ = require('jquery');
 var Spinner = require('spin.js');
 
 'use strict';
@@ -51736,92 +51784,159 @@ var spinnerOpts = {
     left: '50%' // Left position relative to parent
 };
 
-exports.ThumbnailNotification = Backbone.View.extend({
+// exports.ThumbnailNotification = Backbone.View.extend({
+//
+//     initialize : function() {
+//         _.bindAll(this, 'render');
+//         this.listenTo(this.model.assetSource(), "change:nPreviews", this.render);
+//     },
+//
+//     render: function () {
+//         var total = this.model.assetSource().nAssets();
+//         var nDone = this.model.assetSource().nPreviews();
+//         if (total === nDone) {
+//             document.getElementById('previewNotification').style.display = 'none';
+//         }
+//         var done = nDone/total;
+//         var todo = 1 - nDone/total;
+//         document.getElementById('previewDone').style.flex = done;
+//         document.getElementById('previewRemaining').style.flex = todo;
+//         return this;
+//     }
+// });
 
-    initialize: function initialize() {
-        _.bindAll(this, 'render');
-        this.listenTo(this.model.assetSource(), 'change:nPreviews', this.render);
-    },
+var NOTIFICATION_BASE_CLASS = 'Notification',
+    NOTIFICATION_CLOSING_CLASS = 'Notification--Closing',
+    NOTIFICATION_PERMANENT_CLASS = 'Notification--Permanent',
+    NOTIFICATION_DEFAULT_CLOSE_TIMEOUT = 1500,
+    NOTIFICATION_DEFAULT_TYPE = 'warning',
+    NOTIFICATION_TYPE_CLASSES = { 'success': 'Notification--Success',
+    'error': 'Notification--Error',
+    'warning': 'Notification--Warning' };
 
-    render: function render() {
-        var total = this.model.assetSource().nAssets();
-        var nDone = this.model.assetSource().nPreviews();
-        if (total === nDone) {
-            document.getElementById('previewNotification').style.display = 'none';
-        }
-        var done = nDone / total;
-        var todo = 1 - nDone / total;
-        document.getElementById('previewDone').style.flex = done;
-        document.getElementById('previewRemaining').style.flex = todo;
-        return this;
-    }
-});
-
-// Singleton notification view accepting an option object of the form:
-// {type, msg, closeTimeout, manualClose}
-// automatic dismissal
-// use manualClose: true to disable automatic dismissal (will override
-// closeTimeout)
 exports.BaseNotification = Backbone.View.extend({
 
     tagName: 'div',
+    container: '#notificationOverlay',
 
-    __container: '#notificationOverlay',
-    __baseClass: 'ModalNotification',
-    __closingClass: 'ModalNotification--Closing',
-    __defaultCloseTimeout: 1500,
-    __defaultType: 'warning',
+    initialize: function initialize(_ref) {
+        var _this = this;
 
-    __types: {
-        'success': true,
-        'error': true
-    },
-
-    __classes: {
-        'success': 'ModalNotification--Success',
-        'error': 'ModalNotification--Error',
-        'warning': 'ModalNotification--Warning'
-    },
-
-    initialize: function initialize(opts) {
-
-        opts = opts || {};
+        var _ref$msg = _ref.msg;
+        var msg = _ref$msg === undefined ? '' : _ref$msg;
+        var _ref$type = _ref.type;
+        var type = _ref$type === undefined ? NOTIFICATION_DEFAULT_TYPE : _ref$type;
+        var _ref$actions = _ref.actions;
+        var actions = _ref$actions === undefined ? [] : _ref$actions;
+        var onClose = _ref.onClose;
+        var _ref$persist = _ref.persist;
+        var persist = _ref$persist === undefined ? false : _ref$persist;
+        var _ref$closeTimeout = _ref.closeTimeout;
+        var closeTimeout = _ref$closeTimeout === undefined ? NOTIFICATION_DEFAULT_CLOSE_TIMEOUT : _ref$closeTimeout;
 
         _.bindAll(this, 'render', 'close');
 
-        var msg = opts.msg || '',
-            type = opts.type in this.__types ? opts.type || '' : this.__defaultType,
-            closeTimeout = opts.manualClose ? undefined : opts.closeTimeout || this.__defaultCloseTimeout;
+        if (!(type in NOTIFICATION_TYPE_CLASSES)) {
+            type = NOTIFICATION_DEFAULT_TYPE;
+        }
+
+        if (onClose && typeof onClose === 'function') {
+            this.onClose = onClose;
+        }
+
+        this.actions = actions.map(function (_ref2) {
+            var _ref22 = _slicedToArray(_ref2, 3);
+
+            var label = _ref22[0];
+            var func = _ref22[1];
+            var close = _ref22[2];
+
+            return [label, close ? function () {
+                func();
+                _this.close();
+            } : func];
+        });
+
+        if (this.actions.length) {
+            closeTimeout = undefined;
+        }
+
+        this.persist = persist;
 
         this.render(type, msg, closeTimeout);
     },
 
     events: {
-        click: 'close'
+        'click .Notification__Action': 'handleClick'
+    },
+
+    handleClick: function handleClick(evt) {
+        if (this.actions.length) {
+            evt.preventDefault();
+            var actionIndex = evt.currentTarget.dataset.index;
+            if (actionIndex > 0 && actionIndex < this.actions.length) {
+                this.actions[actionIndex][1]();
+            }
+        }
     },
 
     render: function render(type, msg, timeout) {
-        var _this = this;
 
-        this.$el.addClass([this.__baseClass, this.__classes[type]].join(' '));
-        this.$el.text(msg);
-        this.$el.appendTo(this.__container);
+        this.$el.addClass([NOTIFICATION_BASE_CLASS, NOTIFICATION_TYPE_CLASSES[type]].join(' '));
+
+        if (msg instanceof $) {
+            this.$el.append(msg);
+        } else {
+            this.$el.append('<p>' + msg + '</p>');
+        }
+
+        if (this.actions.length) {
+            var $actions = $('<div></div>');
+            this.actions.forEach(function (_ref3, index) {
+                var _ref32 = _slicedToArray(_ref3, 2);
+
+                var label = _ref32[0];
+                var func = _ref32[1];
+
+                $actions.append($('                    <div class=\'Notification__Action\' data-index=' + index + '>                        ' + label + '\n                    </div>                '));
+            });
+            this.$el.append($actions);
+        }
+
+        if (this.persist) {
+            this.$el.addClass(NOTIFICATION_PERMANENT_CLASS);
+        }
+
+        this.$el.appendTo(this.container);
 
         if (timeout !== undefined) {
-            setTimeout(_this.close, timeout);
+            setTimeout(this.close, timeout);
         }
     },
 
     close: function close() {
-        var _this = this;
-        this.$el.addClass(this.__closingClass);
+        var _this2 = this;
+
+        if (this.onClose) {
+            this.onClose();
+        }
+
+        if (this.persist) {
+            return;
+        }
+
+        this.$el.addClass(NOTIFICATION_CLOSING_CLASS);
 
         setTimeout(function () {
-            _this.unbind();
-            _this.remove();
+            _this2.unbind();
+            _this2.remove();
         }, 1000);
     }
 });
+
+exports.notify = function (opts) {
+    return new exports.BaseNotification(opts);
+};
 
 exports.AssetLoadingNotification = Backbone.View.extend({
 
@@ -51888,7 +52003,7 @@ exports.LandmarkSavingNotification = Backbone.View.extend({
     }
 });
 
-},{"../lib/backbonej":13,"spin.js":10,"underscore":12}],30:[function(require,module,exports){
+},{"backbone":2,"jquery":8,"spin.js":10,"underscore":12}],30:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -51955,11 +52070,12 @@ var LandmarkView = Backbone.View.extend({
     select: atomic.atomicOperation(function (event) {
         if (event.shiftKey) {
             this.selectAll(event);
+        } else if (this.model.isSelected()) {
+            this.model.deselect();
         } else if (event.ctrlKey || event.metaKey) {
-            if (this.model.isSelected()) {
-                this.model.deselect();
-            } else {
+            if (!this.model.isSelected()) {
                 this.model.select();
+                $('#viewportContainer').trigger('groupSelected');
             }
         } else if (this.model.isEmpty()) {
             // user is clicking on an empty landmark - mark it as the next for
@@ -52994,6 +53110,11 @@ function Handler() {
 
         for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
             lm = lmGroup.landmarks[i];
+
+            if (lm.isEmpty()) {
+                continue;
+            }
+
             lmLoc = lm.point();
 
             if (lmLoc === null || locked && lm === currentTargetLm) {
@@ -53045,7 +53166,7 @@ function Handler() {
         console.log('mesh pressed!');
         if (groupSelected) {
             nothingPressed();
-        } else if (event.button === 0 && event.shiftKey) {
+        } else if (downEvent.button === 0 && downEvent.shiftKey) {
             shiftPressed(); // LMB + SHIFT
         } else {
             $(document).one('mouseup.viewportMesh', meshOnMouseUp);
@@ -53108,6 +53229,10 @@ function Handler() {
         event.preventDefault();
         _this.$el.focus();
 
+        if (!_this.model.landmarks()) {
+            return;
+        }
+
         isPressed = true;
 
         downEvent = event;
@@ -53132,7 +53257,7 @@ function Handler() {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
                         shiftPressed();
-                    } else if (_this.model.isEditingOn()) {
+                    } else if (_this.model.isEditingOn() && currentTargetLm) {
                         meshPressed();
                     } else {
                         nothingPressed();
@@ -53264,7 +53389,7 @@ function Handler() {
 
             if (_this.model.isEditingOn() && currentTargetLm) {
                 _this.model.landmarks().setLmAt(currentTargetLm, p);
-            } else {
+            } else if (downEvent.button === 2) {
                 _this.model.landmarks().insertNew(p);
             }
         }
@@ -53315,10 +53440,15 @@ function Handler() {
     // ------------------------------------------------------------------------
 
     var onMouseMove = function onMouseMove(evt) {
+
         _this.clearCanvas();
 
-        if (isPressed || !_this.model.isEditingOn()) {
+        if (isPressed || !_this.model.isEditingOn() || !_this.model.landmarks()) {
             return null;
+        }
+
+        if (currentTargetLm && currentTargetLm.isEmpty()) {
+            currentTargetLm = undefined;
         }
 
         var intersectsWithMesh = _this.getIntersectsFromEvent(evt, _this.mesh);
@@ -53343,7 +53473,7 @@ function Handler() {
             lms = lms.slice(0, 3);
         }
 
-        if (currentTargetLm && !groupSelected) {
+        if (currentTargetLm && !groupSelected && lms.length > 0) {
 
             if (currentTargetLm !== previousTargetLm) {
                 // Linear operation hence protected
@@ -53362,8 +53492,9 @@ function Handler() {
     // ------------------------------------------------------------------------
 
     var onKeypressTranslate = atomic.atomicOperation(function (evt) {
-        // Only work in group selection mode
-        if (!groupSelected) {
+
+        // Only work in group selection mode, with landmarks
+        if (!groupSelected || !_this.model.landmarks()) {
             return;
         }
 
@@ -53415,6 +53546,10 @@ function Handler() {
     var setGroupSelected = function setGroupSelected() {
         var val = arguments[0] === undefined ? true : arguments[0];
 
+        if (!_this.model.landmarks()) {
+            return;
+        }
+
         var _val = !!val; // Force cast to boolean
 
         if (_val === groupSelected) {
@@ -53435,6 +53570,10 @@ function Handler() {
     };
 
     var completeGroupSelection = function completeGroupSelection() {
+
+        if (!_this.model.landmarks()) {
+            return;
+        }
 
         _this.model.landmarks().labels.forEach(function (label) {
 
@@ -53479,7 +53618,7 @@ module.exports = Handler;
 
 var $ = require('jquery');
 var _ = require('underscore');
-var Backbone = require('../../lib/backbonej');
+var Backbone = require('backbone');
 var THREE = require('three');
 
 var atomic = require('../../model/atomic');
@@ -54076,12 +54215,12 @@ exports.Viewport = Backbone.View.extend({
         var iLm = this.getIntersects(screenCoords.x, screenCoords.y, lmView.symbol);
         // is there no mesh here (pretty rare as landmarks have to be on mesh)
         // or is the mesh behind the landmarks?
-        return iMesh.length == 0 || iMesh[0].distance > iLm[0].distance;
+        return iMesh.length === 0 || iMesh[0].distance > iLm[0].distance;
     }
 
 });
 
-},{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
+},{"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"backbone":2,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-f534ae63.js.map
+//# sourceMappingURL=bundle-1d931612.js.map
