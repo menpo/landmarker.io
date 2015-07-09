@@ -15,10 +15,15 @@ const API_KEY = "jwda9p0msmkfora",
       API_URL = "https://api.dropbox.com/1",
       CONTENTS_URL = "https://api-content.dropbox.com/1";
 
+const OBJLoader = require('../lib/obj_loader');
+
 var url = require('url'),
     Promise = require('promise-polyfill');
 
-var { randomString, basename, extname } = require('../lib/utils');
+var { randomString,
+      basename,
+      extname,
+      stripExtension } = require('../lib/utils');
 
 var { getJSON, get, putJSON } = require('../lib/requests'),
     ImagePromise = require('../lib/imagepromise'),
@@ -29,6 +34,8 @@ var Picker = require('../view/dropbox_picker.js');
 var Dropbox = require('./base').extend('DROPBOX', function (token, cfg) {
     this._token = token;
     this._cfg = cfg;
+    this.mode = 'image';
+    this._meshTextures = {};
 
     // Caches
     this._mediaCache = {};
@@ -42,8 +49,8 @@ var Dropbox = require('./base').extend('DROPBOX', function (token, cfg) {
 });
 
 Dropbox.Extensions = {
-    Images: ['jpeg', 'jpg', 'png'],
-    Meshes: ['obj', 'raw'],
+    image: ['jpeg', 'jpg', 'png'],
+    mesh: ['obj', 'jpg', 'jpeg', 'png'],
 }
 
 /**
@@ -77,6 +84,15 @@ Dropbox.prototype.headers = function () {
 
 Dropbox.prototype.accountInfo = function () {
     return getJSON(`${API_URL}/account/info`, {headers: this.headers()});
+};
+
+Dropbox.prototype.setMode = function (mode) {
+    if (mode in Dropbox.Extensions) {
+        this.mode = mode;
+    } else {
+        this.mode = this.mode || 'image';
+    }
+    this._cfg.set({'BACKEND_DROPBOX_MODE': this.mode}, true);
 };
 
 Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
@@ -137,9 +153,13 @@ Dropbox.prototype.pickAssets = function (success, error, closable=false) {
         dropbox: this,
         selectFoldersOnly: true,
         title: 'Select a directory from which to load assets',
+        radios: [{
+            name: 'mode',
+            options: [['Image Mode', 'image'], ['Mesh Mode', 'mesh']]
+        }],
         closable,
-        submit: (path) => {
-            this.setAssets(path).then(() => {
+        submit: (path, isFolder, {mode}) => {
+            this.setAssets(path, mode).then(() => {
                 picker.dispose();
                 success(path);
             }, error);
@@ -150,26 +170,46 @@ Dropbox.prototype.pickAssets = function (success, error, closable=false) {
     return picker;
 };
 
-Dropbox.prototype.setAssets = function (path) {
+Dropbox.prototype.setAssets = function (path, mode) {
 
     if (!path) {
         return Promise.resolve(null);
     }
 
     this._assetsPath = path;
+    this.setMode(mode);
 
     return this.list(path, {
         filesOnly: true,
-        extensions: Dropbox.Extensions.Images
+        extensions: Dropbox.Extensions[this.mode],
+        noCache: true
     }).then((items) => {
-        this._assets = items.map(function (item) {
-            return item.path;
-        });
+        this._assets = [];
+        this._meshTextures = {};
+        if (this.mode === 'image') {
+            this._setImageAssets(items);
+        } else if (this.mode === 'mesh') {
+            this._setMeshAssets(items);
+        }
 
-        this._cfg.set({
-            'BACKEND_DROPBOX_ASSETS_PATH': this._assetsPath
-        }, true);
+        this._cfg.set({'BACKEND_DROPBOX_ASSETS_PATH': this._assetsPath}, true);
     });
+};
+
+Dropbox.prototype._setMeshAssets = function (items) {
+    const paths = items.map((item) => item.path);
+
+    // Find only OBJ files
+    this._assets = paths.filter((p) => extname(p) === 'obj');
+
+    // Initialize texture map
+    this._assets.forEach((p) => {
+        this._meshTextures[p] = paths.indexOf(stripExtension(p) + '.jpg') > -1;
+    });
+};
+
+Dropbox.prototype._setImageAssets = function (items) {
+    this._assets = items.map((item) => item.path);
 };
 
 Dropbox.prototype.list = function (path='/', {
@@ -228,12 +268,11 @@ Dropbox.prototype.list = function (path='/', {
     });
 };
 
-Dropbox.prototype.download = function (path) {
+Dropbox.prototype.download = function (path, responseType='text') {
     return get(
         `${CONTENTS_URL}/files/auto${path}`, {
-        headers: this.headers()
-    }).then((data) => {
-        return data;
+        headers: this.headers(),
+        responseType
     });
 };
 
@@ -267,7 +306,7 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
 };
 
 Dropbox.prototype.fetchMode = function () {
-    return Promise.resolve('image');
+    return Promise.resolve(this.mode);
 };
 
 Dropbox.prototype.fetchTemplates = function () {
@@ -284,38 +323,67 @@ Dropbox.prototype.fetchCollection = function () {
     }));
 }
 
-Dropbox.prototype.fetchImg = function (assetId) {
+Dropbox.prototype.fetchImg = function (path) {
 
-    if (this._imgCache[assetId]) {
-        return this._imgCache[assetId];
+    if (this._imgCache[path]) {
+        return this._imgCache[path];
     }
 
-    let q = this.mediaURL(`${this._assetsPath}/${assetId}`).then((url) => {
+    let q = this.mediaURL(path).then((url) => {
         return ImagePromise(url).then((data) => {
-            delete this._imgCache[assetId];
+            delete this._imgCache[path];
             return data;
         }, (err) => {
-            delete this._imgCache[assetId];
+            console.log('Failded to fetch img', path);
+            delete this._imgCache[path];
             throw err;
         });
     });
 
-    this._imgCache[assetId] = q;
+    this._imgCache[path] = q;
     return q;
 }
 
-Dropbox.prototype.fetchThumbnail = Dropbox.prototype.fetchImg;
-Dropbox.prototype.fetchTexture = Dropbox.prototype.fetchImg;
+Dropbox.prototype.fetchThumbnail = function () {
+    return Promise.reject(null);
+};
+
+Dropbox.prototype.fetchTexture = function (assetId) {
+    const path = `${this._assetsPath}/${assetId}`;
+    if (this.mode === 'mesh') {
+        if (this._meshTextures[path]) {
+            return this.fetchImg(stripExtension(path) + '.jpg');
+        } else {
+            return Promise.reject(null);
+        }
+    } else {
+        return this.fetchImg(path);
+    }
+};
+
+Dropbox.prototype.fetchGeometry = function (assetId) {
+
+    const path = `${this._assetsPath}/${assetId}`;
+
+    const dl = this.download(path);
+    const geometry = dl.then((data) => {
+        return OBJLoader(data);
+    });
+
+    geometry.xhr = () => dl.xhr(); // compatibility
+    geometry.isGeometry = true;
+    return geometry;
+}
 
 Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
 
-    let path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
-
+    const path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
+    const dim = this.mode === 'mesh' ? 3 : 2;
     return new Promise((resolve, reject) => {
         this.download(path).then((data) => {
             resolve(JSON.parse(data));
         }, () => {
-            resolve(this.templates[type].emptyLJSON(2));
+            resolve(this.templates[type].emptyLJSON(dim));
         });
     });
 }

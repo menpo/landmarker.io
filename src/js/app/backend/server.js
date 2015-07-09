@@ -3,7 +3,7 @@
 var DEFAULT_API_URL = 'http://localhost:5000';
 
 var { getJSON, putJSON, getArrayBuffer } = require('../lib/requests'),
-    { capitalize } = require('../lib/utils'),
+    { capitalize, randomString } = require('../lib/utils'),
     ImagePromise = require('../lib/imagepromise');
 
 var Server = require('./base').extend('LANDMARKER SERVER', function (url) {

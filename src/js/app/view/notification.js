@@ -287,5 +287,5 @@ module.exports.loading = {
     stop: function (id) {
         _gs = _gs || new CornerSpinner();
         _gs.stop.call(_gs, id);
-    }
+    },
 }

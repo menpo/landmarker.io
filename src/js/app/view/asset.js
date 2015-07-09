@@ -195,7 +195,7 @@ var CollectionName = Backbone.View.extend({
 
     render: function () {
         this.$el.find('.content').html(
-            this.model.activeCollection() || 'No Collection');
+            `${this.model.activeCollection()} (${this.model.mode()})`);
         this.$el.toggleClass(
             'Disabled',
             ( this.model.collections().length <= 1 &&
@@ -209,6 +209,7 @@ var CollectionName = Backbone.View.extend({
         let backend = this.model.server();
         if (backend instanceof Dropbox) {
             backend.pickAssets((path) => {
+                this.model.set('mode', backend.mode);
                 this.model.set('activeCollection', path);
             }, function (err) {
                 Notification.notify({
