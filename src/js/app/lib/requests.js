@@ -59,7 +59,6 @@ function XMLHttpRequestPromise(
         // Handle network errors
         xhr.onerror = function () {
             loading.stop(asyncId);
-            console.log('UNLOADING', asyncId);
             reject(new Error("Network Error"));
         };
 
@@ -78,9 +77,7 @@ function XMLHttpRequestPromise(
 
     // for compatibility, want to be able to get access to the underlying
     // xhr so we can abort if needed at a later time.
-    promise.xhr = function () {
-        return xhr;
-    };
+    promise.xhr = () => xhr;
 
     return promise;
 }
@@ -97,7 +94,7 @@ module.exports.getArrayBuffer = function (url, {headers={}, auth=false}) {
 module.exports.get = function (url, {headers={}, data={}, auth=false}) {
     return XMLHttpRequestPromise(
         _url(url, data), {headers, auth});
-}
+};
 
 module.exports.getJSON = function (url, {headers={}, data={}, auth=false}) {
     return XMLHttpRequestPromise(

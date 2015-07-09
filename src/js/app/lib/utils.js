@@ -23,7 +23,13 @@ const basename = function (path, removeExt=false) {
 }
 
 const extname = function (path) {
-    return path.toLowerCase().split('.').pop();
+    const parts = path.split('.');
+    return parts.length > 1 ? parts.pop().toLowerCase() : undefined;
+}
+
+const stripExtension = function (path) {
+    const parts = path.split('.');
+    return parts.length > 1 ? parts.slice(0, -1).join('.') : path;
 }
 
 const stripTrailingSlash = function (str) {
@@ -51,8 +57,8 @@ const capitalize = function (str) {
 
 module.exports = {
     randomString,
-    basename, extname,
+    basename, extname, stripExtension,
     stripTrailingSlash, addTrailingSlash,
     baseUrl,
-    capitalize, pad
+    capitalize, pad,
 }

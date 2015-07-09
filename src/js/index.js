@@ -82,12 +82,12 @@ function _loadServer (u) {
 function _loadDropbox (u) {
 
     let dropbox;
-    let oAuthState = cfg.get('OAUTH_STATE'),
-        token = cfg.get('BACKEND_DROPBOX_TOKEN');
+    const oAuthState = cfg.get('OAUTH_STATE'),
+          token = cfg.get('BACKEND_DROPBOX_TOKEN');
 
     if (oAuthState) { // We were waiting for redirect
 
-        let urlOk = [
+        const urlOk = [
             'state', 'access_token', 'uid'
         ].every(key => u.query.hasOwnProperty(key));
 
@@ -113,6 +113,7 @@ function _loadDropbox (u) {
     }
 
     if (dropbox) {
+        dropbox.setMode(cfg.get('BACKEND_DROPBOX_MODE'));
         return dropbox.accountInfo().then(function () {
             _loadDropboxAssets(dropbox)
         }, function () {
@@ -152,7 +153,6 @@ function _loadDropboxTemplate (dropbox) {
     let templatePath = cfg.get('BACKEND_DROPBOX_TEMPLATE_PATH');
 
     function _pick () {
-        console.log('TMPL PICK');
         dropbox.pickTemplate(function () {
             resolveMode(dropbox);
         }, function (err) {
@@ -165,7 +165,6 @@ function _loadDropboxTemplate (dropbox) {
             resolveMode(dropbox);
         }, _pick);
     } else {
-        console.log('NOT FOUND', cfg.get());
         _pick();
     }
 }

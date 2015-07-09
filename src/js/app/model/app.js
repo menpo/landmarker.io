@@ -51,6 +51,10 @@ var App = Backbone.Model.extend({
         this.set('helpOverlayIsDisplayed', !this.isHelpOverlayOn());
     },
 
+    mode: function () {
+        return this.get('mode');
+    },
+
     imageMode: function () {
         return this.get('mode') === 'image';
     },
@@ -122,6 +126,8 @@ var App = Backbone.Model.extend({
             this, 'change:activeCollection', this.reloadAssetSource);
         this.listenTo(
             this, 'change:activeTemplate', this.reloadAssetSource);
+            this.listenTo(
+                this, 'change:mode', this.reloadAssetSource);
 
         this._initTemplates();
         this._initCollections();

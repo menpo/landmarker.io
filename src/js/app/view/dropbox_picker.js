@@ -45,6 +45,23 @@ function Icon (item) {
     return $(`<span class='octicon octicon-${icon}'></span>`);
 }
 
+function DropboxRadio (opts, index) {
+
+    const id = `dropboxRadios_${index}`
+    const $radio = $(`<div class='DropboxRadio' id='${id}'></div>`);
+
+    opts.forEach(function ([text, key], j) {
+        $radio.append($(`\
+            <label class='radio'>\
+                <input id='${id}_${j}' value='${key}' type="radio" name="${id}" ${j === 0 ? 'checked' : ''}/>\
+                <span>${text}</span>\
+            </label>\
+        `));
+    });
+
+    return $radio;
+}
+
 var DropboxPicker = Modal.extend({
 
     events: {
@@ -58,7 +75,8 @@ var DropboxPicker = Modal.extend({
     init: function ({
         dropbox, submit,
         showFoldersOnly=false, showHidden=false, selectFoldersOnly=false,
-        extensions=[], selectFilesOnly=false, root=undefined
+        extensions=[], selectFilesOnly=false, root=undefined,
+        radios=[]
     }) {
 
         this.disposeOnClose = true;
@@ -68,6 +86,7 @@ var DropboxPicker = Modal.extend({
         this.selectFoldersOnly = selectFoldersOnly;
         this.selectFilesOnly = !selectFoldersOnly && selectFilesOnly;
         this.extensions = extensions;
+        this.radios = radios;
 
         this._cache = {};
 
@@ -90,11 +109,21 @@ var DropboxPicker = Modal.extend({
     },
 
     handleSubmit: function () {
+
         if (!this.submit || !this.state.selected) {
             return;
         }
 
-        this.submit(this.state.selected, this.state.selectedIsFolder);
+        const options = {};
+        if (this.radios && this.radios.length) {
+            this.radios.forEach(function ({name}, index) {
+                const id = `dropboxRadios_${index}`;
+                const value = $(`input[name='${id}']:checked`, `#${id}`).val();
+                options[name] = value;
+            });
+        }
+
+        this.submit(this.state.selected, this.state.selectedIsFolder, options);
     },
 
 
@@ -256,7 +285,8 @@ var DropboxPicker = Modal.extend({
     },
 
     content: function () {
-        let $content = $(`\
+
+        const $content = $(`\
             <div class='DropboxSelect'>\
                 <div class='DropboxSelectExplore'>\
                     <div class='Action Back Unavailable'>\
@@ -277,6 +307,14 @@ var DropboxPicker = Modal.extend({
                 </div>\
             </div>\
         `);
+
+        if (this.radios && this.radios.length > 0) {
+            const $radios = $("<div class='DropboxRadios'></div>");
+            this.radios.forEach(({name, options}, index) => {
+                $radios.prepend(DropboxRadio(options, index));
+            });
+            $content.prepend($radios);
+        }
 
         this.$body = $content;
         return $content;

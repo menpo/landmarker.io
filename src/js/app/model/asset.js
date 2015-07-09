@@ -181,37 +181,36 @@ var Image = Backbone.Model.extend({
     },
 
     loadThumbnail: function () {
-        var that = this;
         if (!this.hasOwnProperty('_thumbnailPromise')) {
-            this._thumbnailPromise = this.get('server').fetchThumbnail(this.id).then(function(material) {
-                delete that._thumbnailPromise;
-                console.log('Asset: loaded thumbnail for ' + that.id);
-                that.thumbnail =  material;
+            this._thumbnailPromise = this.get('server').fetchThumbnail(this.id).then((material) => {
+                delete this._thumbnailPromise;
+                console.log('Asset: loaded thumbnail for ' + this.id);
+                this.thumbnail =  material;
                 var img = material.map.image;
-                that.thumbnailGeometry = mappedPlane(img.width, img.height);
-                that.trigger('change:thumbnail');
+                this.thumbnailGeometry = mappedPlane(img.width, img.height);
+                this.trigger('change:thumbnail');
                 return material;
+            }, () => {
+                console.log('Failed to fetch thumbnail for', this.id);
             });
-        } else {
-            console.log('thumbnailPromise already exists - no need to regrab');
         }
         return this._thumbnailPromise;
     },
 
     loadTexture: function () {
-        var that = this;
         if (!this.hasOwnProperty('_texturePromise')) {
-            this._texturePromise = this.get('server').fetchTexture(this.id).then(function(material) {
-                delete that._texturePromise;
-                console.log('Asset: loaded texture for ' + that.id);
-                that.texture = material;
+            this._texturePromise = this.get('server').fetchTexture(this.id).then((material) => {
+                console.log(material);
+                delete this._texturePromise;
+                console.log('Asset: loaded texture for ' + this.id);
+                this.texture = material;
                 var img = material.map.image;
-                that.textureGeometry = mappedPlane(img.width, img.height);
-                that.trigger('change:texture');
+                this.textureGeometry = mappedPlane(img.width, img.height);
+                this.trigger('change:texture');
                 return material;
+            }, () => {
+                console.log('Failed to load texture for', this.id);
             });
-        } else {
-            console.log('texturePromise already exists - no need to regrab');
         }
         return this._texturePromise;
     },
@@ -269,66 +268,85 @@ var Mesh = Image.extend({
     },
 
     loadGeometry: function () {
-        var that = this;
         if (this.hasOwnProperty('_geometryPromise')) {
             // already loading this geometry
             return this._geometryPromise;
         }
         var arrayPromise = this.get('server').fetchGeometry(this.id);
-        this._geometryPromise = arrayPromise.then(function (buffer) {
-            // now the promise is fullfilled, delete the promise.
-            delete that._geometryPromise;
-            var geometry;
 
-            var lenMeta = 4;
-            var bytes = 4;
-            var meta = new Uint32Array(buffer, 0, lenMeta);
-            var nTris = meta[0];
-            var isTextured = Boolean(meta[1]);
-            var hasNormals = Boolean(meta[2]);
-            var hasBinning = Boolean(meta[2]);  // used for efficient lookup
-            var stride = nTris * 3;
+        if (!!arrayPromise.isGeometry) { // Backend says it parses the geometry
+            this._geometryPromise = arrayPromise.then((geometry) => {
+                delete this._geometryPromise;
+                geometry.computeBoundingSphere();
 
-            // Points
-            var pointsOffset = lenMeta * bytes;
-            var points = new Float32Array(buffer, pointsOffset, stride * 3);
-            var normalOffset = pointsOffset + stride * 3 * bytes;
+                this.geometry = geometry;
+                this.trigger('change:geometry');
 
-            // Normals (optional)
-            var normals = null;  // initialize for no normals
-            var tcoordsOffset = normalOffset;  // no normals -> tcoords next
-            if (hasNormals) {
-                // correct if has normals
-                normals = new Float32Array(buffer, normalOffset, stride * 3);
-                // need to advance the pointer on tcoords offset
-                tcoordsOffset = normalOffset + stride * 3 * bytes;
-            }
+                return geometry;
+            }, (err) => {
+                console.log('failed to load geometry (OBJ) for ' + this.id);
+                console.log(err);
+            });
+        } else { // Backend sends raw optimised ArrayBuffer through > build 3D
+            this._geometryPromise = arrayPromise.then((buffer) => {
+                // now the promise is fullfilled, delete the promise.
+                delete this._geometryPromise;
+                var geometry;
 
-            // Tcoords (optional)
-            var tcoords = null;  // initialize for no tcoords
-            var binningOffset = tcoordsOffset;  // no tcoords -> binning next
-            if (isTextured) {
-                tcoords = new Float32Array(buffer, tcoordsOffset, stride * 2);
-                binningOffset = tcoordsOffset + stride * 2 * bytes;
-            }
+                var lenMeta = 4;
+                var bytes = 4;
+                var meta = new Uint32Array(buffer, 0, lenMeta);
+                var nTris = meta[0];
+                var isTextured = Boolean(meta[1]);
+                var hasNormals = Boolean(meta[2]);
+                var hasBinning = Boolean(meta[2]);  // used for efficient lookup
+                var stride = nTris * 3;
 
-            // Binning (optional)
-            if (hasBinning) {
-                console.log('ready to read from binning file at ' + binningOffset)
-            }
-            geometry = that._newBufferGeometry(points, normals, tcoords);
-            console.log('Asset: loaded Geometry for ' + that.id);
-            that.geometry = geometry;
-            that.trigger('change:geometry');
+                // Points
+                var pointsOffset = lenMeta * bytes;
+                var points = new Float32Array(buffer, pointsOffset, stride * 3);
+                var normalOffset = pointsOffset + stride * 3 * bytes;
 
-            return geometry;
-        }, function () {
-            console.log('failed to load geometry for ' + that.id);
-        });
+                // Normals (optional)
+                var normals = null;  // initialize for no normals
+                var tcoordsOffset = normalOffset;  // no normals -> tcoords next
+                if (hasNormals) {
+                    // correct if has normals
+                    normals = new Float32Array(
+                        buffer, normalOffset, stride * 3);
+                    // need to advance the pointer on tcoords offset
+                    tcoordsOffset = normalOffset + stride * 3 * bytes;
+                }
+
+                // Tcoords (optional)
+                var tcoords = null;  // initialize for no tcoords
+                var binningOffset = tcoordsOffset;  // no tcoords -> binning next
+                if (isTextured) {
+                    tcoords = new Float32Array(
+                        buffer, tcoordsOffset, stride * 2);
+                    binningOffset = tcoordsOffset + stride * 2 * bytes;
+                }
+
+                // Binning (optional)
+                if (hasBinning) {
+                    console.log(
+                        'ready to read from binning file at ', binningOffset)
+                }
+                geometry = this._newBufferGeometry(points, normals, tcoords);
+                console.log('Asset: loaded Geometry for ' + this.id);
+                this.geometry = geometry;
+                this.trigger('change:geometry');
+
+                return geometry;
+            }, (err) => {
+                console.log('failed to load geometry (AB) for ' + this.id);
+                console.log(err);
+            });
+        }
+
+
         // mirror the arrayPromise xhr() API
-        this._geometryPromise.xhr = function () {
-            return arrayPromise.xhr();
-        };
+        this._geometryPromise.xhr = () => arrayPromise.xhr();
         // return a promise that this Meshes Geometry will be correctly
         // configured. Can access the raw underlying xhr request at xhr().
         // Aborting this will cause the promise to fail.
