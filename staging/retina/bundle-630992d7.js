@@ -53073,8 +53073,6 @@ var $ = require('jquery');
 
 var atomic = require('../../model/atomic');
 
-var MOVE_TO = 50;
-
 /**
  * Create a closure for handling mouse events in viewport.
  * Holds state usable by all event handlers and should be bound to the
@@ -53314,15 +53312,10 @@ function Handler() {
         console.log('shift:drag');
         // note - we use client as we don't want to jump back to zero
         // if user drags into sidebar!
-        var newX = event.clientX;
-        var newY = event.clientY;
+        var newPosition = { x: event.clientX, y: event.clientY };
         // clear the canvas and draw a selection rect.
         _this.clearCanvas();
-        var x = onMouseDownPosition.x;
-        var y = onMouseDownPosition.y;
-        var dx = newX - x;
-        var dy = newY - y;
-        _this.ctx.strokeRect(x, y, dx, dy);
+        _this.drawSelectionBox(onMouseDownPosition, newPosition);
     };
 
     // Up handlers
@@ -53576,7 +53569,7 @@ function Handler() {
 
         // Exposed handlers
         onMouseDown: atomic.atomicOperation(onMouseDown),
-        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove), MOVE_TO)
+        onMouseMove: atomic.atomicOperation(onMouseMove)
     };
 }
 
@@ -54079,6 +54072,17 @@ exports.Viewport = Backbone.View.extend({
         this.ctxBox.maxY = Math.max(this.ctxBox.maxY, point.y);
     },
 
+    drawSelectionBox: function drawSelectionBox(mouseDown, mousePosition) {
+        var x = mouseDown.x;
+        var y = mouseDown.y;
+        var dx = mousePosition.x - x;
+        var dy = mousePosition.y - y;
+        this.ctx.strokeRect(x, y, dx, dy);
+        // update the bounding box
+        this.updateCanvasBoundingBox(mouseDown);
+        this.updateCanvasBoundingBox(mousePosition);
+    },
+
     drawTargetingLines: function drawTargetingLines(point, targetLm, secondaryLms) {
         var _this2 = this;
 
@@ -54118,7 +54122,9 @@ exports.Viewport = Backbone.View.extend({
         var minY = Math.max(Math.floor(this.ctxBox.minY) - p, 0);
         var maxX = Math.ceil(this.ctxBox.maxX) + p;
         var maxY = Math.ceil(this.ctxBox.maxY) + p;
-        this.ctx.clearRect(minX, minY, maxX - minX, maxY - minY);
+        var width = maxX - minX;
+        var height = maxY - minY;
+        this.ctx.clearRect(minX, minY, width, height);
         // reset the tracking of the context bounding box tracking.
         this.ctxBox = { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
         this.ctx.strokeStyle = '#ffffff';
@@ -54245,4 +54251,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-f17edbc0.js.map
+//# sourceMappingURL=bundle-630992d7.js.map
