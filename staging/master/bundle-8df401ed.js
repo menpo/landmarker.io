@@ -53096,7 +53096,7 @@ function Handler() {
      * @return {Landmark[]}
      */
     var findClosestLandmarks = function findClosestLandmarks(lmGroup, loc) {
-        var locked = arguments[2] === undefined ? false : arguments[2];
+        var locked = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
         var dist,
             i,
@@ -53529,7 +53529,7 @@ function Handler() {
     // ------------------------------------------------------------------------
 
     var setGroupSelected = function setGroupSelected() {
-        var val = arguments[0] === undefined ? true : arguments[0];
+        var val = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
 
         var _val = !!val; // Force cast to boolean
 
@@ -54058,7 +54058,7 @@ exports.Viewport = Backbone.View.extend({
     // =========================================================================
 
     drawTargetingLine: function drawTargetingLine(start, end) {
-        var secondary = arguments[2] === undefined ? false : arguments[2];
+        var secondary = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
         this.ctx.beginPath();
         if (secondary) {
@@ -54155,7 +54155,7 @@ exports.Viewport = Backbone.View.extend({
     },
 
     worldToLocal: function worldToLocal(vector) {
-        var inPlace = arguments[1] === undefined ? false : arguments[1];
+        var inPlace = arguments.length <= 1 || arguments[1] === undefined ? false : arguments[1];
 
         return inPlace ? this.s_meshAndLms.worldToLocal(vector) : this.s_meshAndLms.worldToLocal(vector.clone());
     },
@@ -54200,4 +54200,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-b6934ade.js.map
+//# sourceMappingURL=bundle-8df401ed.js.map
