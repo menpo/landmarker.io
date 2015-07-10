@@ -20,3 +20,4 @@ deploy:
   acl: public_read
   on:
     repo: menpo/landmarker.io
+    all_branches: true
