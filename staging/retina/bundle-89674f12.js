@@ -53997,15 +53997,27 @@ exports.Viewport = Backbone.View.extend({
     },
 
     resize: function resize() {
-        var w, h;
+        var w, h, pixelRatio;
         w = this.$container.width();
         h = this.$container.height();
         // ask the camera controller to update the cameras appropriately
         this.cameraController.resize(w, h);
         // update the size of the renderer and the canvas
         this.renderer.setSize(w, h);
-        this.canvas.width = w;
-        this.canvas.height = h;
+
+        // get the resolution of our device.
+        pixelRatio = window.devicePixelRatio || 1;
+
+        // scale the canvas and change its CSS width/height to make it high res.
+        this.canvas.style.width = w;
+        this.canvas.style.height = h;
+        this.canvas.width = w * pixelRatio;
+        this.canvas.height = h * pixelRatio;
+
+        // Now that its high res we need to compensate so our images can be drawn as
+        //normal, by scaling everything up by the pixelRatio.
+        this.ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
         // clear the canvas to make sure the PIP box is correct
         this.clearCanvas();
         this.update();
@@ -54200,4 +54212,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-b334c84e.js.map
+//# sourceMappingURL=bundle-89674f12.js.map
