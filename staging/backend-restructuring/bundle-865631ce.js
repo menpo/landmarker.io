@@ -31,18 +31,16 @@ function resolveBackend(u) {
                 'BACKEND_TYPE': Backend.Server.Type,
                 'BACKEND_SERVER_URL': u.query.server
             }, true);
+        } else {
+            document.title = document.title + ' - demo mode';
         }
 
-        return resolveMode(server);
+        return resolveMode(server, u);
     }
 
     var backendType = cfg.get('BACKEND_TYPE');
 
     if (!backendType) {
-        cfg.clear();
-        u.search = null;
-        history.replaceState(null, null, url.format(u).replace('?', '#'));
-
         return Intro.open();
     }
 
@@ -73,7 +71,7 @@ function _loadServer(u) {
     var server = new Backend.Server(cfg.get('BACKEND_SERVER_URL'));
     u.query.server = cfg.get('BACKEND_SERVER_URL');
     history.replaceState(null, null, url.format(u).replace('?', '#'));
-    resolveMode(server);
+    resolveMode(server, u);
 }
 
 function _loadDropbox(u) {
@@ -113,7 +111,7 @@ function _loadDropbox(u) {
     if (dropbox) {
         dropbox.setMode(cfg.get('BACKEND_DROPBOX_MODE'));
         return dropbox.accountInfo().then(function () {
-            _loadDropboxAssets(dropbox);
+            _loadDropboxAssets(dropbox, u);
         }, function () {
             Notification.notify({
                 msg: 'Could not reach Dropbox servers',
@@ -126,12 +124,12 @@ function _loadDropbox(u) {
     }
 };
 
-function _loadDropboxAssets(dropbox) {
+function _loadDropboxAssets(dropbox, u) {
     var assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH');
 
     function _pick() {
         dropbox.pickAssets(function () {
-            _loadDropboxTemplate(dropbox);
+            _loadDropboxTemplate(dropbox, u);
         }, function (err) {
             retry('Couldn\'t find assets: ' + err);
         });
@@ -139,20 +137,20 @@ function _loadDropboxAssets(dropbox) {
 
     if (assetsPath) {
         dropbox.setAssets(assetsPath).then(function () {
-            _loadDropboxTemplate(dropbox);
+            _loadDropboxTemplate(dropbox, u);
         }, _pick);
     } else {
         _pick();
     }
 }
 
-function _loadDropboxTemplate(dropbox) {
+function _loadDropboxTemplate(dropbox, u) {
 
     var templatePath = cfg.get('BACKEND_DROPBOX_TEMPLATE_PATH');
 
     function _pick() {
         dropbox.pickTemplate(function () {
-            resolveMode(dropbox);
+            resolveMode(dropbox, u);
         }, function (err) {
             retry('Couldn\'t find template: ' + err);
         });
@@ -160,17 +158,17 @@ function _loadDropboxTemplate(dropbox) {
 
     if (templatePath) {
         dropbox.setTemplate(templatePath).then(function () {
-            resolveMode(dropbox);
+            resolveMode(dropbox, u);
         }, _pick);
     } else {
         _pick();
     }
 }
 
-function resolveMode(server) {
+function resolveMode(server, u) {
     server.fetchMode().then(function (mode) {
         if (mode === 'mesh' || mode === 'image') {
-            initLandmarker(server, mode);
+            initLandmarker(server, mode, u);
         } else {
             retry('Received invalid mode', mode);
         }
@@ -185,24 +183,16 @@ function resolveMode(server) {
     });
 }
 
-function initLandmarker(server, mode) {
+function initLandmarker(server, mode, u) {
 
     console.log('Starting landmarker in ' + mode + ' mode');
 
-    if (server.demoMode) {
-        document.title = document.title + ' - demo mode';
-    }
-
     var App = require('./app/model/app');
-    var History = require('./app/view/history');
+    var URLState = require('./app/view/url_state');
 
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = '';
-
-    // Parse the current url so we can query the parameters
-    var u = url.parse(window.location.href.replace('#', '?'), true);
-    u.search = null; // erase search so query is used in building back URL
 
     var appInit = { server: server, mode: mode };
 
@@ -249,7 +239,7 @@ function initLandmarker(server, mode) {
     });
 
     // update the URL of the page as the state changes
-    var historyUpdate = new History.HistoryUpdate({ model: app });
+    var urlState = new URLState({ model: app });
 
     // ----- KEYBOARD HANDLER ----- //
 
@@ -394,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resolveBackend(u);
 });
 
-},{"./app/backend":48,"./app/lib/support":53,"./app/lib/utils":54,"./app/model/app":55,"./app/model/config":59,"./app/view/asset":63,"./app/view/dropbox_picker":64,"./app/view/help":65,"./app/view/history":66,"./app/view/intro":67,"./app/view/modal":69,"./app/view/notification":70,"./app/view/sidebar":71,"./app/view/toolbar":72,"./app/view/viewport":76,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
+},{"./app/backend":48,"./app/lib/support":54,"./app/lib/utils":55,"./app/model/app":56,"./app/model/config":60,"./app/view/asset":65,"./app/view/dropbox_picker":66,"./app/view/help":67,"./app/view/intro":68,"./app/view/modal":70,"./app/view/notification":71,"./app/view/sidebar":72,"./app/view/toolbar":73,"./app/view/url_state":74,"./app/view/viewport":78,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.2.1
 
@@ -59126,10 +59116,14 @@ var API_KEY = "jwda9p0msmkfora",
     API_URL = "https://api.dropbox.com/1",
     CONTENTS_URL = "https://api-content.dropbox.com/1";
 
-var OBJLoader = require("../lib/obj_loader");
+var IMAGE_EXTENSIONS = ["jpeg", "jpg", "png"];
+var MESH_EXTENSIONS = ["obj", "stl", "mtl"].concat(IMAGE_EXTENSIONS);
 
 var url = require("url"),
     Promise = require("promise-polyfill");
+
+var OBJLoader = require("../lib/obj_loader"),
+    STLLoader = require("../lib/stl_loader");
 
 var _require = require("../lib/utils");
 
@@ -59143,6 +59137,7 @@ var _require2 = require("../lib/requests");
 var getJSON = _require2.getJSON;
 var get = _require2.get;
 var putJSON = _require2.putJSON;
+var getArrayBuffer = _require2.getArrayBuffer;
 var ImagePromise = require("../lib/imagepromise");
 var Template = require("../model/template");
 
@@ -59153,6 +59148,7 @@ var Dropbox = require("./base").extend("DROPBOX", function (token, cfg) {
     this._cfg = cfg;
     this.mode = "image";
     this._meshTextures = {};
+    this._meshMtls = {};
 
     // Caches
     this._mediaCache = {};
@@ -59164,11 +59160,6 @@ var Dropbox = require("./base").extend("DROPBOX", function (token, cfg) {
     this._cfg.set("BACKEND_DROPBOX_TOKEN", token);
     this._cfg.save();
 });
-
-Dropbox.Extensions = {
-    image: ["jpeg", "jpg", "png"],
-    mesh: ["obj", "jpg", "jpeg", "png"]
-};
 
 /**
  * Builds an authentication URL for Dropbox OAuth2 flow and
@@ -59204,7 +59195,7 @@ Dropbox.prototype.accountInfo = function () {
 };
 
 Dropbox.prototype.setMode = function (mode) {
-    if (mode in Dropbox.Extensions) {
+    if (mode === "image" || mode === "mesh") {
         this.mode = mode;
     } else {
         this.mode = this.mode || "image";
@@ -59215,7 +59206,7 @@ Dropbox.prototype.setMode = function (mode) {
 Dropbox.prototype.pickTemplate = function (success, error) {
     var _this = this;
 
-    var closable = arguments[2] === undefined ? false : arguments[2];
+    var closable = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
     var picker = new Picker({
         dropbox: this,
@@ -59271,7 +59262,7 @@ Dropbox.prototype.setTemplate = function (path, json) {
 Dropbox.prototype.pickAssets = function (success, error) {
     var _this3 = this;
 
-    var closable = arguments[2] === undefined ? false : arguments[2];
+    var closable = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
     var picker = new Picker({
         dropbox: this,
@@ -59306,13 +59297,16 @@ Dropbox.prototype.setAssets = function (path, mode) {
     this._assetsPath = path;
     this.setMode(mode);
 
+    var exts = this.mode === "mesh" ? MESH_EXTENSIONS : IMAGE_EXTENSIONS;
+
     return this.list(path, {
         filesOnly: true,
-        extensions: Dropbox.Extensions[this.mode],
+        extensions: exts,
         noCache: true
     }).then(function (items) {
         _this4._assets = [];
         _this4._meshTextures = {};
+        _this4._meshMtls = {};
         if (_this4.mode === "image") {
             _this4._setImageAssets(items);
         } else if (_this4.mode === "mesh") {
@@ -59332,13 +59326,26 @@ Dropbox.prototype._setMeshAssets = function (items) {
 
     // Find only OBJ files
     this._assets = paths.filter(function (p) {
-        return extname(p) === "obj";
+        return ["obj", "stl"].indexOf(extname(p)) > -1;
     });
 
     // Initialize texture map
     this._assets.forEach(function (p) {
-        _this5._meshTextures[p] = paths.indexOf(stripExtension(p) + ".jpg") > -1;
+        var ext = undefined;
+        for (var i = 0; i < IMAGE_EXTENSIONS.length; i++) {
+            ext = IMAGE_EXTENSIONS[i];
+            if (paths.indexOf(stripExtension(p) + "." + ext) > -1) {
+                _this5._meshTextures[p] = stripExtension(p) + "." + ext;
+                break;
+            }
+        }
+
+        if (paths.indexOf(stripExtension(p) + ".mtl") > -1) {
+            _this5._meshMtls[p] = stripExtension(p) + ".mtl";
+        }
     });
+
+    console.log("Dropbox::Set mesh and textures", this._assets, this._meshTextures, this._meshMtls);
 };
 
 Dropbox.prototype._setImageAssets = function (items) {
@@ -59350,9 +59357,9 @@ Dropbox.prototype._setImageAssets = function (items) {
 Dropbox.prototype.list = function () {
     var _this6 = this;
 
-    var path = arguments[0] === undefined ? "/" : arguments[0];
+    var path = arguments.length <= 0 || arguments[0] === undefined ? "/" : arguments[0];
 
-    var _ref2 = arguments[1] === undefined ? {} : arguments[1];
+    var _ref2 = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
 
     var _ref2$foldersOnly = _ref2.foldersOnly;
     var foldersOnly = _ref2$foldersOnly === undefined ? false : _ref2$foldersOnly;
@@ -59411,7 +59418,7 @@ Dropbox.prototype.list = function () {
 };
 
 Dropbox.prototype.download = function (path) {
-    var responseType = arguments[1] === undefined ? "text" : arguments[1];
+    var responseType = arguments.length <= 1 || arguments[1] === undefined ? "text" : arguments[1];
 
     return get(CONTENTS_URL + "/files/auto" + path, {
         headers: this.headers(),
@@ -59500,7 +59507,7 @@ Dropbox.prototype.fetchTexture = function (assetId) {
     var path = this._assetsPath + "/" + assetId;
     if (this.mode === "mesh") {
         if (this._meshTextures[path]) {
-            return this.fetchImg(stripExtension(path) + ".jpg");
+            return this.fetchImg(this._meshTextures[path]);
         } else {
             return Promise.reject(null);
         }
@@ -59511,11 +59518,31 @@ Dropbox.prototype.fetchTexture = function (assetId) {
 
 Dropbox.prototype.fetchGeometry = function (assetId) {
 
-    var path = this._assetsPath + "/" + assetId;
+    var path = this._assetsPath + "/" + assetId,
+        ext = extname(assetId);
 
-    var dl = this.download(path);
+    var loader = undefined,
+        dl = undefined;
+
+    if (ext === "obj") {
+        loader = OBJLoader;
+        dl = this.download(path);
+    } else if (ext === "stl") {
+        loader = STLLoader;
+        dl = this.mediaURL(path).then(function (url) {
+            var q = getArrayBuffer(url);
+            dl.xhr = q.xhr;
+            return q;
+        });
+        dl.xhr = function () {
+            return { abort: function abort() {} };
+        };
+    } else {
+        throw new Error("Invalid mesh extension", ext, path);
+    }
+
     var geometry = dl.then(function (data) {
-        return OBJLoader(data);
+        return loader(data);
     });
 
     geometry.xhr = function () {
@@ -59548,7 +59575,7 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
 
 module.exports = Dropbox;
 
-},{"../lib/imagepromise":50,"../lib/obj_loader":51,"../lib/requests":52,"../lib/utils":54,"../model/template":62,"../view/dropbox_picker.js":64,"./base":46,"promise-polyfill":41,"url":8}],48:[function(require,module,exports){
+},{"../lib/imagepromise":50,"../lib/obj_loader":51,"../lib/requests":52,"../lib/stl_loader":53,"../lib/utils":55,"../model/template":64,"../view/dropbox_picker.js":66,"./base":46,"promise-polyfill":41,"url":8}],48:[function(require,module,exports){
 'use strict';
 
 var Dropbox = require('./dropbox'),
@@ -59670,7 +59697,7 @@ Server.prototype.fetchGeometry = function (assetId) {
 
 module.exports = Server;
 
-},{"../lib/imagepromise":50,"../lib/requests":52,"../lib/utils":54,"./base":46,"url":8}],50:[function(require,module,exports){
+},{"../lib/imagepromise":50,"../lib/requests":52,"../lib/utils":55,"./base":46,"url":8}],50:[function(require,module,exports){
 'use strict';
 
 var Promise = require('promise-polyfill'),
@@ -59681,7 +59708,7 @@ var _require = require('../view/notification');
 var loading = _require.loading;
 
 var ImagePromise = function ImagePromise(url) {
-    var auth = arguments[1] === undefined ? false : arguments[1];
+    var auth = arguments.length <= 1 || arguments[1] === undefined ? false : arguments[1];
 
     return new Promise(function (resolve, reject) {
 
@@ -59742,7 +59769,7 @@ var MaterialPromise = function MaterialPromise(url, auth) {
 
 module.exports = MaterialPromise;
 
-},{"../view/notification":70,"promise-polyfill":41,"three":43}],51:[function(require,module,exports){
+},{"../view/notification":71,"promise-polyfill":41,"three":43}],51:[function(require,module,exports){
 /**
  * Adapted from
  * https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/OBJLoader.js
@@ -59764,9 +59791,10 @@ function OBJLoader(text) {
 
     console.time('OBJLoader');
 
-    var object,
-        objects = [];
-    var geometry, material;
+    var object;
+    var objects = [];
+    var geometry;
+    var material;
 
     function parseVertexIndex(value) {
 
@@ -60121,7 +60149,9 @@ module.exports.Request = XMLHttpRequestPromise;
 
 // Below are some shortcuts around the basic Request object for common
 // network calls
-module.exports.getArrayBuffer = function (url, _ref2) {
+module.exports.getArrayBuffer = function (url) {
+    var _ref2 = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
     var _ref2$headers = _ref2.headers;
     var headers = _ref2$headers === undefined ? {} : _ref2$headers;
     var _ref2$auth = _ref2.auth;
@@ -60130,7 +60160,9 @@ module.exports.getArrayBuffer = function (url, _ref2) {
     return XMLHttpRequestPromise(url, { responseType: 'arraybuffer', headers: headers, auth: auth });
 };
 
-module.exports.get = function (url, _ref3) {
+module.exports.get = function (url) {
+    var _ref3 = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
     var _ref3$headers = _ref3.headers;
     var headers = _ref3$headers === undefined ? {} : _ref3$headers;
     var _ref3$data = _ref3.data;
@@ -60141,7 +60173,9 @@ module.exports.get = function (url, _ref3) {
     return XMLHttpRequestPromise(_url(url, data), { headers: headers, auth: auth });
 };
 
-module.exports.getJSON = function (url, _ref4) {
+module.exports.getJSON = function (url) {
+    var _ref4 = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
     var _ref4$headers = _ref4.headers;
     var headers = _ref4$headers === undefined ? {} : _ref4$headers;
     var _ref4$data = _ref4.data;
@@ -60152,7 +60186,9 @@ module.exports.getJSON = function (url, _ref4) {
     return XMLHttpRequestPromise(_url(url, data), { responseType: 'json', headers: headers, auth: auth });
 };
 
-module.exports.putJSON = function (url, _ref5) {
+module.exports.putJSON = function (url) {
+    var _ref5 = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
     var _ref5$headers = _ref5.headers;
     var headers = _ref5$headers === undefined ? {} : _ref5$headers;
     var _ref5$data = _ref5.data;
@@ -60167,7 +60203,214 @@ module.exports.putJSON = function (url, _ref5) {
     });
 };
 
-},{"../view/notification":70,"promise-polyfill":41,"querystring":7}],53:[function(require,module,exports){
+},{"../view/notification":71,"promise-polyfill":41,"querystring":7}],53:[function(require,module,exports){
+/**
+ *
+ * Adapted from https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/STLLoader.js
+ * to use in our context.
+ *
+ * Only keeps the parsing part, no Loader class
+ */
+
+'use strict';
+
+var THREE = require('three');
+
+function isBinary(binData) {
+
+    var expect;
+    var face_size;
+    var n_faces;
+    var reader;
+    reader = new DataView(binData);
+    face_size = 32 / 8 * 3 + 32 / 8 * 3 * 3 + 16 / 8;
+    n_faces = reader.getUint32(80, true);
+    expect = 80 + 32 / 8 + n_faces * face_size;
+
+    if (expect === reader.byteLength) {
+        return true;
+    }
+    // some binary files will have different size from expected,
+    // checking characters higher than ASCII to confirm is binary
+    var fileLength = reader.byteLength;
+    for (var index = 0; index < fileLength; index++) {
+        if (reader.getUint8(index, false) > 127) {
+            return true;
+        }
+    }
+
+    return false;
+}
+;
+
+function parse(data) {
+    var binData = ensureBinary(data);
+
+    return isBinary(binData) ? parseBinary(binData) : parseASCII(ensureString(data));
+}
+
+function parseBinary(data) {
+
+    var reader = new DataView(data);
+    var faces = reader.getUint32(80, true);
+
+    var r;
+    var g;
+    var b;
+    var hasColors = false;
+    var colors;
+    var defaultR;
+    var defaultG;
+    var defaultB;
+    var alpha;
+
+    // process STL header
+    // check for default color in header ("COLOR=rgba" sequence).
+    for (var index = 0; index < 80 - 10; index++) {
+        if (reader.getUint32(index, false) == 0x434F4C4F /*COLO*/ && reader.getUint8(index + 4) == 0x52 /*'R'*/ && reader.getUint8(index + 5) == 0x3D /*'='*/) {
+
+            hasColors = true;
+            colors = new Float32Array(faces * 3 * 3);
+
+            defaultR = reader.getUint8(index + 6) / 255;
+            defaultG = reader.getUint8(index + 7) / 255;
+            defaultB = reader.getUint8(index + 8) / 255;
+            alpha = reader.getUint8(index + 9) / 255;
+        }
+    }
+
+    var dataOffset = 84;
+    var faceLength = 12 * 4 + 2;
+
+    var offset = 0;
+
+    var geometry = new THREE.BufferGeometry();
+
+    var vertices = new Float32Array(faces * 3 * 3);
+    var normals = new Float32Array(faces * 3 * 3);
+
+    for (var face = 0; face < faces; face++) {
+        var start = dataOffset + face * faceLength;
+        var normalX = reader.getFloat32(start, true);
+        var normalY = reader.getFloat32(start + 4, true);
+        var normalZ = reader.getFloat32(start + 8, true);
+
+        if (hasColors) {
+            var packedColor = reader.getUint16(start + 48, true);
+            if ((packedColor & 0x8000) === 0) {
+                // facet has its own unique color
+                r = (packedColor & 0x1F) / 31;
+                g = (packedColor >> 5 & 0x1F) / 31;
+                b = (packedColor >> 10 & 0x1F) / 31;
+            } else {
+                r = defaultR;
+                g = defaultG;
+                b = defaultB;
+            }
+        }
+
+        for (var i = 1; i <= 3; i++) {
+            var vertexstart = start + i * 12;
+
+            vertices[offset] = reader.getFloat32(vertexstart, true);
+            vertices[offset + 1] = reader.getFloat32(vertexstart + 4, true);
+            vertices[offset + 2] = reader.getFloat32(vertexstart + 8, true);
+
+            normals[offset] = normalX;
+            normals[offset + 1] = normalY;
+            normals[offset + 2] = normalZ;
+
+            if (hasColors) {
+                colors[offset] = r;
+                colors[offset + 1] = g;
+                colors[offset + 2] = b;
+            }
+
+            offset += 3;
+        }
+    }
+
+    geometry.addAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3));
+
+    if (hasColors) {
+        geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geometry.hasColors = true;
+        geometry.alpha = alpha;
+    }
+
+    return geometry;
+}
+
+function parseASCII(data) {
+
+    var geometry;
+    var length;
+    var normal;
+    var patternFace;
+    var patternNormal;
+    var patternVertex;
+    var result;
+    var text;
+    geometry = new THREE.Geometry();
+    patternFace = /facet([\s\S]*?)endfacet/g;
+
+    while ((result = patternFace.exec(data)) !== null) {
+
+        text = result[0];
+        patternNormal = /normal[\s]+([\-+]?[0-9]+\.?[0-9]*([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+/g;
+
+        while ((result = patternNormal.exec(text)) !== null) {
+            normal = new THREE.Vector3(parseFloat(result[1]), parseFloat(result[3]), parseFloat(result[5]));
+        }
+
+        patternVertex = /vertex[\s]+([\-+]?[0-9]+\.?[0-9]*([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+/g;
+
+        while ((result = patternVertex.exec(text)) !== null) {
+            geometry.vertices.push(new THREE.Vector3(parseFloat(result[1]), parseFloat(result[3]), parseFloat(result[5])));
+        }
+
+        length = geometry.vertices.length;
+
+        geometry.faces.push(new THREE.Face3(length - 3, length - 2, length - 1, normal));
+    }
+
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+
+    return geometry;
+}
+
+function ensureString(buf) {
+
+    if (typeof buf !== 'string') {
+        var array_buffer = new Uint8Array(buf);
+        var str = '';
+        for (var i = 0; i < buf.byteLength; i++) {
+            str += String.fromCharCode(array_buffer[i]); // implicitly assumes little-endian
+        }
+        return str;
+    } else {
+        return buf;
+    }
+}
+
+function ensureBinary(buf) {
+
+    if (typeof buf === 'string') {
+        var array_buffer = new Uint8Array(buf.length);
+        for (var i = 0; i < buf.length; i++) {
+            array_buffer[i] = buf.charCodeAt(i) & 0xff; // implicitly assumes little-endian
+        }
+        return array_buffer.buffer || array_buffer;
+    } else {
+        return buf;
+    }
+}
+
+module.exports = parse;
+
+},{"three":43}],54:[function(require,module,exports){
 'use strict';
 
 module.exports.ie = (function () {
@@ -60194,13 +60437,13 @@ module.exports.localstorage = (function () {
     }
 })();
 
-},{}],54:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 'use strict';
 
 module.exports = {};
 
 var randomString = function randomString(length) {
-    var useTime = arguments[1] === undefined ? true : arguments[1];
+    var useTime = arguments.length <= 1 || arguments[1] === undefined ? true : arguments[1];
 
     var result = '',
         ch = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -60217,7 +60460,7 @@ var randomString = function randomString(length) {
 };
 
 var basename = function basename(path) {
-    var removeExt = arguments[1] === undefined ? false : arguments[1];
+    var removeExt = arguments.length <= 1 || arguments[1] === undefined ? false : arguments[1];
 
     var bn = path.split('/').pop();
     return removeExt ? bn.split('.').slice(0, -1).join('.') : bn;
@@ -60263,7 +60506,7 @@ module.exports = {
     capitalize: capitalize, pad: pad
 };
 
-},{}],55:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore'),
@@ -60272,7 +60515,9 @@ var _ = require('underscore'),
 var Backbone = require('backbone');
 
 var Landmark = require('./landmark'),
-    AssetSource = require('./assetsource');
+    Log = require('./log'),
+    AssetSource = require('./assetsource'),
+    Modal = require('../view/modal');;
 
 var App = Backbone.Model.extend({
 
@@ -60284,8 +60529,8 @@ var App = Backbone.Model.extend({
             editingOn: true,
             activeTemplate: undefined,
             activeCollection: undefined,
-            helpOverlayIsDisplayed: false
-
+            helpOverlayIsDisplayed: false,
+            log: {}
         };
     },
 
@@ -60349,6 +60594,10 @@ var App = Backbone.Model.extend({
         return this.get('activeCollection');
     },
 
+    log: function log() {
+        return this.get('log');
+    },
+
     hasAssetSource: function hasAssetSource() {
         return this.has('assetSource');
     },
@@ -60398,7 +60647,7 @@ var App = Backbone.Model.extend({
     _initTemplates: function _initTemplates() {
         var _this = this;
 
-        var override = arguments[0] === undefined ? false : arguments[0];
+        var override = arguments.length <= 0 || arguments[0] === undefined ? false : arguments[0];
 
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.
@@ -60422,7 +60671,7 @@ var App = Backbone.Model.extend({
     _initCollections: function _initCollections() {
         var _this2 = this;
 
-        var override = arguments[0] === undefined ? false : arguments[0];
+        var override = arguments.length <= 0 || arguments[0] === undefined ? false : arguments[0];
 
         this.server().fetchCollections().then(function (collections) {
             _this2.set('collections', collections);
@@ -60465,6 +60714,7 @@ var App = Backbone.Model.extend({
             this.stopListening(this.get('assetSource'));
         }
         this.set('assetSource', assetSource);
+        this.set('log', {});
         // whenever our asset source changes it's current asset and mesh we need
         // to update the app state.
         this.listenTo(assetSource, 'change:asset', this.assetChanged);
@@ -60515,10 +60765,19 @@ var App = Backbone.Model.extend({
 
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
-        //
-        // Make a new landmark object for the new asset.
-        var loadLandmarksPromise = this.server().fetchLandmarkGroup(this.asset().id, this.activeTemplate()).then(function (json) {
-            return Landmark.parseGroup(json, _this4.asset().id, _this4.activeTemplate(), _this4.server());
+        var lmPromise = undefined;
+
+        // Try and find an in-memory log for this asset
+        var log = this.log();
+        if (!log[this.asset().id]) {
+            log[this.asset().id] = new Log();
+        }
+        var assetLog = log[this.asset().id];
+
+        lmPromise = this.server().fetchLandmarkGroup(this.asset().id, this.activeTemplate());
+
+        var loadLandmarksPromise = lmPromise.then(function (json) {
+            return Landmark.parseGroup(json, _this4.asset().id, _this4.activeTemplate(), _this4.server(), assetLog);
         }, function () {
             console.log('Error in fetching landmark JSON file');
         });
@@ -60547,14 +60806,36 @@ var App = Backbone.Model.extend({
     },
 
     nextAsset: function nextAsset() {
+        var _this5 = this;
+
         if (this.assetSource().hasSuccessor()) {
-            return this._switchToAsset(this.assetSource().next());
+            var lms = this.landmarks();
+            var _go = function _go() {
+                _this5._switchToAsset(_this5.assetSource().next());
+            };
+
+            if (lms && !lms.log.isCurrent()) {
+                Modal.confirm('You have unsaved changes, are you sure you want to switch assets ?', _go);
+            } else {
+                _go();
+            }
         }
     },
 
     previousAsset: function previousAsset() {
+        var _this6 = this;
+
         if (this.assetSource().hasPredecessor()) {
-            return this._switchToAsset(this.assetSource().previous());
+            var lms = this.landmarks();
+            var _go = function _go() {
+                _this6._switchToAsset(_this6.assetSource().previous());
+            };
+
+            if (lms && !lms.log.isCurrent()) {
+                Modal.confirm('You have unsaved changes, are you sure you want to switch assets ?', _go);
+            } else {
+                return _go();
+            }
         }
     },
 
@@ -60566,7 +60847,7 @@ var App = Backbone.Model.extend({
 
 module.exports = App;
 
-},{"./assetsource":57,"./landmark":60,"backbone":2,"promise-polyfill":41,"underscore":44}],56:[function(require,module,exports){
+},{"../view/modal":70,"./assetsource":58,"./landmark":61,"./log":62,"backbone":2,"promise-polyfill":41,"underscore":44}],57:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60768,7 +61049,6 @@ var Image = Backbone.Model.extend({
 
         if (!this.hasOwnProperty('_texturePromise')) {
             this._texturePromise = this.get('server').fetchTexture(this.id).then(function (material) {
-                console.log(material);
                 delete _this2._texturePromise;
                 console.log('Asset: loaded texture for ' + _this2.id);
                 _this2.texture = material;
@@ -60845,6 +61125,8 @@ var Mesh = Image.extend({
             this._geometryPromise = arrayPromise.then(function (geometry) {
                 delete _this3._geometryPromise;
                 geometry.computeBoundingSphere();
+                geometry.computeFaceNormals();
+                geometry.computeVertexNormals();
 
                 _this3.geometry = geometry;
                 _this3.trigger('change:geometry');
@@ -60939,7 +61221,7 @@ var Mesh = Image.extend({
 exports.Mesh = Mesh;
 exports.Image = Image;
 
-},{"../lib/imagepromise":50,"../lib/requests":52,"backbone":2,"three":43}],57:[function(require,module,exports){
+},{"../lib/imagepromise":50,"../lib/requests":52,"backbone":2,"three":43}],58:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -60956,10 +61238,7 @@ function abortAllObj(obj) {
 var AssetSource = Backbone.Model.extend({
 
     defaults: function defaults() {
-        return {
-            assets: new Backbone.Collection(),
-            assetIsLoading: false
-        };
+        return { assets: new Backbone.Collection(), assetIsLoading: false };
     },
 
     fetch: function fetch() {
@@ -61149,7 +61428,7 @@ exports.ImageSource = AssetSource.extend({
     }
 });
 
-},{"./asset":56,"backbone":2,"underscore":44}],58:[function(require,module,exports){
+},{"./asset":57,"backbone":2,"underscore":44}],59:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -61204,7 +61483,7 @@ var AtomicOperationTracker = Backbone.Model.extend({
 var atomicTracker = new AtomicOperationTracker();
 module.exports = atomicTracker;
 
-},{"backbone":2}],59:[function(require,module,exports){
+},{"backbone":2}],60:[function(require,module,exports){
 /**
  * Persistable config object with get and set logic
  * Requires localstorage to work properly (throws Error otherwise),
@@ -61290,8 +61569,34 @@ module.exports = function () {
     return _configInstance;
 };
 
-},{"../lib/support":53,"backbone":2,"underscore":44}],60:[function(require,module,exports){
+},{"../lib/support":54,"backbone":2,"underscore":44}],61:[function(require,module,exports){
 'use strict';
+
+var _slicedToArray = (function () {
+    function sliceIterator(arr, i) {
+        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
+            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+                _arr.push(_s.value);if (i && _arr.length === i) break;
+            }
+        } catch (err) {
+            _d = true;_e = err;
+        } finally {
+            try {
+                if (!_n && _i['return']) _i['return']();
+            } finally {
+                if (_d) throw _e;
+            }
+        }return _arr;
+    }return function (arr, i) {
+        if (Array.isArray(arr)) {
+            return arr;
+        } else if (Symbol.iterator in Object(arr)) {
+            return sliceIterator(arr, i);
+        } else {
+            throw new TypeError('Invalid attempt to destructure non-iterable instance');
+        }
+    };
+})();
 
 var _ = require('underscore');
 var Backbone = require('backbone');
@@ -61327,7 +61632,8 @@ var Landmark = Backbone.Model.extend({
         return {
             point: null,
             selected: false,
-            nextAvailable: false
+            nextAvailable: false,
+            index: null
         };
     },
 
@@ -61426,6 +61732,12 @@ LandmarkCollectionPrototype.selected = function () {
     });
 };
 
+LandmarkCollectionPrototype.isEmpty = function () {
+    return this.landmarks.every(function (lm) {
+        return lm.empty();
+    });
+};
+
 LandmarkCollectionPrototype.deselectAll = atomicOperation(function () {
     this.landmarks.forEach(function (lm) {
         lm.deselect();
@@ -61436,13 +61748,6 @@ LandmarkCollectionPrototype.selectAll = atomicOperation(function () {
     this.landmarks.forEach(function (lm) {
         lm.select();
     });
-});
-
-LandmarkCollectionPrototype.deleteSelected = atomicOperation(function () {
-    this.selected().forEach(function (lm) {
-        lm.clear();
-    });
-    this.resetNextAvailable();
 });
 
 var _validateConnectivity = function _validateConnectivity(nLandmarks, connectivity) {
@@ -61458,16 +61763,17 @@ var _validateConnectivity = function _validateConnectivity(nLandmarks, connectiv
 };
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
-var LandmarkGroup = function LandmarkGroup(points, connectivity, labels, id, type, server) {
+var LandmarkGroup = function LandmarkGroup(points, connectivity, labels, id, type, server, log) {
+    var _this = this;
 
-    var that = this;
     this.id = id;
     this.type = type;
     this.server = server;
+    this.log = log;
 
     // 1. Build landmarks from points
-    this.landmarks = points.map(function (p) {
-        var lmInitObj = { group: that };
+    this.landmarks = points.map(function (p, index) {
+        var lmInitObj = { group: _this, index: index };
         if (p.length === 2) {
             lmInitObj.nDims = 2;
             if (p[0] !== null && p[1] !== null) {
@@ -61493,11 +61799,12 @@ var LandmarkGroup = function LandmarkGroup(points, connectivity, labels, id, typ
 
     // 3. Build labels
     this.labels = labels.map(function (label) {
-        return new LandmarkLabel(label.label, that.landmarks, label.mask);
+        return new LandmarkLabel(label.label, _this.landmarks, label.mask);
     });
 
     // make sure we start with a sensible insertion configuration.
     this.resetNextAvailable();
+    this.log.reset(this.toJSON());
 };
 
 LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
@@ -61551,19 +61858,21 @@ LandmarkGroup.prototype.resetNextAvailable = function (originLm) {
     return next;
 };
 
-LandmarkGroup.deleteSelected = atomicOperation(function () {
+LandmarkGroup.prototype.deleteSelected = atomicOperation(function () {
+    var ops = [];
     this.selected().forEach(function (lm) {
+        ops.push([lm.get('index'), lm.point().clone(), undefined]);
         lm.clear();
     });
     // reactivate the group to reset next available.
     this.resetNextAvailable();
+    this.log.push(ops);
 });
 
 LandmarkGroup.prototype.insertNew = atomicOperation(function (v) {
     var lm = this.nextAvailable();
     if (lm === null) {
-        // nothing left to insert!
-        return null;
+        return null; // nothing left to insert!
     }
     // we are definitely inserting.
     this.deselectAll();
@@ -61572,6 +61881,13 @@ LandmarkGroup.prototype.insertNew = atomicOperation(function (v) {
 });
 
 LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
+
+    if (!v) {
+        return;
+    }
+
+    this.log.push([[lm.get('index'), lm.point() ? lm.point().clone() : undefined, v.clone()]]);
+
     lm.set({
         point: v.clone(),
         selected: true,
@@ -61592,6 +61908,7 @@ LandmarkGroup.prototype.toJSON = function () {
 };
 
 LandmarkGroup.prototype.promiseSave = function () {
+    this.log.save(this.toJSON());
     return this.server.saveLandmarkGroup(this.id, this.type, this.toJSON());
 };
 
@@ -61600,6 +61917,46 @@ var LandmarkLabel = function LandmarkLabel(label, landmarks, mask) {
     this.label = label;
     this.mask = mask;
     this.landmarks = indexMaskArray(landmarks, mask);
+};
+
+LandmarkGroup.prototype.undo = function () {
+    var _this2 = this;
+
+    this.log.undo(function (ops) {
+        ops.forEach(function (_ref) {
+            var _ref2 = _slicedToArray(_ref, 3);
+
+            var index = _ref2[0];
+            var start = _ref2[1];
+            var end = _ref2[2];
+
+            if (!start) {
+                _this2.landmarks[index].clear();
+            } else {
+                _this2.landmarks[index].setPoint(start.clone());
+            }
+        });
+    });
+};
+
+LandmarkGroup.prototype.redo = function () {
+    var _this3 = this;
+
+    this.log.redo(function (ops) {
+        ops.forEach(function (_ref3) {
+            var _ref32 = _slicedToArray(_ref3, 3);
+
+            var index = _ref32[0];
+            var start = _ref32[1];
+            var end = _ref32[2];
+
+            if (!end) {
+                _this3.landmarks[index].clear();
+            } else {
+                _this3.landmarks[index].setPoint(end.clone());
+            }
+        });
+    });
 };
 
 LandmarkLabel.prototype = Object.create(LandmarkCollectionPrototype);
@@ -61615,9 +61972,9 @@ var parseLJSONv1 = function parseLJSONv1() {
     console.log('parsing v1 landmarks...');
 };
 
-var parseLJSONv2 = function parseLJSONv2(json, id, type, server) {
+var parseLJSONv2 = function parseLJSONv2(json, id, type, server, log) {
     console.log('parsing v2 landmarks...');
-    return new LandmarkGroup(json.landmarks.points, json.landmarks.connectivity, json.labels, id, type, server);
+    return new LandmarkGroup(json.landmarks.points, json.landmarks.connectivity, json.labels, id, type, server, log);
 };
 
 var LJSONParsers = {
@@ -61626,13 +61983,143 @@ var LJSONParsers = {
 };
 
 module.exports = {
-    parseGroup: function parseGroup(json, id, type, server) {
-        return LJSONParsers[json.version](json, id, type, server);
+    parseGroup: function parseGroup(json, id, type, server, log) {
+        return LJSONParsers[json.version](json, id, type, server, log);
     }
 };
 /*json, id, type, server*/
 
-},{"./atomic":58,"backbone":2,"three":43,"underscore":44}],61:[function(require,module,exports){
+},{"./atomic":59,"backbone":2,"three":43,"underscore":44}],62:[function(require,module,exports){
+'use strict';
+
+var _ = require('underscore');
+var Backbone = require('backbone');
+
+function FixedStack(size) {
+    this.size = size;
+    this._stack = [];
+};
+
+FixedStack.prototype.push = function (item) {
+    this._stack.push(item);
+    if (this._stack.length >= this.size) {
+        this._stack = this._stack.slice(1);
+    }
+};
+
+FixedStack.prototype.peek = function () {
+    return this._stack[this._stack.length - 1];
+};
+
+FixedStack.prototype.pop = function () {
+    return this._stack.pop();
+};
+
+FixedStack.prototype.length = function () {
+    return this._stack.length;
+};
+
+// --------------------------------------------------------------------------
+
+function Log() {
+    var maxOps = arguments.length <= 0 || arguments[0] === undefined ? 50 : arguments[0];
+    var maxCheckpoints = arguments.length <= 1 || arguments[1] === undefined ? 10 : arguments[1];
+
+    this._operations = new FixedStack(maxOps);
+    this._checkpoints = new FixedStack(maxCheckpoints);
+    this._undone = [];
+    this.started = Date.now();
+    _.extend(this, Backbone.Events);
+};
+
+Log.prototype.push = function (data) {
+    this._operations.push({ rev: Date.now(), data: data });
+    this._undone = [];
+    this.trigger('change');
+};
+
+Log.prototype.save = function (data) {
+    var last = this._operations.peek();
+    if (last) {
+        this._checkpoints.push({ rev: last.rev, data: data });
+    } else {
+        this._checkpoints.push({ rev: Date.now(), data: data });
+    }
+    this.trigger('change');
+};
+
+Log.prototype.isCurrent = function () {
+    var chck = this._checkpoints.peek(),
+        op = this._operations.peek(),
+        und = this._undone[this._undone.length - 1];
+
+    if (!chck) {
+        return false;
+    }
+    if (!op) {
+        if (!und) {
+            return true;
+        }
+    } else {
+        if (op.rev === chck.rev) {
+            return true;
+        }
+    }
+    return false;
+};
+
+Log.prototype.latest = function () {
+    return this._checkpoints.peek().data;
+};
+
+Log.prototype.operations = function () {
+    return this._operations._stack.map(function (i) {
+        return i.data;
+    });
+};
+
+Log.prototype.undo = function (func) {
+    var op = this._operations.pop();
+    if (op) {
+        console.log('Log:Undoing', op);
+        this._undone.push(op);
+        this.trigger('change');
+        func(op.data);
+    }
+};
+
+Log.prototype.redo = function (func) {
+    var op = this._undone.pop();
+    if (op) {
+        console.log('Log:Redoing', op);
+        this._operations.push(op);
+        this.trigger('change');
+        func(op.data);
+    }
+};
+
+Log.prototype.reset = function (data) {
+    this._operations = new FixedStack(this._operations.size);
+    this._undone = [];
+    if (data) {
+        this.save(data);
+    }
+    this.trigger('change');
+};
+
+Log.prototype.hasUndone = function () {
+    return this._undone.length > 0;
+};
+
+Log.prototype.hasOperations = function () {
+    return this._operations.length() > 0;
+};
+
+// --------------------------------------------------------------------------
+
+module.exports = Log;
+
+},{"backbone":2,"underscore":44}],63:[function(require,module,exports){
 'use strict';
 
 var THREE = require('three');
@@ -61881,7 +62368,7 @@ exports.OctreeNode = OctreeNode;
 exports.octreeForBufferGeometry = octreeForBufferGeometry;
 exports.intersetMesh = intersectMesh;
 
-},{"three":43}],62:[function(require,module,exports){
+},{"three":43}],64:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62050,7 +62537,7 @@ Template.prototype.toJSON = function () {
  * @return {Object}
  */
 Template.prototype.emptyLJSON = function () {
-    var dims = arguments[0] === undefined ? 2 : arguments[0];
+    var dims = arguments.length <= 0 || arguments[0] === undefined ? 2 : arguments[0];
 
     if (this._emptyLmGroup[dims]) {
         return _.clone(this._emptyLmGroup[dims]);
@@ -62092,7 +62579,7 @@ Template.prototype.emptyLJSON = function () {
 
 module.exports = Template;
 
-},{"js-yaml":10,"underscore":44}],63:[function(require,module,exports){
+},{"js-yaml":10,"underscore":44}],65:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -62344,7 +62831,7 @@ exports.AssetView = Backbone.View.extend({
     }
 });
 
-},{"../backend":48,"../lib/utils":54,"./intro":67,"./list_picker":68,"./modal":69,"./notification":70,"backbone":2,"jquery":9,"underscore":44}],64:[function(require,module,exports){
+},{"../backend":48,"../lib/utils":55,"./intro":68,"./list_picker":69,"./modal":70,"./notification":71,"backbone":2,"jquery":9,"underscore":44}],66:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62517,7 +63004,7 @@ var DropboxPicker = Modal.extend({
     fetch: function fetch() {
         var _this = this;
 
-        var noCache = arguments[0] === undefined ? false : arguments[0];
+        var noCache = arguments.length <= 0 || arguments[0] === undefined ? false : arguments[0];
 
         this.state.loading = true;
         this.update();
@@ -62700,7 +63187,7 @@ var DropboxPicker = Modal.extend({
 
 module.exports = DropboxPicker;
 
-},{"../lib/utils":54,"./modal":69,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],65:[function(require,module,exports){
+},{"../lib/utils":55,"./modal":70,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],67:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62764,47 +63251,7 @@ module.exports = Backbone.View.extend({
     }
 });
 
-},{"backbone":2,"jquery":9}],66:[function(require,module,exports){
-'use strict';
-
-var Backbone = require('backbone');
-var url = require('url');
-
-'use strict';
-
-exports.HistoryUpdate = Backbone.View.extend({
-
-    initialize: function initialize() {
-        console.log('HistoryUpdate:initialize');
-        this.listenTo(this.model, 'change:asset', this.assetChanged);
-        this.listenTo(this.model, 'change:activeTemplate', this.assetChanged);
-        // note that we don't listen for a change in the collection as
-        // this could lead to an invalid URL (e.g. change the collection to
-        // something else, URL immediately changes, user saves before asset
-        // loads)
-    },
-
-    assetChanged: function assetChanged() {
-        var u = url.parse(window.location.href.replace('#', '?'), true);
-        u.search = null;
-
-        if (this.model.activeTemplate()) {
-            u.query.t = this.model.activeTemplate();
-        }
-
-        if (this.model.activeCollection()) {
-            u.query.c = this.model.activeCollection();
-        }
-
-        if (this.model.assetIndex() !== undefined) {
-            u.query.i = this.model.assetIndex() + 1;
-        }
-
-        history.replaceState(null, null, url.format(u).replace('?', '#'));
-    }
-});
-
-},{"backbone":2,"url":8}],67:[function(require,module,exports){
+},{"backbone":2,"jquery":9}],68:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -62850,7 +63297,7 @@ var baseUrl = _require2.baseUrl;
 
 var version = require('../../../../package.json').version;
 
-var contents = '<div class=\'Intro\'>    <h1>Landmarker.io<h1>    <h3>v' + version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect your own server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div></div>';
+var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3>v' + version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect your own server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div></div>';
 
 var lsWarning = '<p class=\'IntroWarning\'>    Your browser doesn\'t support LocalStorage, so Dropbox login has been    disabled.</p>';
 
@@ -62937,7 +63384,7 @@ module.exports = {
     }
 };
 
-},{"../../../../package.json":45,"../backend":48,"../lib/utils":54,"./modal":69,"./notification":70,"jquery":9,"underscore":44}],68:[function(require,module,exports){
+},{"../../../../package.json":45,"../backend":48,"../lib/utils":55,"./modal":70,"./notification":71,"jquery":9,"underscore":44}],69:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -63053,7 +63500,7 @@ var ListPicker = Modal.extend({
 
 module.exports = ListPicker;
 
-},{"./modal":69,"jquery":9,"underscore":44}],69:[function(require,module,exports){
+},{"./modal":70,"jquery":9,"underscore":44}],70:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone'),
@@ -63088,7 +63535,7 @@ var Modal = Backbone.View.extend({
     className: 'ModalWindow',
 
     initialize: function initialize() {
-        var opts = arguments[0] === undefined ? {} : arguments[0];
+        var opts = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
         this.key = _key();
         _modals[this.key] = this;
@@ -63238,7 +63685,7 @@ Modal.confirm = function (text, accept, reject) {
 
 module.exports = Modal;
 
-},{"backbone":2,"jquery":9,"underscore":44}],70:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"underscore":44}],71:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -63333,7 +63780,7 @@ module.exports.BaseNotification = Backbone.View.extend({
     initialize: function initialize() {
         var _this = this;
 
-        var _ref = arguments[0] === undefined ? {} : arguments[0];
+        var _ref = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
         var _ref$msg = _ref.msg;
         var msg = _ref$msg === undefined ? '' : _ref$msg;
@@ -63567,12 +64014,13 @@ module.exports.loading = {
     }
 };
 
-},{"../lib/utils":54,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],71:[function(require,module,exports){
+},{"../lib/utils":55,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],72:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
 var Backbone = require('backbone');
 var $ = require('jquery');
+
 var Notification = require('./notification');
 var atomic = require('../model/atomic');
 
@@ -63811,16 +64259,22 @@ var SaveRevertView = Backbone.View.extend({
     initialize: function initialize(_ref4) {
         var app = _ref4.app;
 
-        _.bindAll(this, 'save', 'help');
+        _.bindAll(this, 'save', 'help', 'render');
         //this.listenTo(this.model, "all", this.render);
         // Get the singleton app model separately as model is the landmarks
         this.app = app;
+        this.listenTo(this.model.log, 'change', this.render);
+        this.render();
     },
 
     events: {
         'click #save': 'save',
         'click #help': 'help',
         'click #download': 'download'
+    },
+
+    render: function render() {
+        this.$el.find('#save').toggleClass('Active', !this.model.log.isCurrent());
     },
 
     save: function save(evt) {
@@ -63871,6 +64325,50 @@ var SaveRevertView = Backbone.View.extend({
 
             Notification.loading.stop(spinner);
             this.$el.find('#download').removeClass('Button--Disabled');
+        }
+    }
+});
+
+var UndoRedoView = Backbone.View.extend({
+
+    el: '#undoRedo',
+
+    events: {
+        'click .Undo': 'undo',
+        'click .Redo': 'redo'
+    },
+
+    initialize: function initialize() {
+        this.log = this.model.log;
+        this.listenTo(this.log, 'change', this.render);
+        _.bindAll(this, 'render', 'cleanup', 'undo', 'redo');
+        this.render();
+    },
+
+    cleanup: function cleanup() {
+        this.stopListening(this.log);
+        this.$el.find('.Undo').addClass('Disabled');
+        this.$el.find('.Redo').addClass('Disabled');
+    },
+
+    render: function render() {
+        this.$el.find('.Undo').toggleClass('Disabled', !this.log.hasOperations());
+        this.$el.find('.Redo').toggleClass('Disabled', !this.log.hasUndone());
+    },
+
+    undo: function undo() {
+        if (!this.log.hasOperations()) {
+            return;
+        } else {
+            this.model.undo();
+        }
+    },
+
+    redo: function redo() {
+        if (!this.log.hasUndone()) {
+            return;
+        } else {
+            this.model.redo();
         }
     }
 });
@@ -63937,20 +64435,27 @@ var Sidebar = Backbone.View.extend({
         this.listenTo(this.model, 'change:landmarks', this.landmarksChange);
         this.saveRevertView = null;
         this.lmView = null;
+        this.undoRedoView = null;
         this.templatePanel = new TemplatePanel({ model: this.model });
     },
 
     landmarksChange: function landmarksChange() {
         console.log('Sidebar - rewiring after landmark change');
         if (this.saveRevertView) {
-            // break bindings for save revert
             this.saveRevertView.undelegateEvents();
         }
         var lms = this.model.landmarks();
         if (lms === null) {
             return;
         }
+
         this.saveRevertView = new SaveRevertView({ model: lms, app: this.model });
+
+        if (this.undoRedoView) {
+            this.undoRedoView.undelegateEvents();
+        }
+        this.undoRedoView = new UndoRedoView({ model: lms });
+
         if (this.lmView) {
             this.lmView.cleanup();
         }
@@ -63964,7 +64469,7 @@ var Sidebar = Backbone.View.extend({
 
 exports.Sidebar = Sidebar;
 
-},{"../backend":48,"../model/atomic":58,"./list_picker":68,"./notification":70,"backbone":2,"jquery":9,"underscore":44}],72:[function(require,module,exports){
+},{"../backend":48,"../model/atomic":59,"./list_picker":69,"./notification":71,"backbone":2,"jquery":9,"underscore":44}],73:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -64109,7 +64614,45 @@ exports.Toolbar = Backbone.View.extend({
 
 });
 
-},{"../model/atomic":58,"backbone":2,"underscore":44}],73:[function(require,module,exports){
+},{"../model/atomic":59,"backbone":2,"underscore":44}],74:[function(require,module,exports){
+'use strict';
+
+var Backbone = require('backbone');
+var url = require('url');
+
+module.exports = Backbone.View.extend({
+
+    initialize: function initialize() {
+        console.log('HistoryUpdate:initialize');
+        this.listenTo(this.model, 'change:asset', this.assetChanged);
+        this.listenTo(this.model, 'change:activeTemplate', this.assetChanged);
+        // note that we don't listen for a change in the collection as
+        // this could lead to an invalid URL (e.g. change the collection to
+        // something else, URL immediately changes, user saves before asset
+        // loads)
+    },
+
+    assetChanged: function assetChanged() {
+        var u = url.parse(window.location.href.replace('#', '?'), true);
+        u.search = null;
+
+        if (this.model.activeTemplate()) {
+            u.query.t = this.model.activeTemplate();
+        }
+
+        if (this.model.activeCollection()) {
+            u.query.c = this.model.activeCollection();
+        }
+
+        if (this.model.assetIndex() !== undefined) {
+            u.query.i = this.model.assetIndex() + 1;
+        }
+
+        history.replaceState(null, null, url.format(u).replace('?', '#'));
+    }
+});
+
+},{"backbone":2,"url":8}],75:[function(require,module,exports){
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -64508,7 +65051,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     return controller;
 };
 
-},{"backbone":2,"jquery":9,"three":43,"underscore":44}],74:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"three":43,"underscore":44}],76:[function(require,module,exports){
 'use strict';
 
 var _ = require('underscore');
@@ -64669,7 +65212,7 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
 
 module.exports = { LandmarkConnectionTHREEView: LandmarkConnectionTHREEView, LandmarkTHREEView: LandmarkTHREEView };
 
-},{"backbone":2,"three":43,"underscore":44}],75:[function(require,module,exports){
+},{"backbone":2,"three":43,"underscore":44}],77:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -64727,7 +65270,7 @@ function Handler() {
      * @return {Landmark[]}
      */
     var findClosestLandmarks = function findClosestLandmarks(lmGroup, loc) {
-        var locked = arguments[2] === undefined ? false : arguments[2];
+        var locked = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
         var dist,
             i,
@@ -64781,6 +65324,8 @@ function Handler() {
     var positionLmDrag = new THREE.Vector2();
     // vector difference in one time step
     var deltaLmDrag = new THREE.Vector2();
+    var dragStartPositions,
+        dragged = false;
 
     var intersectsWithLms, intersectsWithMesh;
 
@@ -64825,6 +65370,10 @@ function Handler() {
 
         // record the position of where the drag started.
         positionLmDrag.copy(_this.localToScreen(lmPressed.point()));
+        dragStartPositions = _this.model.landmarks().selected().map(function (lm) {
+            return [lm.get('index'), lm.point().clone()];
+        });
+
         // start listening for dragging landmarks
         $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
         $(document).one('mouseup.viewportLandmark', landmarkOnMouseUp);
@@ -64932,6 +65481,7 @@ function Handler() {
             intersectsWithMesh = _this.getIntersects(vScreen.x, vScreen.y, _this.mesh);
             if (intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
+                dragged = !!dragged || true;
                 lm.setPoint(_this.worldToLocal(intersectsWithMesh[0].point));
             } else {
                 // don't update point - it would fall off the surface.
@@ -65051,9 +65601,16 @@ function Handler() {
             } else if (ctrl) {
                 setGroupSelected(true);
             }
+        } else if (dragged) {
+            _this.model.landmarks().selected().forEach(function (lm, i) {
+                dragStartPositions[i].push(lm.point().clone());
+            });
+            _this.model.landmarks().log.push(dragStartPositions);
         }
 
         _this.clearCanvas();
+        dragged = false;
+        dragStartPositions = [];
         isPressed = false;
     });
 
@@ -65138,6 +65695,7 @@ function Handler() {
 
         move.set(x * dx, y * dy);
 
+        var ops = [];
         _this.model.landmarks().selected().forEach(function (lm) {
             var lmScreen = _this.localToScreen(lm.point());
             lmScreen.add(move);
@@ -65145,16 +65703,19 @@ function Handler() {
             var intersectsWithMesh = _this.getIntersects(lmScreen.x, lmScreen.y, _this.mesh);
 
             if (intersectsWithMesh.length > 0) {
-                lm.setPoint(_this.worldToLocal(intersectsWithMesh[0].point));
+                var pt = _this.worldToLocal(intersectsWithMesh[0].point);
+                ops.push([lm.get('index'), lm.point().clone(), pt.clone()]);
+                lm.setPoint(pt);
             }
         });
+        _this.model.landmarks().log.push(ops);
     });
 
     // Group Selection hook
     // ------------------------------------------------------------------------
 
     var setGroupSelected = function setGroupSelected() {
-        var val = arguments[0] === undefined ? true : arguments[0];
+        var val = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
 
         var _val = !!val; // Force cast to boolean
 
@@ -65213,7 +65774,7 @@ module.exports = Handler;
 
 // Pass right click does nothing in most cases
 
-},{"../../model/atomic":58,"jquery":9,"three":43,"underscore":44}],76:[function(require,module,exports){
+},{"../../model/atomic":59,"jquery":9,"three":43,"underscore":44}],78:[function(require,module,exports){
 'use strict';
 
 var $ = require('jquery');
@@ -65681,7 +66242,7 @@ exports.Viewport = Backbone.View.extend({
     // =========================================================================
 
     drawTargetingLine: function drawTargetingLine(start, end) {
-        var secondary = arguments[2] === undefined ? false : arguments[2];
+        var secondary = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
         this.ctx.beginPath();
         if (secondary) {
@@ -65778,7 +66339,7 @@ exports.Viewport = Backbone.View.extend({
     },
 
     worldToLocal: function worldToLocal(vector) {
-        var inPlace = arguments[1] === undefined ? false : arguments[1];
+        var inPlace = arguments.length <= 1 || arguments[1] === undefined ? false : arguments[1];
 
         return inPlace ? this.s_meshAndLms.worldToLocal(vector) : this.s_meshAndLms.worldToLocal(vector.clone());
     },
@@ -65820,7 +66381,7 @@ exports.Viewport = Backbone.View.extend({
 
 });
 
-},{"../../model/atomic":58,"../../model/octree":61,"./camera":73,"./elements":74,"./handler":75,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
+},{"../../model/atomic":59,"../../model/octree":63,"./camera":75,"./elements":76,"./handler":77,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-c7007b8d.js.map
+//# sourceMappingURL=bundle-865631ce.js.map
