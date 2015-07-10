@@ -59022,7 +59022,7 @@ if (typeof exports !== 'undefined') {
 },{}],45:[function(require,module,exports){
 module.exports={
   "name": "landmarker-io",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "3D mesh annotation in your browser.",
   "main": "index.js",
   "repository": {
@@ -60815,7 +60815,7 @@ var App = Backbone.Model.extend({
             };
 
             if (lms && !lms.log.isCurrent()) {
-                Modal.confirm('You have unsaved changes, are you sure you want to switch assets ?', _go);
+                Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
             } else {
                 _go();
             }
@@ -60832,7 +60832,7 @@ var App = Backbone.Model.extend({
             };
 
             if (lms && !lms.log.isCurrent()) {
-                Modal.confirm('You have unsaved changes, are you sure you want to switch assets ?', _go);
+                Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
             } else {
                 return _go();
             }
@@ -65283,6 +65283,11 @@ function Handler() {
 
         for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
             lm = lmGroup.landmarks[i];
+
+            if (lm.isEmpty()) {
+                continue;
+            }
+
             lmLoc = lm.point();
 
             if (lmLoc === null || locked && lm === currentTargetLm) {
@@ -65403,6 +65408,10 @@ function Handler() {
         event.preventDefault();
         _this.$el.focus();
 
+        if (!_this.model.landmarks()) {
+            return;
+        }
+
         isPressed = true;
 
         downEvent = event;
@@ -65427,7 +65436,7 @@ function Handler() {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
                         shiftPressed();
-                    } else if (_this.model.isEditingOn()) {
+                    } else if (_this.model.isEditingOn() && currentTargetLm) {
                         meshPressed();
                     } else {
                         nothingPressed();
@@ -65560,7 +65569,7 @@ function Handler() {
 
             if (_this.model.isEditingOn() && currentTargetLm) {
                 _this.model.landmarks().setLmAt(currentTargetLm, p);
-            } else {
+            } else if (downEvent.button === 2) {
                 _this.model.landmarks().insertNew(p);
             }
         }
@@ -65618,10 +65627,15 @@ function Handler() {
     // ------------------------------------------------------------------------
 
     var onMouseMove = function onMouseMove(evt) {
+
         _this.clearCanvas();
 
-        if (isPressed || !_this.model.isEditingOn()) {
+        if (isPressed || !_this.model.isEditingOn() || !_this.model.landmarks()) {
             return null;
+        }
+
+        if (currentTargetLm && currentTargetLm.isEmpty()) {
+            currentTargetLm = undefined;
         }
 
         var intersectsWithMesh = _this.getIntersectsFromEvent(evt, _this.mesh);
@@ -65646,7 +65660,7 @@ function Handler() {
             lms = lms.slice(0, 3);
         }
 
-        if (lms[0] && currentTargetLm && !groupSelected) {
+        if (currentTargetLm && !groupSelected && lms.length > 0) {
 
             if (currentTargetLm !== previousTargetLm) {
                 // Linear operation hence protected
@@ -65663,10 +65677,9 @@ function Handler() {
 
     // Keyboard handlers
     // ------------------------------------------------------------------------
-
     var onKeypress = atomic.atomicOperation(function (evt) {
         // Only work in group selection mode
-        if (!groupSelected || evt.which < 37 || evt.which > 40) {
+        if (!groupSelected || !_this.model.landmarks() || evt.which < 37 || evt.which > 40) {
             return;
         }
 
@@ -65717,6 +65730,10 @@ function Handler() {
     var setGroupSelected = function setGroupSelected() {
         var val = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
 
+        if (!_this.model.landmarks()) {
+            return;
+        }
+
         var _val = !!val; // Force cast to boolean
 
         if (_val === groupSelected) {
@@ -65737,6 +65754,10 @@ function Handler() {
     };
 
     var completeGroupSelection = function completeGroupSelection() {
+
+        if (!_this.model.landmarks()) {
+            return;
+        }
 
         _this.model.landmarks().labels.forEach(function (label) {
 
@@ -66384,4 +66405,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":59,"../../model/octree":63,"./camera":75,"./elements":76,"./handler":77,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-865631ce.js.map
+//# sourceMappingURL=bundle-78d6fe50.js.map
