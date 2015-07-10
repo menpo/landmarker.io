@@ -35,7 +35,8 @@ var Landmark = Backbone.Model.extend({
         return {
             point: null,
             selected: false,
-            nextAvailable: false
+            nextAvailable: false,
+            index: null
         }
     },
 
@@ -137,6 +138,10 @@ LandmarkCollectionPrototype.selected = function () {
     });
 };
 
+LandmarkCollectionPrototype.isEmpty = function () {
+    return this.landmarks.every(lm => lm.empty())
+};
+
 LandmarkCollectionPrototype.deselectAll = atomicOperation(function () {
     this.landmarks.forEach(function(lm) {
         lm.deselect();
@@ -149,13 +154,6 @@ LandmarkCollectionPrototype.selectAll = atomicOperation(function () {
     });
 });
 
-
-LandmarkCollectionPrototype.deleteSelected = atomicOperation(function () {
-    this.selected().forEach(function (lm) {
-        lm.clear();
-    });
-    this.resetNextAvailable();
-});
 
 var _validateConnectivity =  function (nLandmarks, connectivity) {
     var a, b;
@@ -173,16 +171,17 @@ var _validateConnectivity =  function (nLandmarks, connectivity) {
 };
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
-var LandmarkGroup = function (points, connectivity, labels, id, type, server) {
-
-    var that = this;
+var LandmarkGroup = function (
+    points, connectivity, labels, id, type, server, log
+) {
     this.id = id;
     this.type = type;
     this.server = server;
+    this.log = log;
 
     // 1. Build landmarks from points
-    this.landmarks = points.map(function(p) {
-        var lmInitObj = {group: that};
+    this.landmarks = points.map((p, index) => {
+        var lmInitObj = {group: this, index};
         if (p.length === 2) {
             lmInitObj.nDims = 2;
             if (p[0] !== null && p[1] !== null) {
@@ -207,12 +206,13 @@ var LandmarkGroup = function (points, connectivity, labels, id, type, server) {
     this.connectivity = connectivity;
 
     // 3. Build labels
-    this.labels = labels.map(function(label) {
-        return new LandmarkLabel(label.label, that.landmarks, label.mask);
+    this.labels = labels.map((label) => {
+        return new LandmarkLabel(label.label, this.landmarks, label.mask);
     });
 
     // make sure we start with a sensible insertion configuration.
     this.resetNextAvailable();
+    this.log.reset(this.toJSON());
 };
 
 LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
@@ -264,27 +264,40 @@ LandmarkGroup.prototype.resetNextAvailable = function (originLm) {
     return next;
 };
 
-LandmarkGroup.deleteSelected = atomicOperation(function () {
+LandmarkGroup.prototype.deleteSelected = atomicOperation(function () {
+    const ops = [];
     this.selected().forEach(function (lm) {
+        ops.push([lm.get('index'), lm.point().clone(), undefined]);
         lm.clear();
     });
     // reactivate the group to reset next available.
     this.resetNextAvailable();
+    this.log.push(ops);
 });
 
 LandmarkGroup.prototype.insertNew = atomicOperation(function (v) {
     var lm = this.nextAvailable();
     if (lm === null) {
-        // nothing left to insert!
-        return null;
+        return null;    // nothing left to insert!
     }
     // we are definitely inserting.
     this.deselectAll();
-    this.setLmAt(lm, v)
+    this.setLmAt(lm, v);
     this.resetNextAvailable(lm);
 });
 
 LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
+
+    if (!v) {
+        return;
+    }
+
+    this.log.push([
+        [ lm.get('index'),
+         lm.point() ? lm.point().clone() : undefined,
+         v.clone() ]
+    ]);
+
     lm.set({
         point: v.clone(),
         selected: true,
@@ -306,6 +319,7 @@ LandmarkGroup.prototype.toJSON = function () {
 };
 
 LandmarkGroup.prototype.promiseSave = function () {
+    this.log.save(this.toJSON());
     return this.server.saveLandmarkGroup(this.id, this.type, this.toJSON());
 };
 
@@ -314,6 +328,30 @@ var LandmarkLabel = function(label, landmarks, mask) {
     this.label = label;
     this.mask = mask;
     this.landmarks = indexMaskArray(landmarks, mask);
+};
+
+LandmarkGroup.prototype.undo = function () {
+    this.log.undo((ops) => {
+        ops.forEach(([index, start, end]) => {
+            if (!start) {
+                this.landmarks[index].clear();
+            } else {
+                this.landmarks[index].setPoint(start.clone());
+            }
+        });
+    });
+};
+
+LandmarkGroup.prototype.redo = function () {
+    this.log.redo((ops) => {
+        ops.forEach(([index, start, end]) => {
+            if (!end) {
+                this.landmarks[index].clear();
+            } else {
+                this.landmarks[index].setPoint(end.clone());
+            }
+        });
+    });
 };
 
 LandmarkLabel.prototype = Object.create(LandmarkCollectionPrototype);
@@ -330,10 +368,11 @@ var parseLJSONv1 = function (/*json, id, type, server*/) {
 };
 
 
-var parseLJSONv2 = function (json, id, type, server) {
+var parseLJSONv2 = function (json, id, type, server, log) {
     console.log('parsing v2 landmarks...');
-    return new LandmarkGroup(json.landmarks.points,
-        json.landmarks.connectivity, json.labels, id, type, server);
+    return new LandmarkGroup(
+        json.landmarks.points, json.landmarks.connectivity, json.labels,
+        id, type, server, log);
 };
 
 var LJSONParsers = {
@@ -342,7 +381,7 @@ var LJSONParsers = {
 };
 
 module.exports = {
-    parseGroup: function (json, id, type, server) {
-        return LJSONParsers[json.version](json, id, type, server);
+    parseGroup: function (json, id, type, server, log) {
+        return LJSONParsers[json.version](json, id, type, server, log);
     }
 }

@@ -15,9 +15,8 @@
 
 .RightSidebar-Controls,
 .RightSidebar-LandmarksPanel,
-.RightSidebar-Template {
+.RightSidebar-Header {
     display: flex;
-    text-align: center;
     opacity: .9;
 }
 
@@ -28,10 +27,12 @@
     background: $colorDarkerBlue;
     color: white;
     cursor: pointer;
+    font-size: large;
+    flex: 1;
+    display: flex;
+    justify-content: center;
     margin-left: 1px;
     margin-bottom: 1px;
-    font-size: large;
-    justify-content: center;
 
     &:hover {
         background: $colorDarkBlue;
@@ -40,6 +41,34 @@
     &.Disabled {
         cursor: default;
         background: $colorDarkerBlue;
+    }
+}
+
+.RightSidebar-UndoRedo {
+    > div {
+        @extend %transitionAll;
+        min-height: $mainControlHeight;
+        line-height: $mainControlHeight;
+        width: $mainControlHeight;
+        background: $colorPurple;
+        color: white;
+        float: left;
+        margin-left: 1px;
+        margin-bottom: 1px;
+        cursor: pointer;
+
+        &:last-of-type {
+            transform: scale(-1, 1);
+        }
+
+        &:hover {
+            background: $colorDarkPurple;
+        }
+
+        &.Disabled {
+            cursor: default;
+            background: $colorGray;
+        }
     }
 }
 
@@ -56,10 +85,6 @@ is itself a row flexbox */
     flex: 2;
     margin-left: 1px;
     margin-bottom: 1px;
-
-    &:first-of-type {
-      margin-left: 0;
-    }
 
     &:last-of-type {
       flex: 1;

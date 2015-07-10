@@ -76,6 +76,7 @@ function Handler () {
     var positionLmDrag = new THREE.Vector2();
     // vector difference in one time step
     var deltaLmDrag = new THREE.Vector2();
+    var dragStartPositions, dragged = false;
 
     var intersectsWithLms, intersectsWithMesh;
 
@@ -120,6 +121,9 @@ function Handler () {
 
         // record the position of where the drag started.
         positionLmDrag.copy(this.localToScreen(lmPressed.point()));
+        dragStartPositions = this.model.landmarks().selected().map(
+            lm => [lm.get('index'), lm.point().clone()]);
+
         // start listening for dragging landmarks
         $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
         $(document).one('mouseup.viewportLandmark', landmarkOnMouseUp);
@@ -243,6 +247,7 @@ function Handler () {
                 vScreen.x, vScreen.y, this.mesh);
             if (intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
+                dragged = !!dragged || true;
                 lm.setPoint(this.worldToLocal(intersectsWithMesh[0].point));
             } else {
                 // don't update point - it would fall off the surface.
@@ -358,9 +363,16 @@ function Handler () {
             } else if (ctrl) {
                 setGroupSelected(true);
             }
+        } else if (dragged) {
+            this.model.landmarks().selected().forEach((lm, i) => {
+                dragStartPositions[i].push(lm.point().clone());
+            });
+            this.model.landmarks().log.push(dragStartPositions);
         }
 
         this.clearCanvas();
+        dragged = false;
+        dragStartPositions = [];
         isPressed = false;
     });
 
@@ -448,6 +460,7 @@ function Handler () {
 
         move.set(x * dx, y * dy);
 
+        const ops = [];
         this.model.landmarks().selected().forEach((lm) => {
             let lmScreen = this.localToScreen(lm.point());
             lmScreen.add(move);
@@ -456,9 +469,12 @@ function Handler () {
                 lmScreen.x, lmScreen.y, this.mesh);
 
             if (intersectsWithMesh.length > 0) {
-                lm.setPoint(this.worldToLocal(intersectsWithMesh[0].point));
+                const pt = this.worldToLocal(intersectsWithMesh[0].point);
+                ops.push([lm.get('index'), lm.point().clone(), pt.clone()]);
+                lm.setPoint(pt);
             }
         });
+        this.model.landmarks().log.push(ops);
     });
 
     // Group Selection hook

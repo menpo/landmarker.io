@@ -6,7 +6,9 @@ var _ = require('underscore'),
 var Backbone = require('backbone');
 
 var Landmark = require('./landmark'),
-    AssetSource = require('./assetsource');
+    Log = require('./log'),
+    AssetSource = require('./assetsource'),
+    Modal = require('../view/modal');;
 
 var App = Backbone.Model.extend({
 
@@ -19,7 +21,7 @@ var App = Backbone.Model.extend({
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
-
+            log: {},
         }
     },
 
@@ -83,6 +85,10 @@ var App = Backbone.Model.extend({
         return this.get('activeCollection');
     },
 
+    log: function () {
+            return this.get('log');
+    },
+
     hasAssetSource: function () {
         return this.has('assetSource');
     },
@@ -122,12 +128,9 @@ var App = Backbone.Model.extend({
         _.bindAll(this, 'assetChanged', 'mesh', 'assetSource', 'landmarks');
 
         // New collection? Need to find the assets on them again
-        this.listenTo(
-            this, 'change:activeCollection', this.reloadAssetSource);
-        this.listenTo(
-            this, 'change:activeTemplate', this.reloadAssetSource);
-            this.listenTo(
-                this, 'change:mode', this.reloadAssetSource);
+        this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
+        this.listenTo(this, 'change:activeTemplate', this.reloadAssetSource);
+        this.listenTo(this, 'change:mode', this.reloadAssetSource);
 
         this._initTemplates();
         this._initCollections();
@@ -195,6 +198,7 @@ var App = Backbone.Model.extend({
             this.stopListening(this.get('assetSource'));
         }
         this.set('assetSource', assetSource);
+        this.set('log', {});
         // whenever our asset source changes it's current asset and mesh we need
         // to update the app state.
         this.listenTo(assetSource, 'change:asset', this.assetChanged);
@@ -245,14 +249,22 @@ var App = Backbone.Model.extend({
     _promiseLandmarksWithAsset: function (loadAssetPromise) {
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
-        //
-        // Make a new landmark object for the new asset.
-        var loadLandmarksPromise = this.server().fetchLandmarkGroup(
-            this.asset().id,
-            this.activeTemplate()
-        ).then((json) => {
-            return Landmark.parseGroup(
-                json, this.asset().id, this.activeTemplate(), this.server());
+        let lmPromise;
+
+        // Try and find an in-memory log for this asset
+        const log = this.log();
+        if (!log[this.asset().id]) {
+            log[this.asset().id] = new Log();
+        }
+        const assetLog = log[this.asset().id];
+
+        lmPromise = this.server().fetchLandmarkGroup(
+            this.asset().id, this.activeTemplate());
+
+        var loadLandmarksPromise = lmPromise.then((json) => {
+            return Landmark.parseGroup(json,
+                                       this.asset().id, this.activeTemplate(),
+                                       this.server(), assetLog);
         }, () => {
             console.log('Error in fetching landmark JSON file');
         });
@@ -284,13 +296,31 @@ var App = Backbone.Model.extend({
 
     nextAsset: function () {
         if (this.assetSource().hasSuccessor()) {
-            return this._switchToAsset(this.assetSource().next());
+            const lms = this.landmarks();
+            const _go = () => {
+                this._switchToAsset(this.assetSource().next());
+            }
+
+            if (lms && !lms.log.isCurrent()) {
+                Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go)
+            } else {
+                _go();
+            }
         }
     },
 
     previousAsset: function () {
         if (this.assetSource().hasPredecessor()) {
-            return this._switchToAsset(this.assetSource().previous());
+            const lms = this.landmarks();
+            const _go = () => {
+                this._switchToAsset(this.assetSource().previous());
+            }
+
+            if (lms && !lms.log.isCurrent()) {
+                Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go)
+            } else {
+                return _go();
+            }
         }
     },
 

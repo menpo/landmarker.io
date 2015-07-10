@@ -3,6 +3,7 @@
 var _ = require('underscore');
 var Backbone = require('backbone');
 var $ = require('jquery');
+
 var Notification = require('./notification');
 var atomic = require('../model/atomic');
 var { Dropbox, Server } = require('../backend');
@@ -229,16 +230,23 @@ var SaveRevertView = Backbone.View.extend({
     el: '#lmActionsPanel',
 
     initialize : function({app}) {
-        _.bindAll(this, 'save', 'help');
+        _.bindAll(this, 'save', 'help', 'render');
         //this.listenTo(this.model, "all", this.render);
         // Get the singleton app model separately as model is the landmarks
         this.app = app;
+        this.listenTo(this.model.log, "change", this.render);
+        this.render();
     },
 
     events: {
         'click #save' : "save",
         'click #help' : "help",
         'click #download' : "download"
+    },
+
+    render: function () {
+        this.$el.find('#save').toggleClass(
+            'Active', !this.model.log.isCurrent());
     },
 
     save: function (evt) {
@@ -288,6 +296,51 @@ var SaveRevertView = Backbone.View.extend({
             Notification.loading.stop(spinner);
             this.$el.find('#download').removeClass('Button--Disabled');
 
+        }
+    }
+});
+
+var UndoRedoView = Backbone.View.extend({
+
+    el: "#undoRedo",
+
+    events: {
+        'click .Undo': 'undo',
+        'click .Redo': 'redo',
+    },
+
+    initialize: function () {
+        this.log = this.model.log;
+        this.listenTo(this.log, "change", this.render);
+        _.bindAll(this, 'render', 'cleanup', 'undo', 'redo');
+        this.render();
+    },
+
+    cleanup: function () {
+        this.stopListening(this.log);
+        this.$el.find('.Undo').addClass('Disabled');
+        this.$el.find('.Redo').addClass('Disabled');
+    },
+
+    render: function () {
+        this.$el.find('.Undo').toggleClass(
+            'Disabled', !this.log.hasOperations());
+        this.$el.find('.Redo').toggleClass('Disabled', !this.log.hasUndone());
+    },
+
+    undo: function () {
+        if (!this.log.hasOperations()) {
+            return;
+        } else {
+            this.model.undo();
+        }
+    },
+
+    redo: function () {
+        if (!this.log.hasUndone()) {
+            return;
+        } else {
+            this.model.redo();
         }
     }
 });
@@ -352,20 +405,27 @@ var Sidebar = Backbone.View.extend({
         this.listenTo(this.model, "change:landmarks", this.landmarksChange);
         this.saveRevertView = null;
         this.lmView = null;
+        this.undoRedoView = null;
         this.templatePanel = new TemplatePanel({model: this.model});
     },
 
     landmarksChange: function () {
         console.log('Sidebar - rewiring after landmark change');
         if (this.saveRevertView) {
-            // break bindings for save revert
             this.saveRevertView.undelegateEvents();
         }
         var lms = this.model.landmarks();
         if (lms === null) {
             return;
         }
+
         this.saveRevertView = new SaveRevertView({model: lms, app: this.model});
+
+        if (this.undoRedoView) {
+            this.undoRedoView.undelegateEvents();
+        }
+        this.undoRedoView = new UndoRedoView({model: lms});
+
         if (this.lmView) {
             this.lmView.cleanup();
         }
