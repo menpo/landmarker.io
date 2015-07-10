@@ -6,8 +6,6 @@ var $ = require('jquery');
 
 var atomic = require('../../model/atomic');
 
-const MOVE_TO = 50;
-
 /**
  * Create a closure for handling mouse events in viewport.
  * Holds state usable by all event handlers and should be bound to the
@@ -250,15 +248,10 @@ function Handler () {
         console.log("shift:drag");
         // note - we use client as we don't want to jump back to zero
         // if user drags into sidebar!
-        var newX = event.clientX;
-        var newY = event.clientY;
+        var newPosition = { x: event.clientX, y: event.clientY };
         // clear the canvas and draw a selection rect.
         this.clearCanvas();
-        var x = onMouseDownPosition.x;
-        var y = onMouseDownPosition.y;
-        var dx = newX - x;
-        var dy = newY - y;
-        this.ctx.strokeRect(x, y, dx, dy);
+        this.drawSelectionBox(onMouseDownPosition, newPosition);
     };
 
     // Up handlers
@@ -514,7 +507,7 @@ function Handler () {
 
         // Exposed handlers
         onMouseDown: atomic.atomicOperation(onMouseDown),
-        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove), MOVE_TO)
+        onMouseMove: atomic.atomicOperation(onMouseMove)
     };
 
 }

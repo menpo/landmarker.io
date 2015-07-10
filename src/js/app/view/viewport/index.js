@@ -503,6 +503,17 @@ exports.Viewport = Backbone.View.extend({
         this.ctxBox.maxY = Math.max(this.ctxBox.maxY, point.y);
     },
 
+    drawSelectionBox: function (mouseDown, mousePosition) {
+        var x = mouseDown.x;
+        var y = mouseDown.y;
+        var dx = mousePosition.x - x;
+        var dy = mousePosition.y - y;
+        this.ctx.strokeRect(x, y, dx, dy);
+        // update the bounding box
+        this.updateCanvasBoundingBox(mouseDown);
+        this.updateCanvasBoundingBox(mousePosition);
+    },
+
     drawTargetingLines: function (point, targetLm, secondaryLms) {
 
         this.updateCanvasBoundingBox(point);
@@ -541,7 +552,9 @@ exports.Viewport = Backbone.View.extend({
         var minY = Math.max(Math.floor(this.ctxBox.minY) - p, 0);
         var maxX = Math.ceil(this.ctxBox.maxX) + p;
         var maxY = Math.ceil(this.ctxBox.maxY) + p;
-        this.ctx.clearRect(minX, minY, maxX - minX, maxY - minY);
+        var width = maxX - minX;
+        var height = maxY - minY;
+        this.ctx.clearRect(minX, minY, width, height);
         // reset the tracking of the context bounding box tracking.
         this.ctxBox = {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
         this.ctx.strokeStyle = '#ffffff';
