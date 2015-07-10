@@ -53466,11 +53466,7 @@ function Handler() {
                 currentTargetLm.selectAndDeselectRest();
             }
 
-            _this.drawTargetingLine({ x: evt.clientX, y: evt.clientY }, _this.localToScreen(currentTargetLm.point()));
-
-            lms.forEach(function (lm) {
-                _this.drawTargetingLine({ x: evt.clientX, y: evt.clientY }, _this.localToScreen(lm.point()), true);
-            });
+            _this.drawTargetingLines({ x: evt.clientX, y: evt.clientY }, currentTargetLm, lms);
         }
     };
 
@@ -53668,6 +53664,12 @@ exports.Viewport = Backbone.View.extend({
         // construction)
         this.canvas = document.getElementById(this.id);
         this.ctx = this.canvas.getContext('2d');
+
+        // to be efficient we want to track what parts of the canvas we are
+        // drawing into each frame. This way we only need clear the relevant
+        // area of the canvas which is a big perf win.
+        // see this.updateCanvasBoundingBox() for usage.
+        this.ctxBox = { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
 
         // ------ SCENE GRAPH CONSTRUCTION ----- //
         this.scene = new THREE.Scene();
@@ -54067,27 +54069,58 @@ exports.Viewport = Backbone.View.extend({
     }),
 
     // 2D Canvas helper functions
-    // =========================================================================
+    // ========================================================================
 
-    drawTargetingLine: function drawTargetingLine(start, end) {
-        var secondary = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
+    updateCanvasBoundingBox: function updateCanvasBoundingBox(point) {
+        // update the canvas bounding box to account for this new point
+        this.ctxBox.minX = Math.min(this.ctxBox.minX, point.x);
+        this.ctxBox.minY = Math.min(this.ctxBox.minY, point.y);
+        this.ctxBox.maxX = Math.max(this.ctxBox.maxX, point.x);
+        this.ctxBox.maxY = Math.max(this.ctxBox.maxY, point.y);
+    },
+
+    drawTargetingLines: function drawTargetingLines(point, targetLm, secondaryLms) {
+        var _this2 = this;
+
+        this.updateCanvasBoundingBox(point);
+
+        // first, draw the secondary lines
+        this.ctx.save();
+        this.ctx.strokeStyle = '#7ca5fe';
+        this.ctx.setLineDash([5, 15]);
 
         this.ctx.beginPath();
-        if (secondary) {
-            this.ctx.strokeStyle = '#7ca5fe';
-            this.ctx.setLineDash([5, 15]);
-        } else {
-            this.ctx.strokeStyle = '#01e6fb';
-            this.ctx.setLineDash([]);
-        }
-        this.ctx.moveTo(start.x, start.y);
-        this.ctx.lineTo(end.x, end.y);
-        this.ctx.closePath();
+        secondaryLms.forEach(function (lm) {
+            var lmPoint = _this2.localToScreen(lm.point());
+            _this2.updateCanvasBoundingBox(lmPoint);
+            _this2.ctx.moveTo(lmPoint.x, lmPoint.y);
+            _this2.ctx.lineTo(point.x, point.y);
+        });
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // now, draw the primary line
+        this.ctx.strokeStyle = '#01e6fb';
+
+        this.ctx.beginPath();
+        var targetPoint = this.localToScreen(targetLm.point());
+        this.updateCanvasBoundingBox(targetPoint);
+        this.ctx.moveTo(targetPoint.x, targetPoint.y);
+        this.ctx.lineTo(point.x, point.y);
         this.ctx.stroke();
     },
 
     clearCanvas: function clearCanvas() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // we only want to clear the area of the canvas that we dirtied
+        // since the last clear. The ctxBox object tracks this
+        var p = 3; // padding to be added to bounding box
+        var minX = Math.max(Math.floor(this.ctxBox.minX) - p, 0);
+        var minY = Math.max(Math.floor(this.ctxBox.minY) - p, 0);
+        var maxX = Math.ceil(this.ctxBox.maxX) + p;
+        var maxY = Math.ceil(this.ctxBox.maxY) + p;
+        this.ctx.clearRect(minX, minY, maxX - minX, maxY - minY);
+        // reset the tracking of the context bounding box tracking.
+        this.ctxBox = { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
         this.ctx.strokeStyle = '#ffffff';
         if (this.s_camera === this.s_oCam) {
             // orthographic means there is the PIP window. Draw the box and
@@ -54212,4 +54245,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-89674f12.js.map
+//# sourceMappingURL=bundle-f17edbc0.js.map
