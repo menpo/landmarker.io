@@ -31,18 +31,16 @@ function resolveBackend (u) {
                 'BACKEND_TYPE': Backend.Server.Type,
                 'BACKEND_SERVER_URL': u.query.server
             }, true);
+        } else {
+            document.title = document.title + ' - demo mode';
         }
 
-        return resolveMode(server);
+        return resolveMode(server, u);
     }
 
     let backendType = cfg.get('BACKEND_TYPE');
 
     if (!backendType) {
-        cfg.clear();
-        u.search = null;
-        history.replaceState(null, null, url.format(u).replace('?', '#'));
-
         return Intro.open();
     }
 
@@ -76,7 +74,7 @@ function _loadServer (u) {
     let server = new Backend.Server(cfg.get('BACKEND_SERVER_URL'));
     u.query.server = cfg.get('BACKEND_SERVER_URL');
     history.replaceState(null, null, url.format(u).replace('?', '#'));
-    resolveMode(server);
+    resolveMode(server, u);
 }
 
 function _loadDropbox (u) {
@@ -115,7 +113,7 @@ function _loadDropbox (u) {
     if (dropbox) {
         dropbox.setMode(cfg.get('BACKEND_DROPBOX_MODE'));
         return dropbox.accountInfo().then(function () {
-            _loadDropboxAssets(dropbox)
+            _loadDropboxAssets(dropbox, u)
         }, function () {
             Notification.notify({
                 msg: 'Could not reach Dropbox servers',
@@ -128,12 +126,12 @@ function _loadDropbox (u) {
     }
 };
 
-function _loadDropboxAssets (dropbox) {
+function _loadDropboxAssets (dropbox, u) {
     let assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH');
 
     function _pick () {
         dropbox.pickAssets(function () {
-            _loadDropboxTemplate(dropbox);
+            _loadDropboxTemplate(dropbox, u);
         }, function (err) {
             retry(`Couldn't find assets: ${err}`);
         });
@@ -141,20 +139,20 @@ function _loadDropboxAssets (dropbox) {
 
     if (assetsPath) {
         dropbox.setAssets(assetsPath).then(function () {
-            _loadDropboxTemplate(dropbox);
+            _loadDropboxTemplate(dropbox, u);
         }, _pick);
     } else {
         _pick();
     }
 }
 
-function _loadDropboxTemplate (dropbox) {
+function _loadDropboxTemplate (dropbox, u) {
 
     let templatePath = cfg.get('BACKEND_DROPBOX_TEMPLATE_PATH');
 
     function _pick () {
         dropbox.pickTemplate(function () {
-            resolveMode(dropbox);
+            resolveMode(dropbox, u);
         }, function (err) {
             retry(`Couldn't find template: ${err}`);
         });
@@ -162,17 +160,17 @@ function _loadDropboxTemplate (dropbox) {
 
     if (templatePath) {
         dropbox.setTemplate(templatePath).then(function () {
-            resolveMode(dropbox);
+            resolveMode(dropbox, u);
         }, _pick);
     } else {
         _pick();
     }
 }
 
-function resolveMode (server) {
+function resolveMode (server, u) {
     server.fetchMode().then(function (mode) {
         if (mode === 'mesh' || mode === 'image') {
-            initLandmarker(server, mode);
+            initLandmarker(server, mode, u);
         } else {
             retry('Received invalid mode', mode);
         }
@@ -187,13 +185,9 @@ function resolveMode (server) {
     });
 }
 
-function initLandmarker(server, mode) {
+function initLandmarker(server, mode, u) {
 
     console.log('Starting landmarker in ' + mode + ' mode');
-
-    if (server.demoMode) {
-        document.title = document.title + ' - demo mode';
-    }
 
     var App = require('./app/model/app');
     var URLState = require('./app/view/url_state');
@@ -201,10 +195,6 @@ function initLandmarker(server, mode) {
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = "";
-
-    // Parse the current url so we can query the parameters
-    var u = url.parse(window.location.href.replace('#', '?'), true);
-    u.search = null;  // erase search so query is used in building back URL
 
     var appInit = {server: server, mode: mode};
 

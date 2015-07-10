@@ -12,7 +12,7 @@ var version = require('../../../../package.json').version;
 
 var contents = `\
 <div class='Intro'>\
-    <h1>Landmarker.io<h1>\
+    <h1>Landmarker.io</h1>\
     <h3>v${version}</h3>\
     <div class='IntroItems'>\
         <div class='IntroItem IntroItem--Dropbox'>\
@@ -98,8 +98,7 @@ module.exports = {
 
     open: function () {
         instance._cfg.clear();
-        history.replaceState(
-            null, null, baseUrl());
+        history.replaceState(null, null, baseUrl());
         instance.open();
     },
 
