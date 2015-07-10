@@ -407,15 +407,8 @@ function Handler () {
                 currentTargetLm.selectAndDeselectRest();
             }
 
-            this.drawTargetingLine(
-                {x: evt.clientX, y: evt.clientY},
-                this.localToScreen(currentTargetLm.point()));
-
-            lms.forEach((lm) => {
-                this.drawTargetingLine(
-                    {x: evt.clientX, y: evt.clientY},
-                    this.localToScreen(lm.point()), true);
-            });
+            this.drawTargetingLines({x: evt.clientX, y: evt.clientY},
+                currentTargetLm, lms);
         }
     };
 
