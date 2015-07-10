@@ -37,6 +37,15 @@ button,
     &:hover {
         background: $colorDarkGreen;
     }
+
+    &.Active::before {
+        content: '•';
+        color: $colorRed;
+        font-size: 2.75em;
+        vertical-align: top;
+        position: absolute;
+        left: 12px;
+    }
 }
 
 .Button-Danger {

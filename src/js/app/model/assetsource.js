@@ -14,10 +14,7 @@ function abortAllObj (obj) {
 var AssetSource = Backbone.Model.extend({
 
     defaults: function () {
-        return {
-            assets: new Backbone.Collection(),
-            assetIsLoading: false
-        };
+        return { assets: new Backbone.Collection(), assetIsLoading: false };
     },
 
     fetch: function () {
