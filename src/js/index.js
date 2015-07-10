@@ -196,7 +196,7 @@ function initLandmarker(server, mode) {
     }
 
     var App = require('./app/model/app');
-    var History = require('./app/view/history');
+    var URLState = require('./app/view/url_state');
 
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
@@ -251,7 +251,7 @@ function initLandmarker(server, mode) {
     });
 
     // update the URL of the page as the state changes
-    var historyUpdate = new History.HistoryUpdate({model: app});
+    var urlState = new URLState({model: app});
 
     // ----- KEYBOARD HANDLER ----- //
 
