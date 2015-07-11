@@ -53086,25 +53086,17 @@ function Handler() {
     // Helpers
     // ------------------------------------------------------------------------
 
-    /**
-     * Find the 4 landmarks closest to a location (THREE vector)
-     * from a LandmarkGroup
-     *
-     * @param  {LandmarkGroup} lmGroup
-     * @param  {THREE.Vector} loc
-     *
-     * @return {Landmark[]}
-     */
+    // Find the 4 closest landmarks to a vector position and return them ordered
+    // by distance (with the distance)
     var findClosestLandmarks = function findClosestLandmarks(lmGroup, loc) {
         var locked = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
-        var dist,
-            i,
-            j,
-            lm,
-            lmLoc,
-            minDist,
-            minLm,
+        var dist = undefined,
+            i = undefined,
+            j = undefined,
+            lm = undefined,
+            lmLoc = undefined,
+            minDist = undefined,
             dists = new Array(4),
             lms = new Array(4);
 
@@ -53141,7 +53133,7 @@ function Handler() {
             }
         }
 
-        return lms;
+        return [lms, dists];
     };
 
     // Setup handler state variables
@@ -53279,7 +53271,7 @@ function Handler() {
                 _this.model.landmarks().deselectAll();
                 currentTargetLm = undefined;
                 meshPressed();
-            } else {}
+            }
         }
     };
 
@@ -53444,7 +53436,7 @@ function Handler() {
         _this.clearCanvas();
 
         if (isPressed || !_this.model.isEditingOn() || !_this.model.landmarks()) {
-            return null;
+            return;
         }
 
         if (currentTargetLm && currentTargetLm.isEmpty()) {
@@ -53458,17 +53450,27 @@ function Handler() {
         var shouldUpdate = intersectsWithMesh.length > 0 && lmGroup && lmGroup.landmarks;
 
         if (!shouldUpdate) {
-            return null;
+            return;
         }
 
         var mouseLoc = _this.worldToLocal(intersectsWithMesh[0].point);
         var previousTargetLm = currentTargetLm;
 
-        var lms = findClosestLandmarks(lmGroup, mouseLoc, evt.ctrlKey || evt.metaKey);
+        var _findClosestLandmarks = findClosestLandmarks(lmGroup, mouseLoc, evt.ctrlKey || evt.metaKey);
+
+        var _findClosestLandmarks2 = _slicedToArray(_findClosestLandmarks, 2);
+
+        var lms = _findClosestLandmarks2[0];
+        var dists = _findClosestLandmarks2[1];
 
         if (lms[0] && !evt.ctrlKey) {
-            currentTargetLm = lms[0];
-            lms = lms.slice(1, 4);
+            var distRatio = dists[0] * 100 / _this.meshScale;
+            if (!currentTargetLm || distRatio <= 3) {
+                currentTargetLm = lms[0];
+                lms = lms.slice(1, 4);
+            } else {
+                lms = lms.slice(0, 3);
+            }
         } else if (lms[0]) {
             lms = lms.slice(0, 3);
         }
@@ -53536,7 +53538,7 @@ function Handler() {
 
             if (intersectsWithMesh.length > 0) {
                 lm.setPoint(_this.worldToLocal(intersectsWithMesh[0].point));
-            } else {}
+            }
         });
     });
 
@@ -53609,10 +53611,6 @@ function Handler() {
 
 module.exports = Handler;
 
-// Pass right click does nothing in most cases
-
-// Pass > fallen off mesh
-
 },{"../../model/atomic":19,"jquery":8,"three":11,"underscore":12}],35:[function(require,module,exports){
 'use strict';
 
@@ -53631,20 +53629,6 @@ var _require = require('./elements');
 
 var LandmarkConnectionTHREEView = _require.LandmarkConnectionTHREEView;
 var LandmarkTHREEView = _require.LandmarkTHREEView;
-
-// uncomment to monitor FPS performance
-//
-//var Stats = require('stats-js');
-//
-//var stats = new Stats();
-//stats.setMode(0); // 0: fps, 1: ms
-//
-//// Align top-left
-//stats.domElement.style.position = 'absolute';
-//stats.domElement.style.right = '0px';
-//stats.domElement.style.top = '0px';
-//
-//document.body.appendChild(stats.domElement);
 
 // clear colour for both the main view and PictureInPicture
 var CLEAR_COLOUR = 0xEEEEEE;
@@ -54223,4 +54207,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"backbone":2,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-e290e557.js.map
+//# sourceMappingURL=bundle-4d13f888.js.map
