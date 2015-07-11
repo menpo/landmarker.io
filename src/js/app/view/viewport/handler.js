@@ -56,7 +56,7 @@ function Handler () {
         }
 
         return lms;
-    }
+    };
 
     // Setup handler state variables
     // ------------------------------------------------------------------------
@@ -88,7 +88,7 @@ function Handler () {
         } else {
             $(document).one('mouseup.viewportMesh', meshOnMouseUp);
         }
-    }
+    };
 
     var landmarkPressed = () => {
         var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
@@ -120,12 +120,12 @@ function Handler () {
         // start listening for dragging landmarks
         $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
         $(document).one('mouseup.viewportLandmark', landmarkOnMouseUp);
-    }
+    };
 
     var nothingPressed = () => {
         console.log('nothing pressed!');
         $(document).one('mouseup.viewportNothing', nothingOnMouseUp);
-    }
+    };
 
     var shiftPressed = () => {
         console.log('shift pressed!');
@@ -138,7 +138,7 @@ function Handler () {
 
         $(document).on('mousemove.shiftDrag', shiftOnDrag);
         $(document).one('mouseup.viewportShift', shiftOnMouseUp);
-    }
+    };
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
