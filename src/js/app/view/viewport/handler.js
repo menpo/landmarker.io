@@ -33,6 +33,11 @@ function Handler () {
 
         for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
             lm = lmGroup.landmarks[i];
+
+            if (lm.isEmpty()) {
+                continue;
+            }
+
             lmLoc = lm.point();
 
             if (lmLoc === null || (locked && lm === currentTargetLm)) {
@@ -146,6 +151,10 @@ function Handler () {
         event.preventDefault();
         this.$el.focus();
 
+        if (!this.model.landmarks()) {
+            return;
+        }
+
         isPressed = true;
 
         downEvent = event;
@@ -172,7 +181,7 @@ function Handler () {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
                         shiftPressed();
-                    } else if (this.model.isEditingOn()) {
+                    } else if (this.model.isEditingOn() && currentTargetLm) {
                         meshPressed();
                     } else {
                         nothingPressed();
@@ -310,7 +319,7 @@ function Handler () {
 
             if (this.model.isEditingOn() && currentTargetLm) {
                 this.model.landmarks().setLmAt(currentTargetLm, p);
-            } else {
+            } else if (downEvent.button === 2) {
                 this.model.landmarks().insertNew(p);
             }
         }
@@ -361,10 +370,15 @@ function Handler () {
     // ------------------------------------------------------------------------
 
     var onMouseMove = (evt) => {
+
         this.clearCanvas();
 
-        if (isPressed || !this.model.isEditingOn()) {
+        if (isPressed || !this.model.isEditingOn() || !this.model.landmarks()) {
             return null;
+        }
+
+        if (currentTargetLm && currentTargetLm.isEmpty()) {
+            currentTargetLm = undefined;
         }
 
         var intersectsWithMesh =
@@ -393,7 +407,7 @@ function Handler () {
             lms = lms.slice(0, 3);
         }
 
-        if (currentTargetLm && !groupSelected) {
+        if (currentTargetLm && !groupSelected && lms.length > 0) {
 
             if (currentTargetLm !== previousTargetLm) {
                 // Linear operation hence protected
@@ -409,8 +423,9 @@ function Handler () {
     // ------------------------------------------------------------------------
 
     var onKeypressTranslate = atomic.atomicOperation((evt) => {
-        // Only work in group selection mode
-        if (!groupSelected) {
+
+        // Only work in group selection mode, with landmarks
+        if (!groupSelected || !this.model.landmarks()) {
             return;
         }
 
@@ -458,6 +473,11 @@ function Handler () {
     // ------------------------------------------------------------------------
 
     var setGroupSelected = (val=true) => {
+
+        if (!this.model.landmarks()) {
+            return;
+        }
+
         let _val = !!val; // Force cast to boolean
 
         if (_val === groupSelected) {
@@ -478,6 +498,10 @@ function Handler () {
     };
 
     var completeGroupSelection = () => {
+
+        if (!this.model.landmarks()) {
+            return;
+        }
 
         this.model.landmarks().labels.forEach((label) => {
 
