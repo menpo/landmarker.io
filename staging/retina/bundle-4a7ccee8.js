@@ -53652,6 +53652,9 @@ exports.Viewport = Backbone.View.extend({
         this.$container = $('#viewportContainer');
         // and grab the viewport div
         this.$webglel = $('#viewport');
+        // keep a hold of the width and height (this will be adjusted in resize)
+        this.width = this.$container.width();
+        this.height = this.$container.height();
         // Get a hold on the overlay canvas and its context (note we use the
         // id - the Viewport should be passed the canvas element on
         // construction)
@@ -53995,6 +53998,10 @@ exports.Viewport = Backbone.View.extend({
         var w, h, pixelRatio;
         w = this.$container.width();
         h = this.$container.height();
+
+        // update the width and height on self
+        self.width = w;
+        self.height = h;
         // ask the camera controller to update the cameras appropriately
         this.cameraController.resize(w, h);
         // update the size of the renderer and the canvas
@@ -54163,7 +54170,7 @@ exports.Viewport = Backbone.View.extend({
         if (object === null || object.length === 0) {
             return [];
         }
-        var vector = new THREE.Vector3(x / this.$container.width() * 2 - 1, -(y / this.$container.height()) * 2 + 1, 0.5);
+        var vector = new THREE.Vector3(x / this.width * 2 - 1, -(y / this.height) * 2 + 1, 0.5);
 
         if (this.s_camera === this.s_pCam) {
             // perspective selection
@@ -54193,8 +54200,8 @@ exports.Viewport = Backbone.View.extend({
     },
 
     worldToScreen: function worldToScreen(vector) {
-        var widthHalf = this.$container.width() / 2;
-        var heightHalf = this.$container.height() / 2;
+        var widthHalf = this.width / 2;
+        var heightHalf = this.height / 2;
         var result = vector.project(this.s_camera);
         result.x = result.x * widthHalf + widthHalf;
         result.y = -(result.y * heightHalf) + heightHalf;
@@ -54251,4 +54258,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../lib/backbonej":13,"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-630992d7.js.map
+//# sourceMappingURL=bundle-4a7ccee8.js.map
