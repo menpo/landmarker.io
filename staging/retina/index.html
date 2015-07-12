@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="bundle-4b4fa8b7.css">
     <!-- endinject -->
     <!-- inject:js -->
-    <script src="bundle-5c273715.js"></script>
+    <script src="bundle-ddaa3f74.js"></script>
     <!-- endinject -->
 </head>
 
@@ -29,8 +29,10 @@
     <!-- WebGL canvas (the actual assets and landmarks) -->
     <div class="FullScreen" id="viewport"></div>
 
-    <!-- HTML5 canvas (for 2D overlays, e.g. selection box) -->
+    <!-- HTML5 canvas for 2D overlays, e.g. selection box, snap-mode hints -->
     <canvas class="FullScreen" id="canvas"></canvas>
+    <!-- HTML5 canvas for Picture-in-Picture (PIP) view decoration -->
+    <canvas id="pipCanvas"></canvas>
 </div>
 
 <div class="Chrome">
@@ -42,8 +44,8 @@
             <div class="App-Flex-LeftCol LeftSidebar">
                 <!-- Asset information  (top left) -->
                 <div class="AssetInfo">
-                    <button class="AssetName" id="assetName">mesh_name</button>
-                    <button class="AssetIndex" id="assetIndex">001/999</button>
+                    <button class="AssetName" id="assetName">-</button>
+                    <button class="AssetIndex" id="assetIndex">-/-</button>
                 </div>
                 <!-- Toolbox itself (bottom left) -->
                 <div class="Toolbar" id="toolbar">
