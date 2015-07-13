@@ -1,15 +1,7 @@
 "use strict";
 
-var _ = require('underscore');
+var Backbone = require('backbone');
 var $ = require('jquery');
-var Backbone = require('../lib/backbonej');
-
-window.$ = $;
-
-var DISPLAY_STYLE_FOR_HELP_ON = {
-    true: 'flex',
-    false: 'none'
-};
 
 var HELP_CONTENTS = [
     ["j", "go to next asset in collection"],
@@ -50,9 +42,7 @@ module.exports = Backbone.View.extend({
 
     initialize : function() {
         this.listenTo(this.model, "change:helpOverlayIsDisplayed", this.render);
-        this.el = this.$el[0];
         var $tbody = this.$el.children('table').children('tbody');
-        window.$el = this.$el;
         HELP_CONTENTS.forEach(function ([key, msg]) {
             $tbody.append(
                 msg ? $(`<tr><td>${key}</td><td>${msg}</td></tr>`) :
@@ -64,8 +54,7 @@ module.exports = Backbone.View.extend({
     },
 
     render: function () {
-        var isOn = this.model.isHelpOverlayOn();
-        this.el.style.display = DISPLAY_STYLE_FOR_HELP_ON[isOn];
+        this.$el.toggleClass('Display', this.model.isHelpOverlayOn());
     },
 
     close: function () {

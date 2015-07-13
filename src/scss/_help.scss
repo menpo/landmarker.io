@@ -1,6 +1,6 @@
 .HelpOverlay {
     z-index: $zIndexOverlay;
-    background: rgba(54, 25, 25, .5);
+    background: black(.6);
     display: none;
     cursor: pointer;
     pointer-events: auto;
@@ -8,6 +8,10 @@
     height: 110%;
     align-items: center;
     justify-content: center;
+
+    &.Display {
+        display: flex;
+    }
 }
 
 .HelpContentTable {
@@ -20,7 +24,7 @@
     }
 
     tr td:first-of-type {
-        background: #0A4EB2;
+        background: $colorDarkerBlue;
         color: white;
         font-weight: bold;
         text-align: right;
