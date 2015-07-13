@@ -127,6 +127,31 @@ var EditingToggle = Backbone.View.extend({
     }
 });
 
+var AutoSaveToggle = Backbone.View.extend({
+
+    el: '#autosaveRow',
+
+    events: {
+        'click #autosaveToggle' : "toggle"
+    },
+
+    initialize : function() {
+        this.$toggle = this.$el.find('#autosaveToggle')[0];
+        _.bindAll(this, 'render', 'toggle');
+        this.listenTo(this.model, 'change:autoSaveOn', this.render);
+        this.render();
+    },
+
+    render: function () {
+        this.$toggle.checked = this.model.isAutoSaveOn();
+        return this;
+    },
+
+    toggle: function () {
+        this.model.toggleAutoSave();
+    }
+});
+
 exports.Toolbar = Backbone.View.extend({
 
     el: '#toolbar',
@@ -141,6 +166,7 @@ exports.Toolbar = Backbone.View.extend({
             // in image mode, we shouldn't even have these controls.
             this.$el.find('#textureRow').css("display", "none");
         }
+        this.autosaveToggle = new AutoSaveToggle({model: this.model});
     }
 
 });

@@ -8,7 +8,7 @@ var Backbone = require('backbone');
 var Landmark = require('./landmark'),
     Log = require('./log'),
     AssetSource = require('./assetsource'),
-    Modal = require('../view/modal');;
+    Modal = require('../view/modal');
 
 var App = Backbone.Model.extend({
 
@@ -18,6 +18,7 @@ var App = Backbone.Model.extend({
             mode: 'mesh',
             connectivityOn: true,
             editingOn: true,
+            autoSaveOn: true,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
@@ -27,6 +28,14 @@ var App = Backbone.Model.extend({
 
     isConnectivityOn: function () {
         return this.get('connectivityOn');
+    },
+
+    isAutoSaveOn: function () {
+        return this.get('autoSaveOn');
+    },
+
+    toggleAutoSave: function () {
+        return this.set('autoSaveOn', !this.isAutoSaveOn());
     },
 
     toggleConnectivity: function () {
@@ -302,7 +311,11 @@ var App = Backbone.Model.extend({
             }
 
             if (lms && !lms.log.isCurrent()) {
-                Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go)
+                if (!this.isAutoSaveOn()) {
+                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go)
+                } else {
+                    lms.save().then(_go);
+                }
             } else {
                 _go();
             }
@@ -317,7 +330,11 @@ var App = Backbone.Model.extend({
             }
 
             if (lms && !lms.log.isCurrent()) {
-                Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go)
+                if (!this.isAutoSaveOn()) {
+                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go)
+                } else {
+                    lms.save().then(_go);
+                }
             } else {
                 return _go();
             }

@@ -252,7 +252,7 @@ var SaveRevertView = Backbone.View.extend({
     save: function (evt) {
         evt.stopPropagation();
         this.$el.find('#save').addClass('Button--Disabled');
-        this.model.promiseSave().then(() => {
+        this.model.save().then(() => {
             Notification.notify({type: 'success', msg: 'Save Completed'});
             this.$el.find('#save').removeClass('Button--Disabled');
         }, () => {
