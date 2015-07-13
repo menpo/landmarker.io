@@ -270,19 +270,19 @@ var App = Backbone.Model.extend({
     _promiseLandmarksWithAsset: function (loadAssetPromise) {
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
-        let lmPromise;
 
         // Try and find an in-memory log for this asset
         const log = this.log();
         if (!log[this.asset().id]) {
             log[this.asset().id] = new Log();
         }
+
         const assetLog = log[this.asset().id];
 
-        lmPromise = this.server().fetchLandmarkGroup(
-            this.asset().id, this.activeTemplate());
-
-        var loadLandmarksPromise = lmPromise.then((json) => {
+        var loadLandmarksPromise = this.server().fetchLandmarkGroup(
+            this.asset().id,
+            this.activeTemplate()
+        ).then((json) => {
             return Landmark.parseGroup(json,
                                        this.asset().id, this.activeTemplate(),
                                        this.server(), assetLog);
@@ -354,6 +354,28 @@ var App = Backbone.Model.extend({
 
     goToAssetIndex: function (newIndex) {
         return this._switchToAsset(this.assetSource().setIndex(newIndex));
+    },
+
+    reloadLandmarksFromPrevious: function () {
+        const currentLms = this.landmarks();
+        const as = this.assetSource();
+        if (this.assetSource().hasPredecessor() && currentLms.isEmpty()) {
+            this.server().fetchLandmarkGroup(
+                as.assets()[as.assetIndex() - 1].id,
+                this.activeTemplate()
+            ).then((json) => {
+                const lms = Landmark.parseGroup(
+                    json,
+                    this.asset().id,
+                    this.activeTemplate(),
+                    this.server(),
+                    currentLms.log
+                );
+                this.set('landmarks', lms);
+            }, () => {
+                console.log('Error in fetching landmark JSON file');
+            });
+        }
     }
 
 });

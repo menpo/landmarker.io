@@ -79,6 +79,10 @@ is itself a row flexbox */
     justify-content: space-around;
     align-items: center;
     min-height: $mainControlHeight;
+
+    &.Hide {
+        display: none;
+    }
 }
 
 .RightSidebar-Controls-Item {
