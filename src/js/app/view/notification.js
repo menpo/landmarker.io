@@ -253,9 +253,11 @@ var CornerSpinner = Backbone.View.extend({
 
         if (show && !this._shown) {
             this.$el.addClass('Display');
+            $('.Viewport').addClass('LoadingCursor');
             this._shown = true;
         } else if (!show) {
             this.$el.removeClass('Display');
+            $('.Viewport').removeClass('LoadingCursor');
             this._shown = false;
         }
 
