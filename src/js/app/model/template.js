@@ -3,8 +3,8 @@
 var yaml = require('js-yaml'),
     _ = require('underscore');
 
-var CYCLE_CONNECTIVITY_LABELS = ['cycle', 'circular'];
-var NULL_POINT = {2: [null, null], 3: [null, null, null]};
+const CYCLE_CONNECTIVITY_LABEL = 'cycle';
+const NULL_POINT = {2: [null, null], 3: [null, null, null]};
 
 /**
  * @class Template
@@ -32,13 +32,12 @@ function Template (json) {
 
     this._template.forEach(group => {
 
-        let connectivity = [],
-            label = group.label;
+        const connectivity = [], label = group.label;
 
         let rawConnectivity = group.connectivity || [];
-        let size = group.points;
+        const size = group.points;
 
-        if (CYCLE_CONNECTIVITY_LABELS.indexOf(rawConnectivity) > -1) {
+        if (CYCLE_CONNECTIVITY_LABEL === rawConnectivity) {
             rawConnectivity = [`0:${size - 1}`, `${size - 1} 0`];
         } else if (!Array.isArray(connectivity)) {
             rawConnectivity = [];
@@ -46,7 +45,7 @@ function Template (json) {
 
         rawConnectivity.forEach(function (item) {
             if (item.indexOf(':') > -1) {
-                let [start, end] = item.split(':').map(Number);
+                const [start, end] = item.split(':').map(Number);
                 for (var i = start; i < end; i++) {
                     connectivity.push([i, i + 1]);
                 }
@@ -66,7 +65,7 @@ function Template (json) {
  * @return {Template}
  */
 Template.parseYAML = function (rawData) {
-    let json = yaml.safeLoad(rawData);
+    const json = yaml.safeLoad(rawData);
     return new Template(json);
 };
 
@@ -88,12 +87,12 @@ Template.parseLJSON = function (ljson) {
         ljson = JSON.parse(ljson);
     }
 
-    let template = [];
+    const template = [];
     ljson.labels.forEach(function ({label, mask}) {
-        let group = {label, points: mask.length, connectivity: []};
+        const group = {label, points: mask.length, connectivity: []};
         ljson.landmarks.connectivity.forEach(function ([x1, x2]) {
             if (mask.indexOf(x1) > -1) {
-                let offset = mask[0];
+                const offset = mask[0];
                 group.connectivity.push(`${x1 - offset} ${x2 - offset}`);
             }
         });
@@ -130,9 +129,9 @@ Template.prototype.emptyLJSON = function (dims=2) {
         return _.clone(this._emptyLmGroup[dims]);
     }
 
-    let offset = 0,
-        globalConnectivity = [],
-        labels = [];
+    const offset = 0,
+          globalConnectivity = [],
+          labels = [];
 
     this.groups.forEach(function ({label, size, connectivity}) {
         connectivity.forEach(function ([s, e]) {
@@ -142,9 +141,7 @@ Template.prototype.emptyLJSON = function (dims=2) {
         offset += size;
     });
 
-    let points = _.range(this.size).map(function () {
-        return NULL_POINT[dims];
-    });
+    const points = _.range(this.size).map(() => NULL_POINT[dims]);
 
     this._emptyLmGroup[dims] = {
         labels,

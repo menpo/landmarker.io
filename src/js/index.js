@@ -21,8 +21,8 @@ function resolveBackend (u) {
 
     // Found a server parameter >> override to traditionnal mode
     if (u.query.server) {
-        let serverUrl = utils.stripTrailingSlash(u.query.server);
-        let server = new Backend.Server(serverUrl);
+        const serverUrl = utils.stripTrailingSlash(u.query.server);
+        const server = new Backend.Server(serverUrl);
         cfg.clear(); // Reset all stored data, we use the url
 
         if (!server.demoMode) { // Don't persist demo mode
@@ -37,7 +37,7 @@ function resolveBackend (u) {
         return resolveMode(server, u);
     }
 
-    let backendType = cfg.get('BACKEND_TYPE');
+    const backendType = cfg.get('BACKEND_TYPE');
 
     if (!backendType) {
         return Intro.open();
@@ -53,7 +53,7 @@ function resolveBackend (u) {
 
 function restart (serverUrl) {
     cfg.clear();
-    let restartUrl = (
+    const restartUrl = (
         utils.baseUrl() +
         (serverUrl ? `?server=${serverUrl}` : '')
     );
@@ -70,7 +70,7 @@ function retry (msg) {
 }
 
 function _loadServer (u) {
-    let server = new Backend.Server(cfg.get('BACKEND_SERVER_URL'));
+    const server = new Backend.Server(cfg.get('BACKEND_SERVER_URL'));
     u.query.server = cfg.get('BACKEND_SERVER_URL');
     history.replaceState(null, null, url.format(u).replace('?', '#'));
     resolveMode(server, u);
@@ -126,7 +126,7 @@ function _loadDropbox (u) {
 }
 
 function _loadDropboxAssets (dropbox, u) {
-    let assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH');
+    const assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH');
 
     function _pick () {
         dropbox.pickAssets(function () {
@@ -147,7 +147,7 @@ function _loadDropboxAssets (dropbox, u) {
 
 function _loadDropboxTemplate (dropbox, u) {
 
-    let templatePath = cfg.get('BACKEND_DROPBOX_TEMPLATE_PATH');
+    const templatePath = cfg.get('BACKEND_DROPBOX_TEMPLATE_PATH');
 
     function _pick () {
         dropbox.pickTemplate(function () {
@@ -332,7 +332,7 @@ function initLandmarker(server, mode, u) {
 
 function handleNewVersion () {
 
-    let $topBar = $('#newVersionPrompt');
+    const $topBar = $('#newVersionPrompt');
     $topBar.text(
         'New version has been downloaded in the background, click to reload.');
 
