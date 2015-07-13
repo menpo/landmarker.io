@@ -80,6 +80,10 @@ function Handler () {
 
     var intersectsWithLms, intersectsWithMesh;
 
+    var landmarkOnDrag, shiftOnDrag,
+        landmarkOnMouseUp, nothingOnMouseUp, shiftOnMouseUp,
+        setGroupSelected;
+
     // Press handling
     // ------------------------------------------------------------------------
 
@@ -217,7 +221,7 @@ function Handler () {
     // Drag Handlers
     // ------------------------------------------------------------------------
 
-    var landmarkOnDrag = atomic.atomicOperation((event) => {
+    landmarkOnDrag = atomic.atomicOperation((event) => {
         console.log("drag");
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
@@ -253,7 +257,7 @@ function Handler () {
         }
     });
 
-    var shiftOnDrag = (event) => {
+    shiftOnDrag = (event) => {
         console.log("shift:drag");
         // note - we use client as we don't want to jump back to zero
         // if user drags into sidebar!
@@ -266,7 +270,7 @@ function Handler () {
     // Up handlers
     // ------------------------------------------------------------------------
 
-    var shiftOnMouseUp = atomic.atomicOperation((event) => {
+    shiftOnMouseUp = atomic.atomicOperation((event) => {
         this.cameraController.enable();
         console.log("shift:up");
         $(document).off('mousemove.shiftDrag', shiftOnDrag);
@@ -324,7 +328,7 @@ function Handler () {
         setGroupSelected(false);
     };
 
-    var nothingOnMouseUp = (event) => {
+    nothingOnMouseUp = (event) => {
         console.log("nothingPress:up");
         onMouseUpPosition.set(event.clientX, event.clientY);
         if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
@@ -336,7 +340,7 @@ function Handler () {
         isPressed = false;
     };
 
-    var landmarkOnMouseUp = atomic.atomicOperation((event) => {
+    landmarkOnMouseUp = atomic.atomicOperation((event) => {
         var ctrl = downEvent.ctrlKey || downEvent.metaKey;
         this.cameraController.enable();
         console.log("landmarkPress:up");
@@ -375,7 +379,11 @@ function Handler () {
 
         this.clearCanvas();
 
-        if (isPressed || !this.model.isEditingOn() || !this.model.landmarks()) {
+        if (isPressed ||
+            !this.model.isEditingOn() ||
+            !this.model.landmarks() ||
+            this.model.landmarks().isEmpty()
+        ) {
             return null;
         }
 
@@ -471,7 +479,7 @@ function Handler () {
     // Group Selection hook
     // ------------------------------------------------------------------------
 
-    var setGroupSelected = (val=true) => {
+    setGroupSelected = (val=true) => {
 
         if (!this.model.landmarks()) {
             return;
