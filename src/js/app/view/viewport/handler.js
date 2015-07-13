@@ -6,8 +6,6 @@ var $ = require('jquery');
 
 var atomic = require('../../model/atomic');
 
-const MOVE_TO = 50;
-
 /**
  * Create a closure for handling mouse events in viewport.
  * Holds state usable by all event handlers and should be bound to the
@@ -35,6 +33,11 @@ function Handler () {
 
         for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
             lm = lmGroup.landmarks[i];
+
+            if (lm.isEmpty()) {
+                continue;
+            }
+
             lmLoc = lm.point();
 
             if (lmLoc === null || (locked && lm === currentTargetLm)) {
@@ -58,7 +61,7 @@ function Handler () {
         }
 
         return lms;
-    }
+    };
 
     // Setup handler state variables
     // ------------------------------------------------------------------------
@@ -90,7 +93,7 @@ function Handler () {
         } else {
             $(document).one('mouseup.viewportMesh', meshOnMouseUp);
         }
-    }
+    };
 
     var landmarkPressed = () => {
         var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
@@ -122,12 +125,12 @@ function Handler () {
         // start listening for dragging landmarks
         $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
         $(document).one('mouseup.viewportLandmark', landmarkOnMouseUp);
-    }
+    };
 
     var nothingPressed = () => {
         console.log('nothing pressed!');
         $(document).one('mouseup.viewportNothing', nothingOnMouseUp);
-    }
+    };
 
     var shiftPressed = () => {
         console.log('shift pressed!');
@@ -140,13 +143,17 @@ function Handler () {
 
         $(document).on('mousemove.shiftDrag', shiftOnDrag);
         $(document).one('mouseup.viewportShift', shiftOnMouseUp);
-    }
+    };
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
     var onMouseDown = (event) => {
         event.preventDefault();
         this.$el.focus();
+
+        if (!this.model.landmarks()) {
+            return;
+        }
 
         isPressed = true;
 
@@ -174,7 +181,7 @@ function Handler () {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
                         shiftPressed();
-                    } else if (this.model.isEditingOn()) {
+                    } else if (this.model.isEditingOn() && currentTargetLm) {
                         meshPressed();
                     } else {
                         nothingPressed();
@@ -250,15 +257,10 @@ function Handler () {
         console.log("shift:drag");
         // note - we use client as we don't want to jump back to zero
         // if user drags into sidebar!
-        var newX = event.clientX;
-        var newY = event.clientY;
+        var newPosition = { x: event.clientX, y: event.clientY };
         // clear the canvas and draw a selection rect.
         this.clearCanvas();
-        var x = onMouseDownPosition.x;
-        var y = onMouseDownPosition.y;
-        var dx = newX - x;
-        var dy = newY - y;
-        this.ctx.strokeRect(x, y, dx, dy);
+        this.drawSelectionBox(onMouseDownPosition, newPosition);
     };
 
     // Up handlers
@@ -317,7 +319,7 @@ function Handler () {
 
             if (this.model.isEditingOn() && currentTargetLm) {
                 this.model.landmarks().setLmAt(currentTargetLm, p);
-            } else {
+            } else if (downEvent.button === 2) {
                 this.model.landmarks().insertNew(p);
             }
         }
@@ -368,10 +370,15 @@ function Handler () {
     // ------------------------------------------------------------------------
 
     var onMouseMove = (evt) => {
+
         this.clearCanvas();
 
-        if (isPressed || !this.model.isEditingOn()) {
+        if (isPressed || !this.model.isEditingOn() || !this.model.landmarks()) {
             return null;
+        }
+
+        if (currentTargetLm && currentTargetLm.isEmpty()) {
+            currentTargetLm = undefined;
         }
 
         var intersectsWithMesh =
@@ -400,22 +407,15 @@ function Handler () {
             lms = lms.slice(0, 3);
         }
 
-        if (currentTargetLm && !groupSelected) {
+        if (currentTargetLm && !groupSelected && lms.length > 0) {
 
             if (currentTargetLm !== previousTargetLm) {
                 // Linear operation hence protected
                 currentTargetLm.selectAndDeselectRest();
             }
 
-            this.drawTargetingLine(
-                {x: evt.clientX, y: evt.clientY},
-                this.localToScreen(currentTargetLm.point()));
-
-            lms.forEach((lm) => {
-                this.drawTargetingLine(
-                    {x: evt.clientX, y: evt.clientY},
-                    this.localToScreen(lm.point()), true);
-            });
+            this.drawTargetingLines({x: evt.clientX, y: evt.clientY},
+                currentTargetLm, lms);
         }
     };
 
@@ -423,8 +423,9 @@ function Handler () {
     // ------------------------------------------------------------------------
 
     var onKeypressTranslate = atomic.atomicOperation((evt) => {
-        // Only work in group selection mode
-        if (!groupSelected) {
+
+        // Only work in group selection mode, with landmarks
+        if (!groupSelected || !this.model.landmarks()) {
             return;
         }
 
@@ -472,6 +473,11 @@ function Handler () {
     // ------------------------------------------------------------------------
 
     var setGroupSelected = (val=true) => {
+
+        if (!this.model.landmarks()) {
+            return;
+        }
+
         let _val = !!val; // Force cast to boolean
 
         if (_val === groupSelected) {
@@ -492,6 +498,10 @@ function Handler () {
     };
 
     var completeGroupSelection = () => {
+
+        if (!this.model.landmarks()) {
+            return;
+        }
 
         this.model.landmarks().labels.forEach((label) => {
 
@@ -521,7 +531,7 @@ function Handler () {
 
         // Exposed handlers
         onMouseDown: atomic.atomicOperation(onMouseDown),
-        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove), MOVE_TO)
+        onMouseMove: atomic.atomicOperation(onMouseMove)
     };
 
 }

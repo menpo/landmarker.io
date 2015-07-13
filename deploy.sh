@@ -109,6 +109,17 @@ git add -A .
 git commit --allow-empty -m "[deploy.sh | $ACTOR] $BRANCH ($(date))"
 git push
 
+# Mirror for S3 deploy
+echo "Preparing build for S3 deploy"
+mkdir -p build/staging/
+cp staging/index.html build/staging
+cp -r "staging/$BRANCH" "build/staging/"
+
+if [[ ! -z "$TRAVIS_TAG" ]]; then
+  cp -r "staging/$BRANCH"/* build
+fi
+
 # Clean up
 rm -rf "$TMP_DIR"
+
 shopt -u extglob

@@ -237,8 +237,8 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
 
     function mousePositionInOrthographicView(v) {
         // convert into relative coordinates (0-1)
-        var x = v.x / domElement.width;
-        var y = v.y / domElement.height;
+        var x = v.x / domElement.offsetWidth;
+        var y = v.y / domElement.offsetHeight;
         // get the current height and width of the orthographic
         var oWidth = oCam.right - oCam.left;
         var oHeight = oCam.top - oCam.bottom;

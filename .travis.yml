@@ -1,3 +1,4 @@
+sudo: false
 language: node_js
 node_js:
 - '0.12'
@@ -8,3 +9,15 @@ script:
 cache:
   directories:
   - node_modules
+deploy:
+  provider: s3
+  access_key_id: AKIAJONNLC6TZXPG6MCA
+  secret_access_key:
+    secure: S5hbH6j78JE0pPh1mbvz/0LKLkVy5BSVqGR1HmHNHTliumQRwLbkP2hNJzDXqtZla4A6EQWOmaHKyqNSzWbcgv7D9Sxp2dp3On96oYEez9YEVb8MSg3rfOgHcxGJbk0hoOlhpX1pyMBDs21GokSWKR86K1QEuIkcygS4FVwnORs=
+  bucket: www-landmarker-io
+  local-dir: build
+  skip_cleanup: true
+  acl: public_read
+  on:
+    repo: menpo/landmarker.io
+    all_branches: true
