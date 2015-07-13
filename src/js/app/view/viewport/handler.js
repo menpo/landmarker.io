@@ -6,8 +6,6 @@ var $ = require('jquery');
 
 var atomic = require('../../model/atomic');
 
-const MOVE_TO = 50;
-
 /**
  * Create a closure for handling mouse events in viewport.
  * Holds state usable by all event handlers and should be bound to the
@@ -63,7 +61,7 @@ function Handler () {
         }
 
         return lms;
-    }
+    };
 
     // Setup handler state variables
     // ------------------------------------------------------------------------
@@ -95,7 +93,7 @@ function Handler () {
         } else {
             $(document).one('mouseup.viewportMesh', meshOnMouseUp);
         }
-    }
+    };
 
     var landmarkPressed = () => {
         var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
@@ -127,12 +125,12 @@ function Handler () {
         // start listening for dragging landmarks
         $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
         $(document).one('mouseup.viewportLandmark', landmarkOnMouseUp);
-    }
+    };
 
     var nothingPressed = () => {
         console.log('nothing pressed!');
         $(document).one('mouseup.viewportNothing', nothingOnMouseUp);
-    }
+    };
 
     var shiftPressed = () => {
         console.log('shift pressed!');
@@ -145,7 +143,7 @@ function Handler () {
 
         $(document).on('mousemove.shiftDrag', shiftOnDrag);
         $(document).one('mouseup.viewportShift', shiftOnMouseUp);
-    }
+    };
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
@@ -259,15 +257,10 @@ function Handler () {
         console.log("shift:drag");
         // note - we use client as we don't want to jump back to zero
         // if user drags into sidebar!
-        var newX = event.clientX;
-        var newY = event.clientY;
+        var newPosition = { x: event.clientX, y: event.clientY };
         // clear the canvas and draw a selection rect.
         this.clearCanvas();
-        var x = onMouseDownPosition.x;
-        var y = onMouseDownPosition.y;
-        var dx = newX - x;
-        var dy = newY - y;
-        this.ctx.strokeRect(x, y, dx, dy);
+        this.drawSelectionBox(onMouseDownPosition, newPosition);
     };
 
     // Up handlers
@@ -421,15 +414,8 @@ function Handler () {
                 currentTargetLm.selectAndDeselectRest();
             }
 
-            this.drawTargetingLine(
-                {x: evt.clientX, y: evt.clientY},
-                this.localToScreen(currentTargetLm.point()));
-
-            lms.forEach((lm) => {
-                this.drawTargetingLine(
-                    {x: evt.clientX, y: evt.clientY},
-                    this.localToScreen(lm.point()), true);
-            });
+            this.drawTargetingLines({x: evt.clientX, y: evt.clientY},
+                currentTargetLm, lms);
         }
     };
 
@@ -545,7 +531,7 @@ function Handler () {
 
         // Exposed handlers
         onMouseDown: atomic.atomicOperation(onMouseDown),
-        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove), MOVE_TO)
+        onMouseMove: atomic.atomicOperation(onMouseMove)
     };
 
 }
