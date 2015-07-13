@@ -138,7 +138,7 @@ LandmarkCollectionPrototype.selected = function () {
 };
 
 LandmarkCollectionPrototype.isEmpty = function () {
-    return this.landmarks.every(lm => lm.empty());
+    return this.landmarks.every(lm => lm.isEmpty());
 };
 
 LandmarkCollectionPrototype.deselectAll = atomicOperation(function () {
