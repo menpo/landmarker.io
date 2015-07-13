@@ -15,10 +15,9 @@
     <meta name="apple-mobile-web-app-title" content="Landmarker.io">
     <meta http-equiv="expires" content="0" />
     <!-- inject:css -->
-    <link rel="stylesheet" href="bundle-393b3098.css">
     <!-- endinject -->
     <!-- inject:js -->
-    <script src="bundle-82b4fd98.js"></script>
+    <script src="bundle-91760faa.js"></script>
     <!-- endinject -->
 </head>
 
@@ -29,10 +28,8 @@
     <!-- WebGL canvas (the actual assets and landmarks) -->
     <div class="FullScreen" id="viewport"></div>
 
-    <!-- HTML5 canvas for 2D overlays, e.g. selection box, snap-mode hints -->
+    <!-- HTML5 canvas (for 2D overlays, e.g. selection box) -->
     <canvas class="FullScreen" id="canvas"></canvas>
-    <!-- HTML5 canvas for Picture-in-Picture (PIP) view decoration -->
-    <canvas id="pipCanvas"></canvas>
 </div>
 
 <div class="Chrome">
@@ -44,8 +41,8 @@
             <div class="App-Flex-LeftCol LeftSidebar">
                 <!-- Asset information  (top left) -->
                 <div class="AssetInfo">
-                    <button class="AssetName" id="assetName">-</button>
-                    <button class="AssetIndex" id="assetIndex">-/-</button>
+                    <button class="AssetName" id="assetName">mesh_name</button>
+                    <button class="AssetIndex" id="assetIndex">001/999</button>
                 </div>
                 <!-- Toolbox itself (bottom left) -->
                 <div class="Toolbar" id="toolbar">
