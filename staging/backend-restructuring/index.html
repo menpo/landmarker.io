@@ -17,10 +17,10 @@
     <link href='http://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css">
     <!-- inject:css -->
-    <link rel="stylesheet" href="bundle-6e0746ca.css">
+    <link rel="stylesheet" href="bundle-373bb4e1.css">
     <!-- endinject -->
     <!-- inject:js -->
-    <script src="bundle-0572eb0f.js"></script>
+    <script src="bundle-1b5caf30.js"></script>
     <!-- endinject -->
 </head>
 
@@ -31,8 +31,10 @@
     <!-- WebGL canvas (the actual assets and landmarks) -->
     <div class="FullScreen" id="viewport"></div>
 
-    <!-- HTML5 canvas (for 2D overlays, e.g. selection box) -->
+    <!-- HTML5 canvas for 2D overlays, e.g. selection box, snap-mode hints -->
     <canvas class="FullScreen" id="canvas"></canvas>
+    <!-- HTML5 canvas for Picture-in-Picture (PIP) view decoration -->
+    <canvas id="pipCanvas"></canvas>
 </div>
 
 <div class="Chrome">
@@ -44,20 +46,20 @@
                 <!-- Asset information  (top left) -->
                 <div class="AssetInfo">
                   <div class="BackendName" id="backendName">
-                      <span class="content">server_type</span>
+                      <span class="content">-</span>
                       <span class="octicon octicon-sign-out"></span>
                   </div>
                   <button class="CollectionName" id="collectionName">
                       <span class="label">collection</span>
-                      <span class="content">collection_name</span>
+                      <span class="content">-</span>
                   </button>
                   <button class="AssetName" id="assetName">
                       <span class="label">asset</span>
-                      <span class="content">mesh_name</span>
+                      <span class="content">-</span>
                   </button>
                   <button class="AssetIndex" id="assetIndex">
                     <span class="label">index</span>
-                    <span class="content">001/999</span>
+                    <span class="content">-/-</span>
                   </button>
                 </div>
                 <!-- Toolbox itself (bottom left) -->
