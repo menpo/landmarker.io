@@ -221,15 +221,12 @@ var LandmarkGroupListView = Backbone.View.extend({
 
 });
 
-var SaveRevertView = Backbone.View.extend({
+var ActionsView = Backbone.View.extend({
 
     el: '#lmActionsPanel',
 
-    initialize: function({app}) {
+    initialize: function() {
         _.bindAll(this, 'save', 'help', 'render');
-        //this.listenTo(this.model, "all", this.render);
-        // Get the singleton app model separately as model is the landmarks
-        this.app = app;
         this.listenTo(this.model.log, "change", this.render);
         this.render();
     },
@@ -307,8 +304,9 @@ var UndoRedoView = Backbone.View.extend({
         'click .Redo': 'redo'
     },
 
-    initialize: function () {
+    initialize: function ({app}) {
         this.log = this.model.log;
+        this.app = app;
         this.listenTo(this.log, "change", this.render);
         _.bindAll(this, 'render', 'cleanup', 'undo', 'redo');
         this.render();
@@ -396,12 +394,38 @@ var TemplatePanel = Backbone.View.extend({
     }
 });
 
+var LmLoadView = Backbone.View.extend({
+    el: '#lmLoadPanel',
+
+    events: {
+        'click #loadPrevious': 'loadPrevious'
+    },
+
+    initialize: function ({app}) {
+        _.bindAll(this, 'render', 'loadPrevious');
+        this.app = app;
+        this.render();
+    },
+
+    render: function () {
+        console.log('LLMV', this.model.isEmpty(), this.app.assetSource().hasPredecessor());
+        const show = (
+            this.model.isEmpty() && this.app.assetSource().hasPredecessor());
+        this.$el.toggleClass('Hide', !show);
+    },
+
+    loadPrevious: function () {
+        this.app.reloadLandmarksFromPrevious();
+    }
+});
+
 var Sidebar = Backbone.View.extend({
 
     initialize: function () {
         _.bindAll(this, "landmarksChange");
         this.listenTo(this.model, "change:landmarks", this.landmarksChange);
-        this.saveRevertView = null;
+        this.actionsView = null;
+        this.lmLoadView = null;
         this.lmView = null;
         this.undoRedoView = null;
         this.templatePanel = new TemplatePanel({model: this.model});
@@ -409,27 +433,32 @@ var Sidebar = Backbone.View.extend({
 
     landmarksChange: function () {
         console.log('Sidebar - rewiring after landmark change');
-        if (this.saveRevertView) {
-            this.saveRevertView.undelegateEvents();
-        }
-        var lms = this.model.landmarks();
-        if (lms === null) {
-            return;
+        if (this.actionsView) {
+            this.actionsView.undelegateEvents();
         }
 
-        this.saveRevertView = new SaveRevertView({model: lms, app: this.model});
+        if (this.lmLoadView) {
+            this.lmLoadView.undelegateEvents();
+        }
 
         if (this.undoRedoView) {
             this.undoRedoView.undelegateEvents();
         }
-        this.undoRedoView = new UndoRedoView({model: lms});
 
         if (this.lmView) {
             this.lmView.cleanup();
         }
-        this.lmView = new LandmarkGroupListView({
-            collection: lms.labels
-        });
+
+        var lms = this.model.landmarks();
+
+        if (lms === null) {
+            return;
+        }
+
+        this.actionsView = new ActionsView({model: lms, app: this.model});
+        this.lmLoadView = new LmLoadView({model: lms, app: this.model});
+        this.undoRedoView = new UndoRedoView({model: lms});
+        this.lmView = new LandmarkGroupListView({collection: lms.labels});
         $('#landmarksPanel').html(this.lmView.render().$el);
     }
 

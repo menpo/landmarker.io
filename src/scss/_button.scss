@@ -15,7 +15,8 @@ button,
 
 .Button-Basic,
 .Button-Save,
-.Button-Danger {
+.Button-Danger,
+.Button-Info {
     color: white;
     text-transform: uppercase;
     font-size: medium;
@@ -47,6 +48,13 @@ button,
         position: absolute;
         left: 12px;
     }
+}
+
+.Button-Info {
+  background: $colorPurple;
+  &:hover {
+      background: $colorDarkPurple;
+  }
 }
 
 .Button-Danger {
