@@ -194,6 +194,14 @@ var App = Backbone.Model.extend({
 
         console.log('App: reloading asset source');
 
+        let oldIndex;
+        if (this.has('asset') && this.has('assetSource')) {
+            const idx = this.assetSource().assetIndex(this.asset());
+            if (idx > -1) {
+                oldIndex = idx;
+            }
+        }
+
         // Construct an asset source (which can query for asset information
         // from the server). Of course, we must pass the server in. The
         // asset source will ensure that the assets produced also get
@@ -214,12 +222,16 @@ var App = Backbone.Model.extend({
         this.listenTo(assetSource, 'change:mesh', this.meshChanged);
 
         assetSource.fetch().then(() => {
-            let i = 0;
+            let i;
 
             console.log('assetSource retrieved - setting');
 
-            if (this.has('_assetIndex') && !this.hasChanged('activeCollection')) {
+            if (oldIndex >= 0 && !this.hasChanged('activeCollection')) {
+                i = oldIndex;
+            } else if (this.has('_assetIndex') && !this.has('asset')) {
                 i = this.get('_assetIndex');
+            } else {
+                i = 0;
             }
 
             if (i < 0 || i > assetSource.nAssets() - 1) {
