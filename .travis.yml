@@ -6,6 +6,7 @@ install:
   - npm install
   - gem install s3_website
 script:
+- npm run lint:errors
 - npm run build
 - ./deploy.sh
 cache:

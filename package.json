@@ -11,7 +11,8 @@
     "build": "DISABLE_NOTIFIER=true NODE_ENV=production gulp build",
     "test": "mocha --compilers js:babel/register -R dot test/**/*.js",
     "serve": "http-server -p 4000",
-    "lint": "eslint -c .eslintrc src/js"
+    "lint": "eslint -c .eslintrc src/js",
+    "lint:errors": "eslint -c .eslintrc --quiet src/js"
   },
   "keywords": [
     "webgl",
