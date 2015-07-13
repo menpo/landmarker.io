@@ -1,11 +1,10 @@
-"use strict";
+'use strict';
 
 var Backbone = require('backbone'),
     _ = require('underscore'),
     $ = require('jquery');
 
-var _modals = {},
-    _activeModal = undefined;
+var _modals = {}, _activeModal;
 
 /**
  * Generate a pseudo-random key
@@ -38,12 +37,11 @@ var Modal = Backbone.View.extend({
         this.id = `modalWindow:${this.key}`;
         this.isOpen = false;
         this.closable = !!opts.closable;
-        this.disposeOnClose = !!opts.disposeOnClose
+        this.disposeOnClose = !!opts.disposeOnClose;
 
         if (opts.title) {
             this.title = opts.title;
         }
-
 
         this.init(opts);
 
@@ -74,14 +72,13 @@ var Modal = Backbone.View.extend({
             this.$el.find('.ModalWindow__Close').on('click', this.close);
         }
 
-
         if (this.title) {
             this.$el.append(
                 $(`<div class=${this.className}__Title>${this.title}</div>`)
             );
         }
 
-        let $content = this.content();
+        const $content = this.content();
         $content.addClass(`${this.className}__Content`);
         if ($content) {
             this.$el.append($content);
@@ -133,7 +130,7 @@ var Modal = Backbone.View.extend({
     },
 
     // Is called before render and passed the object received by initialize
-    init: function (opts) {},
+    init: function (/* opts */) {},
 
     // Called after render with no arguments
     afterRender: function () {}
@@ -141,14 +138,14 @@ var Modal = Backbone.View.extend({
 
 Modal.active = function () {
     return _modals[_activeModal];
-}
+};
 
 var ConfirmDialog = Modal.extend({
     modifiers: ['Small'],
 
     events: {
         'click .ConfirmAction--Yes': 'accept',
-        'click .ConfirmAction--No': 'reject',
+        'click .ConfirmAction--No': 'reject'
     },
 
     init: function ({text, accept, reject}) {
@@ -183,11 +180,12 @@ var ConfirmDialog = Modal.extend({
 Modal.confirm = function (text, accept, reject) {
     const dialog = new ConfirmDialog({
         text,
-        accept, reject,
+        accept,
+        reject,
         disposeOnClose: true,
-        closable: true,
+        closable: true
     });
     dialog.open();
-}
+};
 
 module.exports = Modal;

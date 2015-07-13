@@ -1,9 +1,8 @@
-"use strict";
+'use strict';
 
-var Backbone = require('backbone'),
-    $ = require('jquery'),
-    _ = require('underscore'),
-    Promise = require('promise-polyfill');
+const $ = require('jquery'),
+      _ = require('underscore'),
+      Promise = require('promise-polyfill');
 
 var { basename, extname } = require('../lib/utils');
 
@@ -47,7 +46,7 @@ function Icon (item) {
 
 function DropboxRadio (opts, index) {
 
-    const id = `dropboxRadios_${index}`
+    const id = `dropboxRadios_${index}`;
     const $radio = $(`<div class='DropboxRadio' id='${id}'></div>`);
 
     opts.forEach(function ([text, key], j) {
@@ -98,7 +97,7 @@ var DropboxPicker = Modal.extend({
             root: '/',
             currentList: [],
             history: []
-        }
+        };
 
         if (root) {
             this.state.root = root;
@@ -126,7 +125,6 @@ var DropboxPicker = Modal.extend({
         this.submit(this.state.selected, this.state.selectedIsFolder, options);
     },
 
-
     fetch: function (noCache=false) {
         this.state.loading = true;
         this.update();
@@ -153,7 +151,7 @@ var DropboxPicker = Modal.extend({
     },
 
     pathId: function (path) {
-        let id = path.replace(/\W/g, '');
+        const id = path.replace(/\W/g, '');
         return `__path__${id}__`;
     },
 
@@ -167,18 +165,18 @@ var DropboxPicker = Modal.extend({
             return $(`<div class='DropboxSelectList Empty'></div>`);
         }
 
-        let $wrapper = $(`<div class='DropboxSelectList'></div>`),
-            $list = $('<ul></ul>');
+        const $wrapper = $(`<div class='DropboxSelectList'></div>`),
+              $list = $('<ul></ul>');
 
         this.state.currentList.forEach((item) => {
-            let path = item.path;
+            const path = item.path;
 
-            let $item = $(
+            const $item = $(
                 `<li id='${this.pathId(path)}' class='DropboxSelectListItem' data-folder='${item.is_dir}' data-path='${path}'>\
                     ${basename(path)}\
                 </li>`);
 
-            let clickable = (
+            const clickable = (
                 item.is_dir ||
                 ( !this.selectFoldersOnly &&
                   ( !this.extensions.length ||
@@ -224,7 +222,7 @@ var DropboxPicker = Modal.extend({
         this.$body.find('.DropboxSelectListItem.Selected')
                   .removeClass('Selected');
 
-        let $submitText = this.$body.find('.DropboxSelectSubmit > span');
+        const $submitText = this.$body.find('.DropboxSelectSubmit > span');
         $submitText.text(this.state.selected || 'Nothing selected');
 
         if (this.state.selected) {
@@ -239,10 +237,10 @@ var DropboxPicker = Modal.extend({
     handleClick: function (evt) {
 
         if ($(evt.currentTarget).hasClass('Disabled')) {
-            return;
+            return null;
         }
 
-        let path = evt.currentTarget.dataset.path,
+        const path = evt.currentTarget.dataset.path,
             isFolder = evt.currentTarget.dataset.folder === 'true',
             selectable = (
                 !(this.selectFilesOnly && isFolder) &&
@@ -271,7 +269,7 @@ var DropboxPicker = Modal.extend({
     },
 
     back: function () {
-        let prev = this.state.history.pop();
+        const prev = this.state.history.pop();
         if (prev) {
             this.state.root = prev;
             this.fetch().then(this.update);

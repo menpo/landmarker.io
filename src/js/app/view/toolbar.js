@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var _ = require('underscore');
 var Backbone = require('backbone');
@@ -9,16 +9,15 @@ var LandmarkSizeSlider = Backbone.View.extend({
     el: '#lmSizeSlider',
 
     events: {
-        input : "changeLandmarkSize"
+        input: "changeLandmarkSize"
     },
 
-    initialize : function() {
+    initialize: function () {
         _.bindAll(this, 'render', 'changeLandmarkSize');
         this.listenTo(this.model, "change:landmarkSize", this.render);
         // set the size immediately.
         this.render();
     },
-
 
     render: function () {
         this.$el[0].value = this.model.get("landmarkSize") * 100;
@@ -35,10 +34,10 @@ var TextureToggle = Backbone.View.extend({
     el: '#textureRow',
 
     events: {
-        'click #textureToggle' : "textureToggle"
+        'click #textureToggle': "textureToggle"
     },
 
-    initialize : function() {
+    initialize: function () {
         this.$toggle = this.$el.find('#textureToggle')[0];
         _.bindAll(this, 'changeMesh', 'render', 'textureToggle');
         this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
@@ -76,16 +75,15 @@ var TextureToggle = Backbone.View.extend({
     }
 });
 
-
 var ConnectivityToggle = Backbone.View.extend({
 
     el: '#connectivityRow',
 
     events: {
-        'click #connectivityToggle' : "connectivityToggle"
+        'click #connectivityToggle': "connectivityToggle"
     },
 
-    initialize : function() {
+    initialize: function () {
         this.$toggle = this.$el.find('#connectivityToggle')[0];
         _.bindAll(this, 'render', 'connectivityToggle');
         this.listenTo(this.model, 'change:connectivityOn', this.render);
@@ -107,10 +105,10 @@ var EditingToggle = Backbone.View.extend({
     el: '#editingRow',
 
     events: {
-        'click #editingToggle' : "editingToggle"
+        'click #editingToggle': "editingToggle"
     },
 
-    initialize : function() {
+    initialize: function () {
         this.$toggle = this.$el.find('#editingToggle')[0];
         _.bindAll(this, 'render', 'editingToggle');
         this.listenTo(this.model, 'change:editingOn', this.render);
@@ -132,10 +130,10 @@ var AutoSaveToggle = Backbone.View.extend({
     el: '#autosaveRow',
 
     events: {
-        'click #autosaveToggle' : "toggle"
+        'click #autosaveToggle': "toggle"
     },
 
-    initialize : function() {
+    initialize: function () {
         this.$toggle = this.$el.find('#autosaveToggle')[0];
         _.bindAll(this, 'render', 'toggle');
         this.listenTo(this.model, 'change:autoSaveOn', this.render);
@@ -156,10 +154,10 @@ exports.Toolbar = Backbone.View.extend({
 
     el: '#toolbar',
 
-    initialize : function () {
+    initialize: function () {
         this.lmSizeSlider = new LandmarkSizeSlider({model: this.model});
-        this.connectivityToggle = new ConnectivityToggle({model : this.model});
-        this.editingToggle = new EditingToggle({model : this.model});
+        this.connectivityToggle = new ConnectivityToggle({model: this.model});
+        this.editingToggle = new EditingToggle({model: this.model});
         if (this.model.meshMode()) {
             this.textureToggle = new TextureToggle({model: this.model});
         } else {

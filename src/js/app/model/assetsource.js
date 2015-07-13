@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var Backbone = require('backbone');
 var _ = require('underscore');
@@ -60,21 +60,21 @@ var AssetSource = Backbone.Model.extend({
 
     next: function () {
         if (!this.hasSuccessor()) {
-            return;
+            return undefined;
         }
         return this.setAsset(this.assets()[this.assetIndex() + 1]);
     },
 
     previous: function () {
         if (!this.hasPredecessor()) {
-            return;
+            return undefined;
         }
         return this.setAsset(this.assets()[this.assetIndex() - 1]);
     },
 
     setIndex: function (newIndex) {
         if (newIndex < 0 || newIndex >= this.nAssets()) {
-            console.log("Can't go to asset with index " + newIndex + 1);
+            console.log(`Can't go to asset with index ${newIndex + 1}`);
             return null;
         } else {
             return this.setAsset(this.assets()[newIndex]);
@@ -83,7 +83,7 @@ var AssetSource = Backbone.Model.extend({
 
     updateMesh: function () {
         this.trigger('change:mesh');
-    },
+    }
 });
 
 exports.MeshSource = AssetSource.extend({

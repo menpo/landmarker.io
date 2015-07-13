@@ -1,9 +1,7 @@
-"use strict";
+'use strict';
 
 var Backbone = require('backbone');
 var THREE = require('three');
-var getArrayBuffer = require('../lib/requests').getArrayBuffer;
-var ImagePromise = require('../lib/imagepromise');
 
 var FRONT = {
     image: new THREE.Vector3(0, 0, 1),
@@ -58,13 +56,10 @@ var imagePlaceholderMaterial = new THREE.MeshPhongMaterial(
     }
 );
 
-
 var Image = Backbone.Model.extend({
 
-    defaults : function () {
-        return {
-            textureOn : true
-        }
+    defaults: function () {
+        return { textureOn: true };
     },
 
     hasTexture: function() {
@@ -83,7 +78,7 @@ var Image = Backbone.Model.extend({
         return this.hasTexture() && this.get('textureOn');
     },
 
-    initialize : function() {
+    initialize: function() {
         var that = this;
 
         var meshChanged = function () {
@@ -185,7 +180,7 @@ var Image = Backbone.Model.extend({
             this._thumbnailPromise = this.get('server').fetchThumbnail(this.id).then((material) => {
                 delete this._thumbnailPromise;
                 console.log('Asset: loaded thumbnail for ' + this.id);
-                this.thumbnail =  material;
+                this.thumbnail = material;
                 var img = material.map.image;
                 this.thumbnailGeometry = mappedPlane(img.width, img.height);
                 this.trigger('change:thumbnail');
@@ -215,7 +210,7 @@ var Image = Backbone.Model.extend({
     },
 
     // reset this asset back to how it was at fetch time.
-    dispose : function () {
+    dispose: function () {
         if (this.hasGeometry()) {
             this.geometry.dispose();
         }
@@ -241,7 +236,6 @@ var Image = Backbone.Model.extend({
         this.geometry = null;
         delete this.geometry;
 
-
         this.thumbnail = null;
         delete this.thumbnail;
 
@@ -259,7 +253,6 @@ var Image = Backbone.Model.extend({
     }
 });
 
-
 var Mesh = Image.extend({
 
     geometryUrl: function () {
@@ -273,7 +266,7 @@ var Mesh = Image.extend({
         }
         var arrayPromise = this.get('server').fetchGeometry(this.id);
 
-        if (!!arrayPromise.isGeometry) { // Backend says it parses the geometry
+        if (arrayPromise.isGeometry) { // Backend says it parses the geometry
             this._geometryPromise = arrayPromise.then((geometry) => {
                 delete this._geometryPromise;
                 geometry.computeBoundingSphere();
@@ -331,7 +324,9 @@ var Mesh = Image.extend({
                 // Binning (optional)
                 if (hasBinning) {
                     console.log(
-                        'ready to read from binning file at ', binningOffset)
+                        'ready to read from binning file at ',
+                        binningOffset
+                    );
                 }
                 geometry = this._newBufferGeometry(points, normals, tcoords);
                 console.log('Asset: loaded Geometry for ' + this.id);
@@ -344,7 +339,6 @@ var Mesh = Image.extend({
                 console.log(err);
             });
         }
-
 
         // mirror the arrayPromise xhr() API
         this._geometryPromise.xhr = () => arrayPromise.xhr();

@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var $ = require('jquery'),
     url = require('url'),
@@ -9,8 +9,7 @@ var support = require('./app/lib/support');
 var Notification = require('./app/view/notification');
 var cfg = require('./app/model/config')();
 
-var DropboxPicker = require('./app/view/dropbox_picker'),
-    Modal = require('./app/view/modal'),
+var Modal = require('./app/view/modal'),
     Intro = require('./app/view/intro');
 
 var Backend = require('./app/backend');
@@ -91,12 +90,12 @@ function _loadDropbox (u) {
 
         if (urlOk && u.query.state === oAuthState) {
             cfg.delete('OAUTH_STATE', true);
-            dropbox = new Backend.Dropbox(u.query['access_token'], cfg);
+            dropbox = new Backend.Dropbox(u.query.access_token, cfg);
 
-            delete u.query['access_token'];
-            delete u.query['token_type'];
-            delete u.query['state'];
-            delete u.query['uid'];
+            delete u.query.access_token;
+            delete u.query.token_type;
+            delete u.query.state;
+            delete u.query.uid;
             u.search = null;
             history.replaceState(null, null, url.format(u).replace('?', '#'));
         } else {
@@ -113,7 +112,7 @@ function _loadDropbox (u) {
     if (dropbox) {
         dropbox.setMode(cfg.get('BACKEND_DROPBOX_MODE'));
         return dropbox.accountInfo().then(function () {
-            _loadDropboxAssets(dropbox, u)
+            _loadDropboxAssets(dropbox, u);
         }, function () {
             Notification.notify({
                 msg: 'Could not reach Dropbox servers',
@@ -124,7 +123,7 @@ function _loadDropbox (u) {
     } else {
         Intro.open();
     }
-};
+}
 
 function _loadDropboxAssets (dropbox, u) {
     let assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH');
@@ -194,7 +193,7 @@ function initLandmarker(server, mode, u) {
 
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
-    THREE.ImageUtils.crossOrigin = "";
+    THREE.ImageUtils.crossOrigin = '';
 
     var appInit = {server: server, mode: mode};
 
@@ -218,13 +217,13 @@ function initLandmarker(server, mode, u) {
     var ViewportView = require('./app/view/viewport');
     var HelpOverlay = require('./app/view/help');
 
-    // var preview = new Notification.ThumbnailNotification({model:app});
-    var loading = new Notification.AssetLoadingNotification({model:app});
-    var sidebar = new SidebarView.Sidebar({model: app});
-    var assetView = new AssetView.AssetView({model: app});
+    new Notification.AssetLoadingNotification({model: app});
+    new SidebarView.Sidebar({model: app});
+    new AssetView.AssetView({model: app});
+    new ToolbarView.Toolbar({model: app});
+    new HelpOverlay({model: app});
+
     var viewport = new ViewportView.Viewport({model: app});
-    var toolbar = new ToolbarView.Toolbar({model: app});
-    var helpOverlay = new HelpOverlay({model: app});
 
     var prevAsset = null;
 
@@ -241,7 +240,7 @@ function initLandmarker(server, mode, u) {
     });
 
     // update the URL of the page as the state changes
-    var urlState = new URLState({model: app});
+    new URLState({model: app});
 
     // ----- KEYBOARD HANDLER ----- //
 
@@ -314,12 +313,15 @@ function initLandmarker(server, mode, u) {
         }
 
         if (app.isHelpOverlayOn()) {
-            return app.toggleHelpOverlay();
+            app.toggleHelpOverlay();
+            return;
         }
 
         const modal = Modal.active();
         if (modal) {
-            if (modal.closable) modal.close();
+            if (modal.closable) {
+                modal.close();
+            }
             return;
         }
 

@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var _ = require('underscore');
 var THREE = require('three');
@@ -21,7 +21,6 @@ var lmMaterialForSelected = {
     true: new THREE.MeshBasicMaterial({color: LM_SPHERE_SELECTED_COLOR}),
     false: new THREE.MeshBasicMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
 };
-
 
 var LandmarkTHREEView = Backbone.View.extend({
 

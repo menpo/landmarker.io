@@ -9,12 +9,12 @@ var manifest = require('gulp-manifest');
 var runSequence = require('run-sequence');
 var rev = require('gulp-rev');
 var buffer = require('gulp-buffer');
-var replace = require('gulp-replace');
 var inject = require('gulp-inject');
 var sass = require('gulp-sass');
 var sourcemaps = require('gulp-sourcemaps');
 var rename = require('gulp-rename');
 var del = require('del');
+var uglify = require('gulp-uglify');
 
 var src = {
     js: ['src/js/**/*.js'],
@@ -26,11 +26,6 @@ var entry = {
     js: './src/js/index.js',
     scss: './src/scss/main.scss'
 }
-
-var built = {
-    js: './',
-    css: './css/'
-};
 
 var built_globs = [
     './bundle*js',
@@ -62,24 +57,14 @@ gulp.task('clean-css', function (cb) {
 gulp.task('js', function() {
     var b = browserify(entry.js, {debug: true, transform: [babelify]})
         .bundle();
-    return b.on('error', function(e) {
-            gutil.log(e);
-            b.end();
-        })
+    return b.on('error', gutil.log.bind(gutil, 'Browserify Error'))
         .pipe(source('bundle.js'))
-        // Start piping stream to tasks!
         .pipe(buffer())
         .pipe(rev())
         .pipe(sourcemaps.init({loadMaps: true}))
+        // .pipe(uglify())
         .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('.'))
-        //
-        // Ideally we would now like to minify the bundle, whilst keeping the
-        // source mapping correct. I can't get this working for now, so we
-        // just ignore it. But would be something like...
-        //.pipe(streamify(uglify()))
-        //.pipe(rename('bundle.min.js'))
-        //.pipe(gulp.dest('.'))
         .pipe(notify('Landmarker.io: JS rebuilt'));
 });
 
@@ -88,7 +73,7 @@ gulp.task('js', function() {
 gulp.task('sass', function () {
     return gulp.src(entry.scss)
         .pipe(sourcemaps.init())
-        .pipe(sass().on('error', sass.logError))
+        .pipe(sass().on('error', gutil.log.bind(gutil, 'node-sass')))
         .pipe(prefix(["last 1 version", "> 1%", "ie 8", "ie 7"],
             { cascade: true }))
         .pipe(sourcemaps.write())

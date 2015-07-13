@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var _ = require('underscore');
 var Backbone = require('backbone');
@@ -16,11 +16,11 @@ var AssetPagerView = Backbone.View.extend({
     el: '#assetPager',
 
     events: {
-        'click #next' : "next",
-        'click #previous' : "previous"
+        'click #next': 'next',
+        'click #previous': 'previous'
     },
 
-    initialize : function() {
+    initialize: function() {
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change:asset", this.render);
     },
@@ -48,10 +48,10 @@ var BackendNameView = Backbone.View.extend({
     el: '#backendName',
 
     events: {
-        click : "handleClick"
+        click: "handleClick"
     },
 
-    initialize : function() {
+    initialize: function () {
         _.bindAll(this, 'render');
         this.render();
         this.listenTo(this.model, "change:server", this.render);
@@ -90,10 +90,10 @@ var AssetNameView = Backbone.View.extend({
     el: '#assetName',
 
     events: {
-        click : "chooseAssetName"
+        click: "chooseAssetName"
     },
 
-    initialize : function() {
+    initialize: function () {
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change:asset", this.render);
     },
@@ -127,24 +127,23 @@ var AssetNameView = Backbone.View.extend({
     }
 });
 
-
 var AssetIndexView = Backbone.View.extend({
 
     el: '#assetIndex',
 
     events: {
-        click : "chooseAssetNumber"
+        click: "chooseAssetNumber"
     },
 
-    initialize : function() {
+    initialize: function () {
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change:asset", this.render);
     },
 
     render: function () {
-        var n_str = pad(this.model.assetSource().nAssets(), 2);
-        var i_str = pad(this.model.assetIndex() + 1, 2);
-        this.$el.find('.content').html(i_str + "/" + n_str);
+        const nStr = pad(this.model.assetSource().nAssets(), 2);
+        const iStr = pad(this.model.assetIndex() + 1, 2);
+        this.$el.find('.content').html(iStr + "/" + nStr);
         this.$el.toggleClass(
             'Disabled', this.model.assetSource().nAssets() <= 1);
         return this;
@@ -153,7 +152,7 @@ var AssetIndexView = Backbone.View.extend({
     chooseAssetNumber: function () {
 
         if (this.model.assetSource().nAssets() <= 1) {
-            return;
+            return null;
         }
 
         var newIndex = window.prompt(
@@ -185,10 +184,10 @@ var CollectionName = Backbone.View.extend({
     el: '#collectionName',
 
     events: {
-        click : "chooseCollection"
+        click: "chooseCollection"
     },
 
-    initialize : function() {
+    initialize: function() {
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change:activeCollection", this.render);
     },
@@ -206,7 +205,7 @@ var CollectionName = Backbone.View.extend({
 
     chooseCollection: function () {
 
-        let backend = this.model.server();
+        const backend = this.model.server();
         if (backend instanceof Dropbox) {
             backend.pickAssets((path) => {
                 this.model.set('mode', backend.mode);
@@ -243,7 +242,7 @@ var CollectionName = Backbone.View.extend({
 
 exports.AssetView = Backbone.View.extend({
 
-    initialize : function() {
+    initialize: function() {
         new BackendNameView({model: this.model});
         new CollectionName({model: this.model});
         new AssetPagerView({model: this.model});

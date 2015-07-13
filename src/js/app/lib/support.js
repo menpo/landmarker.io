@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 module.exports.ie = (function () {
     return ( /MSIE (\d+\.\d+);/.test(navigator.userAgent) ||
@@ -8,7 +8,7 @@ module.exports.ie = (function () {
 module.exports.webgl = (function () {
     try {
         var canvas = document.createElement('canvas');
-        return !! (
+        return !!(
             window.WebGLRenderingContext &&
             ( canvas.getContext('webgl') ||
               canvas.getContext('experimental-webgl') )
@@ -24,7 +24,7 @@ module.exports.localstorage = (function () {
         localStorage.removeItem('TEST_LS');
         return true;
     } catch (e) {
-        console.log("Couldn't find localStorage");
+        console.log(`Couldn't find localStorage`);
         return false;
     }
 })();

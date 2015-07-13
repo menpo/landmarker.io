@@ -1,3 +1,5 @@
+'use strict';
+
 var Promise = require('promise-polyfill'),
     THREE = require('three');
 
@@ -33,12 +35,12 @@ var ImagePromise = function (url, auth=false) {
 
         xhr.addEventListener('error', function() {
             loading.stop(asyncId);
-            reject(Error("Network Error"));
+            reject(Error('Network Error'));
         });
 
         xhr.addEventListener('abort', function() {
             loading.stop(asyncId);
-            reject(Error("Aborted"));
+            reject(Error('Aborted'));
         });
 
         xhr.send();

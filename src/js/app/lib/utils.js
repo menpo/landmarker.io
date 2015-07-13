@@ -1,8 +1,8 @@
-"use strict";
+'use strict';
 
 module.exports = {};
 
-const randomString = function (length, useTime=true) {
+function randomString (length, useTime=true) {
     var result = '',
         ch = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -17,42 +17,42 @@ const randomString = function (length, useTime=true) {
     return result;
 }
 
-const basename = function (path, removeExt=false) {
-    let bn = path.split('/').pop();
+function basename (path, removeExt=false) {
+    const bn = path.split('/').pop();
     return removeExt ? bn.split('.').slice(0, -1).join('.') : bn;
 }
 
-const extname = function (path) {
+function extname (path) {
     const parts = path.split('.');
     return parts.length > 1 ? parts.pop().toLowerCase() : undefined;
 }
 
-const stripExtension = function (path) {
+function stripExtension (path) {
     const parts = path.split('.');
     return parts.length > 1 ? parts.slice(0, -1).join('.') : path;
 }
 
-const stripTrailingSlash = function (str) {
+function stripTrailingSlash (str) {
     return str.substr(-1) === '/' ? str.substr(0, str.length - 1) : str;
 }
 
-const addTrailingSlash = function (str) {
+function addTrailingSlash (str) {
     return str.substr(-1) === '/' ? str : str + '/';
 }
 
-const baseUrl = function () {
+function baseUrl () {
     return addTrailingSlash(window.location.origin + window.location.pathname);
 }
 
-const pad = function (n, width, z) {
+function pad (n, width, z) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n :
         new Array(width - n.length + 1).join(z) + n;
 }
 
-const capitalize = function (str) {
-    return str.charAt(0).toUpperCase() + str.slice(1)
+function capitalize (str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 module.exports = {
@@ -60,5 +60,5 @@ module.exports = {
     basename, extname, stripExtension,
     stripTrailingSlash, addTrailingSlash,
     baseUrl,
-    capitalize, pad,
-}
+    capitalize, pad
+};

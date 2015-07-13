@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var _ = require('underscore');
 var Backbone = require('backbone');
@@ -28,7 +28,7 @@ var spinnerOpts = {
 
 // module.exports.ThumbnailNotification = Backbone.View.extend({
 //
-//     initialize : function() {
+//     initialize: function () {
 //         _.bindAll(this, 'render');
 //         this.listenTo(this.model.assetSource(), "change:nPreviews", this.render);
 //     },
@@ -168,11 +168,11 @@ module.exports.BaseNotification = Backbone.View.extend({
 
 module.exports.notify = function (opts) {
     return new module.exports.BaseNotification(opts);
-}
+};
 
 module.exports.AssetLoadingNotification = Backbone.View.extend({
 
-    initialize : function() {
+    initialize: function() {
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change:assetSource",
             this._changeAssetSource);
@@ -209,10 +209,9 @@ module.exports.AssetLoadingNotification = Backbone.View.extend({
     }
 });
 
-
 module.exports.LandmarkSavingNotification = Backbone.View.extend({
 
-    initialize : function() {
+    initialize: function () {
         _.bindAll(this, 'start', 'stop');
         this.spinner = new Spinner().spin();
 
@@ -235,7 +234,6 @@ module.exports.LandmarkSavingNotification = Backbone.View.extend({
         }
     }
 });
-
 
 var CornerSpinner = Backbone.View.extend({
 
@@ -264,7 +262,7 @@ var CornerSpinner = Backbone.View.extend({
     },
 
     start: function () {
-        let rs = randomString(8, true);
+        const rs = randomString(8, true);
         this._operations[rs] = true;
         this.render(true);
         return rs;
@@ -289,5 +287,5 @@ module.exports.loading = {
     stop: function (id) {
         _gs = _gs || new CornerSpinner();
         _gs.stop.call(_gs, id);
-    },
-}
+    }
+};

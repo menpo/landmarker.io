@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var _ = require('underscore');
 var THREE = require('three');
@@ -27,7 +27,7 @@ function Handler () {
      */
     var findClosestLandmarks = (lmGroup, loc, locked=false) => {
         var dist, i, j, lm, lmLoc, minDist,
-            dists = new Array(4), lms= new Array(4);
+            dists = new Array(4), lms = new Array(4);
 
         for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
             lm = lmGroup.landmarks[i];
@@ -210,12 +210,9 @@ function Handler () {
                 this.model.landmarks().deselectAll();
                 currentTargetLm = undefined;
                 meshPressed();
-            } else {
-                // Pass right click does nothing in most cases
             }
         }
     };
-
 
     // Drag Handlers
     // ------------------------------------------------------------------------
@@ -277,25 +274,20 @@ function Handler () {
         var y1 = onMouseDownPosition.y;
         var x2 = event.clientX;
         var y2 = event.clientY;
-        var min_x, max_x, min_y, max_y;
+        var minX, maxX, minY, maxY;
         if (x1 < x2) {
-            min_x = x1;
-            max_x = x2;
+            [minX, maxX] = [x1, x2];
         } else {
-            min_x = x2;
-            max_x = x1;
+            [minX, maxX] = [x2, x1];
         }
         if (y1 < y2) {
-            min_y = y1;
-            max_y = y2;
+            [minY, maxY] = [y1, y2];
         } else {
-            min_y = y2;
-            max_y = y1;
+            [minY, maxY] = [y2, y1];
         }
         // First, let's just find all the landmarks in screen space that
         // are within our selection.
-        var lms = this.lmViewsInSelectionBox(min_x, min_y,
-                                             max_x, max_y);
+        var lms = this.lmViewsInSelectionBox(minX, minY, maxX, maxY);
 
         // Of these, filter out the ones which are visible (not
         // obscured) and select the rest
@@ -391,8 +383,7 @@ function Handler () {
             currentTargetLm = undefined;
         }
 
-        var intersectsWithMesh =
-            this.getIntersectsFromEvent(evt, this.mesh);
+        intersectsWithMesh = this.getIntersectsFromEvent(evt, this.mesh);
 
         var lmGroup = this.model.landmarks();
 
@@ -441,7 +432,7 @@ function Handler () {
         }
 
         // Up and down are inversed due to the way THREE handles coordinates
-        let directions = {
+        const directions = {
             37: [-1, 0],    // Left
             38: [0, -1],     // Up
             39: [1, 0],     // Right
@@ -454,18 +445,18 @@ function Handler () {
         }
 
         // Set a movement of 0.5% of the screen in the suitable direction
-        let [x, y] = directions,
-            move = new THREE.Vector2(),
-            [dx, dy] = [0.005 * window.innerWidth, 0.005 * window.innerHeight];
+        const [x, y] = directions,
+              move = new THREE.Vector2(),
+              [dx, dy] = [.005 * window.innerWidth, .005 * window.innerHeight];
 
         move.set(x * dx, y * dy);
 
         const ops = [];
         this.model.landmarks().selected().forEach((lm) => {
-            let lmScreen = this.localToScreen(lm.point());
+            const lmScreen = this.localToScreen(lm.point());
             lmScreen.add(move);
 
-            let intersectsWithMesh = this.getIntersects(
+            intersectsWithMesh = this.getIntersects(
                 lmScreen.x, lmScreen.y, this.mesh);
 
             if (intersectsWithMesh.length > 0) {
@@ -486,7 +477,7 @@ function Handler () {
             return;
         }
 
-        let _val = !!val; // Force cast to boolean
+        const _val = !!val; // Force cast to boolean
 
         if (_val === groupSelected) {
             return; // Nothing to do here
