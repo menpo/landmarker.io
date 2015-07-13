@@ -51649,16 +51649,8 @@ var _slicedToArray = (function () {
     };
 })();
 
-var _ = require('underscore');
+var Backbone = require('backbone');
 var $ = require('jquery');
-var Backbone = require('../lib/backbonej');
-
-window.$ = $;
-
-var DISPLAY_STYLE_FOR_HELP_ON = {
-    'true': 'flex',
-    'false': 'none'
-};
 
 var HELP_CONTENTS = [['j', 'go to next asset in collection'], ['k', 'go to previous asset in collection'], [''], ['right click', 'insert next available landmark'], ['snap + click', 'move snapped landmark'], ['snap + ctrl + move', 'lock snapped landmark'], [''], ['a', 'select all landmarks'], ['g', 'select all landmarks in the active group'], ['d', 'delete selected landmarks'], ['q / ESC', 'clear current selection'], ['click outside', 'clear current selection'], ['ctrl/cmd + click on landmark', 'select and deselect from current selection'], ['click on a landmark', 'select a landmark'], ['click + drag on a landmark', 'move landmark points'], ['shift + drag not on a landmark', 'draw a box to select multiple landmarks'], ['ctrl + shift + drag not on a landmark', 'draw a box to add multiple landmarks to current selection'], [''], ['l', 'toggle links (landmark connections)'], ['t', 'toggle textures (<i>mesh mode only</i>)'], ['c', 'change between orthographic and perspective rendering (<i>mesh mode only</i>)'], [''], ['r', 'reset the camera to default'], ['mouse wheel', 'zoom the camera in and out'], ['click + drag', 'rotate camera (<i>mesh mode only</i>)'], ['right click + drag', 'pan the camera'], [''], ['?', 'display this help']];
 
@@ -51670,9 +51662,7 @@ module.exports = Backbone.View.extend({
 
     initialize: function initialize() {
         this.listenTo(this.model, 'change:helpOverlayIsDisplayed', this.render);
-        this.el = this.$el[0];
         var $tbody = this.$el.children('table').children('tbody');
-        window.$el = this.$el;
         HELP_CONTENTS.forEach(function (_ref) {
             var _ref2 = _slicedToArray(_ref, 2);
 
@@ -51686,8 +51676,7 @@ module.exports = Backbone.View.extend({
     },
 
     render: function render() {
-        var isOn = this.model.isHelpOverlayOn();
-        this.el.style.display = DISPLAY_STYLE_FOR_HELP_ON[isOn];
+        this.$el.toggleClass('Display', this.model.isHelpOverlayOn());
     },
 
     close: function close() {
@@ -51695,7 +51684,7 @@ module.exports = Backbone.View.extend({
     }
 });
 
-},{"../lib/backbonej":13,"jquery":8,"underscore":12}],28:[function(require,module,exports){
+},{"backbone":2,"jquery":8}],28:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('../lib/backbonej');
@@ -52719,8 +52708,8 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
 
     function mousePositionInOrthographicView(v) {
         // convert into relative coordinates (0-1)
-        var x = v.x / domElement.width;
-        var y = v.y / domElement.height;
+        var x = v.x / domElement.offsetWidth;
+        var y = v.y / domElement.offsetHeight;
         // get the current height and width of the orthographic
         var oWidth = oCam.right - oCam.left;
         var oHeight = oCam.top - oCam.bottom;
@@ -53073,8 +53062,6 @@ var $ = require('jquery');
 
 var atomic = require('../../model/atomic');
 
-var MOVE_TO = 50;
-
 /**
  * Create a closure for handling mouse events in viewport.
  * Holds state usable by all event handlers and should be bound to the
@@ -53323,15 +53310,10 @@ function Handler() {
         console.log('shift:drag');
         // note - we use client as we don't want to jump back to zero
         // if user drags into sidebar!
-        var newX = event.clientX;
-        var newY = event.clientY;
+        var newPosition = { x: event.clientX, y: event.clientY };
         // clear the canvas and draw a selection rect.
         _this.clearCanvas();
-        var x = onMouseDownPosition.x;
-        var y = onMouseDownPosition.y;
-        var dx = newX - x;
-        var dy = newY - y;
-        _this.ctx.strokeRect(x, y, dx, dy);
+        _this.drawSelectionBox(onMouseDownPosition, newPosition);
     };
 
     // Up handlers
@@ -53480,11 +53462,7 @@ function Handler() {
                 currentTargetLm.selectAndDeselectRest();
             }
 
-            _this.drawTargetingLine({ x: evt.clientX, y: evt.clientY }, _this.localToScreen(currentTargetLm.point()));
-
-            lms.forEach(function (lm) {
-                _this.drawTargetingLine({ x: evt.clientX, y: evt.clientY }, _this.localToScreen(lm.point()), true);
-            });
+            _this.drawTargetingLines({ x: evt.clientX, y: evt.clientY }, currentTargetLm, lms);
         }
     };
 
@@ -53603,7 +53581,7 @@ function Handler() {
 
         // Exposed handlers
         onMouseDown: atomic.atomicOperation(onMouseDown),
-        onMouseMove: _.throttle(atomic.atomicOperation(onMouseMove), MOVE_TO)
+        onMouseMove: atomic.atomicOperation(onMouseMove)
     };
 }
 
@@ -53655,7 +53633,6 @@ var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
 
 var PIP_WIDTH = 300;
 var PIP_HEIGHT = 300;
-var PIP_MARGIN = 0;
 
 var MESH_SCALE = 1.0;
 
@@ -53686,11 +53663,61 @@ exports.Viewport = Backbone.View.extend({
         this.$container = $('#viewportContainer');
         // and grab the viewport div
         this.$webglel = $('#viewport');
+
+        // we need to track the pixel ratio of this device (i.e. is it a
+        // HIDPI/retina display?)
+        this.pixelRatio = window.devicePixelRatio || 1;
+
         // Get a hold on the overlay canvas and its context (note we use the
         // id - the Viewport should be passed the canvas element on
         // construction)
         this.canvas = document.getElementById(this.id);
         this.ctx = this.canvas.getContext('2d');
+
+        // we hold a separate canvas for the PIP decoration - grab it
+        this.pipCanvas = document.getElementById('pipCanvas');
+        this.pipCtx = this.pipCanvas.getContext('2d');
+
+        // style the PIP canvas on initialization
+        this.pipCanvas.style.position = 'fixed';
+        this.pipCanvas.style.zIndex = 0;
+        this.pipCanvas.style.width = PIP_WIDTH + 'px';
+        this.pipCanvas.style.height = PIP_HEIGHT + 'px';
+        this.pipCanvas.width = PIP_WIDTH * this.pixelRatio;
+        this.pipCanvas.height = PIP_HEIGHT * this.pixelRatio;
+        this.pipCanvas.style.left = this.pipBounds().x + 'px';
+
+        // To compensate for rentina displays we have to manually
+        // scale our contexts up by the pixel ration. To conteract this (so we
+        // can work in 'normal' pixel units) add a global transform to the
+        // canvas contexts we are holding on to.
+        this.pipCtx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+        this.ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+
+        // Draw the PIP window - we only do this once.
+        this.pipCtx.strokeStyle = '#ffffff';
+
+        // vertical line
+        this.pipCtx.beginPath();
+        this.pipCtx.moveTo(PIP_WIDTH / 2, PIP_HEIGHT * 0.4);
+        this.pipCtx.lineTo(PIP_WIDTH / 2, PIP_HEIGHT * 0.6);
+        // horizontal line
+        this.pipCtx.moveTo(PIP_WIDTH * 0.4, PIP_HEIGHT / 2);
+        this.pipCtx.lineTo(PIP_WIDTH * 0.6, PIP_HEIGHT / 2);
+        this.pipCtx.stroke();
+
+        this.pipCtx.setLineDash([2, 2]);
+        this.pipCtx.strokeRect(0, 0, PIP_WIDTH, PIP_HEIGHT);
+
+        // hide the pip decoration - should only be shown when in orthgraphic
+        // mode.
+        this.pipCanvas.style.display = 'none';
+
+        // to be efficient we want to track what parts of the canvas we are
+        // drawing into each frame. This way we only need clear the relevant
+        // area of the canvas which is a big perf win.
+        // see this.updateCanvasBoundingBox() for usage.
+        this.ctxBox = { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
 
         // ------ SCENE GRAPH CONSTRUCTION ----- //
         this.scene = new THREE.Scene();
@@ -53756,8 +53783,8 @@ exports.Viewport = Backbone.View.extend({
         // add a soft white ambient light
         this.s_lights.add(new THREE.AmbientLight(0x404040));
 
-        this.renderer = new THREE.WebGLRenderer({ antialias: false,
-            alpha: false });
+        this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false,
+            devicePixelRatio: window.devicePixelRatio || 1 });
         this.renderer.setClearColor(CLEAR_COLOUR, 1);
         this.renderer.autoClear = false;
         // attach the render on the element we picked out earlier
@@ -53845,6 +53872,14 @@ exports.Viewport = Backbone.View.extend({
         });
     },
 
+    width: function width() {
+        return this.$container[0].offsetWidth;
+    },
+
+    height: function height() {
+        return this.$container[0].offsetHeight;
+    },
+
     changeMesh: function changeMesh() {
         var meshPayload, mesh, up, front;
         console.log('Viewport:changeMesh - memory before: ' + this.memoryString());
@@ -53909,8 +53944,8 @@ exports.Viewport = Backbone.View.extend({
         //console.log('Viewport:update');
         // 1. Render the main viewport
         var w, h;
-        w = this.$container.width();
-        h = this.$container.height();
+        w = this.width();
+        h = this.height();
         this.renderer.setViewport(0, 0, w, h);
         this.renderer.setScissor(0, 0, w, h);
         this.renderer.enableScissorTest(true);
@@ -53925,15 +53960,10 @@ exports.Viewport = Backbone.View.extend({
 
         // 2. Render the PIP image if in orthographic mode
         if (this.s_camera === this.s_oCam) {
-            var minX, minY, pipW, pipH;
-            var bounds = this.pilBounds();
-            minX = bounds[0];
-            minY = bounds[1];
-            pipW = bounds[2];
-            pipH = bounds[3];
+            var b = this.pipBounds();
             this.renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
-            this.renderer.setViewport(minX, minY, pipW, pipH);
-            this.renderer.setScissor(minX, minY, pipW, pipH);
+            this.renderer.setViewport(b.x, b.y, b.width, b.height);
+            this.renderer.setScissor(b.x, b.y, b.width, b.height);
             this.renderer.enableScissorTest(true);
             this.renderer.clear();
             // render the PIP image
@@ -53954,24 +53984,28 @@ exports.Viewport = Backbone.View.extend({
             // going to orthographic - start listening for pip updates
             this.listenTo(this.cameraController, 'changePip', this.update);
             this.s_camera = this.s_oCam;
+            // hide the pip decoration
+            this.pipCanvas.style.display = null;
         } else {
             // leaving orthographic - stop listening to pip calls.
             this.stopListening(this.cameraController, 'changePip');
             this.s_camera = this.s_pCam;
+            // show the pip decoration
+            this.pipCanvas.style.display = 'none';
         }
-        // clear the canvas to make
+        // clear the canvas and re-render our state
         this.clearCanvas();
         this.update();
     },
 
-    pilBounds: function pilBounds() {
-        var w = this.$container.width();
-        var h = this.$container.height();
-        var maxX = w - PIP_MARGIN;
-        var maxY = h - PIP_MARGIN;
+    pipBounds: function pipBounds() {
+        var w = this.width();
+        var h = this.height();
+        var maxX = w;
+        var maxY = h;
         var minX = maxX - PIP_WIDTH;
         var minY = maxY - PIP_HEIGHT;
-        return [minX, minY, PIP_WIDTH, PIP_HEIGHT];
+        return { x: minX, y: minY, width: PIP_WIDTH, height: PIP_HEIGHT };
     },
 
     resetCamera: function resetCamera() {
@@ -54021,16 +54055,28 @@ exports.Viewport = Backbone.View.extend({
 
     resize: function resize() {
         var w, h;
-        w = this.$container.width();
-        h = this.$container.height();
+        w = this.width();
+        h = this.height();
+
         // ask the camera controller to update the cameras appropriately
         this.cameraController.resize(w, h);
         // update the size of the renderer and the canvas
         this.renderer.setSize(w, h);
-        this.canvas.width = w;
-        this.canvas.height = h;
-        // clear the canvas to make sure the PIP box is correct
-        this.clearCanvas();
+
+        // scale the canvas and change its CSS width/height to make it high res.
+        // note that this means the canvas will be 2x the size of the screen
+        // with 2x displays - that's OK though, we know this is a FullScreen
+        // CSS class and so will be made to fit in the existing window by other
+        // constraints.
+        this.canvas.width = w * this.pixelRatio;
+        this.canvas.height = h * this.pixelRatio;
+
+        // make sure our global transform for the general context accounts for
+        // the pixelRatio
+        this.ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+
+        // move the pipCanvas to the right place
+        this.pipCanvas.style.left = this.pipBounds().x + 'px';
         this.update();
     },
 
@@ -54078,54 +54124,71 @@ exports.Viewport = Backbone.View.extend({
     }),
 
     // 2D Canvas helper functions
-    // =========================================================================
+    // ========================================================================
 
-    drawTargetingLine: function drawTargetingLine(start, end) {
-        var secondary = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
+    updateCanvasBoundingBox: function updateCanvasBoundingBox(point) {
+        // update the canvas bounding box to account for this new point
+        this.ctxBox.minX = Math.min(this.ctxBox.minX, point.x);
+        this.ctxBox.minY = Math.min(this.ctxBox.minY, point.y);
+        this.ctxBox.maxX = Math.max(this.ctxBox.maxX, point.x);
+        this.ctxBox.maxY = Math.max(this.ctxBox.maxY, point.y);
+    },
+
+    drawSelectionBox: function drawSelectionBox(mouseDown, mousePosition) {
+        var x = mouseDown.x;
+        var y = mouseDown.y;
+        var dx = mousePosition.x - x;
+        var dy = mousePosition.y - y;
+        this.ctx.strokeRect(x, y, dx, dy);
+        // update the bounding box
+        this.updateCanvasBoundingBox(mouseDown);
+        this.updateCanvasBoundingBox(mousePosition);
+    },
+
+    drawTargetingLines: function drawTargetingLines(point, targetLm, secondaryLms) {
+        var _this2 = this;
+
+        this.updateCanvasBoundingBox(point);
+
+        // first, draw the secondary lines
+        this.ctx.save();
+        this.ctx.strokeStyle = '#7ca5fe';
+        this.ctx.setLineDash([5, 15]);
 
         this.ctx.beginPath();
-        if (secondary) {
-            this.ctx.strokeStyle = '#7ca5fe';
-            this.ctx.setLineDash([5, 15]);
-        } else {
-            this.ctx.strokeStyle = '#01e6fb';
-            this.ctx.setLineDash([]);
-        }
-        this.ctx.moveTo(start.x, start.y);
-        this.ctx.lineTo(end.x, end.y);
-        this.ctx.closePath();
+        secondaryLms.forEach(function (lm) {
+            var lmPoint = _this2.localToScreen(lm.point());
+            _this2.updateCanvasBoundingBox(lmPoint);
+            _this2.ctx.moveTo(lmPoint.x, lmPoint.y);
+            _this2.ctx.lineTo(point.x, point.y);
+        });
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // now, draw the primary line
+        this.ctx.strokeStyle = '#01e6fb';
+
+        this.ctx.beginPath();
+        var targetPoint = this.localToScreen(targetLm.point());
+        this.updateCanvasBoundingBox(targetPoint);
+        this.ctx.moveTo(targetPoint.x, targetPoint.y);
+        this.ctx.lineTo(point.x, point.y);
         this.ctx.stroke();
     },
 
     clearCanvas: function clearCanvas() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.strokeStyle = '#ffffff';
-        if (this.s_camera === this.s_oCam) {
-            // orthographic means there is the PIP window. Draw the box and
-            // target.
-            var b = this.pilBounds();
-            var minX = b[0];
-            var minY = this.canvas.height - b[1] - b[3];
-            var width = b[2];
-            var height = b[3];
-            var maxX = minX + width;
-            var maxY = minY + height;
-            var midX = (2 * minX + width) / 2;
-            var midY = (2 * minY + height) / 2;
-            // vertical line
-            this.ctx.strokeRect(minX, minY, width, height);
-            this.ctx.beginPath();
-            this.ctx.moveTo(midX, minY);
-            this.ctx.lineTo(midX, maxY);
-            this.ctx.closePath();
-            this.ctx.stroke();
-            // horizontal line
-            this.ctx.beginPath();
-            this.ctx.moveTo(minX, midY);
-            this.ctx.lineTo(maxX, midY);
-            this.ctx.closePath();
-            this.ctx.stroke();
-        }
+        // we only want to clear the area of the canvas that we dirtied
+        // since the last clear. The ctxBox object tracks this
+        var p = 3; // padding to be added to bounding box
+        var minX = Math.max(Math.floor(this.ctxBox.minX) - p, 0);
+        var minY = Math.max(Math.floor(this.ctxBox.minY) - p, 0);
+        var maxX = Math.ceil(this.ctxBox.maxX) + p;
+        var maxY = Math.ceil(this.ctxBox.maxY) + p;
+        var width = maxX - minX;
+        var height = maxY - minY;
+        this.ctx.clearRect(minX, minY, width, height);
+        // reset the tracking of the context bounding box tracking.
+        this.ctxBox = { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
     },
 
     // Coordinates and intersection helpers
@@ -54135,7 +54198,7 @@ exports.Viewport = Backbone.View.extend({
         if (object === null || object.length === 0) {
             return [];
         }
-        var vector = new THREE.Vector3(x / this.$container.width() * 2 - 1, -(y / this.$container.height()) * 2 + 1, 0.5);
+        var vector = new THREE.Vector3(x / this.width() * 2 - 1, -(y / this.height()) * 2 + 1, 0.5);
 
         if (this.s_camera === this.s_pCam) {
             // perspective selection
@@ -54165,8 +54228,8 @@ exports.Viewport = Backbone.View.extend({
     },
 
     worldToScreen: function worldToScreen(vector) {
-        var widthHalf = this.$container.width() / 2;
-        var heightHalf = this.$container.height() / 2;
+        var widthHalf = this.width() / 2;
+        var heightHalf = this.height() / 2;
         var result = vector.project(this.s_camera);
         result.x = result.x * widthHalf + widthHalf;
         result.y = -(result.y * heightHalf) + heightHalf;
@@ -54223,4 +54286,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"backbone":2,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-e290e557.js.map
+//# sourceMappingURL=bundle-82b4fd98.js.map
