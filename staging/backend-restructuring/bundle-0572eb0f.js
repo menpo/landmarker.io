@@ -62067,22 +62067,15 @@ Log.prototype.save = function (data) {
 
 Log.prototype.isCurrent = function () {
     var chck = this._checkpoints.peek(),
-        op = this._operations.peek(),
-        und = this._undone[this._undone.length - 1];
+        op = this._operations.peek();
 
     if (!chck) {
         return false;
     }
-    if (!op) {
-        if (!und) {
-            return true;
-        }
-    } else {
-        if (op.rev === chck.rev) {
-            return true;
-        }
+    if (op) {
+        return op.rev === chck.rev;
     }
-    return false;
+    return true;
 };
 
 Log.prototype.latest = function () {
@@ -66448,4 +66441,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":59,"../../model/octree":63,"./camera":75,"./elements":76,"./handler":77,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-7304f86c.js.map
+//# sourceMappingURL=bundle-0572eb0f.js.map
