@@ -1,0 +1,25 @@
+{
+  "parser": "babel-eslint",
+  "env": {
+    "browser": true,
+    "node": true,
+    "es6": true
+  },
+  "rules": {
+    "quotes": [0, "single"],
+    "eol-last": [1],
+    "no-mixed-requires": [1],
+    "no-underscore-dangle": [0],
+    "no-use-before-define": [1, "nofunc"],
+    "key-spacing": [1],
+    "consistent-return": [2],
+    "no-new": [0],
+    "comma-dangle": [2, "never"],
+    "new-cap": [2, {"newIsCap":true, "capIsNew":false}],
+    "prefer-const": [1],
+    "no-alert": [0],
+    "key-spacing": [2, {"beforeColon": false, "afterColon": true}],
+    "camelcase": [1],
+    "no-multiple-empty-lines": [2, {"max": 1}],
+  }
+}

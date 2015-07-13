@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var Promise = require('promise-polyfill'),
     querystring = require('querystring');
@@ -59,12 +59,12 @@ function XMLHttpRequestPromise(
         // Handle network errors
         xhr.onerror = function () {
             loading.stop(asyncId);
-            reject(new Error("Network Error"));
+            reject(new Error('Network Error'));
         };
 
         xhr.onabort = function () {
             loading.stop(asyncId);
-            reject(new Error("Aborted"));
+            reject(new Error('Aborted'));
         };
 
         // Make the request
@@ -103,8 +103,11 @@ module.exports.getJSON = function (url, {headers={}, data={}, auth=false}={}) {
 
 module.exports.putJSON = function (url, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(url, {
-        headers, auth, responseType: 'json', method: 'PUT',
+        headers,
+        auth,
+        responseType: 'json',
+        method: 'PUT',
         data: JSON.stringify(data),
-        contentType: "application/json;charset=UTF-8"
+        contentType: 'application/json;charset=UTF-8'
     });
-}
+};

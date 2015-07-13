@@ -3,18 +3,17 @@
  * Requires localstorage to work properly (throws Error otherwise),
  * serialisation is simple JSON
  */
-"use strict";
+'use strict';
 
-var Backbone = require('backbone'),
-    _ = require('underscore');
+var _ = require('underscore');
 
 var support = require('../lib/support');
 
 var LOCALSTORAGE_KEY = 'LMIO#CONFIG';
 
-function Config ()  {
+function Config () {
     this._data = {};
-};
+}
 
 Config.prototype.get = function (key) {
     if (!key) {
@@ -26,11 +25,13 @@ Config.prototype.get = function (key) {
 
 Config.prototype.has = function (key) {
     return this._data.hasOwnProperty(key);
-}
+};
 
-Config.prototype.delete = function (key, save)  {
+Config.prototype.delete = function (key, save) {
     delete this._data[key];
-    if (save) this.save();
+    if (save) {
+        this.save();
+    }
 };
 
 Config.prototype.set = function (arg1, arg2, arg3) {
@@ -47,27 +48,32 @@ Config.prototype.set = function (arg1, arg2, arg3) {
         save = !!arg2;
     }
 
-    if (save) this.save();
+    if (save) {
+        this.save();
+    }
 };
 
 Config.prototype.save = function () {
-    if (!support.localstorage) return;
-    localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(this._data));
+    if (support.localstorage) {
+        localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(this._data));
+    }
 };
 
 Config.prototype.load = function () {
-    if (!support.localstorage) return;
-    var data = localStorage.getItem(LOCALSTORAGE_KEY);
-    if (data) {
-        this._data = JSON.parse(data);
-    } else {
-        this._data = {};
+    if (support.localstorage) {
+        var data = localStorage.getItem(LOCALSTORAGE_KEY);
+        if (data) {
+            this._data = JSON.parse(data);
+        } else {
+            this._data = {};
+        }
     }
 };
 
 Config.prototype.clear = function () {
-    if (!support.localstorage) return;
-    localStorage.removeItem(LOCALSTORAGE_KEY);
+    if (support.localstorage) {
+        localStorage.removeItem(LOCALSTORAGE_KEY);
+    }
     this._data = {};
 };
 
@@ -78,4 +84,4 @@ module.exports = function () {
         _configInstance = new Config();
     }
     return _configInstance;
-}
+};

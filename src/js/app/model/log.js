@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var _ = require('underscore');
 var Backbone = require('backbone');
@@ -40,7 +40,7 @@ function Log (maxOps=50, maxCheckpoints=10) {
 Log.prototype.push = function (data) {
     this._operations.push({rev: Date.now(), data});
     this._undone = [];
-    this.trigger("change");
+    this.trigger('change');
 };
 
 Log.prototype.save = function (data) {
@@ -50,7 +50,7 @@ Log.prototype.save = function (data) {
     } else {
         this._checkpoints.push({rev: Date.now(), data});
     }
-    this.trigger("change");
+    this.trigger('change');
 };
 
 Log.prototype.isCurrent = function () {
@@ -77,7 +77,7 @@ Log.prototype.undo = function (func) {
     if (op) {
         console.log('Log:Undoing', op);
         this._undone.push(op);
-        this.trigger("change");
+        this.trigger('change');
         func(op.data);
     }
 };
@@ -87,7 +87,7 @@ Log.prototype.redo = function (func) {
     if (op) {
         console.log('Log:Redoing', op);
         this._operations.push(op);
-        this.trigger("change");
+        this.trigger('change');
         func(op.data);
     }
 };
@@ -98,7 +98,7 @@ Log.prototype.reset = function (data) {
     if (data) {
         this.save(data);
     }
-    this.trigger("change");
+    this.trigger('change');
 };
 
 Log.prototype.hasUndone = function () {

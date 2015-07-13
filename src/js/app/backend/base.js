@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 function Base () {}
 
@@ -12,11 +12,11 @@ function Base () {}
     'saveLandmarkGroup',
     'fetchThumbnail',
     'fetchTexture',
-    'fetchGeometry',
+    'fetchGeometry'
 ].forEach(function (name) {
     Base.prototype[name] = function () {
         throw new Error(`${name} instance method not implemented`);
-    }
+    };
 });
 
 Base.extend = function extend (type, child) {

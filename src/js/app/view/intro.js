@@ -1,10 +1,8 @@
-"use strict";
+'use strict';
 
-var $ = require('jquery'),
-    _ = require('underscore');
+const $ = require('jquery');
 
 var Modal = require('./modal');
-var { notify } = require('./notification');
 var Backend = require('../backend');
 var { baseUrl } = require('../lib/utils');
 
@@ -44,7 +42,7 @@ var Intro = Modal.extend({
     events: {
         'click .IntroItem--Dropbox': 'startDropbox',
         'click .IntroItem--Server': 'startServer',
-        'click .IntroItem--Demo': 'startDemo',
+        'click .IntroItem--Demo': 'startDemo'
     },
 
     init: function ({cfg, localstorage}) {
@@ -63,7 +61,7 @@ var Intro = Modal.extend({
 
     _restart: function (serverUrl) {
         this._cfg.clear();
-        let restartUrl = (
+        const restartUrl = (
             baseUrl() + (serverUrl ? `?server=${serverUrl}` : '')
         );
         window.location.replace(restartUrl);
@@ -71,7 +69,7 @@ var Intro = Modal.extend({
 
     startDropbox: function () {
         this._cfg.clear();
-        var [dropUrl, state] = Backend.Dropbox.authorize();
+        const [dropUrl, state] = Backend.Dropbox.authorize();
         this._cfg.set({
             'OAUTH_STATE': state,
             'BACKEND_TYPE': Backend.Dropbox.Type
@@ -84,7 +82,7 @@ var Intro = Modal.extend({
     },
 
     startServer: function () {
-        let u = window.prompt(
+        const u = window.prompt(
             'Please provide the url for the landmarker server');
         if (u) {
             this._restart(u);
@@ -103,5 +101,5 @@ module.exports = {
     },
 
     close: function () { instance.close(); },
-    initialized: function () { return !!instance }
-}
+    initialized: function () { return !!instance; }
+};

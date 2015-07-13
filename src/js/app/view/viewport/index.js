@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var $ = require('jquery');
 var _ = require('underscore');
@@ -121,7 +121,6 @@ exports.Viewport = Backbone.View.extend({
         // area of the canvas which is a big perf win.
         // see this.updateCanvasBoundingBox() for usage.
         this.ctxBox = {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
-
 
         // ------ SCENE GRAPH CONSTRUCTION ----- //
         this.scene = new THREE.Scene();
@@ -285,16 +284,16 @@ exports.Viewport = Backbone.View.extend({
     },
 
     width: function () {
-        return this.$container[0].offsetWidth
+        return this.$container[0].offsetWidth;
     },
 
     height: function () {
-        return this.$container[0].offsetHeight
+        return this.$container[0].offsetHeight;
     },
 
     changeMesh: function () {
         var meshPayload, mesh, up, front;
-        console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
+        console.log('Viewport:changeMesh - memory before: ' + this.memoryString());
         // firstly, remove any existing mesh
         this.removeMeshIfPresent();
 
@@ -341,9 +340,9 @@ exports.Viewport = Backbone.View.extend({
     },
 
     memoryString: function () {
-        return  'geo:' + this.renderer.info.memory.geometries +
-                ' tex:' + this.renderer.info.memory.textures +
-                ' prog:' + this.renderer.info.memory.programs;
+        return 'geo:' + this.renderer.info.memory.geometries +
+               ' tex:' + this.renderer.info.memory.textures +
+               ' prog:' + this.renderer.info.memory.programs;
     },
 
     // this is called whenever there is a state change on the THREE scene
@@ -362,7 +361,7 @@ exports.Viewport = Backbone.View.extend({
         h = this.height();
         this.renderer.setViewport(0, 0, w, h);
         this.renderer.setScissor(0, 0, w, h);
-        this.renderer.enableScissorTest (true);
+        this.renderer.enableScissorTest(true);
         this.renderer.clear();
         this.renderer.render(this.scene, this.s_camera);
 
@@ -436,7 +435,7 @@ exports.Viewport = Backbone.View.extend({
     // =========================================================================
 
     events: {
-        'mousedown' : "mousedownHandler",
+        'mousedown': "mousedownHandler"
     },
 
     mousedownHandler: function (event) {
@@ -462,7 +461,7 @@ exports.Viewport = Backbone.View.extend({
     }),
 
     deselectAll: function () {
-        let lms = this.model.get('landmarks');
+        const lms = this.model.get('landmarks');
         if (lms) {
             lms.deselectAll();
         }
@@ -628,7 +627,8 @@ exports.Viewport = Backbone.View.extend({
             // orthographic selection
             vector.setZ(-1);
             vector.unproject(this.s_camera);
-            var dir = new THREE.Vector3(0, 0, - 1).transformDirection(this.s_camera.matrixWorld);
+            var dir = new THREE.Vector3(0, 0, -1)
+                .transformDirection(this.s_camera.matrixWorld);
             this.ray.set(vector, dir);
         }
 

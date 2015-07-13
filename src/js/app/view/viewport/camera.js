@@ -21,6 +21,8 @@
  * for instance) can disable the Controller temporarily with the enabled
  * property.
  */
+'use strict';
+
 var $ = require('jquery');
 var _ = require('underscore');
 var Backbone = require('backbone');
@@ -36,8 +38,6 @@ var UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
     1: 34.0,  // The delta values are specified in lines.
     2: 1.0  // The delta values are specified in pages.
 };
-
-"use strict";
 
 exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
 
@@ -117,7 +117,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         // the bounds of the orthographic frustum to zoom.
         if (oCam.right - oCam.left < 0.001 && scalar < 0) {
             // trying to zoom in and we are already tight. return.
-            return
+            return;
         }
 
         // Difference must respect aspect ratio, otherwise we will distort
@@ -128,9 +128,9 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
 
         // overall difference in height scale is scalar * 2, but we weight
         // where this comes off based on mouse position
-        oCam.left   -= (scalar * oM.xR) / (a);
-        oCam.right  += (scalar * (1 - oM.xR)) / (a);
-        oCam.top    += scalar * oM.yR;
+        oCam.left -= (scalar * oM.xR) / (a);
+        oCam.right += (scalar * (1 - oM.xR)) / (a);
+        oCam.top += scalar * oM.yR;
         oCam.bottom -= scalar * (1 - oM.yR);
         if (oCam.left > oCam.right) {
             oCam.left = oCam.right - 0.0001;
@@ -184,7 +184,9 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     // mouse
     function onMouseDown(event) {
         console.log('camera: mousedown');
-        if (!enabled) return;
+        if (!enabled) {
+            return;
+        }
         event.preventDefault();
         mouseDownPosition.set(event.pageX, event.pageY);
         mousePrevPosition.copy(mouseDownPosition);
@@ -266,10 +268,11 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         // TODO this assumes square PIP image
         var zV = zH;
         // reconstructing bounds is easy...
-        oCamZoom.left = oM.x - (zH/2);
-        oCamZoom.right = oM.x + (zH/2);
-        oCamZoom.top = oM.y + (zV/2);
-        oCamZoom.bottom = oM.y - (zV/2);
+        const zHm = zH / 2, zVm = zV / 2;
+        oCamZoom.left = oM.x - (zHm);
+        oCamZoom.right = oM.x + (zHm);
+        oCamZoom.top = oM.y + (zVm);
+        oCamZoom.bottom = oM.y - (zVm);
         oCamZoom.updateProjectionMatrix();
         // emit a special change event. If the viewport is
         // interested (i.e. we are in PIP mode) it can update
@@ -318,7 +321,9 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     var prevDistance = null;
 
     function touchStart(event) {
-        if (!enabled) return;
+        if (!enabled) {
+            return;
+        }
         var touches = event.touches;
         switch (touches.length) {
             case 2:
@@ -331,7 +336,9 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     }
 
     function touchMove(event) {
-        if (!enabled) return;
+        if (!enabled) {
+            return;
+        }
         event.preventDefault();
         event.stopPropagation();
         var touches = event.touches;

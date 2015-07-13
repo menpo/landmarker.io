@@ -9,16 +9,16 @@
  * https://www.dropbox.com/developers-preview/documentation/http#documentation
  * and we might want to upgrade once it is production ready.
  */
-"use strict";
+'use strict';
 
-const API_KEY = "jwda9p0msmkfora",
-      API_URL = "https://api.dropbox.com/1",
-      CONTENTS_URL = "https://api-content.dropbox.com/1";
+const API_KEY = 'jwda9p0msmkfora',
+      API_URL = 'https://api.dropbox.com/1',
+      CONTENTS_URL = 'https://api-content.dropbox.com/1';
 
 const IMAGE_EXTENSIONS = ['jpeg', 'jpg', 'png'];
 const MESH_EXTENSIONS = ['obj', 'stl', 'mtl'].concat(IMAGE_EXTENSIONS);
 
-var url = require('url'),
+var format = require('url').format,
     Promise = require('promise-polyfill');
 
 var OBJLoader = require('../lib/obj_loader'),
@@ -62,7 +62,7 @@ Dropbox.authorize = function () {
     // Persist authentication status and data for page reload
     var oAuthState = randomString(100);
 
-    let u = url.format({
+    const u = format({
         protocol: 'https',
         host: 'www.dropbox.com',
         pathname: '/1/oauth2/authorize',
@@ -77,9 +77,9 @@ Dropbox.authorize = function () {
 
 Dropbox.prototype.headers = function () {
     if (!this._token) {
-        throw new Error("Can't proceed without an access token");
+        throw new Error(`Can't proceed without an access token`);
     }
-    return {"Authorization": `Bearer ${this._token}`};
+    return {'Authorization': `Bearer ${this._token}`};
 };
 
 Dropbox.prototype.accountInfo = function () {
@@ -120,7 +120,7 @@ Dropbox.prototype.setTemplate = function (path, json) {
         return Promise.resolve(null);
     }
 
-    let ext = extname(path);
+    const ext = extname(path);
     if (!(ext in Template.Parsers)) {
         return Promise.reject(
             new Error(`Incorrect extension ${ext} for template`)
@@ -136,14 +136,14 @@ Dropbox.prototype.setTemplate = function (path, json) {
     }
 
     return q.then((data) => {
-         let tmpl = Template.Parsers[ext](data);
-         let name = basename(path, true).split('_').pop();
+         const tmpl = Template.Parsers[ext](data);
+         const name = basename(path, true).split('_').pop();
          this.templates = {};
          this.templates[name] = tmpl;
 
         this._cfg.set({
             'BACKEND_DROPBOX_TEMPLATE_PATH': path,
-            'BACKEND_DROPBOX_TEMPLATE_CONTENT': tmpl.toJSON(),
+            'BACKEND_DROPBOX_TEMPLATE_CONTENT': tmpl.toJSON()
         }, true);
     });
 };
@@ -303,14 +303,14 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
         delete this._mediaCache[path];
     } else if (path in this._mediaCache) {
 
-        let {expires, url} = this._mediaCache[path];
+        const {expires, url} = this._mediaCache[path];
 
         if (expires > new Date()) {
             return Promise.resolve(url);
         }
     }
 
-    let q = getJSON(
+    const q = getJSON(
         `${API_URL}/media/auto${path}`, {
         headers: this.headers()
     }).then(({url, expires}) => {
@@ -338,7 +338,7 @@ Dropbox.prototype.fetchCollection = function () {
     return Promise.resolve(this._assets.map(function (assetPath) {
         return basename(assetPath, false);
     }));
-}
+};
 
 Dropbox.prototype.fetchImg = function (path) {
 
@@ -346,8 +346,8 @@ Dropbox.prototype.fetchImg = function (path) {
         return this._imgCache[path];
     }
 
-    let q = this.mediaURL(path).then((url) => {
-        return ImagePromise(url).then((data) => {
+    const q = this.mediaURL(path).then((u) => {
+        return ImagePromise(u).then((data) => {
             delete this._imgCache[path];
             return data;
         }, (err) => {
@@ -359,7 +359,7 @@ Dropbox.prototype.fetchImg = function (path) {
 
     this._imgCache[path] = q;
     return q;
-}
+};
 
 Dropbox.prototype.fetchThumbnail = function () {
     return Promise.reject(null);
@@ -390,12 +390,12 @@ Dropbox.prototype.fetchGeometry = function (assetId) {
         dl = this.download(path);
     } else if (ext === 'stl') {
         loader = STLLoader;
-        dl = this.mediaURL(path).then((url) => {
-            const q = getArrayBuffer(url);
+        dl = this.mediaURL(path).then((u) => {
+            const q = getArrayBuffer(u);
             dl.xhr = q.xhr;
             return q;
         });
-        dl.xhr = function () { return {abort: function () {}}};
+        dl.xhr = function () { return {abort: function () {}}; };
     } else {
         throw new Error('Invalid mesh extension', ext, path);
     }
@@ -407,27 +407,27 @@ Dropbox.prototype.fetchGeometry = function (assetId) {
     geometry.xhr = () => dl.xhr(); // compatibility
     geometry.isGeometry = true;
     return geometry;
-}
+};
 
 Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
 
     const path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
     const dim = this.mode === 'mesh' ? 3 : 2;
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         this.download(path).then((data) => {
             resolve(JSON.parse(data));
         }, () => {
             resolve(this.templates[type].emptyLJSON(dim));
         });
     });
-}
+};
 
 Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
-    let headers = this.headers(),
-        path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
+    const headers = this.headers(),
+          path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
 
     return putJSON(
         `${CONTENTS_URL}/files_put/auto${path}`, {data: json, headers});
-}
+};
 
 module.exports = Dropbox;

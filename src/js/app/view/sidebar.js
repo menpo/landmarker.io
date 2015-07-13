@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var _ = require('underscore');
 var Backbone = require('backbone');
@@ -16,7 +16,7 @@ var LandmarkView = Backbone.View.extend({
     tagName: "div",
 
     events: {
-        click: "handleClick",
+        click: "handleClick"
     },
 
     initialize: function ({labelIndex}) {
@@ -36,7 +36,6 @@ var LandmarkView = Backbone.View.extend({
         html.toggleClass("Lm-Value", !this.model.isEmpty());
         html.toggleClass("Lm-Selected", this.model.isSelected());
         html.toggleClass("Lm-NextAvailable", this.model.isNextAvailable());
-
 
         // in case our element is already live replace the content
         this.$el.replaceWith(html);
@@ -78,7 +77,7 @@ var LandmarkView = Backbone.View.extend({
         }
     }),
 
-    selectGroup: function (event) {
+    selectGroup: function () {
         this.model.group().deselectAll();
         this.model.group().labels[this.labelIndex].landmarks.forEach((lm) => {
             lm.select();
@@ -87,7 +86,7 @@ var LandmarkView = Backbone.View.extend({
         $('#viewportContainer').trigger("groupSelected");
     },
 
-    selectAll: function (event) {
+    selectAll: function () {
         this.model.group().landmarks.forEach((lm) => {
             lm.select("groupSelected");
         });
@@ -103,7 +102,7 @@ var LandmarkListView = Backbone.View.extend({
 
     tagName: 'div',
 
-    initialize : function({labelIndex}) {
+    initialize: function ({labelIndex}) {
         _.bindAll(this, 'render', 'renderOne');
         this.lmViews = [];
         this.labelIndex = labelIndex;
@@ -118,7 +117,7 @@ var LandmarkListView = Backbone.View.extend({
         return this;
     },
 
-    renderOne : function(model) {
+    renderOne: function(model) {
         //console.log("NEW: LandmarkView (LandmarkList.renderOne())");
         var lm = new LandmarkView({model: model, labelIndex: this.labelIndex});
         // reset the view's element to it's template
@@ -128,7 +127,7 @@ var LandmarkListView = Backbone.View.extend({
     },
 
     cleanup: function () {
-        this.lmViews.forEach(function (lm) { lm.remove() });
+        this.lmViews.forEach(function (lm) { lm.remove(); });
         this.lmViews = [];
     }
 
@@ -138,12 +137,11 @@ var LandmarkGroupLabelView = Backbone.View.extend({
 
     className: "LmGroup-Label",
 
-    initialize : function() {
+    initialize: function () {
         var label = this.model.label;
         this.$el.html(label);
     }
 });
-
 
 // Renders a single LandmarkGroup. Either the view is closed and we just
 // render the header (LandmarkGroupButtonView) or this group is active and
@@ -152,7 +150,7 @@ var LandmarkGroupView = Backbone.View.extend({
 
     tagName: 'div',
 
-    initialize : function({labelIndex}) {
+    initialize: function({labelIndex}) {
         _.bindAll(this, 'render');
         this.landmarkList = null;
         this.label = null;
@@ -187,13 +185,12 @@ var LandmarkGroupView = Backbone.View.extend({
     }
 });
 
-
 // Renders a collection of LandmarkGroups. At any one time one of these
 // will be expanded - the rest closed. This View is indifferent - it just
 // builds LandmarkGroupView's and asks them to render in turn.
 var LandmarkGroupListView = Backbone.View.extend({
 
-    initialize : function() {
+    initialize: function () {
         _.bindAll(this, 'render', 'renderOne');
         this.groups = [];
         this.render();
@@ -206,7 +203,7 @@ var LandmarkGroupListView = Backbone.View.extend({
         return this;
     },
 
-    renderOne : function(label, labelIndex) {
+    renderOne: function(label, labelIndex) {
         var group = new LandmarkGroupView({model: label, labelIndex});
         // reset the view's element to it's template
         this.$el.append(group.render().$el);
@@ -224,12 +221,11 @@ var LandmarkGroupListView = Backbone.View.extend({
 
 });
 
-
 var SaveRevertView = Backbone.View.extend({
 
     el: '#lmActionsPanel',
 
-    initialize : function({app}) {
+    initialize: function({app}) {
         _.bindAll(this, 'save', 'help', 'render');
         //this.listenTo(this.model, "all", this.render);
         // Get the singleton app model separately as model is the landmarks
@@ -239,9 +235,9 @@ var SaveRevertView = Backbone.View.extend({
     },
 
     events: {
-        'click #save' : "save",
-        'click #help' : "help",
-        'click #download' : "download"
+        'click #save': "save",
+        'click #help': "help",
+        'click #download': "download"
     },
 
     render: function () {
@@ -276,7 +272,9 @@ var SaveRevertView = Backbone.View.extend({
 
             // Remove previous element from dom
             const previous = document.getElementById('downloadLMLink');
-            if (!!previous) previous.remove();
+            if (previous) {
+                previous.remove();
+            }
 
             const link = document.createElement('a');
             link.setAttribute('style', 'display:none;');
@@ -306,7 +304,7 @@ var UndoRedoView = Backbone.View.extend({
 
     events: {
         'click .Undo': 'undo',
-        'click .Redo': 'redo',
+        'click .Redo': 'redo'
     },
 
     initialize: function () {
@@ -366,10 +364,10 @@ var TemplatePanel = Backbone.View.extend({
         this.$el.text(this.model.activeTemplate() || 'No Template Selected');
     },
 
-    click: function (evt) {
-        let backend = this.model.server();
+    click: function () {
+        const backend = this.model.server();
         if (backend instanceof Dropbox) {
-            backend.pickTemplate((tmpls) => {
+            backend.pickTemplate(() => {
                 this.model._initTemplates(true);
             }, function (err) {
                 Notification.notify({
@@ -400,7 +398,7 @@ var TemplatePanel = Backbone.View.extend({
 
 var Sidebar = Backbone.View.extend({
 
-    initialize : function() {
+    initialize: function () {
         _.bindAll(this, "landmarksChange");
         this.listenTo(this.model, "change:landmarks", this.landmarksChange);
         this.saveRevertView = null;
@@ -432,10 +430,9 @@ var Sidebar = Backbone.View.extend({
         this.lmView = new LandmarkGroupListView({
             collection: lms.labels
         });
-        $('#landmarksPanel').html(this.lmView.render().$el)
+        $('#landmarksPanel').html(this.lmView.render().$el);
     }
 
 });
 
-
-exports.Sidebar = Sidebar;
+module.exports.Sidebar = Sidebar;

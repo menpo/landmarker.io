@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var yaml = require('js-yaml'),
     _ = require('underscore');
@@ -35,8 +35,8 @@ function Template (json) {
         let connectivity = [],
             label = group.label;
 
-        let rawConnectivity = group['connectivity'] || [];
-        let size = group['points'];
+        let rawConnectivity = group.connectivity || [];
+        let size = group.points;
 
         if (CYCLE_CONNECTIVITY_LABELS.indexOf(rawConnectivity) > -1) {
             rawConnectivity = [`0:${size - 1}`, `${size - 1} 0`];
@@ -48,7 +48,7 @@ function Template (json) {
             if (item.indexOf(':') > -1) {
                 let [start, end] = item.split(':').map(Number);
                 for (var i = start; i < end; i++) {
-                    connectivity.push([i, i+1]);
+                    connectivity.push([i, i + 1]);
                 }
             } else {
                 connectivity.push(item.split(' ').map(Number));
@@ -68,7 +68,7 @@ function Template (json) {
 Template.parseYAML = function (rawData) {
     let json = yaml.safeLoad(rawData);
     return new Template(json);
-}
+};
 
 // For compatibility
 Template.parseJSON = function (json) {
@@ -76,7 +76,7 @@ Template.parseJSON = function (json) {
         json = JSON.parse(json);
     }
     return new Template(json);
-}
+};
 
 /**
  * Reverse LJSON from previous landmark and return a compliant template
@@ -93,7 +93,7 @@ Template.parseLJSON = function (ljson) {
         let group = {label, points: mask.length, connectivity: []};
         ljson.landmarks.connectivity.forEach(function ([x1, x2]) {
             if (mask.indexOf(x1) > -1) {
-                let offset = mask[0]
+                let offset = mask[0];
                 group.connectivity.push(`${x1 - offset} ${x2 - offset}`);
             }
         });
@@ -101,22 +101,22 @@ Template.parseLJSON = function (ljson) {
     });
 
     return new Template({template});
-}
+};
 
 Template.Parsers = {
     'yaml': Template.parseYAML,
     'yml': Template.parseYAML,
     'json': Template.parseJSON,
     'ljson': Template.parseLJSON
-}
+};
 
 Template.prototype.toYAML = function () {
     return yaml.safeDump(this._template);
-}
+};
 
 Template.prototype.toJSON = function () {
     return JSON.stringify(this._template);
-}
+};
 
 /**
  * Lazily return empty landmarking data to be used with a new asset and usable
@@ -127,7 +127,7 @@ Template.prototype.toJSON = function () {
 Template.prototype.emptyLJSON = function (dims=2) {
 
     if (this._emptyLmGroup[dims]) {
-        return _.clone(this._emptyLmGroup[dims])
+        return _.clone(this._emptyLmGroup[dims]);
     }
 
     let offset = 0,
@@ -152,7 +152,7 @@ Template.prototype.emptyLJSON = function (dims=2) {
         landmarks: { connectivity: globalConnectivity, points }
     };
 
-    return _.clone(this._emptyLmGroup[dims])
-}
+    return _.clone(this._emptyLmGroup[dims]);
+};
 
 module.exports = Template;

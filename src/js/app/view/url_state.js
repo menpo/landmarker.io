@@ -1,11 +1,11 @@
-"use strict";
+'use strict';
 
 var Backbone = require('backbone');
 var url = require('url');
 
 module.exports = Backbone.View.extend({
 
-    initialize : function () {
+    initialize: function () {
         console.log('HistoryUpdate:initialize');
         this.listenTo(this.model, "change:asset", this.assetChanged);
         this.listenTo(this.model, "change:activeTemplate", this.assetChanged);
@@ -30,7 +30,6 @@ module.exports = Backbone.View.extend({
         if (this.model.assetIndex() !== undefined) {
             u.query.i = this.model.assetIndex() + 1;
         }
-
 
         history.replaceState(null, null, url.format(u).replace('?', '#'));
     }

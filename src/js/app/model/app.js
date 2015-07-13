@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var _ = require('underscore'),
     Promise = require('promise-polyfill');
@@ -22,8 +22,8 @@ var App = Backbone.Model.extend({
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
-            log: {},
-        }
+            log: {}
+        };
     },
 
     isConnectivityOn: function () {
@@ -154,7 +154,7 @@ var App = Backbone.Model.extend({
             if (!override && this.has('_activeTemplate')) {
                 // user has specified a preset! Use that if we can
                 // TODO should validate here if we can actually use template
-                let preset = this.get('_activeTemplate');
+                const preset = this.get('_activeTemplate');
                 if (templates.indexOf(preset) > -1) {
                     selected = preset;
                 }
@@ -171,7 +171,7 @@ var App = Backbone.Model.extend({
             this.set('collections', collections);
             let selected = collections[0];
             if (!override && this.has('_activeCollection')) {
-                let preset = this.get('_activeCollection');
+                const preset = this.get('_activeCollection');
                 if (collections.indexOf(preset) > -1) {
                     selected = preset;
                 }
@@ -198,8 +198,8 @@ var App = Backbone.Model.extend({
         // from the server). Of course, we must pass the server in. The
         // asset source will ensure that the assets produced also get
         // attached to this server.
-        var asc = this._assetSourceConstructor();
-        var assetSource = new asc({
+        var ASC = this._assetSourceConstructor();
+        var assetSource = new ASC({
             server: this.server(),
             id: this.activeCollection()
         });
@@ -222,7 +222,7 @@ var App = Backbone.Model.extend({
                 i = this.get('_assetIndex');
             }
 
-            if (i < 0 ||  i > assetSource.nAssets() - 1) {
+            if (i < 0 || i > assetSource.nAssets() - 1) {
                 throw Error(`Error trying to set index to ${i} - needs to be in the range 0-${assetSource.nAssets()}`);
             }
 
@@ -292,15 +292,14 @@ var App = Backbone.Model.extend({
     },
 
     _switchToAsset: function (newAssetPromise) {
-        if (!newAssetPromise) {
-            return;
-        }
-        this.set('landmarks', null);
         // The asset promise should come from the assetSource and will only
         // resolve when all the key data for annotating is loaded, the
         // promiseLandmark wraps it and only resolves when both landmarks (if
         // applicable) and asset data are present
-        return this._promiseLandmarksWithAsset(newAssetPromise);
+        if (newAssetPromise) {
+            this.set('landmarks', null);
+            return this._promiseLandmarksWithAsset(newAssetPromise);
+        }
     },
 
     nextAsset: function () {
@@ -308,11 +307,11 @@ var App = Backbone.Model.extend({
             const lms = this.landmarks();
             const _go = () => {
                 this._switchToAsset(this.assetSource().next());
-            }
+            };
 
             if (lms && !lms.log.isCurrent()) {
                 if (!this.isAutoSaveOn()) {
-                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go)
+                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
                 } else {
                     lms.save().then(_go);
                 }
@@ -327,11 +326,11 @@ var App = Backbone.Model.extend({
             const lms = this.landmarks();
             const _go = () => {
                 this._switchToAsset(this.assetSource().previous());
-            }
+            };
 
             if (lms && !lms.log.isCurrent()) {
                 if (!this.isAutoSaveOn()) {
-                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go)
+                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
                 } else {
                     lms.save().then(_go);
                 }

@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var _ = require('underscore');
 var Backbone = require('backbone');
@@ -28,7 +28,6 @@ var where = function(a, f) {
     return booleanMaskArray(a, mask);
 };
 
-
 var Landmark = Backbone.Model.extend({
 
     defaults: function () {
@@ -37,7 +36,7 @@ var Landmark = Backbone.Model.extend({
             selected: false,
             nextAvailable: false,
             index: null
-        }
+        };
     },
 
     initialize: function () {
@@ -139,7 +138,7 @@ LandmarkCollectionPrototype.selected = function () {
 };
 
 LandmarkCollectionPrototype.isEmpty = function () {
-    return this.landmarks.every(lm => lm.empty())
+    return this.landmarks.every(lm => lm.empty());
 };
 
 LandmarkCollectionPrototype.deselectAll = atomicOperation(function () {
@@ -154,8 +153,7 @@ LandmarkCollectionPrototype.selectAll = atomicOperation(function () {
     });
 });
 
-
-var _validateConnectivity =  function (nLandmarks, connectivity) {
+var _validateConnectivity = function (nLandmarks, connectivity) {
     var a, b;
     for (var i = 0; i < connectivity.length; i++) {
         a = connectivity[i][0];
@@ -259,7 +257,9 @@ LandmarkGroup.prototype.resetNextAvailable = function (originLm) {
     });
 
     next = !next ? first : next;          // Nothing was found after the origin
-    if (next) next.setNextAvailable();
+    if (next) {
+        next.setNextAvailable();
+    }
 
     return next;
 };
@@ -306,7 +306,6 @@ LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
     });
 });
 
-
 LandmarkGroup.prototype.toJSON = function () {
     return {
         landmarks: {
@@ -332,7 +331,7 @@ var LandmarkLabel = function(label, landmarks, mask) {
 
 LandmarkGroup.prototype.undo = function () {
     this.log.undo((ops) => {
-        ops.forEach(([index, start, end]) => {
+        ops.forEach(([index, start]) => {
             if (!start) {
                 this.landmarks[index].clear();
             } else {
@@ -344,7 +343,7 @@ LandmarkGroup.prototype.undo = function () {
 
 LandmarkGroup.prototype.redo = function () {
     this.log.redo((ops) => {
-        ops.forEach(([index, start, end]) => {
+        ops.forEach(([index, , end]) => {
             if (!end) {
                 this.landmarks[index].clear();
             } else {
@@ -360,13 +359,12 @@ LandmarkLabel.prototype.toJSON = function () {
     return {
         label: this.label,
         mask: this.mask
-    }
+    };
 };
 
 var parseLJSONv1 = function (/*json, id, type, server*/) {
     console.log('parsing v1 landmarks...');
 };
-
 
 var parseLJSONv2 = function (json, id, type, server, log) {
     console.log('parsing v2 landmarks...');
@@ -381,7 +379,9 @@ var LJSONParsers = {
 };
 
 module.exports = {
+    Landmark,
+    LandmarkGroup,
     parseGroup: function (json, id, type, server, log) {
         return LJSONParsers[json.version](json, id, type, server, log);
     }
-}
+};
