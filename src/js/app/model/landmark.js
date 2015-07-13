@@ -318,7 +318,7 @@ LandmarkGroup.prototype.toJSON = function () {
     };
 };
 
-LandmarkGroup.prototype.promiseSave = function () {
+LandmarkGroup.prototype.save = function () {
     this.log.save(this.toJSON());
     return this.server.saveLandmarkGroup(this.id, this.type, this.toJSON());
 };

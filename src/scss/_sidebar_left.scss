@@ -100,8 +100,7 @@
 .Toolbar {
     opacity: .9;
     background: $colorLightBlue;
-    width: 100%;
-    max-width: 170px;
+    width: 196px;
     padding: .4em;
 }
 
@@ -142,6 +141,8 @@
 
 .onoffswitch {
     position: relative;
+    margin: 0;
+    float: right;
     width: 80px;
     user-select: none;
 }

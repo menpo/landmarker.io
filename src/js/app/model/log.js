@@ -6,7 +6,7 @@ var Backbone = require('backbone');
 function FixedStack (size) {
     this.size = size;
     this._stack = [];
-};
+}
 
 FixedStack.prototype.push = function (item) {
     this._stack.push(item);
@@ -35,7 +35,7 @@ function Log (maxOps=50, maxCheckpoints=10) {
     this._undone = [];
     this.started = Date.now();
     _.extend(this, Backbone.Events);
-};
+}
 
 Log.prototype.push = function (data) {
     this._operations.push({rev: Date.now(), data});
