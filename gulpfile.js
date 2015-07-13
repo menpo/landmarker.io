@@ -1,3 +1,5 @@
+'use strict';
+
 var gulp = require('gulp');
 var gutil = require('gulp-util');
 var prefix = require('gulp-autoprefixer');
@@ -25,9 +27,9 @@ var src = {
 var entry = {
     js: './src/js/index.js',
     scss: './src/scss/main.scss'
-}
+};
 
-var built_globs = [
+var buildGlobs = [
     './bundle*js',
     './index.html',
     './bundle*.css',
@@ -35,7 +37,7 @@ var built_globs = [
 ];
 
 gulp.task('manifest', function(){
-    return gulp.src(built_globs, { base: '.' })
+    return gulp.src(buildGlobs, { base: '.' })
         .pipe(manifest({
             hash: true,
             filename: 'lmio.appcache',
@@ -57,12 +59,25 @@ gulp.task('clean-css', function (cb) {
 gulp.task('js', function() {
     var b = browserify(entry.js, {debug: true, transform: [babelify]})
         .bundle();
-    return b.on('error', gutil.log.bind(gutil, 'Browserify Error'))
+    var pipeline = (
+        b.on('error', function (err) {
+            if (process.env.NODE_ENV === 'production') {
+                throw err;
+            } else {
+                gutil.log('Browserify Error', err);
+            }
+        })
         .pipe(source('bundle.js'))
         .pipe(buffer())
         .pipe(rev())
         .pipe(sourcemaps.init({loadMaps: true}))
-        // .pipe(uglify())
+    );
+
+    if (process.env.NODE_ENV === 'production') {
+        pipeline = pipeline.pipe(uglify());
+    }
+
+    return pipeline
         .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('.'))
         .pipe(notify('Landmarker.io: JS rebuilt'));
@@ -73,7 +88,14 @@ gulp.task('js', function() {
 gulp.task('sass', function () {
     return gulp.src(entry.scss)
         .pipe(sourcemaps.init())
-        .pipe(sass().on('error', gutil.log.bind(gutil, 'node-sass')))
+        .pipe(sass()
+        .on('error', function (err) {
+            if (process.env.NODE_ENV === 'production') {
+                throw err;
+            } else {
+                gutil.log('Node-Sass Error', err);
+            }
+        }))
         .pipe(prefix(["last 1 version", "> 1%", "ie 8", "ie 7"],
             { cascade: true }))
         .pipe(sourcemaps.write())
@@ -85,7 +107,7 @@ gulp.task('sass', function () {
 
 gulp.task('html', function() {
     var target = gulp.src('./src/index.html');
-    var sources = gulp.src(built_globs, {read: false});
+    var sources = gulp.src(buildGlobs, {read: false});
     return target.pipe(inject(sources, {addRootSlash: false}))
         .pipe(gulp.dest('.'))
         .pipe(notify('Landmarker.io: HTML rebuilt'));
