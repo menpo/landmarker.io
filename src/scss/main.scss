@@ -29,6 +29,10 @@ input, textarea, select {
 
 .Viewport {
   cursor: crosshair;
+
+  &.LoadingCursor {
+      cursor: wait;
+  }
 }
 
 @import 'button';
