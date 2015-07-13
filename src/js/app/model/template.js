@@ -129,8 +129,8 @@ Template.prototype.emptyLJSON = function (dims=2) {
         return _.clone(this._emptyLmGroup[dims]);
     }
 
-    const offset = 0,
-          globalConnectivity = [],
+    let offset = 0;
+    const globalConnectivity = [],
           labels = [];
 
     this.groups.forEach(function ({label, size, connectivity}) {
