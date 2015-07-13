@@ -55,20 +55,13 @@ Log.prototype.save = function (data) {
 
 Log.prototype.isCurrent = function () {
     const chck = this._checkpoints.peek(),
-          op = this._operations.peek(),
-          und = this._undone[this._undone.length -1];
+          op = this._operations.peek();
 
     if (!chck) { return false; }
-    if (!op) {
-        if (!und) {
-            return true;
-        }
-    } else {
-        if (op.rev === chck.rev) {
-            return true;
-        }
+    if (op) {
+        return op.rev === chck.rev;
     }
-    return false;
+    return true;
 };
 
 Log.prototype.latest = function () {
