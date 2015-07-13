@@ -60517,7 +60517,7 @@ var Backbone = require('backbone');
 var Landmark = require('./landmark'),
     Log = require('./log'),
     AssetSource = require('./assetsource'),
-    Modal = require('../view/modal');;
+    Modal = require('../view/modal');
 
 var App = Backbone.Model.extend({
 
@@ -60527,6 +60527,7 @@ var App = Backbone.Model.extend({
             mode: 'mesh',
             connectivityOn: true,
             editingOn: true,
+            autoSaveOn: true,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
@@ -60536,6 +60537,14 @@ var App = Backbone.Model.extend({
 
     isConnectivityOn: function isConnectivityOn() {
         return this.get('connectivityOn');
+    },
+
+    isAutoSaveOn: function isAutoSaveOn() {
+        return this.get('autoSaveOn');
+    },
+
+    toggleAutoSave: function toggleAutoSave() {
+        return this.set('autoSaveOn', !this.isAutoSaveOn());
     },
 
     toggleConnectivity: function toggleConnectivity() {
@@ -60815,7 +60824,11 @@ var App = Backbone.Model.extend({
             };
 
             if (lms && !lms.log.isCurrent()) {
-                Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
+                if (!this.isAutoSaveOn()) {
+                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
+                } else {
+                    lms.save().then(_go);
+                }
             } else {
                 _go();
             }
@@ -60832,7 +60845,11 @@ var App = Backbone.Model.extend({
             };
 
             if (lms && !lms.log.isCurrent()) {
-                Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
+                if (!this.isAutoSaveOn()) {
+                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
+                } else {
+                    lms.save().then(_go);
+                }
             } else {
                 return _go();
             }
@@ -61907,7 +61924,7 @@ LandmarkGroup.prototype.toJSON = function () {
     };
 };
 
-LandmarkGroup.prototype.promiseSave = function () {
+LandmarkGroup.prototype.save = function () {
     this.log.save(this.toJSON());
     return this.server.saveLandmarkGroup(this.id, this.type, this.toJSON());
 };
@@ -61998,7 +62015,7 @@ var Backbone = require('backbone');
 function FixedStack(size) {
     this.size = size;
     this._stack = [];
-};
+}
 
 FixedStack.prototype.push = function (item) {
     this._stack.push(item);
@@ -62030,7 +62047,7 @@ function Log() {
     this._undone = [];
     this.started = Date.now();
     _.extend(this, Backbone.Events);
-};
+}
 
 Log.prototype.push = function (data) {
     this._operations.push({ rev: Date.now(), data: data });
@@ -64282,7 +64299,7 @@ var SaveRevertView = Backbone.View.extend({
 
         evt.stopPropagation();
         this.$el.find('#save').addClass('Button--Disabled');
-        this.model.promiseSave().then(function () {
+        this.model.save().then(function () {
             Notification.notify({ type: 'success', msg: 'Save Completed' });
             _this2.$el.find('#save').removeClass('Button--Disabled');
         }, function () {
@@ -64596,6 +64613,31 @@ var EditingToggle = Backbone.View.extend({
     }
 });
 
+var AutoSaveToggle = Backbone.View.extend({
+
+    el: '#autosaveRow',
+
+    events: {
+        'click #autosaveToggle': 'toggle'
+    },
+
+    initialize: function initialize() {
+        this.$toggle = this.$el.find('#autosaveToggle')[0];
+        _.bindAll(this, 'render', 'toggle');
+        this.listenTo(this.model, 'change:autoSaveOn', this.render);
+        this.render();
+    },
+
+    render: function render() {
+        this.$toggle.checked = this.model.isAutoSaveOn();
+        return this;
+    },
+
+    toggle: function toggle() {
+        this.model.toggleAutoSave();
+    }
+});
+
 exports.Toolbar = Backbone.View.extend({
 
     el: '#toolbar',
@@ -64610,6 +64652,7 @@ exports.Toolbar = Backbone.View.extend({
             // in image mode, we shouldn't even have these controls.
             this.$el.find('#textureRow').css('display', 'none');
         }
+        this.autosaveToggle = new AutoSaveToggle({ model: this.model });
     }
 
 });
@@ -66405,4 +66448,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":59,"../../model/octree":63,"./camera":75,"./elements":76,"./handler":77,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-78d6fe50.js.map
+//# sourceMappingURL=bundle-7304f86c.js.map
