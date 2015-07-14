@@ -27,8 +27,6 @@ var LandmarkView = Backbone.View.extend({
     },
 
     render: function () {
-        //console.log("Landmark:render - " + this.model.get('index') +
-        //"(" + this.cid + ", " + this.model.cid + ")");
         var html = $("<div></div>");
         html.addClass("Lm", this.model.isEmpty());
 
@@ -63,7 +61,7 @@ var LandmarkView = Backbone.View.extend({
             this.selectAll(event);
         } else if (this.model.isSelected()) {
             this.model.deselect();
-        } else if ((event.ctrlKey || event.metaKey)) {
+        } else if (event.ctrlKey || event.metaKey) {
             if (!this.model.isSelected()) {
                 this.model.select();
                 $('#viewportContainer').trigger("groupSelected");
@@ -112,7 +110,6 @@ var LandmarkListView = Backbone.View.extend({
     },
 
     renderOne: function(model) {
-        //console.log("NEW: LandmarkView (LandmarkList.renderOne())");
         var lm = new LandmarkView({model: model, labelIndex: this.labelIndex});
         // reset the view's element to it's template
         this.$el.append(lm.render().$el);
@@ -350,9 +347,9 @@ var TemplatePanel = Backbone.View.extend({
 
     update: function () {
         this.$el.toggleClass(
-            'Disabled', ( this.model &&
-                          this.model.templates().length <= 1 &&
-                          this.model.server() instanceof Server )
+            'Disabled', this.model &&
+                        this.model.templates().length <= 1 &&
+                        this.model.server() instanceof Server
         );
         this.$el.text(this.model.activeTemplate() || 'No Template Selected');
     },
@@ -403,13 +400,12 @@ var LmLoadView = Backbone.View.extend({
     },
 
     render: function () {
-        const show = (this.app.assetSource().hasPredecessor());
+        const show = this.app.assetSource().hasPredecessor();
         this.$el.toggleClass('Hide', !show);
         this.$el.find('button').toggleClass(
             'Button-Danger',
             !this.model.isEmpty()
         );
-        console.log(this.$el, this.model.isEmpty());
     },
 
     loadPrevious: function () {
