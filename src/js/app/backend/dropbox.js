@@ -27,7 +27,8 @@ var OBJLoader = require('../lib/obj_loader'),
 var { randomString,
       basename,
       extname,
-      stripExtension } = require('../lib/utils');
+      stripExtension,
+      baseUrl } = require('../lib/utils');
 
 var { getJSON, get, putJSON, getArrayBuffer } = require('../lib/requests'),
     ImagePromise = require('../lib/imagepromise'),
@@ -67,7 +68,7 @@ Dropbox.authorize = function () {
         host: 'www.dropbox.com',
         pathname: '/1/oauth2/authorize',
         query: { 'response_type': 'token',
-                 'redirect_uri': window.location.origin,
+                 'redirect_uri': baseUrl(),
                  'state': oAuthState,
                  'client_id': API_KEY }
     });
