@@ -1,11 +1,11 @@
 'use strict';
 
-module.exports.ie = (function () {
+export const ie = (function () {
     return ( /MSIE (\d+\.\d+);/.test(navigator.userAgent) ||
              !!navigator.userAgent.match(/Trident.*rv[ :]*11\./) );
 })();
 
-module.exports.webgl = (function () {
+export const webgl = (function () {
     try {
         var canvas = document.createElement('canvas');
         return !!(
@@ -18,7 +18,7 @@ module.exports.webgl = (function () {
     }
 })();
 
-module.exports.localstorage = (function () {
+export const localstorage = (function () {
     try {
         localStorage.setItem('TEST_LS', 'TEST_LS');
         localStorage.removeItem('TEST_LS');
@@ -28,3 +28,9 @@ module.exports.localstorage = (function () {
         return false;
     }
 })();
+
+export const https = (function () {
+    return window.location.protocol.indexOf("https://") > -1;
+})();
+
+export default { ie, webgl, localstorage, https };
