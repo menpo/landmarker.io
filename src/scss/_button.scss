@@ -59,11 +59,9 @@ button,
 
 .Button-Danger {
     background: $colorRed;
-    cursor: help;
     &:hover {
         background: $colorDarkRed;
     }
-    font-size: larger;
 }
 
 button:disabled,

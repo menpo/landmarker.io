@@ -409,13 +409,18 @@ var LmLoadView = Backbone.View.extend({
     },
 
     render: function () {
-        const show = (
-            this.model.isEmpty() && this.app.assetSource().hasPredecessor());
+        const show = (this.app.assetSource().hasPredecessor());
         this.$el.toggleClass('Hide', !show);
+        this.$el.find('button').toggleClass(
+            'Button-Danger',
+            !this.model.isEmpty()
+        );
+        console.log(this.$el, this.model.isEmpty());
     },
 
     loadPrevious: function () {
         this.app.reloadLandmarksFromPrevious();
+        this.$el.addClass('Hide');
     }
 });
 

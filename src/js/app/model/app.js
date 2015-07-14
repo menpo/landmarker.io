@@ -359,7 +359,7 @@ var App = Backbone.Model.extend({
     reloadLandmarksFromPrevious: function () {
         const currentLms = this.landmarks();
         const as = this.assetSource();
-        if (this.assetSource().hasPredecessor() && currentLms.isEmpty()) {
+        if (this.assetSource().hasPredecessor()) {
             this.server().fetchLandmarkGroup(
                 as.assets()[as.assetIndex() - 1].id,
                 this.activeTemplate()
