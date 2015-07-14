@@ -1,9 +1,9 @@
 'use strict';
 
-var Promise = require('promise-polyfill'),
-    querystring = require('querystring');
+import Promise from 'promise-polyfill';
+import querystring from 'querystring';
 
-var { loading } = require('../view/notification');
+import { loading } from '../view/notification';
 
 function _url(url, data) {
     if (!data || Object.keys(data).length === 0) {
@@ -13,7 +13,7 @@ function _url(url, data) {
     }
 }
 
-function XMLHttpRequestPromise(
+export default function XMLHttpRequestPromise(
     url, {
         method='GET',
         responseType,
@@ -82,26 +82,26 @@ function XMLHttpRequestPromise(
     return promise;
 }
 
-module.exports.Request = XMLHttpRequestPromise;
+export const Request = XMLHttpRequestPromise;
 
 // Below are some shortcuts around the basic Request object for common
 // network calls
-module.exports.getArrayBuffer = function (url, {headers={}, auth=false}={}) {
+export function getArrayBuffer (url, {headers={}, auth=false}={}) {
     return XMLHttpRequestPromise(
         url, {responseType: 'arraybuffer', headers, auth});
-};
+}
 
-module.exports.get = function (url, {headers={}, data={}, auth=false}={}) {
+export function get (url, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(
         _url(url, data), {headers, auth});
-};
+}
 
-module.exports.getJSON = function (url, {headers={}, data={}, auth=false}={}) {
+export function getJSON (url, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(
         _url(url, data), {responseType: 'json', headers, auth});
-};
+}
 
-module.exports.putJSON = function (url, {headers={}, data={}, auth=false}={}) {
+export function putJSON (url, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(url, {
         headers,
         auth,
@@ -110,4 +110,4 @@ module.exports.putJSON = function (url, {headers={}, data={}, auth=false}={}) {
         data: JSON.stringify(data),
         contentType: 'application/json;charset=UTF-8'
     });
-};
+}

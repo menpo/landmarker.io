@@ -1,11 +1,11 @@
 'use strict';
 
-var Promise = require('promise-polyfill'),
-    THREE = require('three');
+import Promise from 'promise-polyfill';
+import THREE from 'three';
 
-var { loading } = require('../view/notification');
+import { loading } from '../view/notification';
 
-var ImagePromise = function (url, auth=false) {
+export function ImagePromise (url, auth=false) {
 
     return new Promise(function (resolve, reject) {
 
@@ -45,9 +45,9 @@ var ImagePromise = function (url, auth=false) {
 
         xhr.send();
     });
-};
+}
 
-var TexturePromise = function (url, auth) {
+export function TexturePromise (url, auth) {
     var texture = new THREE.Texture(undefined, new THREE.UVMapping());
     texture.sourceFile = url;
 
@@ -56,12 +56,12 @@ var TexturePromise = function (url, auth) {
             texture.needsUpdate = true;
             return texture;
     });
-};
+}
 
-var MaterialPromise = function(url, auth) {
+export function MaterialPromise (url, auth) {
     return TexturePromise(url, auth).then(function (texture) {
         return new THREE.MeshBasicMaterial({map: texture});
     });
-};
+}
 
-module.exports = MaterialPromise;
+export default MaterialPromise;
