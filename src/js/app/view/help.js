@@ -15,6 +15,8 @@ var HELP_CONTENTS = [
     ['g', 'select all landmarks in the active group'],
     ['d', 'delete selected landmarks'],
     ['q / ESC', 'clear current selection'],
+    ['z', 'undo last operation'],
+    ['y', 'redo last undone operation'],
     ['click outside', 'clear current selection'],
     ['ctrl/cmd + click on landmark', 'select and deselect from current selection'],
     ['click on a landmark', 'select a landmark'],
