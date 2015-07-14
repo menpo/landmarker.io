@@ -243,6 +243,7 @@ function initLandmarker(server, mode, u) {
     new URLState({model: app});
 
     // ----- KEYBOARD HANDLER ----- //
+    $(window).off('keydown');
     (new KeyboardShortcutsHandler(app, viewport)).enable();
 }
 
@@ -291,5 +292,12 @@ document.addEventListener('DOMContentLoaded', function () {
     Intro.init({cfg});
     var u = url.parse(
         utils.stripTrailingSlash(window.location.href.replace('#', '?')), true);
+
+    $(window).on('keydown', function (evt) {
+        if (evt.which === 27) {
+            Intro.open();
+        }
+    });
+
     resolveBackend(u);
 });
