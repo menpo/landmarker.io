@@ -21,3 +21,6 @@ deploy:
   on:
     repo: menpo/landmarker.io
     all_branches: true
+notifications:
+  slack:
+    secure: D7VvuQP+rpk3w+ykJHmznG/87SoORZMMmHZks+WXXnO1RZKaOdS4h4LU0YGKEn4WYXk0rE9W2MtvqF6dD1NISl2VB3ZKw9bVf+IuE+EP0vqZXAiqcLMTxK9htBT+09TmLpJpdNSyqI/B7/CzCVuWa5Sabrh0aQP9j2b6UT2rZPM=
