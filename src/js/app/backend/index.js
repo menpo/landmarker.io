@@ -1,8 +1,6 @@
 'use strict';
 
-var Dropbox = require('./dropbox'),
-    Server = require('./server');
+import Dropbox from './dropbox';
+import Server from './server';
 
-module.exports = {
-    Dropbox, Server
-};
+export default { Dropbox, Server };
