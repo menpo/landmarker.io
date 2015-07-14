@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     cfg.load();
-    Intro.init({cfg, localstorage: support.localstorage});
+    Intro.init({cfg});
     var u = url.parse(
         utils.stripTrailingSlash(window.location.href.replace('#', '?')), true);
     resolveBackend(u);

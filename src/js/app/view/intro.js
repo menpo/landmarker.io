@@ -1,14 +1,16 @@
 'use strict';
 
-const $ = require('jquery');
+import $ from 'jquery';
 
-var Modal = require('./modal');
-var Backend = require('../backend');
-var { baseUrl } = require('../lib/utils');
+import Modal from './modal';
+import Backend from '../backend';
+import { baseUrl } from '../lib/utils';
 
-var version = require('../../../../package.json').version;
+import support from '../lib/support';
+import { version } from '../../../../package.json';
 
-var contents = `\
+
+const contents = `\
 <div class='Intro'>\
     <h1>Landmarker.io</h1>\
     <h3>v${version}</h3>\
@@ -27,14 +29,18 @@ var contents = `\
 </div>\
 `;
 
-var lsWarning = `\
+const lsWarning = `\
 <p class='IntroWarning'>\
     Your browser doesn't support LocalStorage, so Dropbox login has been\
     disabled.\
-</p>\
-`;
+</p>`;
 
-var Intro = Modal.extend({
+const httpsWarning = `\
+<p class='IntroWarning'>\
+    You are currently on an non-https connection. For security reasons Dropbox integration has been disabled.
+</p>`;
+
+const Intro = Modal.extend({
 
     closable: false,
     modifiers: ['Small'],
@@ -45,17 +51,26 @@ var Intro = Modal.extend({
         'click .IntroItem--Demo': 'startDemo'
     },
 
-    init: function ({cfg, localstorage}) {
-        this.localStorageSupport = localstorage;
+    init: function ({cfg}) {
         this._cfg = cfg;
     },
 
     content: function () {
         const $contents = $(contents);
-        if (!this.localStorageSupport) {
+
+        if (!support.localstorage) {
             $contents.find('.IntroItem--Dropbox').remove();
             $contents.find('.IntroItems').append($(lsWarning));
         }
+
+        if (
+            !support.https &&
+            window.location.origin !== "http://localhost:4000"
+        ) {
+            $contents.find('.IntroItem--Dropbox').remove();
+            $contents.find('.IntroItems').append($(httpsWarning));
+        }
+
         return $contents;
     },
 
@@ -91,7 +106,7 @@ var Intro = Modal.extend({
 });
 
 let instance;
-module.exports = {
+export default {
     init: function (opts) { instance = new Intro(opts); },
 
     open: function () {
