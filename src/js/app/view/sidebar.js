@@ -409,7 +409,6 @@ var LmLoadView = Backbone.View.extend({
     },
 
     render: function () {
-        console.log('LLMV', this.model.isEmpty(), this.app.assetSource().hasPredecessor());
         const show = (
             this.model.isEmpty() && this.app.assetSource().hasPredecessor());
         this.$el.toggleClass('Hide', !show);
