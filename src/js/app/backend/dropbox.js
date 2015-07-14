@@ -18,25 +18,26 @@ const API_KEY = 'jwda9p0msmkfora',
 const IMAGE_EXTENSIONS = ['jpeg', 'jpg', 'png'];
 const MESH_EXTENSIONS = ['obj', 'stl', 'mtl'].concat(IMAGE_EXTENSIONS);
 
-var format = require('url').format,
-    Promise = require('promise-polyfill');
+import { format } from 'url';
+import Promise from 'promise-polyfill';
 
-var OBJLoader = require('../lib/obj_loader'),
-    STLLoader = require('../lib/stl_loader');
+import OBJLoader from '../lib/obj_loader';
+import STLLoader from '../lib/stl_loader';
 
-var { randomString,
+import { randomString,
       basename,
       extname,
       stripExtension,
-      baseUrl } = require('../lib/utils');
+      baseUrl } from '../lib/utils';
 
-var { getJSON, get, putJSON, getArrayBuffer } = require('../lib/requests'),
-    ImagePromise = require('../lib/imagepromise'),
-    Template = require('../model/template');
+import { getJSON, get, putJSON, getArrayBuffer } from '../lib/requests';
+import ImagePromise from '../lib/imagepromise';
+import Template from '../model/template';
+import Picker from '../view/dropbox_picker.js';
 
-var Picker = require('../view/dropbox_picker.js');
+import Base from './base';
 
-var Dropbox = require('./base').extend('DROPBOX', function (token, cfg) {
+const Dropbox = Base.extend('DROPBOX', function (token, cfg) {
     this._token = token;
     this._cfg = cfg;
     this.mode = 'image';
@@ -53,6 +54,8 @@ var Dropbox = require('./base').extend('DROPBOX', function (token, cfg) {
     this._cfg.set('BACKEND_DROPBOX_TOKEN', token);
     this._cfg.save();
 });
+
+export default Dropbox;
 
 /**
  * Builds an authentication URL for Dropbox OAuth2 flow and
@@ -430,5 +433,3 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
     return putJSON(
         `${CONTENTS_URL}/files_put/auto${path}`, {data: json, headers});
 };
-
-module.exports = Dropbox;

@@ -1,19 +1,21 @@
 'use strict';
 
-function Base () {}
+export default function Base () {}
 
 // Abstract prototype methods
-[
+const abstractMethods = [
     'fetchMode',
-    'fetchTemplates',
-    'fetchCollections',
-    'fetchCollection',
-    'fetchLandmarkGroup',
-    'saveLandmarkGroup',
-    'fetchThumbnail',
-    'fetchTexture',
-    'fetchGeometry'
-].forEach(function (name) {
+      'fetchTemplates',
+      'fetchCollections',
+      'fetchCollection',
+      'fetchLandmarkGroup',
+      'saveLandmarkGroup',
+      'fetchThumbnail',
+      'fetchTexture',
+      'fetchGeometry'
+];
+
+abstractMethods.forEach(function (name) {
     Base.prototype[name] = function () {
         throw new Error(`${name} instance method not implemented`);
     };
@@ -25,5 +27,3 @@ Base.extend = function extend (type, child) {
   child.Type = type;
   return child;
 };
-
-module.exports = Base;

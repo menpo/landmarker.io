@@ -1,13 +1,13 @@
 'use strict';
 
-var DEFAULT_API_URL = 'http://localhost:5000';
+import { getJSON, putJSON, getArrayBuffer } from '../lib/requests';
+import { capitalize } from '../lib/utils';
+import ImagePromise from '../lib/imagepromise';
 
-var { getJSON, putJSON, getArrayBuffer } = require('../lib/requests'),
-    { capitalize } = require('../lib/utils'),
-    ImagePromise = require('../lib/imagepromise');
+import Base from './base';
 
-var Server = require('./base').extend('LANDMARKER SERVER', function (url) {
-    this.url = url || DEFAULT_API_URL;
+const Server = Base.extend('LANDMARKER SERVER', function (url) {
+    this.url = url;
     this.demoMode = false;
     this.version = 2;
     this.httpAuth = false;
@@ -21,6 +21,8 @@ var Server = require('./base').extend('LANDMARKER SERVER', function (url) {
 
     this.httpAuth = url.indexOf('https://') === 0;
 });
+
+export default Server;
 
 Server.prototype.apiHeader = function () {
     return `/api/v${this.version}/`;
@@ -99,5 +101,3 @@ Server.prototype.fetchGeometry = function (assetId) {
         auth: this.httpAuth
     });
 };
-
-module.exports = Server;
