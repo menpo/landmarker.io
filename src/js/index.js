@@ -9,7 +9,6 @@ var support = require('./app/lib/support');
 var Notification = require('./app/view/notification');
 var cfg = require('./app/model/config')();
 
-import Modal from './app/view/modal';
 import Intro from './app/view/intro';
 import Backend from './app/backend';
 
