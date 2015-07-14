@@ -79,18 +79,12 @@ var LandmarkView = Backbone.View.extend({
 
     selectGroup: function () {
         this.model.group().deselectAll();
-        this.model.group().labels[this.labelIndex].landmarks.forEach((lm) => {
-            lm.select();
-        });
-
+        this.model.group().labels[this.labelIndex].selectAll();
         $('#viewportContainer').trigger("groupSelected");
     },
 
     selectAll: function () {
-        this.model.group().landmarks.forEach((lm) => {
-            lm.select("groupSelected");
-        });
-
+        this.model.group().selectAll();
         $('#viewportContainer').trigger("groupSelected");
     }
 });

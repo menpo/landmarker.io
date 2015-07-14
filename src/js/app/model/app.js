@@ -5,7 +5,7 @@ var _ = require('underscore'),
 
 var Backbone = require('backbone');
 
-var Landmark = require('./landmark'),
+var { parseGroup } = require('./landmark_group'),
     Log = require('./log'),
     AssetSource = require('./assetsource'),
     Modal = require('../view/modal');
@@ -283,9 +283,11 @@ var App = Backbone.Model.extend({
             this.asset().id,
             this.activeTemplate()
         ).then((json) => {
-            return Landmark.parseGroup(json,
-                                       this.asset().id, this.activeTemplate(),
-                                       this.server(), assetLog);
+            return parseGroup(json,
+                              this.asset().id,
+                              this.activeTemplate(),
+                              this.server(),
+                              assetLog);
         }, () => {
             console.log('Error in fetching landmark JSON file');
         });
@@ -364,7 +366,7 @@ var App = Backbone.Model.extend({
                 as.assets()[as.assetIndex() - 1].id,
                 this.activeTemplate()
             ).then((json) => {
-                const lms = Landmark.parseGroup(
+                const lms = parseGroup(
                     json,
                     this.asset().id,
                     this.activeTemplate(),
