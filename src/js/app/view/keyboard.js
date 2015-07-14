@@ -17,14 +17,20 @@ export default function KeyboardShortcutsHandler (app, viewport) {
             return;
         }
 
+        const lms = app.landmarks();
+
         switch (key) {
             case 100:  // d = [d]elete selected
-                app.landmarks().deleteSelected();
-                $('#viewportContainer').trigger("groupDeselected");
+                if (lms) {
+                    lms.deleteSelected();
+                    $('#viewportContainer').trigger("groupDeselected");
+                }
                 break;
             case 113:  // q = deselect all
-                app.landmarks().deselectAll();
-                $('#viewportContainer').trigger("groupDeselected");
+                if (lms) {
+                    app.landmarks().deselectAll();
+                    $('#viewportContainer').trigger("groupDeselected");
+                }
                 break;
             case 114:  // r = [r]eset camera
                 // TODO fix for multiple cameras (should be in camera controller)
@@ -36,8 +42,10 @@ export default function KeyboardShortcutsHandler (app, viewport) {
                 }
                 break;
             case 97:  // a = select [a]ll
-                app.landmarks().selectAll();
-                $('#viewportContainer').trigger("groupSelected");
+                if (lms) {
+                    app.landmarks().selectAll();
+                    $('#viewportContainer').trigger("groupSelected");
+                }
                 break;
             case 103:  // g = complete [g]roup selection
                 $('#viewportContainer').trigger("completeGroupSelection");
@@ -58,6 +66,16 @@ export default function KeyboardShortcutsHandler (app, viewport) {
                 break;
             case 101:  // e = toggle [e]dit mode
                 app.toggleEditing();
+                break;
+            case 122: // z = undo
+                if (lms && lms.log.hasOperations()) {
+                    lms.undo();
+                }
+                break;
+            case 121: // z = undo
+                if (lms && lms.log.hasUndone()) {
+                    lms.redo();
+                }
                 break;
             case 63: // toggle help
                 app.toggleHelpOverlay();
@@ -83,8 +101,11 @@ export default function KeyboardShortcutsHandler (app, viewport) {
             return;
         }
 
-        app.landmarks().deselectAll();
-        $('#viewportContainer').trigger("groupDeselected");
+        const lms = app.landmarks();
+        if (lms) {
+            app.landmarks().deselectAll();
+            $('#viewportContainer').trigger("groupDeselected");
+        }
     };
 }
 
