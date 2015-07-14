@@ -225,9 +225,10 @@ var ActionsView = Backbone.View.extend({
 
     el: '#lmActionsPanel',
 
-    initialize: function() {
+    initialize: function({app}) {
         _.bindAll(this, 'save', 'help', 'render');
         this.listenTo(this.model.log, "change", this.render);
+        this.app = app;
         this.render();
     },
 
