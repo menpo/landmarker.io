@@ -19,7 +19,7 @@ var Server = require('./base').extend('LANDMARKER SERVER', function (url) {
         this.url = 'http://' + this.url;
     }
 
-    this.httpAuth = (url.indexOf('https://') === 0);
+    this.httpAuth = url.indexOf('https://') === 0;
 });
 
 Server.prototype.apiHeader = function () {
@@ -41,8 +41,8 @@ Server.prototype.map = function (url) {
     var mapping;
     if (this.demoMode) {
         // demoMode so we ignore the server url
-        mapping = (window.location.pathname.slice(0, -1) +
-                   this.apiHeader() + url);
+        mapping = window.location.pathname.slice(0, -1) +
+                  this.apiHeader() + url;
         // this just means we map everything to .json..except images
         // which have to be jpeg and mesh data (.raw)
         if ((new RegExp('textures/')).test(url)) {
