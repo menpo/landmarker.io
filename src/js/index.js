@@ -174,13 +174,7 @@ function resolveMode (server, u) {
             retry('Received invalid mode', mode);
         }
     }, function () {
-        if (server instanceof Backend.Server) {
-            server.testForV1(function () {
-                retry(`Couldn't get mode from server`);
-            });
-        } else {
-            retry(`Couldn't get mode from server`);
-        }
+        retry(`Couldn't get mode from server`);
     });
 }
 
