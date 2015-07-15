@@ -38,7 +38,7 @@ function Handler () {
 
             lmLoc = lm.point();
 
-            if (lmLoc === null || (locked && lm === currentTargetLm)) {
+            if (lmLoc === null || locked && lm === currentTargetLm) {
                 continue;
             }
 
@@ -99,7 +99,7 @@ function Handler () {
     };
 
     var landmarkPressed = () => {
-        var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
+        var ctrl = downEvent.ctrlKey || downEvent.metaKey;
         console.log('Viewport: landmark pressed');
         // before anything else, disable the camera
         this.cameraController.disable();
@@ -363,7 +363,7 @@ function Handler () {
             this.model.landmarks().selected().forEach((lm, i) => {
                 dragStartPositions[i].push(lm.point().clone());
             });
-            this.model.landmarks().log.push(dragStartPositions);
+            this.model.landmarks().tracker.record(dragStartPositions);
         }
 
         this.clearCanvas();
@@ -395,9 +395,9 @@ function Handler () {
 
         var lmGroup = this.model.landmarks();
 
-        var shouldUpdate = (intersectsWithMesh.length > 0 &&
-                            lmGroup &&
-                            lmGroup.landmarks);
+        var shouldUpdate = intersectsWithMesh.length > 0 &&
+                           lmGroup &&
+                           lmGroup.landmarks;
 
         if (!shouldUpdate) {
             return null;
@@ -473,7 +473,7 @@ function Handler () {
                 lm.setPoint(pt);
             }
         });
-        this.model.landmarks().log.push(ops);
+        this.model.landmarks().tracker.record(ops);
     });
 
     // Group Selection hook
