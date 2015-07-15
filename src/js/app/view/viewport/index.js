@@ -120,7 +120,7 @@ exports.Viewport = Backbone.View.extend({
         // drawing into each frame. This way we only need clear the relevant
         // area of the canvas which is a big perf win.
         // see this.updateCanvasBoundingBox() for usage.
-        this.ctxBox = {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
+        this.ctxBox = this.initialBoundingBox();
 
 
         // ------ SCENE GRAPH CONSTRUCTION ----- //
@@ -595,6 +595,10 @@ exports.Viewport = Backbone.View.extend({
     },
 
     clearCanvas: function () {
+        if (_.isEqual(this.ctxBox, this.initialBoundingBox())) {
+            // there has been no change to the canvas - no need to clear
+            return
+        }
         // we only want to clear the area of the canvas that we dirtied
         // since the last clear. The ctxBox object tracks this
         var p = 3;  // padding to be added to bounding box
@@ -606,7 +610,11 @@ exports.Viewport = Backbone.View.extend({
         var height = maxY - minY;
         this.ctx.clearRect(minX, minY, width, height);
         // reset the tracking of the context bounding box tracking.
-        this.ctxBox = {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
+        this.ctxBox = this.initialBoundingBox();
+    },
+
+    initialBoundingBox: function () {
+        return {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
     },
 
     // Coordinates and intersection helpers
