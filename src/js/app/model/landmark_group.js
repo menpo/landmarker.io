@@ -107,26 +107,34 @@ export default function LandmarkGroup (
     // make sure we start with a sensible insertion configuration.
     this.resetNextAvailable();
     this.tracker.recordState(this.toJSON(), true);
+    window.lmg = this;
 }
 
 LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
 
 // Restor landmarks from json saved, should be of the same template so
 // no hard checking ot resetting the labels
-LandmarkGroup.prototype.restore = atomicOperation(function ({landmarks}) {
+LandmarkGroup.prototype.restore = atomicOperation(function ({
+    landmarks,
+    labels
+}) {
     const {points, connectivity} = landmarks;
 
+    this.landmarks.forEach(lm => lm.clear());
     points.forEach((p, i) => {
         const [v] = _pointToVector(p);
-        if (!v) {
-            this.landmarks[i].clear();
-        } else {
+        if (v) {
             this.landmarks[i].setPoint(v);
         }
     });
 
     this.connectivity = _validateConnectivity(this.landmarks.length,
                                               connectivity);
+
+    delete this.labels;
+    this.labels = labels.map((label) => {
+        return new LandmarkLabel(label.label, this.landmarks, label.mask);
+    });
 
     this.resetNextAvailable();
 });
@@ -258,6 +266,15 @@ LandmarkGroup.prototype.redo = function () {
         });
     }, (json) => {
         this.restore(json);
+    });
+};
+
+LandmarkGroup.prototype.completeGroups = function () {
+    this.labels.forEach((label) => {
+        // May be a way to review the structure as this is n^2 worse
+        if (label.landmarks.some(lm => lm.isSelected())) {
+            label.selectAll();
+        }
     });
 };
 

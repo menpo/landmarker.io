@@ -56,7 +56,7 @@ export function capitalize (str) {
 export function maskedArray (array, mask) {
     const masked = [];
     for (let i = 0; i < mask.length; i++) {
-        if (mask[i]) {
+        if (mask[i] !== undefined) {
             masked.push(array[mask[i]]);
         }
     }
