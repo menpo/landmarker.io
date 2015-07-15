@@ -33,13 +33,19 @@ var buildGlobs = [
     './bundle*js',
     './index.html',
     './bundle*.css',
-    './img/*.png'
+    './img/*'
+];
+
+var remoteCached = [
+    'http://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic',
+    'https://cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css'
 ];
 
 gulp.task('manifest', function(){
     return gulp.src(buildGlobs, { base: '.' })
         .pipe(manifest({
             hash: true,
+            cache: remoteCached,
             filename: 'lmio.appcache',
             exclude: 'lmio.appcache'
         }))
