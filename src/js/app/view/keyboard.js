@@ -6,15 +6,16 @@ import Modal from './modal';
 
 export default function KeyboardShortcutsHandler (app, viewport) {
     this._keypress = function (e) {
+
         // Don't fire on input fields
-        if ($(e.target).closest("input")[0]) {
-            return;
+        if ($(e.target).closest("input[type='text']")[0]) {
+            return null;
         }
 
         const key = e.which;
 
-        if ((app.isHelpOverlayOn() || !!Modal.active()) && key !== 63) {
-            return;
+        if (app.isHelpOverlayOn() && key !== 63 || Modal.active()) {
+            return null;
         }
 
         const lms = app.landmarks();
