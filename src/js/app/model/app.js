@@ -5,7 +5,7 @@ var _ = require('underscore'),
 
 var Backbone = require('backbone');
 
-var { parseGroup } = require('./landmark_group'),
+var LandmarkGroup = require('./landmark_group'),
     Tracker = require('../lib/tracker'),
     AssetSource = require('./assetsource'),
     Modal = require('../view/modal');
@@ -280,11 +280,13 @@ var App = Backbone.Model.extend({
             this.asset().id,
             this.activeTemplate()
         ).then((json) => {
-            return parseGroup(json,
-                              this.asset().id,
-                              this.activeTemplate(),
-                              this.server(),
-                              tracker[this.asset().id]);
+            return LandmarkGroup.parse(
+                json,
+                this.asset().id,
+                this.activeTemplate(),
+                this.server(),
+                tracker[this.asset().id]
+            );
         }, () => {
             console.log('Error in fetching landmark JSON file');
         });
