@@ -80,7 +80,7 @@ LandmarkLabel.prototype.toJSON = function () {
 };
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
-function LandmarkGroup (
+export default function LandmarkGroup (
     points, connectivity, labels, id, type, server, tracker
 ) {
     this.id = id;
@@ -261,25 +261,14 @@ LandmarkGroup.prototype.redo = function () {
     });
 };
 
-function parseLJSONv1 (/*json, id, type, server*/) {
-    console.log('parsing v1 landmarks...');
-}
-
-function parseLJSONv2 (json, id, type, server, log) {
-    console.log('parsing v2 landmarks...');
+LandmarkGroup.parse = function (json, id, type, server, tracker) {
     return new LandmarkGroup(
-        json.landmarks.points, json.landmarks.connectivity, json.labels,
-        id, type, server, log);
-}
-
-const LJSONParsers = {
-    1: parseLJSONv1,
-    2: parseLJSONv2
-};
-
-export default {
-    LandmarkGroup,
-    parseGroup: function (json, id, type, server, log) {
-        return LJSONParsers[json.version](json, id, type, server, log);
-    }
+        json.landmarks.points,
+        json.landmarks.connectivity,
+        json.labels,
+        id,
+        type,
+        server,
+        tracker
+    );
 };
