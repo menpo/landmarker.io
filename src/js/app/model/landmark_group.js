@@ -3,12 +3,13 @@
 import THREE from 'three';
 
 import { maskedArray } from '../lib/utils';
+import Tracker from '../lib/tracker';
 import { atomicOperation } from './atomic';
 
 import Landmark from './landmark';
 
 // Define behavior shared between Lists and Groups
-var LandmarkCollectionPrototype = Object.create(null);
+const LandmarkCollectionPrototype = Object.create(null);
 
 LandmarkCollectionPrototype.selected = function () {
     return this.landmarks.filter(lm => lm.isSelected());
@@ -28,6 +29,11 @@ LandmarkCollectionPrototype.selectAll = atomicOperation(function () {
 
 function _validateConnectivity (nLandmarks, connectivity) {
     let a, b;
+
+    if (!connectivity) {
+        return [];
+    }
+
     for (let i = 0; i < connectivity.length; i++) {
         [a, b] = connectivity[i];
         if (a < 0 || a >= nLandmarks || b < 0 || b >= nLandmarks) {
@@ -38,6 +44,23 @@ function _validateConnectivity (nLandmarks, connectivity) {
         }
 
     }
+
+    return connectivity;
+}
+
+function _pointToVector ([x, y, z]) {
+    let n, v;
+
+    n = z === undefined ? 2 : 3;
+    if (n === 2) {
+        z = 0;
+    }
+
+    if (x !== null && y !== null && z !== null) {
+        v = new THREE.Vector3(x, y, z);
+    }
+
+    return [v, n];
 }
 
 // LandmarkLabel is a 'playlist' of landmarks from the LandmarkGroup.
@@ -58,38 +81,23 @@ LandmarkLabel.prototype.toJSON = function () {
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
 function LandmarkGroup (
-    points, connectivity, labels, id, type, server, log
+    points, connectivity, labels, id, type, server, tracker
 ) {
     this.id = id;
     this.type = type;
     this.server = server;
-    this.log = log;
+    this.tracker = tracker || new Tracker();
 
     // 1. Build landmarks from points
     this.landmarks = points.map((p, index) => {
-        var lmInitObj = {group: this, index};
-        if (p.length === 2) {
-            lmInitObj.nDims = 2;
-            if (p[0] !== null && p[1] !== null) {
-                // image landmarks always have z = 0
-                lmInitObj.point = new THREE.Vector3(p[0], p[1], 0);
-            }
-        } else if (p.length === 3) {
-            lmInitObj.nDims = 3;
-            if (p[0] !== null && p[1] !== null && p[2] !== null) {
-                lmInitObj.point = new THREE.Vector3(p[0], p[1], p[2]);
-            }
-        }
+        const [point, nDims] = _pointToVector(p);
+        const lmInitObj = {group: this, index, nDims, point};
         return new Landmark(lmInitObj);
     });
 
     // 2. Validate and assign connectivity (if there is any, it's not mandatory)
-    if (connectivity !== undefined) {
-        _validateConnectivity(this.landmarks.length, connectivity);
-    } else {
-        connectivity = [];
-    }
-    this.connectivity = connectivity;
+    this.connectivity = _validateConnectivity(this.landmarks.length,
+                                              connectivity);
 
     // 3. Build labels
     this.labels = labels.map((label) => {
@@ -98,10 +106,30 @@ function LandmarkGroup (
 
     // make sure we start with a sensible insertion configuration.
     this.resetNextAvailable();
-    this.log.reset(this.toJSON());
+    this.tracker.recordState(this.toJSON(), true);
 }
 
 LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
+
+// Restor landmarks from json saved, should be of the same template so
+// no hard checking ot resetting the labels
+LandmarkGroup.prototype.restore = atomicOperation(function ({landmarks}) {
+    const {points, connectivity} = landmarks;
+
+    points.forEach((p, i) => {
+        const [v] = _pointToVector(p);
+        if (!v) {
+            this.landmarks[i].clear();
+        } else {
+            this.landmarks[i].setPoint(v);
+        }
+    });
+
+    this.connectivity = _validateConnectivity(this.landmarks.length,
+                                              connectivity);
+
+    this.resetNextAvailable();
+});
 
 LandmarkGroup.prototype.nextAvailable = function () {
     for (let i = 0; i < this.landmarks.length; i++) {
@@ -155,7 +183,7 @@ LandmarkGroup.prototype.deleteSelected = atomicOperation(function () {
     });
     // reactivate the group to reset next available.
     this.resetNextAvailable();
-    this.log.push(ops);
+    this.tracker.record(ops);
 });
 
 LandmarkGroup.prototype.insertNew = atomicOperation(function (v) {
@@ -175,7 +203,7 @@ LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
         return;
     }
 
-    this.log.push([
+    this.tracker.record([
         [ lm.get('index'),
          lm.point() ? lm.point().clone() : undefined,
          v.clone() ]
@@ -192,21 +220,21 @@ LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
 LandmarkGroup.prototype.toJSON = function () {
     return {
         landmarks: {
-            points: this.landmarks,
+            points: this.landmarks.map(lm => lm.toJSON()),
             connectivity: this.connectivity
         },
-        labels: this.labels,
+        labels: this.labels.map(label => label.toJSON()),
         version: 2
     };
 };
 
 LandmarkGroup.prototype.save = function () {
-    this.log.save(this.toJSON());
+    this.tracker.recordState(this.toJSON(), true);
     return this.server.saveLandmarkGroup(this.id, this.type, this.toJSON());
 };
 
 LandmarkGroup.prototype.undo = function () {
-    this.log.undo((ops) => {
+    this.tracker.undo((ops) => {
         ops.forEach(([index, start]) => {
             if (!start) {
                 this.landmarks[index].clear();
@@ -214,11 +242,13 @@ LandmarkGroup.prototype.undo = function () {
                 this.landmarks[index].setPoint(start.clone());
             }
         });
+    }, (json) => {
+        this.restore(json);
     });
 };
 
 LandmarkGroup.prototype.redo = function () {
-    this.log.redo((ops) => {
+    this.tracker.redo((ops) => {
         ops.forEach(([index, , end]) => {
             if (!end) {
                 this.landmarks[index].clear();
@@ -226,6 +256,8 @@ LandmarkGroup.prototype.redo = function () {
                 this.landmarks[index].setPoint(end.clone());
             }
         });
+    }, (json) => {
+        this.restore(json);
     });
 };
 

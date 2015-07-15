@@ -6,7 +6,7 @@ var _ = require('underscore'),
 var Backbone = require('backbone');
 
 var { parseGroup } = require('./landmark_group'),
-    Log = require('./log'),
+    Tracker = require('../lib/tracker'),
     AssetSource = require('./assetsource'),
     Modal = require('../view/modal');
 
@@ -22,7 +22,7 @@ var App = Backbone.Model.extend({
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
-            log: {}
+            tracker: {}
         };
     },
 
@@ -94,8 +94,8 @@ var App = Backbone.Model.extend({
         return this.get('activeCollection');
     },
 
-    log: function () {
-            return this.get('log');
+    tracker: function () {
+            return this.get('tracker');
     },
 
     hasAssetSource: function () {
@@ -215,7 +215,7 @@ var App = Backbone.Model.extend({
             this.stopListening(this.get('assetSource'));
         }
         this.set('assetSource', assetSource);
-        this.set('log', {});
+        this.set('tracker', {});
         // whenever our asset source changes it's current asset and mesh we need
         // to update the app state.
         this.listenTo(assetSource, 'change:asset', this.assetChanged);
@@ -271,13 +271,11 @@ var App = Backbone.Model.extend({
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
 
-        // Try and find an in-memory log for this asset
-        const log = this.log();
-        if (!log[this.asset().id]) {
-            log[this.asset().id] = new Log();
+        // Try and find an in-memory tracker for this asset
+        const tracker = this.tracker();
+        if (!tracker[this.asset().id]) {
+            tracker[this.asset().id] = new Tracker();
         }
-
-        const assetLog = log[this.asset().id];
 
         var loadLandmarksPromise = this.server().fetchLandmarkGroup(
             this.asset().id,
@@ -287,7 +285,7 @@ var App = Backbone.Model.extend({
                               this.asset().id,
                               this.activeTemplate(),
                               this.server(),
-                              assetLog);
+                              tracker[this.asset().id]);
         }, () => {
             console.log('Error in fetching landmark JSON file');
         });
@@ -323,7 +321,7 @@ var App = Backbone.Model.extend({
                 this._switchToAsset(this.assetSource().next());
             };
 
-            if (lms && !lms.log.isCurrent()) {
+            if (lms && !lms.tracker.isUpToDate()) {
                 if (!this.isAutoSaveOn()) {
                     Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
                 } else {
@@ -342,7 +340,7 @@ var App = Backbone.Model.extend({
                 this._switchToAsset(this.assetSource().previous());
             };
 
-            if (lms && !lms.log.isCurrent()) {
+            if (lms && !lms.tracker.isUpToDate()) {
                 if (!this.isAutoSaveOn()) {
                     Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
                 } else {
@@ -359,24 +357,20 @@ var App = Backbone.Model.extend({
     },
 
     reloadLandmarksFromPrevious: function () {
-        const currentLms = this.landmarks();
-        const as = this.assetSource();
-        if (this.assetSource().hasPredecessor()) {
-            this.server().fetchLandmarkGroup(
-                as.assets()[as.assetIndex() - 1].id,
-                this.activeTemplate()
-            ).then((json) => {
-                const lms = parseGroup(
-                    json,
-                    this.asset().id,
-                    this.activeTemplate(),
-                    this.server(),
-                    currentLms.log
-                );
-                this.set('landmarks', lms);
-            }, () => {
-                console.log('Error in fetching landmark JSON file');
-            });
+        const lms = this.landmarks();
+        if (lms) {
+            const as = this.assetSource();
+            if (this.assetSource().hasPredecessor()) {
+                this.server().fetchLandmarkGroup(
+                    as.assets()[as.assetIndex() - 1].id,
+                    this.activeTemplate()
+                ).then((json) => {
+                    lms.restore(json);
+                    lms.tracker.recordState(lms.toJSON());
+                }, () => {
+                    console.log('Error in fetching landmark JSON file');
+                });
+            }
         }
     }
 

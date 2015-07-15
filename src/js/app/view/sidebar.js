@@ -218,7 +218,7 @@ var ActionsView = Backbone.View.extend({
 
     initialize: function({app}) {
         _.bindAll(this, 'save', 'help', 'render');
-        this.listenTo(this.model.log, "change", this.render);
+        this.listenTo(this.model.tracker, "change", this.render);
         this.app = app;
         this.render();
     },
@@ -230,8 +230,8 @@ var ActionsView = Backbone.View.extend({
     },
 
     render: function () {
-        this.$el.find('#save').toggleClass(
-            'Active', !this.model.log.isCurrent());
+        this.$el.find('#save')
+                .toggleClass('Active', !this.model.tracker.isUpToDate());
     },
 
     save: function (evt) {
@@ -297,27 +297,26 @@ var UndoRedoView = Backbone.View.extend({
     },
 
     initialize: function ({app}) {
-        this.log = this.model.log;
+        this.tracker = this.model.tracker;
         this.app = app;
-        this.listenTo(this.log, "change", this.render);
+        this.listenTo(this.tracker, "change", this.render);
         _.bindAll(this, 'render', 'cleanup', 'undo', 'redo');
         this.render();
     },
 
     cleanup: function () {
-        this.stopListening(this.log);
+        this.stopListening(this.tracker);
         this.$el.find('.Undo').addClass('Disabled');
         this.$el.find('.Redo').addClass('Disabled');
     },
 
     render: function () {
-        this.$el.find('.Undo').toggleClass(
-            'Disabled', !this.log.hasOperations());
-        this.$el.find('.Redo').toggleClass('Disabled', !this.log.hasUndone());
+        this.$el.find('.Undo').toggleClass('Disabled', !this.tracker.canUndo());
+        this.$el.find('.Redo').toggleClass('Disabled', !this.tracker.canRedo());
     },
 
     undo: function () {
-        if (!this.log.hasOperations()) {
+        if (!this.tracker.canUndo()) {
             return;
         } else {
             this.model.undo();
@@ -325,7 +324,7 @@ var UndoRedoView = Backbone.View.extend({
     },
 
     redo: function () {
-        if (!this.log.hasUndone()) {
+        if (!this.tracker.canRedo()) {
             return;
         } else {
             this.model.redo();
@@ -402,15 +401,13 @@ var LmLoadView = Backbone.View.extend({
     render: function () {
         const show = this.app.assetSource().hasPredecessor();
         this.$el.toggleClass('Hide', !show);
-        this.$el.find('button').toggleClass(
-            'Button-Danger',
-            !this.model.isEmpty()
-        );
+        this.$el.find('button').toggleClass('Button-Danger',
+                                            !this.model.isEmpty());
     },
 
     loadPrevious: function () {
         this.app.reloadLandmarksFromPrevious();
-        this.$el.addClass('Hide');
+        this.render();
     }
 });
 
