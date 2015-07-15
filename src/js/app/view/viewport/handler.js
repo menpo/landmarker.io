@@ -1,10 +1,10 @@
 'use strict';
 
-var _ = require('underscore');
-var THREE = require('three');
-var $ = require('jquery');
+import _ from 'underscore';
+import THREE from 'three';
+import $ from 'jquery';
 
-var atomic = require('../../model/atomic');
+import atomic from '../../model/atomic';
 
 /**
  * Create a closure for handling mouse events in viewport.
@@ -510,23 +510,7 @@ function Handler () {
             return;
         }
 
-        this.model.landmarks().labels.forEach((label) => {
-
-            let labelSelection = false;
-
-            for (var i = 0; i < label.landmarks.length; i++) {
-                if (label.landmarks[i].isSelected()) {
-                    labelSelection = true;
-                    break;
-                }
-            }
-
-            if (labelSelection) {
-                label.landmarks.forEach((lm) => {
-                    lm.select();
-                });
-            }
-        });
+        this.model.landmarks().completeGroups();
 
         setGroupSelected(true);
     };
