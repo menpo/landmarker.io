@@ -371,6 +371,18 @@ var App = Backbone.Model.extend({
                 });
             }
         }
+    },
+
+    incrementLandmarkSize: function () {
+        const size = this.get('landmarkSize');
+        const factor = Math.floor(size / 0.25) + 1;
+        this.set('landmarkSize', Math.min(0.25 * factor, 1));
+    },
+
+    decrementLandmarkSize: function () {
+        const size = this.get('landmarkSize');
+        const factor = Math.floor(size / 0.25) - 1;
+        this.set('landmarkSize', Math.max(0.25 * factor, 0.05));
     }
 
 });

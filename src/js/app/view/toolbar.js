@@ -25,7 +25,9 @@ var LandmarkSizeSlider = Backbone.View.extend({
     },
 
     changeLandmarkSize: atomic.atomicOperation(function (event) {
-        this.model.set("landmarkSize", (Number(event.target.value) / 100));
+        this.model.set(
+            "landmarkSize",
+            Math.max(Number(event.target.value) / 100, 0.05));
     })
 });
 
