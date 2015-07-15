@@ -81,6 +81,12 @@ export default function KeyboardShortcutsHandler (app, viewport) {
             case 63: // toggle help
                 app.toggleHelpOverlay();
                 break;
+            case 43:
+                app.incrementLandmarkSize();
+                break;
+            case 45:
+                app.decrementLandmarkSize();
+                break;
         }
     };
 
