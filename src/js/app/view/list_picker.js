@@ -51,7 +51,7 @@ var ListPicker = Modal.extend({
         const $content = $(`<div class='ListPicker'></div>`);
 
         if (this.useFilter) {
-            $content.append(`<input placeholder='Search'/>`);
+            $content.append(`<input type="text" placeholder='Search'/>`);
         }
 
         $content.append(this.makeList());

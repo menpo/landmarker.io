@@ -110,7 +110,6 @@ var App = Backbone.Model.extend({
         if (this.has('assetSource')) {
             return this.get('assetSource').assetIndex();
         }
-
     },
 
     // returns the currently active Asset (Image or Asset).
