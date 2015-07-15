@@ -28,17 +28,6 @@ Server.prototype.apiHeader = function () {
     return `/api/v${this.version}/`;
 };
 
-Server.prototype.testForV1 = function (error) {
-    this.version = 1;
-    return this.fetchMode().then(() => {
-        console.log('v1 server found - redirecting to legacy landmarker');
-        var url = require('url');
-        var u = url.parse(window.location.href, true);
-        u.pathname = '/v1/';
-        window.location.replace(url.format(u));
-    }, error);
-};
-
 Server.prototype.map = function (url) {
     var mapping;
     if (this.demoMode) {
