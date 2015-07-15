@@ -13,13 +13,13 @@ var THREE = require('three');
 function isBinary(binData) {
 
     var expect;
-    var face_size;
-    var n_faces;
+    var faceSize;
+    var nFaces;
     var reader;
     reader = new DataView(binData);
-    face_size = (32 / 8 * 3) + ((32 / 8 * 3) * 3) + (16 / 8);
-    n_faces = reader.getUint32(80, true);
-    expect = 80 + (32 / 8) + (n_faces * face_size);
+    faceSize = (32 / 8 * 3) + ((32 / 8 * 3) * 3) + (16 / 8);
+    nFaces = reader.getUint32(80, true);
+    expect = 80 + (32 / 8) + (nFaces * faceSize);
 
     if (expect === reader.byteLength) {
         return true;
@@ -37,9 +37,12 @@ function isBinary(binData) {
 }
 
 function parse(data) {
+    console.time('STLLoader');
     var binData = ensureBinary(data);
-    return isBinary(binData) ?
-           parseBinary(binData) : parseASCII(ensureString(data));
+    const geo = isBinary(binData) ?
+                parseBinary(binData) : parseASCII(ensureString(data));
+    console.time('STLLoader');
+    return geo;
 }
 
 function parseBinary(data) {
@@ -133,20 +136,22 @@ function parseBinary(data) {
         geometry.alpha = alpha;
     }
 
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
     return geometry;
 }
 
 function parseASCII(data) {
 
-    var geometry;
-    var length;
-    var normal;
-    var patternFace;
-    var patternNormal;
-    var patternVertex;
-    var result;
-    var text;
-    geometry = new THREE.Geometry();
+    let geometry,
+        nx, ny, nz, vx, vy, vz,
+        patternFace, patternNormal, patternVertex,
+        result, text;
+
+    const normals = [], vertices = [];
+
+    geometry = new THREE.BufferGeometry();
+
     patternFace = /facet([\s\S]*?)endfacet/g;
 
     while ((result = patternFace.exec(data)) !== null) {
@@ -155,20 +160,27 @@ function parseASCII(data) {
         patternNormal = /normal[\s]+([\-+]?[0-9]+\.?[0-9]*([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+/g;
 
         while ((result = patternNormal.exec(text)) !== null) {
-            normal = new THREE.Vector3(parseFloat(result[1]), parseFloat(result[3]), parseFloat(result[5]));
+            [nx, ny, nz] = [result[1], result[3], result[5]].map(parseFloat);
         }
 
         patternVertex = /vertex[\s]+([\-+]?[0-9]+\.?[0-9]*([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+/g;
 
         while ((result = patternVertex.exec(text)) !== null) {
-            geometry.vertices.push(new THREE.Vector3(parseFloat(result[1]), parseFloat(result[3]), parseFloat(result[5])));
+            [vx, vy, vz] = [result[1], result[3], result[5]].map(parseFloat);
+            vertices.push(vx, vy, vz);
+            normals.push(nx, ny, nz);
         }
-
-        length = geometry.vertices.length;
-
-        geometry.faces.push(new THREE.Face3(length - 3, length - 2, length - 1, normal));
-
     }
+
+    geometry.addAttribute(
+        'position',
+        new THREE.BufferAttribute(new Float32Array(vertices), 3)
+    );
+
+    geometry.addAttribute(
+        'normal',
+        new THREE.BufferAttribute(new Float32Array(normals), 3)
+    );
 
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
@@ -180,10 +192,10 @@ function parseASCII(data) {
 function ensureString(buf) {
 
     if (typeof buf !== "string") {
-        var array_buffer = new Uint8Array(buf);
+        var arrayBuffer = new Uint8Array(buf);
         var str = '';
         for (var i = 0; i < buf.byteLength; i++) {
-            str += String.fromCharCode(array_buffer[i]); // implicitly assumes little-endian
+            str += String.fromCharCode(arrayBuffer[i]); // implicitly assumes little-endian
         }
         return str;
     } else {
@@ -195,11 +207,11 @@ function ensureString(buf) {
 function ensureBinary(buf) {
 
     if (typeof buf === "string") {
-        var array_buffer = new Uint8Array(buf.length);
+        var arrayBuffer = new Uint8Array(buf.length);
         for (var i = 0; i < buf.length; i++) {
-            array_buffer[i] = buf.charCodeAt(i) & 0xff; // implicitly assumes little-endian
+            arrayBuffer[i] = buf.charCodeAt(i) & 0xff; // implicitly assumes little-endian
         }
-        return array_buffer.buffer || array_buffer;
+        return arrayBuffer.buffer || arrayBuffer;
     } else {
         return buf;
     }
