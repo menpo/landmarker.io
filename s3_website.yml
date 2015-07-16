@@ -1,0 +1,21 @@
+s3_reduced_redundancy: true
+s3_id: <%= ENV['AWS_ACCESS_KEY_ID'] %>
+s3_secret: <%= ENV['AWS_SECRET_ACCESS_KEY'] %>
+s3_bucket: <%= ENV['AWS_BUCKET'] %>
+s3_endpoint: <%= ENV['AWS_BUCKET_ZONE'] %>
+cloudfront_distribution_id: <%= ENV['AWS_CF_DISTRIBUTION_ID'] %>
+cloudfront_invalidate_root: true
+max_age: 120
+gzip:
+  - .html
+  - .css
+  - .js
+exclude_from_upload:
+  - s3_website.yml
+  - node_modules
+  - .git
+  - .DS_Store
+  - .log
+  - .gitignore
+concurrency_level: 25
+site: .
