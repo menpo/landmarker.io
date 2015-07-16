@@ -250,6 +250,7 @@ LandmarkGroup.prototype.undo = function () {
                 this.landmarks[index].setPoint(start.clone());
             }
         });
+        this.resetNextAvailable();
     }, (json) => {
         this.restore(json);
     });
@@ -264,6 +265,7 @@ LandmarkGroup.prototype.redo = function () {
                 this.landmarks[index].setPoint(end.clone());
             }
         });
+        this.resetNextAvailable();
     }, (json) => {
         this.restore(json);
     });
