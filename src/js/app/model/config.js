@@ -5,11 +5,11 @@
  */
 'use strict';
 
-var _ = require('underscore');
+import _ from 'underscore';
 
-var support = require('../lib/support');
+import * as support from '../lib/support';
 
-var LOCALSTORAGE_KEY = 'LMIO#CONFIG';
+const LOCALSTORAGE_KEY = 'LMIO#CONFIG';
 
 function Config () {
     this._data = {};
@@ -77,11 +77,11 @@ Config.prototype.clear = function () {
     this._data = {};
 };
 
-var _configInstance;
+let _configInstance;
 
-module.exports = function () {
+export default function () {
     if (!_configInstance) {
         _configInstance = new Config();
     }
     return _configInstance;
-};
+}

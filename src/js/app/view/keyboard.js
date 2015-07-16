@@ -97,6 +97,7 @@ export default function KeyboardShortcutsHandler (app, viewport) {
 
         if (app.isHelpOverlayOn()) {
             app.toggleHelpOverlay();
+            evt.stopPropagation();
             return;
         }
 
@@ -105,6 +106,7 @@ export default function KeyboardShortcutsHandler (app, viewport) {
             if (modal.closable) {
                 modal.close();
             }
+            evt.stopPropagation();
             return;
         }
 
@@ -112,7 +114,10 @@ export default function KeyboardShortcutsHandler (app, viewport) {
         if (lms) {
             app.landmarks().deselectAll();
             $('#viewportContainer').trigger("groupDeselected");
+            evt.stopPropagation();
+            return;
         }
+
     };
 }
 
