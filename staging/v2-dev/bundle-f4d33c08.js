@@ -62308,6 +62308,7 @@ LandmarkGroup.prototype.undo = function () {
                 _this3.landmarks[index].setPoint(start.clone());
             }
         });
+        _this3.resetNextAvailable();
     }, function (json) {
         _this3.restore(json);
     });
@@ -62329,6 +62330,7 @@ LandmarkGroup.prototype.redo = function () {
                 _this4.landmarks[index].setPoint(end.clone());
             }
         });
+        _this4.resetNextAvailable();
     }, function (json) {
         _this4.restore(json);
     });
@@ -66046,7 +66048,7 @@ function Handler() {
             // Convert the point back into the mesh space
             _this.worldToLocal(p, true);
 
-            if (_this.model.isEditingOn() && currentTargetLm) {
+            if (_this.model.isEditingOn() && currentTargetLm && currentTargetLm.group() === _this.model.landmarks() && !currentTargetLm.isEmpty()) {
                 _this.model.landmarks().setLmAt(currentTargetLm, p);
             } else if (downEvent.button === 2) {
                 _this.model.landmarks().insertNew(p);
@@ -66113,7 +66115,7 @@ function Handler() {
             return null;
         }
 
-        if (currentTargetLm && currentTargetLm.isEmpty()) {
+        if (currentTargetLm && (currentTargetLm.isEmpty() || _this.model.landmarks() !== currentTargetLm.group())) {
             currentTargetLm = undefined;
         }
 
@@ -66947,4 +66949,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-18dc6509.js.map
+//# sourceMappingURL=bundle-f4d33c08.js.map
