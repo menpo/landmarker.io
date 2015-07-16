@@ -2,25 +2,15 @@ sudo: false
 language: node_js
 node_js:
 - '0.12'
-install: npm install
+install:
+  - npm install
+  - gem install s3_website
 script:
 - npm run build
-- bash deploy.sh
+- ./deploy.sh
 cache:
   directories:
   - node_modules
-deploy:
-  provider: s3
-  access_key_id: AKIAJONNLC6TZXPG6MCA
-  secret_access_key:
-    secure: S5hbH6j78JE0pPh1mbvz/0LKLkVy5BSVqGR1HmHNHTliumQRwLbkP2hNJzDXqtZla4A6EQWOmaHKyqNSzWbcgv7D9Sxp2dp3On96oYEez9YEVb8MSg3rfOgHcxGJbk0hoOlhpX1pyMBDs21GokSWKR86K1QEuIkcygS4FVwnORs=
-  bucket: www-landmarker-io
-  local-dir: build
-  skip_cleanup: true
-  acl: public_read
-  on:
-    repo: menpo/landmarker.io
-    all_branches: true
 notifications:
   slack:
     secure: D7VvuQP+rpk3w+ykJHmznG/87SoORZMMmHZks+WXXnO1RZKaOdS4h4LU0YGKEn4WYXk0rE9W2MtvqF6dD1NISl2VB3ZKw9bVf+IuE+EP0vqZXAiqcLMTxK9htBT+09TmLpJpdNSyqI/B7/CzCVuWa5Sabrh0aQP9j2b6UT2rZPM=
