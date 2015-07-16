@@ -41,7 +41,7 @@ function parse(data) {
     var binData = ensureBinary(data);
     const geo = isBinary(binData) ?
                 parseBinary(binData) : parseASCII(ensureString(data));
-    console.time('STLLoader');
+    console.timeEnd('STLLoader');
     return geo;
 }
 
@@ -143,34 +143,80 @@ function parseBinary(data) {
 
 function parseASCII(data) {
 
-    let geometry,
-        nx, ny, nz, vx, vy, vz,
-        patternFace, patternNormal, patternVertex,
-        result, text;
+    let nx, ny, nz, vx, vy, vz,
+        line, result, state;
 
     const normals = [], vertices = [];
+    const lines = Array.isArray(data) ? data : data.split('\n');
 
-    geometry = new THREE.BufferGeometry();
+    const PATTERN_SOLID = /^solid.*$/,
+          PATTERN_SOLID_END = /^endsolid.*$/,
+          PATTERN_FACET = /^facet\s*normal\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)$/,
+          PATTERN_FACET_END = /^endfacet$/,
+          PATTERN_LOOP = /^outer\s*loop$/,
+          PATTERN_LOOP_END = /^endloop$/,
+          PATTERN_VERTEX = /^vertex\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)$/;
 
-    patternFace = /facet([\s\S]*?)endfacet/g;
+    for (let i = 0, len = lines.length; i < len; i++) {
+        line = lines[i].trim();
 
-    while ((result = patternFace.exec(data)) !== null) {
-
-        text = result[0];
-        patternNormal = /normal[\s]+([\-+]?[0-9]+\.?[0-9]*([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+/g;
-
-        while ((result = patternNormal.exec(text)) !== null) {
-            [nx, ny, nz] = [result[1], result[3], result[5]].map(parseFloat);
+        if (line === '') {
+            continue; // Ignore empty lines
         }
 
-        patternVertex = /vertex[\s]+([\-+]?[0-9]+\.?[0-9]*([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+[\s]+([\-+]?[0-9]*\.?[0-9]+([eE][\-+]?[0-9]+)?)+/g;
-
-        while ((result = patternVertex.exec(text)) !== null) {
-            [vx, vy, vz] = [result[1], result[3], result[5]].map(parseFloat);
-            vertices.push(vx, vy, vz);
-            normals.push(nx, ny, nz);
+        if ((result = PATTERN_SOLID.exec(line)) !== null) {
+            if (state || i > 0) {
+                throw new Error('"solid" should be at the start of the file, ' +
+                                `found at line ${i}`);
+            } else {
+                state = 'SOLID';
+            }
+        } else if ((result = PATTERN_SOLID_END.exec(line)) !== null) {
+            // End of the solid definition, get out
+            if (state === 'SOLID') {
+                break;
+            } else {
+                throw new Error(`Unexcpected "endsolid" at line ${i}`);
+            }
+        } else if ((result = PATTERN_FACET.exec(line)) !== null) {
+            if (state === 'SOLID') {
+                state = 'FACET';
+                [nx, ny, nz] = result.slice(1, 4).map(parseFloat);
+            } else {
+                throw new Error(`Unexcpected "facet" at line ${i}`);
+            }
+        } else if ((result = PATTERN_FACET_END.exec(line)) !== null) {
+            if (state === "FACET") {
+                state = 'SOLID';
+            } else {
+                throw new Error(`Unexcpected "endfacet" at line ${i}`);
+            }
+        } else if ((result = PATTERN_LOOP.exec(line)) !== null) {
+            if (state === 'FACET') {
+                state = 'LOOP';
+            } else {
+                throw new Error(`Unexcpected "outerloop" at line ${i}`);
+            }
+        } else if ((result = PATTERN_LOOP_END.exec(line)) !== null) {
+            if (state === 'LOOP') {
+                state = 'FACET';
+            } else {
+                throw new Error(`Unexcpected "endloop" at line ${i}`);
+            }
+        } else if ((result = PATTERN_VERTEX.exec(line)) !== null) {
+            if (state === 'LOOP') {
+                [vx, vy, vz] = result.slice(1, 4).map(parseFloat);
+                vertices.push(vx, vy, vz);
+                normals.push(nx, ny, nz);
+            } else {
+                throw new Error(`Unexcpected "vertex" at line ${i}`);
+            }
+        } else {
+            throw new Error(`Unrecognized line (${i}): "${line}"`);
         }
     }
+
+    const geometry = new THREE.BufferGeometry();
 
     geometry.addAttribute(
         'position',
@@ -193,11 +239,17 @@ function ensureString(buf) {
 
     if (typeof buf !== "string") {
         var arrayBuffer = new Uint8Array(buf);
-        var str = '';
+        var lines = [], str = '', char;
         for (var i = 0; i < buf.byteLength; i++) {
-            str += String.fromCharCode(arrayBuffer[i]); // implicitly assumes little-endian
+            char = String.fromCharCode(arrayBuffer[i]);
+            if (char === '\n') {
+                lines.push(str);
+                str = '';
+            } else {
+                str += char;
+            }
         }
-        return str;
+        return lines;
     } else {
         return buf;
     }

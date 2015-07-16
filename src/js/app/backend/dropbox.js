@@ -30,6 +30,8 @@ import { randomString,
       stripExtension,
       baseUrl } from '../lib/utils';
 
+import { notify } from '../view/notification';
+
 import { getJSON, get, putJSON, getArrayBuffer } from '../lib/requests';
 import ImagePromise from '../lib/imagepromise';
 import Template from '../model/template';
@@ -224,9 +226,6 @@ Dropbox.prototype._setMeshAssets = function (items) {
             this._meshMtls[p] = stripExtension(p) + '.mtl';
         }
     });
-
-    console.log('Dropbox::Set mesh and textures',
-                this._assets, this._meshTextures, this._meshMtls);
 };
 
 Dropbox.prototype._setImageAssets = function (items) {
@@ -396,7 +395,7 @@ Dropbox.prototype.fetchGeometry = function (assetId) {
         loader = STLLoader;
         dl = this.mediaURL(path).then((u) => {
             const q = getArrayBuffer(u);
-            dl.xhr = q.xhr;
+            dl.xhr = () => q.xhr();
             return q;
         });
         dl.xhr = function () { return {abort: function () {}}; };
@@ -405,7 +404,12 @@ Dropbox.prototype.fetchGeometry = function (assetId) {
     }
 
     const geometry = dl.then((data) => {
-        return loader(data);
+        try {
+            return loader(data);
+        } catch (e) {
+            notify({type: 'error', msg: 'Failed to parse mesh file'});
+            throw e;
+        }
     });
 
     geometry.xhr = () => dl.xhr(); // compatibility
