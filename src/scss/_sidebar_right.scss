@@ -33,6 +33,9 @@
     justify-content: center;
     margin-left: 1px;
     margin-bottom: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 
     &:hover {
         background: $colorDarkBlue;
@@ -103,7 +106,6 @@ is itself a row flexbox */
 
 .LmGroup {
     position: relative;
-    background: white(.75);
 }
 
 .LmGroup-Label,
@@ -144,7 +146,7 @@ is itself a row flexbox */
 }
 
 .Lm-Empty {
-    background: black(.5);
+    background: $colorGray;
 }
 
 .Lm-Value {
