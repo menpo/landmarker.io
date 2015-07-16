@@ -16,7 +16,6 @@ var sass = require('gulp-sass');
 var sourcemaps = require('gulp-sourcemaps');
 var rename = require('gulp-rename');
 var del = require('del');
-var uglify = require('gulp-uglify');
 
 var src = {
     js: ['src/js/**/*.js'],
@@ -65,28 +64,21 @@ gulp.task('clean-css', function (cb) {
 gulp.task('js', function() {
     var b = browserify(entry.js, {debug: true, transform: [babelify]})
         .bundle();
-    var pipeline = (
-        b.on('error', function (err) {
-            if (process.env.NODE_ENV === 'production') {
-                throw err;
-            } else {
-                gutil.log('Browserify Error', err);
-            }
-        })
-        .pipe(source('bundle.js'))
-        .pipe(buffer())
-        .pipe(rev())
-        .pipe(sourcemaps.init({loadMaps: true}))
-    );
 
-    if (process.env.NODE_ENV === 'production') {
-        pipeline = pipeline.pipe(uglify());
-    }
-
-    return pipeline
-        .pipe(sourcemaps.write('./'))
-        .pipe(gulp.dest('.'))
-        .pipe(notify('Landmarker.io: JS rebuilt'));
+    return b.on('error', function (err) {
+        if (process.env.NODE_ENV === 'production') {
+            throw err;
+        } else {
+            gutil.log('Browserify Error', err);
+        }
+    })
+    .pipe(source('bundle.js'))
+    .pipe(buffer())
+    .pipe(rev())
+    .pipe(sourcemaps.init({loadMaps: true}))
+    .pipe(sourcemaps.write('./'))
+    .pipe(gulp.dest('.'))
+    .pipe(notify('Landmarker.io: JS rebuilt'));
 });
 
 // Rebuild the SCSS and pass throuhg autoprefixer output
