@@ -1,13 +1,53 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
+function _interopRequireWildcard(obj) {
+    if (obj && obj.__esModule) {
+        return obj;
+    } else {
+        var newObj = {};if (obj != null) {
+            for (var key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key];
+            }
+        }newObj['default'] = obj;return newObj;
+    }
+}
+
 function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : { 'default': obj };
 }
 
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
+
+var _url = require('url');
+
+var _url2 = _interopRequireDefault(_url);
+
+var _appLibUtils = require('./app/lib/utils');
+
+var utils = _interopRequireWildcard(_appLibUtils);
+
+var _appLibSupport = require('./app/lib/support');
+
+var support = _interopRequireWildcard(_appLibSupport);
+
+var _appModelConfig = require('./app/model/config');
+
+var _appModelConfig2 = _interopRequireDefault(_appModelConfig);
+
 var _appViewIntro = require('./app/view/intro');
 
 var _appViewIntro2 = _interopRequireDefault(_appViewIntro);
+
+var _appViewAsset = require('./app/view/asset');
+
+var _appViewAsset2 = _interopRequireDefault(_appViewAsset);
 
 var _appBackend = require('./app/backend');
 
@@ -17,14 +57,9 @@ var _appViewKeyboard = require('./app/view/keyboard');
 
 var _appViewKeyboard2 = _interopRequireDefault(_appViewKeyboard);
 
-var $ = require('jquery'),
-    url = require('url'),
-    THREE = require('three');
-
-var utils = require('./app/lib/utils');
-var support = require('./app/lib/support');
 var Notification = require('./app/view/notification');
-var cfg = require('./app/model/config')();
+
+var cfg = (0, _appModelConfig2['default'])();
 
 function resolveBackend(u) {
     console.log('Resolving which backend to use for url:', window.location.href, u, 'and config:', cfg.get());
@@ -80,7 +115,7 @@ function retry(msg) {
 function _loadServer(u) {
     var server = new _appBackend2['default'].Server(cfg.get('BACKEND_SERVER_URL'));
     u.query.server = cfg.get('BACKEND_SERVER_URL');
-    history.replaceState(null, null, url.format(u).replace('?', '#'));
+    history.replaceState(null, null, _url2['default'].format(u).replace('?', '#'));
     resolveMode(server, u);
 }
 
@@ -106,7 +141,7 @@ function _loadDropbox(u) {
             delete u.query.state;
             delete u.query.uid;
             u.search = null;
-            history.replaceState(null, null, url.format(u).replace('?', '#'));
+            history.replaceState(null, null, _url2['default'].format(u).replace('?', '#'));
         } else {
             Notification.notify({
                 msg: 'Incorrect Dropbox redirect URL',
@@ -196,7 +231,7 @@ function initLandmarker(server, mode, u) {
 
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
-    THREE.ImageUtils.crossOrigin = '';
+    _three2['default'].ImageUtils.crossOrigin = '';
 
     var appInit = { server: server, mode: mode };
 
@@ -215,14 +250,13 @@ function initLandmarker(server, mode, u) {
     var app = new App(appInit);
 
     var SidebarView = require('./app/view/sidebar');
-    var AssetView = require('./app/view/asset');
     var ToolbarView = require('./app/view/toolbar');
     var ViewportView = require('./app/view/viewport');
     var HelpOverlay = require('./app/view/help');
 
     new Notification.AssetLoadingNotification({ model: app });
     new SidebarView.Sidebar({ model: app });
-    new AssetView.AssetView({ model: app });
+    new _appViewAsset2['default']({ model: app });
     new ToolbarView.Toolbar({ model: app });
     new HelpOverlay({ model: app });
 
@@ -246,13 +280,13 @@ function initLandmarker(server, mode, u) {
     new URLState({ model: app });
 
     // ----- KEYBOARD HANDLER ----- //
-    $(window).off('keydown');
+    (0, _jquery2['default'])(window).off('keydown');
     new _appViewKeyboard2['default'](app, viewport).enable();
 }
 
 function handleNewVersion() {
 
-    var $topBar = $('#newVersionPrompt');
+    var $topBar = (0, _jquery2['default'])('#newVersionPrompt');
     $topBar.text('New version has been downloaded in the background, click to reload.');
 
     $topBar.click(function () {
@@ -284,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Test for webgl
     if (!support.webgl) {
         return Notification.notify({
-            msg: $('<p>It seems your browser doesn\'t support WebGL, which is needed by landmarker.io.<br/>Please visit <a href="https://get.webgl.org/">https://get.webgl.org/</a> for more information<p>'),
+            msg: (0, _jquery2['default'])('<p>It seems your browser doesn\'t support WebGL, which is needed by landmarker.io.<br/>Please visit <a href="https://get.webgl.org/">https://get.webgl.org/</a> for more information<p>'),
             persist: true,
             type: 'error'
         });
@@ -292,9 +326,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     cfg.load();
     _appViewIntro2['default'].init({ cfg: cfg });
-    var u = url.parse(utils.stripTrailingSlash(window.location.href.replace('#', '?')), true);
+    var u = _url2['default'].parse(utils.stripTrailingSlash(window.location.href.replace('#', '?')), true);
 
-    $(window).on('keydown', function (evt) {
+    (0, _jquery2['default'])(window).on('keydown', function (evt) {
         if (evt.which === 27) {
             _appViewIntro2['default'].open();
         }
@@ -58964,13 +58998,10 @@ module.exports={
   "dependencies": {
     "autoprefixer": "^5.0.0",
     "babel": "^5.6.3",
-    "babel-eslint": "^3.1.23",
     "babelify": "^6.1.2",
     "backbone": "^1.1.2",
     "browserify": "^8.1.1",
-    "chai": "^3.0.0",
     "del": "^1.1.1",
-    "eslint": "^0.24.1",
     "gulp": "^3.8.10",
     "gulp-autoprefixer": "^2.1.0",
     "gulp-buffer": "0.0.2",
@@ -58983,16 +59014,25 @@ module.exports={
     "gulp-sourcemaps": "^1.5.2",
     "gulp-uglify": "^1.2.0",
     "gulp-util": "^3.0.2",
-    "http-server": "^0.8.0",
     "jquery": "^2.1.3",
     "js-yaml": "^3.3.1",
-    "mocha": "^2.2.5",
     "promise-polyfill": "^1.1.6",
     "run-sequence": "^1.0.2",
     "spin.js": "^2.0.2",
     "three": "~0.69.0",
     "underscore": "^1.6.0",
-    "vinyl-source-stream": "^1.0.0",
+    "vinyl-source-stream": "^1.0.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^3.1.23",
+    "chai": "^3.0.0",
+    "esformatter": "^0.7.1",
+    "esformatter-braces": "^1.2.1",
+    "esformatter-dot-notation": "^1.3.1",
+    "esformatter-quotes": "^1.0.2",
+    "eslint": "^0.24.1",
+    "http-server": "^0.8.0",
+    "mocha": "^2.2.5",
     "watchify": "^3.2.1"
   }
 }
@@ -61770,9 +61810,33 @@ module.exports = atomicTracker;
  */
 'use strict';
 
-var _ = require('underscore');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
-var support = require('../lib/support');
+function _interopRequireWildcard(obj) {
+    if (obj && obj.__esModule) {
+        return obj;
+    } else {
+        var newObj = {};if (obj != null) {
+            for (var key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key];
+            }
+        }newObj['default'] = obj;return newObj;
+    }
+}
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _libSupport = require('../lib/support');
+
+var support = _interopRequireWildcard(_libSupport);
 
 var LOCALSTORAGE_KEY = 'LMIO#CONFIG';
 
@@ -61782,7 +61846,7 @@ function Config() {
 
 Config.prototype.get = function (key) {
     if (!key) {
-        return _.clone(this._data);
+        return _underscore2['default'].clone(this._data);
     } else {
         return this._data[key];
     }
@@ -61845,14 +61909,16 @@ Config.prototype.clear = function () {
     this._data = {};
 };
 
-var _configInstance;
+var _configInstance = undefined;
 
-module.exports = function () {
+exports['default'] = function () {
     if (!_configInstance) {
         _configInstance = new Config();
     }
     return _configInstance;
 };
+
+module.exports = exports['default'];
 
 },{"../lib/support":54,"underscore":44}],62:[function(require,module,exports){
 'use strict';
@@ -62816,26 +62882,44 @@ module.exports = Template;
 },{"js-yaml":10,"underscore":44}],66:[function(require,module,exports){
 'use strict';
 
-var _ = require('underscore');
-var Backbone = require('backbone');
-var $ = require('jquery');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _libUtils = require('../lib/utils');
+
+var _backend = require('../backend');
+
+var _modal = require('./modal');
+
+var _modal2 = _interopRequireDefault(_modal);
+
+var _intro = require('./intro');
+
+var _intro2 = _interopRequireDefault(_intro);
+
+var _list_picker = require('./list_picker');
+
+var _list_picker2 = _interopRequireDefault(_list_picker);
 
 var Notification = require('./notification');
-
-var _require = require('../lib/utils');
-
-var pad = _require.pad;
-
-var _require2 = require('../backend');
-
-var Dropbox = _require2.Dropbox;
-var Server = _require2.Server;
-
-var Modal = require('./modal');
-var Intro = require('./intro');
-var ListPicker = require('./list_picker');
-
-var AssetPagerView = Backbone.View.extend({
+var AssetPagerView = _backbone2['default'].View.extend({
 
     el: '#assetPager',
 
@@ -62845,7 +62929,7 @@ var AssetPagerView = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        _.bindAll(this, 'render');
+        _underscore2['default'].bindAll(this, 'render');
         this.listenTo(this.model, 'change:asset', this.render);
     },
 
@@ -62865,7 +62949,8 @@ var AssetPagerView = Backbone.View.extend({
 
 });
 
-var BackendNameView = Backbone.View.extend({
+exports.AssetPagerView = AssetPagerView;
+var BackendNameView = _backbone2['default'].View.extend({
 
     el: '#backendName',
 
@@ -62874,7 +62959,7 @@ var BackendNameView = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        _.bindAll(this, 'render');
+        _underscore2['default'].bindAll(this, 'render');
         this.render();
         this.listenTo(this.model, 'change:server', this.render);
     },
@@ -62884,13 +62969,13 @@ var BackendNameView = Backbone.View.extend({
 
         this.$el.find('.octicon-globe').remove();
 
-        if (server instanceof Dropbox) {
+        if (server instanceof _backend.Dropbox) {
             this.$el.find('.content').html('Dropbox');
             this.$el.addClass('BackendName--Dropbox');
-        } else if (server instanceof Server) {
+        } else if (server instanceof _backend.Server) {
             this.$el.find('.content').html(server.demoMode ? 'demo' : server.url);
             this.$el.addClass('BackendName--Server');
-            this.$el.prepend($('<span class="octicon octicon-globe"></span>'));
+            this.$el.prepend((0, _jquery2['default'])('<span class="octicon octicon-globe"></span>'));
         } else {
             this.fadeOut();
         }
@@ -62899,12 +62984,13 @@ var BackendNameView = Backbone.View.extend({
 
     handleClick: function handleClick() {
         if (this.model.has('server')) {
-            Modal.confirm('Log out of the current data source and restart the landmarker ?', Intro.open);
+            _modal2['default'].confirm('Log out of the current data source and restart the landmarker ?', _intro2['default'].open);
         }
     }
 });
 
-var AssetNameView = Backbone.View.extend({
+exports.BackendNameView = BackendNameView;
+var AssetNameView = _backbone2['default'].View.extend({
 
     el: '#assetName',
 
@@ -62913,7 +62999,7 @@ var AssetNameView = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        _.bindAll(this, 'render');
+        _underscore2['default'].bindAll(this, 'render');
         this.listenTo(this.model, 'change:asset', this.render);
     },
 
@@ -62933,7 +63019,7 @@ var AssetNameView = Backbone.View.extend({
             return;
         }
 
-        var picker = new ListPicker({
+        var picker = new _list_picker2['default']({
             list: assetsList,
             title: 'Select a new asset to load',
             closable: true,
@@ -62945,40 +63031,74 @@ var AssetNameView = Backbone.View.extend({
     }
 });
 
-var AssetIndexView = Backbone.View.extend({
+exports.AssetNameView = AssetNameView;
+var AssetIndexView = _backbone2['default'].View.extend({
 
     el: '#assetIndex',
 
     events: {
-        click: 'chooseAssetNumber'
+        click: 'handleClick'
     },
 
     initialize: function initialize() {
-        _.bindAll(this, 'render');
+        _underscore2['default'].bindAll(this, 'render');
         this.listenTo(this.model, 'change:asset', this.render);
     },
 
     render: function render() {
-        var nStr = pad(this.model.assetSource().nAssets(), 2);
-        var iStr = pad(this.model.assetIndex() + 1, 2);
+        var nStr = (0, _libUtils.pad)(this.model.assetSource().nAssets(), 2);
+        var iStr = (0, _libUtils.pad)(this.model.assetIndex() + 1, 2);
         this.$el.find('.content').html(iStr + '/' + nStr);
         this.$el.toggleClass('Disabled', this.model.assetSource().nAssets() <= 1);
         return this;
     },
 
-    chooseAssetNumber: function chooseAssetNumber() {
+    handleClick: function handleClick() {
+        var _this = this;
 
-        if (this.model.assetSource().nAssets() <= 1) {
+        if (!this.model.landmarks() || this.model.assetSource().nAssets() <= 1) {
             return null;
         }
 
-        var newIndex = window.prompt('Input asset index:', pad(this.model.assetIndex() + 1, 2));
+        if (!this._input) {
+            this._oldHtml = this.$el.find('.content').html();
+            this._input = (0, _libUtils.randomString)(8);
+            this.$el.find('.content').html('<input type=\'text\' id="' + this._input + '"/>');
+            this.$el.find('input').focus();
+
+            (0, _jquery2['default'])(window).on('keydown', _underscore2['default'].throttle(function (evt) {
+                if (evt.target.id !== _this._input) {
+                    return;
+                }
+
+                if (evt.which === 27) {
+                    // ESC
+                    _this._input = undefined;
+                    _this.$el.find('.content').html(_this._oldHtml);
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                } else if (evt.which === 13) {
+                    // Enter
+                    var input = _this.$el.find('input');
+                    var value = input.val();
+                    input.remove();
+                    _this.chooseAssetNumber(value);
+                    _this._input = undefined;
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                }
+            }, 300));
+        }
+    },
+
+    chooseAssetNumber: function chooseAssetNumber(newIndex) {
 
         if (!newIndex || newIndex === '') {
             return null; // ESC key or empty prompt, do nothing
         }
 
         if (isNaN(newIndex)) {
+            this.$el.find('.content').html(this._oldHtml || '');
             return new Notification.BaseNotification({
                 msg: 'Enter a valid Number', type: 'error' });
         }
@@ -62986,17 +63106,23 @@ var AssetIndexView = Backbone.View.extend({
         newIndex = Number(newIndex);
 
         if (newIndex <= 0 || newIndex > this.model.assetSource().nAssets()) {
+            this.$el.find('.content').html(this._oldHtml || '');
             return Notification.notify({
                 msg: 'Cannot select asset ' + newIndex + ' (out of bounds)',
                 type: 'error'
             });
         }
 
-        this.model.goToAssetIndex(Number(newIndex) - 1);
+        if (newIndex - 1 !== this.model.assetSource().assetIndex()) {
+            this.model.goToAssetIndex(Number(newIndex) - 1);
+        } else {
+            this.$el.find('.content').html(this._oldHtml || '');
+        }
     }
 });
 
-var CollectionName = Backbone.View.extend({
+exports.AssetIndexView = AssetIndexView;
+var CollectionName = _backbone2['default'].View.extend({
     el: '#collectionName',
 
     events: {
@@ -63004,31 +63130,31 @@ var CollectionName = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        _.bindAll(this, 'render');
+        _underscore2['default'].bindAll(this, 'render');
         this.listenTo(this.model, 'change:activeCollection', this.render);
     },
 
     render: function render() {
         this.$el.find('.content').html(this.model.activeCollection() + ' (' + this.model.mode() + ')');
-        this.$el.toggleClass('Disabled', this.model.collections().length <= 1 && !(this.model.server() instanceof Dropbox));
+        this.$el.toggleClass('Disabled', this.model.collections().length <= 1 && !(this.model.server() instanceof _backend.Dropbox));
         return this;
     },
 
     chooseCollection: function chooseCollection() {
-        var _this = this;
+        var _this2 = this;
 
         var backend = this.model.server();
-        if (backend instanceof Dropbox) {
+        if (backend instanceof _backend.Dropbox) {
             backend.pickAssets(function (path) {
-                _this.model.set('mode', backend.mode);
-                _this.model.set('activeCollection', path);
+                _this2.model.set('mode', backend.mode);
+                _this2.model.set('activeCollection', path);
             }, function (err) {
                 Notification.notify({
                     type: 'error',
                     msg: 'Error switching assets ' + err
                 });
             }, true);
-        } else if (backend instanceof Server) {
+        } else if (backend instanceof _backend.Server) {
 
             if (this.model.collections().length <= 1) {
                 return;
@@ -63038,14 +63164,14 @@ var CollectionName = Backbone.View.extend({
                 return [c, c];
             });
 
-            var picker = new ListPicker({
+            var picker = new _list_picker2['default']({
                 list: collections,
                 title: 'Select a new collection to load',
                 closable: true,
                 useFilter: true,
                 disposeOnClose: true,
                 submit: function submit(collection) {
-                    _this.model.set({ 'activeCollection': collection });
+                    _this2.model.set({ 'activeCollection': collection });
                 }
             });
             picker.open();
@@ -63054,8 +63180,8 @@ var CollectionName = Backbone.View.extend({
 
 });
 
-exports.AssetView = Backbone.View.extend({
-
+exports.CollectionName = CollectionName;
+exports['default'] = _backbone2['default'].View.extend({
     initialize: function initialize() {
         new BackendNameView({ model: this.model });
         new CollectionName({ model: this.model });
@@ -63763,6 +63889,7 @@ function KeyboardShortcutsHandler(app, viewport) {
 
         if (app.isHelpOverlayOn()) {
             app.toggleHelpOverlay();
+            evt.stopPropagation();
             return;
         }
 
@@ -63771,6 +63898,7 @@ function KeyboardShortcutsHandler(app, viewport) {
             if (modal.closable) {
                 modal.close();
             }
+            evt.stopPropagation();
             return;
         }
 
@@ -63778,6 +63906,8 @@ function KeyboardShortcutsHandler(app, viewport) {
         if (lms) {
             app.landmarks().deselectAll();
             (0, _jquery2['default'])('#viewportContainer').trigger('groupDeselected');
+            evt.stopPropagation();
+            return;
         }
     };
 }
@@ -66949,4 +67079,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-f4d33c08.js.map
+//# sourceMappingURL=bundle-c9dbb9b3.js.map
