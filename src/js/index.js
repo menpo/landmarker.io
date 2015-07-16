@@ -1,15 +1,20 @@
 'use strict';
 
-var $ = require('jquery'),
-    url = require('url'),
-    THREE = require('three');
+import $ from 'jquery';
+import THREE from 'three';
+import url from 'url';
 
-var utils = require('./app/lib/utils');
-var support = require('./app/lib/support');
+import * as utils from './app/lib/utils';
+import * as support from './app/lib/support';
+
 var Notification = require('./app/view/notification');
-var cfg = require('./app/model/config')();
+
+import Config from './app/model/config';
+const cfg = Config();
 
 import Intro from './app/view/intro';
+import AssetView from './app/view/asset';
+
 import Backend from './app/backend';
 
 import KeyboardShortcutsHandler from './app/view/keyboard';
@@ -206,14 +211,13 @@ function initLandmarker(server, mode, u) {
     var app = new App(appInit);
 
     var SidebarView = require('./app/view/sidebar');
-    var AssetView = require('./app/view/asset');
     var ToolbarView = require('./app/view/toolbar');
     var ViewportView = require('./app/view/viewport');
     var HelpOverlay = require('./app/view/help');
 
     new Notification.AssetLoadingNotification({model: app});
     new SidebarView.Sidebar({model: app});
-    new AssetView.AssetView({model: app});
+    new AssetView({model: app});
     new ToolbarView.Toolbar({model: app});
     new HelpOverlay({model: app});
 
