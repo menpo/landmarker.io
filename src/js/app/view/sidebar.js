@@ -350,7 +350,7 @@ var TemplatePanel = Backbone.View.extend({
                         this.model.templates().length <= 1 &&
                         this.model.server() instanceof Server
         );
-        this.$el.text(this.model.activeTemplate() || 'No Template Selected');
+        this.$el.text(this.model.activeTemplate() || '-');
     },
 
     click: function () {
