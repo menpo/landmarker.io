@@ -316,7 +316,12 @@ function Handler () {
             // Convert the point back into the mesh space
             this.worldToLocal(p, true);
 
-            if (this.model.isEditingOn() && currentTargetLm) {
+            if (
+                this.model.isEditingOn() &&
+                currentTargetLm &&
+                currentTargetLm.group() === this.model.landmarks() &&
+                !currentTargetLm.isEmpty()
+            ) {
                 this.model.landmarks().setLmAt(currentTargetLm, p);
             } else if (downEvent.button === 2) {
                 this.model.landmarks().insertNew(p);
@@ -387,7 +392,11 @@ function Handler () {
             return null;
         }
 
-        if (currentTargetLm && currentTargetLm.isEmpty()) {
+        if (
+            currentTargetLm &&
+            (currentTargetLm.isEmpty() ||
+            this.model.landmarks() !== currentTargetLm.group())
+        ) {
             currentTargetLm = undefined;
         }
 
