@@ -63896,7 +63896,7 @@ function KeyboardShortcutsHandler(app, viewport) {
                 break;
             case 122:
                 // z = undo
-                if (lms && lms.tracker.canUndo()()) {
+                if (lms && lms.tracker.canUndo()) {
                     lms.undo();
                 }
                 break;
@@ -67188,4 +67188,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-072a2b7b.js.map
+//# sourceMappingURL=bundle-9ac1b26d.js.map
