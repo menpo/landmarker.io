@@ -60781,6 +60781,14 @@ function maskedArray(array, mask) {
 },{}],57:[function(require,module,exports){
 'use strict';
 
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _viewModal = require('../view/modal');
+
+var _viewModal2 = _interopRequireDefault(_viewModal);
+
 var _ = require('underscore'),
     Promise = require('promise-polyfill');
 
@@ -60788,8 +60796,7 @@ var Backbone = require('backbone');
 
 var LandmarkGroup = require('./landmark_group'),
     Tracker = require('../lib/tracker'),
-    AssetSource = require('./assetsource'),
-    Modal = require('../view/modal');
+    AssetSource = require('./assetsource');
 
 var App = Backbone.Model.extend({
 
@@ -60829,7 +60836,7 @@ var App = Backbone.Model.extend({
 
     toggleEditing: function toggleEditing() {
         this.set('editingOn', !this.isEditingOn());
-        if (!this.isEditingOn()) {
+        if (!this.isEditingOn() && this.landmarks()) {
             this.landmarks().deselectAll();
             this.landmarks().resetNextAvailable();
         }
@@ -61104,7 +61111,7 @@ var App = Backbone.Model.extend({
 
             if (lms && !lms.tracker.isUpToDate()) {
                 if (!this.isAutoSaveOn()) {
-                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
+                    _viewModal2['default'].confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
                 } else {
                     lms.save().then(_go);
                 }
@@ -61125,7 +61132,7 @@ var App = Backbone.Model.extend({
 
             if (lms && !lms.tracker.isUpToDate()) {
                 if (!this.isAutoSaveOn()) {
-                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
+                    _viewModal2['default'].confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
                 } else {
                     lms.save().then(_go);
                 }
@@ -61577,7 +61584,8 @@ var AssetSource = Backbone.Model.extend({
     },
 
     mesh: function mesh() {
-        return this.get('asset').mesh();
+        var asset = this.asset();
+        return asset ? asset.mesh() : undefined;
     },
 
     assetIsLoading: function assetIsLoading() {
@@ -62886,6 +62894,18 @@ Object.defineProperty(exports, '__esModule', {
     value: true
 });
 
+function _interopRequireWildcard(obj) {
+    if (obj && obj.__esModule) {
+        return obj;
+    } else {
+        var newObj = {};if (obj != null) {
+            for (var key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key];
+            }
+        }newObj['default'] = obj;return newObj;
+    }
+}
+
 function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : { 'default': obj };
 }
@@ -62901,6 +62921,10 @@ var _backbone2 = _interopRequireDefault(_backbone);
 var _jquery = require('jquery');
 
 var _jquery2 = _interopRequireDefault(_jquery);
+
+var _notification = require('./notification');
+
+var Notification = _interopRequireWildcard(_notification);
 
 var _libUtils = require('../lib/utils');
 
@@ -62918,7 +62942,6 @@ var _list_picker = require('./list_picker');
 
 var _list_picker2 = _interopRequireDefault(_list_picker);
 
-var Notification = require('./notification');
 var AssetPagerView = _backbone2['default'].View.extend({
 
     el: '#assetPager',
@@ -63220,16 +63243,27 @@ var _slicedToArray = (function () {
     };
 })();
 
-var $ = require('jquery'),
-    _ = require('underscore'),
-    Promise = require('promise-polyfill');
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
 
-var _require = require('../lib/utils');
+var _underscore = require('underscore');
 
-var basename = _require.basename;
-var extname = _require.extname;
+var _underscore2 = _interopRequireDefault(_underscore);
 
-var Modal = require('./modal');
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _promisePolyfill = require('promise-polyfill');
+
+var _promisePolyfill2 = _interopRequireDefault(_promisePolyfill);
+
+var _libUtils = require('../lib/utils');
+
+var _modal = require('./modal');
+
+var _modal2 = _interopRequireDefault(_modal);
 
 var _icons = {
     'folder': 'file-directory',
@@ -63258,19 +63292,19 @@ var _icons = {
 function Icon(item) {
     var ext = undefined;
     if (typeof item === 'string') {
-        ext = extname(item);
+        ext = (0, _libUtils.extname)(item);
     } else {
-        ext = item.is_dir ? 'folder' : extname(item.path);
+        ext = item.is_dir ? 'folder' : (0, _libUtils.extname)(item.path);
     }
 
     var icon = _icons[ext] || 'file-binary';
-    return $('<span class=\'octicon octicon-' + icon + '\'></span>');
+    return (0, _jquery2['default'])('<span class=\'octicon octicon-' + icon + '\'></span>');
 }
 
 function DropboxRadio(opts, index) {
 
     var id = 'dropboxRadios_' + index;
-    var $radio = $('<div class=\'DropboxRadio\' id=\'' + id + '\'></div>');
+    var $radio = (0, _jquery2['default'])('<div class=\'DropboxRadio\' id=\'' + id + '\'></div>');
 
     opts.forEach(function (_ref, j) {
         var _ref2 = _slicedToArray(_ref, 2);
@@ -63278,13 +63312,13 @@ function DropboxRadio(opts, index) {
         var text = _ref2[0];
         var key = _ref2[1];
 
-        $radio.append($('            <label class=\'radio\'>                <input id=\'' + id + '_' + j + '\' value=\'' + key + '\' type="radio" name="' + id + '" ' + (j === 0 ? 'checked' : '') + '/>                <span>' + text + '</span>            </label>        '));
+        $radio.append((0, _jquery2['default'])('            <label class=\'radio\'>                <input id=\'' + id + '_' + j + '\' value=\'' + key + '\' type="radio" name="' + id + '" ' + (j === 0 ? 'checked' : '') + '/>                <span>' + text + '</span>            </label>        '));
     });
 
     return $radio;
 }
 
-var DropboxPicker = Modal.extend({
+var DropboxPicker = _modal2['default'].extend({
 
     events: {
         'click .DropboxSelectListItem': 'handleClick',
@@ -63337,7 +63371,7 @@ var DropboxPicker = Modal.extend({
             this.state.root = root;
         }
 
-        _.bindAll(this, 'fetch', 'makeList', 'update', 'select', 'dive', 'handleSubmit', 'reload', 'handleClick');
+        _underscore2['default'].bindAll(this, 'fetch', 'makeList', 'update', 'select', 'dive', 'handleSubmit', 'reload', 'handleClick');
     },
 
     handleSubmit: function handleSubmit() {
@@ -63352,7 +63386,7 @@ var DropboxPicker = Modal.extend({
                 var name = _ref4.name;
 
                 var id = 'dropboxRadios_' + index;
-                var value = $('input[name=\'' + id + '\']:checked', '#' + id).val();
+                var value = (0, _jquery2['default'])('input[name=\'' + id + '\']:checked', '#' + id).val();
                 options[name] = value;
             });
         }
@@ -63370,7 +63404,7 @@ var DropboxPicker = Modal.extend({
 
         var q = undefined;
         if (this._cache[this.state.root]) {
-            q = Promise.resolve(this._cache[this.state.root]);
+            q = _promisePolyfill2['default'].resolve(this._cache[this.state.root]);
         } else {
             q = this.dropbox.list(this.state.root, {
                 showHidden: this.showHidden,
@@ -63398,22 +63432,22 @@ var DropboxPicker = Modal.extend({
         var _this2 = this;
 
         if (this.state.loading) {
-            return $('<div class=\'DropboxSelectList Empty\'></div>');
+            return (0, _jquery2['default'])('<div class=\'DropboxSelectList Empty\'></div>');
         }
 
         if (this.state.currentList.length === 0) {
-            return $('<div class=\'DropboxSelectList Empty\'></div>');
+            return (0, _jquery2['default'])('<div class=\'DropboxSelectList Empty\'></div>');
         }
 
-        var $wrapper = $('<div class=\'DropboxSelectList\'></div>'),
-            $list = $('<ul></ul>');
+        var $wrapper = (0, _jquery2['default'])('<div class=\'DropboxSelectList\'></div>'),
+            $list = (0, _jquery2['default'])('<ul></ul>');
 
         this.state.currentList.forEach(function (item) {
             var path = item.path;
 
-            var $item = $('<li id=\'' + _this2.pathId(path) + '\' class=\'DropboxSelectListItem\' data-folder=\'' + item.is_dir + '\' data-path=\'' + path + '\'>                    ' + basename(path) + '                </li>');
+            var $item = (0, _jquery2['default'])('<li id=\'' + _this2.pathId(path) + '\' class=\'DropboxSelectListItem\' data-folder=\'' + item.is_dir + '\' data-path=\'' + path + '\'>                    ' + (0, _libUtils.basename)(path) + '                </li>');
 
-            var clickable = item.is_dir || !_this2.selectFoldersOnly && (!_this2.extensions.length || _this2.extensions.indexOf(extname(path)) > -1);
+            var clickable = item.is_dir || !_this2.selectFoldersOnly && (!_this2.extensions.length || _this2.extensions.indexOf((0, _libUtils.extname)(path)) > -1);
 
             if (!clickable) {
                 $item.addClass('Disabled');
@@ -63463,7 +63497,7 @@ var DropboxPicker = Modal.extend({
     handleClick: function handleClick(evt) {
         var _this3 = this;
 
-        if ($(evt.currentTarget).hasClass('Disabled')) {
+        if ((0, _jquery2['default'])(evt.currentTarget).hasClass('Disabled')) {
             return null;
         }
 
@@ -63509,11 +63543,11 @@ var DropboxPicker = Modal.extend({
     content: function content() {
         var _this4 = this;
 
-        var $content = $('            <div class=\'DropboxSelect\'>                <div class=\'DropboxSelectExplore\'>                    <div class=\'Action Back Unavailable\'>                        <span class="octicon octicon-arrow-left"></span>                    </div>                    <div class=\'Action Home\'>                        <span class="octicon octicon-home"></span>                    </div>                    <div class=\'Path\'></div>                    <div class=\'Action Reload\'>                        <span class="octicon octicon-sync"></span>                    </div>                </div>                <div class=\'DropboxSelectList\'><ul></ul></div>                <div class=\'DropboxSelectSubmit\'>                    <span>Nothing selected</span>                    <div class=\'Submit\'>Submit</div>                </div>            </div>        ');
+        var $content = (0, _jquery2['default'])('            <div class=\'DropboxSelect\'>                <div class=\'DropboxSelectExplore\'>                    <div class=\'Action Back Unavailable\'>                        <span class="octicon octicon-arrow-left"></span>                    </div>                    <div class=\'Action Home\'>                        <span class="octicon octicon-home"></span>                    </div>                    <div class=\'Path\'></div>                    <div class=\'Action Reload\'>                        <span class="octicon octicon-sync"></span>                    </div>                </div>                <div class=\'DropboxSelectList\'><ul></ul></div>                <div class=\'DropboxSelectSubmit\'>                    <span>Nothing selected</span>                    <div class=\'Submit\'>Submit</div>                </div>            </div>        ');
 
         if (this.radios && this.radios.length > 0) {
             (function () {
-                var $radios = $('<div class=\'DropboxRadios\'></div>');
+                var $radios = (0, _jquery2['default'])('<div class=\'DropboxRadios\'></div>');
                 _this4.radios.forEach(function (_ref5, index) {
                     var name = _ref5.name;
                     var options = _ref5.options;
@@ -63725,7 +63759,7 @@ var Intro = _modal2['default'].extend({
         this._cfg.set({
             'OAUTH_STATE': state,
             'BACKEND_TYPE': _backend2['default'].Dropbox.Type
-        }, true);
+        });
         window.location.replace(dropUrl);
     },
 
@@ -63734,10 +63768,13 @@ var Intro = _modal2['default'].extend({
     },
 
     startServer: function startServer() {
-        var u = window.prompt('Please provide the url for the landmarker server');
-        if (u) {
-            this._restart(u);
-        }
+        var _this = this;
+
+        _modal2['default'].prompt('Where is your server located ?', function (value) {
+            _this._restart(value);
+        }, function () {
+            _this.open();
+        });
     }
 });
 
@@ -63952,12 +63989,23 @@ var _slicedToArray = (function () {
     };
 })();
 
-var $ = require('jquery'),
-    _ = require('underscore');
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
 
-var Modal = require('./modal');
+var _underscore = require('underscore');
 
-var ListPicker = Modal.extend({
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _modal = require('./modal');
+
+var _modal2 = _interopRequireDefault(_modal);
+
+var ListPicker = _modal2['default'].extend({
 
     events: {
         'click li': 'click',
@@ -63979,10 +64027,10 @@ var ListPicker = Modal.extend({
         this._list = this.list;
         this.submit = submit;
         this.useFilter = !!useFilter;
-        _.bindAll(this, 'filter');
+        _underscore2['default'].bindAll(this, 'filter');
     },
 
-    filter: _.throttle(function (evt) {
+    filter: _underscore2['default'].throttle(function (evt) {
         var value = evt.currentTarget.value.toLowerCase();
         if (!value || value === '') {
             this._list = this.list;
@@ -64000,7 +64048,7 @@ var ListPicker = Modal.extend({
     }, 50),
 
     makeList: function makeList() {
-        var $ul = $('<ul></ul>');
+        var $ul = (0, _jquery2['default'])('<ul></ul>');
         this._list.forEach(function (_ref4) {
             var _ref42 = _slicedToArray(_ref4, 3);
 
@@ -64008,7 +64056,7 @@ var ListPicker = Modal.extend({
             var key = _ref42[1];
             var index = _ref42[2];
 
-            $ul.append($('<li data-value=\'' + content + '\' data-key=\'' + key + '\' data-index=\'' + index + '\'>' + content + '</li>'));
+            $ul.append((0, _jquery2['default'])('<li data-value=\'' + content + '\' data-key=\'' + key + '\' data-index=\'' + index + '\'>' + content + '</li>'));
         });
         return $ul;
     },
@@ -64019,7 +64067,7 @@ var ListPicker = Modal.extend({
     },
 
     content: function content() {
-        var $content = $('<div class=\'ListPicker\'></div>');
+        var $content = (0, _jquery2['default'])('<div class=\'ListPicker\'></div>');
 
         if (this.useFilter) {
             $content.append('<input type="text" placeholder=\'Search\'/>');
@@ -64042,12 +64090,28 @@ module.exports = ListPicker;
 },{"./modal":72,"jquery":9,"underscore":44}],72:[function(require,module,exports){
 'use strict';
 
-var Backbone = require('backbone'),
-    _ = require('underscore'),
-    $ = require('jquery');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
-var _modals = {},
-    _activeModal;
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _modals = {};
+var _activeModal = undefined;
 
 /**
  * Generate a pseudo-random key
@@ -64068,7 +64132,7 @@ function _key() {
  * in subclasses.
  *
  */
-var Modal = Backbone.View.extend({
+var Modal = _backbone2['default'].View.extend({
     tagName: 'div',
     container: '#modalsWrapper',
     className: 'ModalWindow',
@@ -64090,7 +64154,7 @@ var Modal = Backbone.View.extend({
 
         this.init(opts);
 
-        _.bindAll(this, 'render', 'dispose', 'close', 'open', '_close', 'isActive', 'content', 'init', 'afterRender');
+        _underscore2['default'].bindAll(this, 'render', 'dispose', 'close', 'open', '_close', 'isActive', 'content', 'init', 'afterRender');
 
         this.render();
         this.afterRender();
@@ -64109,12 +64173,12 @@ var Modal = Backbone.View.extend({
         this.$el.attr('id', this.id);
 
         if (this.closable) {
-            this.$el.append($('<div class=\'ModalWindow__Close\'>&times;</div>'));
+            this.$el.append((0, _jquery2['default'])('<div class=\'ModalWindow__Close\'>&times;</div>'));
             this.$el.find('.ModalWindow__Close').on('click', this.close);
         }
 
         if (this.title) {
-            this.$el.append($('<div class=' + this.className + '__Title>' + this.title + '</div>'));
+            this.$el.append((0, _jquery2['default'])('<div class=' + this.className + '__Title>' + this.title + '</div>'));
         }
 
         var $content = this.content();
@@ -64131,9 +64195,13 @@ var Modal = Backbone.View.extend({
         if (_activeModal) {
             _modals[_activeModal].close();
         }
-        $(this.container).addClass('ModalsWrapper--Open');
+        (0, _jquery2['default'])(this.container).addClass('ModalsWrapper--Open');
         this.$el.addClass(this.className + '--Open');
         _activeModal = this.key;
+
+        if (this._onOpen) {
+            this._onOpen();
+        }
     },
 
     _close: function _close() {
@@ -64141,7 +64209,11 @@ var Modal = Backbone.View.extend({
             this.isOpen = false;
             _activeModal = undefined;
             this.$el.removeClass(this.className + '--Open');
-            $(this.container).removeClass('ModalsWrapper--Open');
+            (0, _jquery2['default'])(this.container).removeClass('ModalsWrapper--Open');
+
+            if (this._onClose) {
+                this._onClose();
+            }
         }
     },
 
@@ -64174,6 +64246,7 @@ var Modal = Backbone.View.extend({
     afterRender: function afterRender() {}
 });
 
+exports.Modal = Modal;
 Modal.active = function () {
     return _modals[_activeModal];
 };
@@ -64197,7 +64270,7 @@ var ConfirmDialog = Modal.extend({
     },
 
     content: function content() {
-        return $('            <div class=\'ConfirmDialog\'>                <p>' + this.text + '</p>                <div class=\'ConfirmActions\'>                    <div class=\'ConfirmAction--Yes\'>Yes</div>                    <div class=\'ConfirmAction--No\'>No</div>                </div>            </div>');
+        return (0, _jquery2['default'])('            <div class=\'ConfirmDialog\'>                <p>' + this.text + '</p>                <div class=\'ConfirmActions\'>                    <div class=\'ConfirmAction--Yes\'>Yes</div>                    <div class=\'ConfirmAction--No\'>No</div>                </div>            </div>');
     },
 
     accept: function accept() {
@@ -64212,18 +64285,68 @@ var ConfirmDialog = Modal.extend({
 
 });
 
+var Prompt = Modal.extend({
+    modifiers: ['Small'],
+
+    events: {
+        'submit form': 'submit'
+    },
+
+    init: function init(_ref2) {
+        var msg = _ref2.msg;
+        var submit = _ref2.submit;
+        var cancel = _ref2.cancel;
+
+        this._submit = submit;
+        this.msg = msg;
+        this._onClose = cancel || function () {};
+    },
+
+    content: function content() {
+        return (0, _jquery2['default'])('<form class=\'Prompt\'>\n                    <p>' + this.msg + '</p>\n                    <input type=\'text\'/>\n                  </form>');
+    },
+
+    _onOpen: function _onOpen() {
+        this.$el.find('input').focus();
+    },
+
+    submit: function submit(evt) {
+        evt.preventDefault();
+        var value = this.$el.find('input').val();
+        if (value) {
+            value = value.toLowerCase();
+        }
+        this._submit(value);
+        this._onClose = undefined;
+        this.close();
+    }
+});
+
 Modal.confirm = function (text, accept, reject) {
-    var dialog = new ConfirmDialog({
+    var closable = arguments.length <= 3 || arguments[3] === undefined ? true : arguments[3];
+
+    new ConfirmDialog({
         text: text,
         accept: accept,
         reject: reject,
         disposeOnClose: true,
-        closable: true
-    });
-    dialog.open();
+        closable: closable
+    }).open();
 };
 
-module.exports = Modal;
+Modal.prompt = function (msg, submit, cancel) {
+    var closable = arguments.length <= 3 || arguments[3] === undefined ? true : arguments[3];
+
+    new Prompt({
+        msg: msg,
+        submit: submit,
+        cancel: cancel,
+        disposeOnClose: true,
+        closable: closable
+    }).open();
+};
+
+exports['default'] = Modal;
 /* opts */
 
 },{"backbone":2,"jquery":9,"underscore":44}],73:[function(require,module,exports){
@@ -66403,20 +66526,6 @@ var _require = require('./elements');
 var LandmarkConnectionTHREEView = _require.LandmarkConnectionTHREEView;
 var LandmarkTHREEView = _require.LandmarkTHREEView;
 
-// uncomment to monitor FPS performance
-//
-//var Stats = require('stats-js');
-//
-//var stats = new Stats();
-//stats.setMode(0); // 0: fps, 1: ms
-//
-//// Align top-left
-//stats.domElement.style.position = 'absolute';
-//stats.domElement.style.right = '0px';
-//stats.domElement.style.top = '0px';
-//
-//document.body.appendChild(stats.domElement);
-
 // clear colour for both the main view and PictureInPicture
 var CLEAR_COLOUR = 0xEEEEEE;
 var CLEAR_COLOUR_PIP = 0xCCCCCC;
@@ -67079,4 +67188,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-c9dbb9b3.js.map
+//# sourceMappingURL=bundle-072a2b7b.js.map
