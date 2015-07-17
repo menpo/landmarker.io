@@ -34,7 +34,8 @@ var AssetSource = Backbone.Model.extend({
     },
 
     mesh: function () {
-        return this.get('asset').mesh();
+        const asset = this.asset();
+        return asset ? asset.mesh() : undefined;
     },
 
     assetIsLoading: function () {
