@@ -256,7 +256,7 @@ function initLandmarker(server, mode, u) {
 
     new Notification.AssetLoadingNotification({ model: app });
     new SidebarView.Sidebar({ model: app });
-    new _appViewAsset2['default']({ model: app });
+    new _appViewAsset2['default']({ model: app, restart: _appViewIntro2['default'].open });
     new ToolbarView.Toolbar({ model: app });
     new HelpOverlay({ model: app });
 
@@ -62934,10 +62934,6 @@ var _modal = require('./modal');
 
 var _modal2 = _interopRequireDefault(_modal);
 
-var _intro = require('./intro');
-
-var _intro2 = _interopRequireDefault(_intro);
-
 var _list_picker = require('./list_picker');
 
 var _list_picker2 = _interopRequireDefault(_list_picker);
@@ -62981,9 +62977,12 @@ var BackendNameView = _backbone2['default'].View.extend({
         click: 'handleClick'
     },
 
-    initialize: function initialize() {
+    initialize: function initialize(_ref) {
+        var restart = _ref.restart;
+
         _underscore2['default'].bindAll(this, 'render');
         this.render();
+        this.restart = restart;
         this.listenTo(this.model, 'change:server', this.render);
     },
 
@@ -63007,7 +63006,7 @@ var BackendNameView = _backbone2['default'].View.extend({
 
     handleClick: function handleClick() {
         if (this.model.has('server')) {
-            _modal2['default'].confirm('Log out of the current data source and restart the landmarker ?', _intro2['default'].open);
+            _modal2['default'].confirm('Log out of the current data source and restart the landmarker ?', this.restart);
         }
     }
 });
@@ -63205,8 +63204,10 @@ var CollectionName = _backbone2['default'].View.extend({
 
 exports.CollectionName = CollectionName;
 exports['default'] = _backbone2['default'].View.extend({
-    initialize: function initialize() {
-        new BackendNameView({ model: this.model });
+    initialize: function initialize(_ref2) {
+        var restart = _ref2.restart;
+
+        new BackendNameView({ model: this.model, restart: restart });
         new CollectionName({ model: this.model });
         new AssetPagerView({ model: this.model });
         new AssetNameView({ model: this.model });
@@ -63214,7 +63215,7 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../backend":48,"../lib/utils":56,"./intro":69,"./list_picker":71,"./modal":72,"./notification":73,"backbone":2,"jquery":9,"underscore":44}],67:[function(require,module,exports){
+},{"../backend":48,"../lib/utils":56,"./list_picker":71,"./modal":72,"./notification":73,"backbone":2,"jquery":9,"underscore":44}],67:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -67188,4 +67189,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-9ac1b26d.js.map
+//# sourceMappingURL=bundle-d5ae9315.js.map
