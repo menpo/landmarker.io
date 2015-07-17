@@ -1,12 +1,11 @@
 'use strict';
 
-const $ = require('jquery'),
-      _ = require('underscore'),
-      Promise = require('promise-polyfill');
+import _ from 'underscore';
+import $ from 'jquery';
+import Promise from 'promise-polyfill';
 
-var { basename, extname } = require('../lib/utils');
-
-var Modal = require('./modal');
+import { basename, extname } from '../lib/utils';
+import Modal from './modal';
 
 const _icons = {
     'folder': 'file-directory',

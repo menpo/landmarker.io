@@ -1,10 +1,11 @@
 'use strict';
 
-var Backbone = require('backbone'),
-    _ = require('underscore'),
-    $ = require('jquery');
+import Backbone from 'backbone';
+import _ from 'underscore';
+import $ from 'jquery';
 
-var _modals = {}, _activeModal;
+const _modals = {};
+let _activeModal;
 
 /**
  * Generate a pseudo-random key
@@ -25,7 +26,7 @@ function _key () {
  * in subclasses.
  *
  */
-var Modal = Backbone.View.extend({
+export const Modal = Backbone.View.extend({
     tagName: 'div',
     container: '#modalsWrapper',
     className: 'ModalWindow',
@@ -95,6 +96,10 @@ var Modal = Backbone.View.extend({
         $(this.container).addClass('ModalsWrapper--Open');
         this.$el.addClass(`${this.className}--Open`);
         _activeModal = this.key;
+
+        if (this._onOpen) {
+            this._onOpen();
+        }
     },
 
     _close: function () {
@@ -103,6 +108,10 @@ var Modal = Backbone.View.extend({
             _activeModal = undefined;
             this.$el.removeClass(`${this.className}--Open`);
             $(this.container).removeClass('ModalsWrapper--Open');
+
+            if (this._onClose) {
+                this._onClose();
+            }
         }
     },
 
@@ -140,7 +149,7 @@ Modal.active = function () {
     return _modals[_activeModal];
 };
 
-var ConfirmDialog = Modal.extend({
+const ConfirmDialog = Modal.extend({
     modifiers: ['Small'],
 
     events: {
@@ -177,15 +186,60 @@ var ConfirmDialog = Modal.extend({
 
 });
 
-Modal.confirm = function (text, accept, reject) {
-    const dialog = new ConfirmDialog({
+const Prompt = Modal.extend({
+    modifiers: ['Small'],
+
+    events: {
+        'submit form': 'submit'
+    },
+
+    init: function ({msg, submit, cancel}) {
+        this._submit = submit;
+        this.msg = msg;
+        this._onClose = cancel || function () {};
+    },
+
+    content: function () {
+        return $(`<form class='Prompt'>
+                    <p>${this.msg}</p>
+                    <input type='text'/>
+                  </form>`);
+    },
+
+    _onOpen: function () {
+        this.$el.find('input').focus();
+    },
+
+    submit: function (evt) {
+        evt.preventDefault();
+        let value = this.$el.find('input').val();
+        if (value) {
+            value = value.toLowerCase();
+        }
+        this._submit(value);
+        this._onClose = undefined;
+        this.close();
+    }
+});
+
+Modal.confirm = function (text, accept, reject, closable=true) {
+    (new ConfirmDialog({
         text,
         accept,
         reject,
         disposeOnClose: true,
-        closable: true
-    });
-    dialog.open();
+        closable
+    })).open();
 };
 
-module.exports = Modal;
+Modal.prompt = function (msg, submit, cancel, closable=true) {
+    (new Prompt({
+        msg,
+        submit,
+        cancel,
+        disposeOnClose: true,
+        closable
+    })).open();
+};
+
+export default Modal;

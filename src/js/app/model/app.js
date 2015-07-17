@@ -7,8 +7,9 @@ var Backbone = require('backbone');
 
 var LandmarkGroup = require('./landmark_group'),
     Tracker = require('../lib/tracker'),
-    AssetSource = require('./assetsource'),
-    Modal = require('../view/modal');
+    AssetSource = require('./assetsource');
+
+import Modal from '../view/modal';
 
 var App = Backbone.Model.extend({
 
