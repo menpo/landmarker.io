@@ -49,7 +49,7 @@ var App = Backbone.Model.extend({
 
     toggleEditing: function () {
         this.set('editingOn', !this.isEditingOn());
-        if (!this.isEditingOn()) {
+        if (!this.isEditingOn() && this.landmarks()) {
             this.landmarks().deselectAll();
             this.landmarks().resetNextAvailable();
         }
