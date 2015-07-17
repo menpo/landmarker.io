@@ -69,7 +69,7 @@ export default function KeyboardShortcutsHandler (app, viewport) {
                 app.toggleEditing();
                 break;
             case 122: // z = undo
-                if (lms && lms.tracker.canUndo()()) {
+                if (lms && lms.tracker.canUndo()) {
                     lms.undo();
                 }
                 break;
