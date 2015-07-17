@@ -14,20 +14,6 @@ var Camera = require('./camera');
 var { LandmarkConnectionTHREEView,
       LandmarkTHREEView } = require('./elements');
 
-// uncomment to monitor FPS performance
-//
-//var Stats = require('stats-js');
-//
-//var stats = new Stats();
-//stats.setMode(0); // 0: fps, 1: ms
-//
-//// Align top-left
-//stats.domElement.style.position = 'absolute';
-//stats.domElement.style.right = '0px';
-//stats.domElement.style.top = '0px';
-//
-//document.body.appendChild(stats.domElement);
-
 // clear colour for both the main view and PictureInPicture
 var CLEAR_COLOUR = 0xEEEEEE;
 var CLEAR_COLOUR_PIP = 0xCCCCCC;
