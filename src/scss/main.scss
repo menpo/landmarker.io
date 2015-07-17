@@ -30,6 +30,11 @@ body {
   }
 }
 
+p.Error {
+    color: $colorDarkRed;
+    font-weight: bold;
+}
+
 @import 'button';
 @import 'layout';
 

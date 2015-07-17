@@ -1,9 +1,9 @@
 'use strict';
 
-var $ = require('jquery'),
-    _ = require('underscore');
+import _ from 'underscore';
+import $ from 'jquery';
 
-var Modal = require('./modal');
+import Modal from './modal';
 
 var ListPicker = Modal.extend({
 

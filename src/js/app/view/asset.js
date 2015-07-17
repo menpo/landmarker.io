@@ -4,7 +4,7 @@ import _ from 'underscore';
 import Backbone from 'backbone';
 import $ from 'jquery';
 
-var Notification = require('./notification');
+import * as Notification from './notification';
 import { pad, randomString } from '../lib/utils';
 import { Dropbox, Server } from '../backend';
 

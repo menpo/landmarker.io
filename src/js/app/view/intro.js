@@ -88,7 +88,7 @@ const Intro = Modal.extend({
         this._cfg.set({
             'OAUTH_STATE': state,
             'BACKEND_TYPE': Backend.Dropbox.Type
-        }, true);
+        });
         window.location.replace(dropUrl);
     },
 
@@ -97,11 +97,11 @@ const Intro = Modal.extend({
     },
 
     startServer: function () {
-        const u = window.prompt(
-            'Please provide the url for the landmarker server');
-        if (u) {
-            this._restart(u);
-        }
+        Modal.prompt('Where is your server located ?', (value) => {
+            this._restart(value);
+        }, () => {
+            this.open();
+        });
     }
 });
 
