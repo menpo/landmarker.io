@@ -9,7 +9,6 @@ import { pad, randomString } from '../lib/utils';
 import { Dropbox, Server } from '../backend';
 
 import Modal from './modal';
-import Intro from './intro';
 import ListPicker from './list_picker';
 
 export const AssetPagerView = Backbone.View.extend({
@@ -52,9 +51,10 @@ export const BackendNameView = Backbone.View.extend({
         click: "handleClick"
     },
 
-    initialize: function () {
+    initialize: function ({restart}) {
         _.bindAll(this, 'render');
         this.render();
+        this.restart = restart;
         this.listenTo(this.model, "change:server", this.render);
     },
 
@@ -81,7 +81,7 @@ export const BackendNameView = Backbone.View.extend({
         if (this.model.has('server')) {
             Modal.confirm(
                 'Log out of the current data source and restart the landmarker ?',
-                Intro.open);
+                this.restart);
         }
     }
 });
@@ -281,8 +281,8 @@ export const CollectionName = Backbone.View.extend({
 });
 
 export default Backbone.View.extend({
-    initialize: function () {
-        new BackendNameView({model: this.model});
+    initialize: function ({restart}) {
+        new BackendNameView({model: this.model, restart});
         new CollectionName({model: this.model});
         new AssetPagerView({model: this.model});
         new AssetNameView({model: this.model});
