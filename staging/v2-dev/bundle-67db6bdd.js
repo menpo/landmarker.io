@@ -60230,36 +60230,10 @@ var _slicedToArray = (function () {
 
 var THREE = require('three');
 
-function isBinary(binData) {
-
-    var expect;
-    var faceSize;
-    var nFaces;
-    var reader;
-    reader = new DataView(binData);
-    faceSize = 32 / 8 * 3 + 32 / 8 * 3 * 3 + 16 / 8;
-    nFaces = reader.getUint32(80, true);
-    expect = 80 + 32 / 8 + nFaces * faceSize;
-
-    if (expect === reader.byteLength) {
-        return true;
-    }
-    // some binary files will have different size from expected,
-    // checking characters higher than ASCII to confirm is binary
-    var fileLength = reader.byteLength;
-    for (var index = 0; index < fileLength; index++) {
-        if (reader.getUint8(index, false) > 127) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 function parse(data) {
     console.time('STLLoader');
     var binData = ensureBinary(data);
-    var geo = isBinary(binData) ? parseBinary(binData) : parseASCII(ensureString(data));
+    var geo = isBinary(binData) ? parseBinary(binData) : parseASCII(binData);
     console.timeEnd('STLLoader');
     return geo;
 }
@@ -60359,134 +60333,40 @@ function parseBinary(data) {
     return geometry;
 }
 
-function parseASCII(data) {
+function isBinary(binData) {
 
-    var nx = undefined,
-        ny = undefined,
-        nz = undefined,
-        vx = undefined,
-        vy = undefined,
-        vz = undefined,
-        line = undefined,
-        result = undefined,
-        state = undefined;
+    var expect = undefined,
+        faceSize = undefined,
+        nFaces = undefined,
+        reader = undefined;
+    reader = new DataView(binData);
+    faceSize = 32 / 8 * 3 + 32 / 8 * 3 * 3 + 16 / 8;
+    nFaces = reader.getUint32(80, true);
+    expect = 80 + 32 / 8 + nFaces * faceSize;
 
-    var normals = [],
-        vertices = [];
-    var lines = Array.isArray(data) ? data : data.split('\n');
-
-    var PATTERN_SOLID = /^solid.*$/,
-        PATTERN_SOLID_END = /^endsolid.*$/,
-        PATTERN_FACET = /^facet\s*normal\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)$/,
-        PATTERN_FACET_END = /^endfacet$/,
-        PATTERN_LOOP = /^outer\s*loop$/,
-        PATTERN_LOOP_END = /^endloop$/,
-        PATTERN_VERTEX = /^vertex\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)$/;
-
-    for (var i = 0, len = lines.length; i < len; i++) {
-        line = lines[i].trim();
-
-        if (line === '') {
-            continue; // Ignore empty lines
-        }
-
-        if ((result = PATTERN_SOLID.exec(line)) !== null) {
-            if (state || i > 0) {
-                throw new Error('"solid" should be at the start of the file, ' + ('found at line ' + i));
-            } else {
-                state = 'SOLID';
-            }
-        } else if ((result = PATTERN_SOLID_END.exec(line)) !== null) {
-            // End of the solid definition, get out
-            if (state === 'SOLID') {
-                break;
-            } else {
-                throw new Error('Unexcpected "endsolid" at line ' + i);
-            }
-        } else if ((result = PATTERN_FACET.exec(line)) !== null) {
-            if (state === 'SOLID') {
-                state = 'FACET';
-
-                var _result$slice$map = result.slice(1, 4).map(parseFloat);
-
-                var _result$slice$map2 = _slicedToArray(_result$slice$map, 3);
-
-                nx = _result$slice$map2[0];
-                ny = _result$slice$map2[1];
-                nz = _result$slice$map2[2];
-            } else {
-                throw new Error('Unexcpected "facet" at line ' + i);
-            }
-        } else if ((result = PATTERN_FACET_END.exec(line)) !== null) {
-            if (state === 'FACET') {
-                state = 'SOLID';
-            } else {
-                throw new Error('Unexcpected "endfacet" at line ' + i);
-            }
-        } else if ((result = PATTERN_LOOP.exec(line)) !== null) {
-            if (state === 'FACET') {
-                state = 'LOOP';
-            } else {
-                throw new Error('Unexcpected "outerloop" at line ' + i);
-            }
-        } else if ((result = PATTERN_LOOP_END.exec(line)) !== null) {
-            if (state === 'LOOP') {
-                state = 'FACET';
-            } else {
-                throw new Error('Unexcpected "endloop" at line ' + i);
-            }
-        } else if ((result = PATTERN_VERTEX.exec(line)) !== null) {
-            if (state === 'LOOP') {
-                var _result$slice$map3 = result.slice(1, 4).map(parseFloat);
-
-                var _result$slice$map32 = _slicedToArray(_result$slice$map3, 3);
-
-                vx = _result$slice$map32[0];
-                vy = _result$slice$map32[1];
-                vz = _result$slice$map32[2];
-
-                vertices.push(vx, vy, vz);
-                normals.push(nx, ny, nz);
-            } else {
-                throw new Error('Unexcpected "vertex" at line ' + i);
-            }
-        } else {
-            throw new Error('Unrecognized line (' + i + '): "' + line + '"');
-        }
+    if (expect === reader.byteLength) {
+        return true;
     }
 
-    var geometry = new THREE.BufferGeometry();
+    // THREE.js does an additional check now as some files are poorly formed:
+    // https://github.com/mrdoob/three.js/pull/5840
+    //
+    // This is actually very expensive for large ASCII files. I'd rather leave
+    // this out for now (and risk not being able to open some malformed
+    // binary STLs) than suffer the performance cost (unfortunately large
+    // ASCII STLs seem worryingly common in the medical community).
 
-    geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
+    //// some binary files will have different size from expected,
+    //// checking characters higher than ASCII to confirm is binary
+    //var fileLength = reader.byteLength;
+    //for (var index = 0; index < fileLength; index++) {
+    //    if (reader.getUint8(index, false) > 127) {
+    //        return true;
+    //    }
+    //}
+    //
 
-    geometry.addAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals), 3));
-
-    geometry.computeBoundingBox();
-    geometry.computeBoundingSphere();
-
-    return geometry;
-}
-
-function ensureString(buf) {
-
-    if (typeof buf !== 'string') {
-        var arrayBuffer = new Uint8Array(buf);
-        var lines = [],
-            str = '',
-            char;
-        for (var i = 0; i < buf.byteLength; i++) {
-            char = String.fromCharCode(arrayBuffer[i]);
-            if (char === '\n') {
-                lines.push(str);
-                str = '';
-            } else {
-                str += char;
-            }
-        }
-        return lines;
-    } else {
-        return buf;
-    }
+    return false;
 }
 
 function ensureBinary(buf) {
@@ -60500,6 +60380,98 @@ function ensureBinary(buf) {
     } else {
         return buf;
     }
+}
+
+function countVertices(a) {
+    var nVertices = 0,
+        i = 0;
+    while (i < a.length) {
+        if (isStringInUnit8ArrayAtPosition(a, i, VERTEX_STRING)) {
+            nVertices += 1;
+            i += VERTEX_STRING.length;
+        } else {
+            i += 1;
+        }
+    }
+    return nVertices;
+}
+
+var VERTEX_STRING = 'vertex';
+var PATTERN_VERTEX = /^vertex\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)$/;
+
+function isStringInUnit8ArrayAtPosition(a, i, str) {
+    for (var j = 0; j < str.length; j++) {
+        if (i + j >= a.length || String.fromCharCode(a[i + j]) !== str[j]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, sentinal) {
+    var str = '',
+        c = undefined;
+    while (i < a.length) {
+        c = String.fromCharCode(a[i]);
+        if (c === sentinal) {
+            return str;
+        }
+        str += c;
+        i += 1;
+    }
+    return str;
+}
+
+function parseASCII(arrayBuffer) {
+    var a = new Uint8Array(arrayBuffer);
+    var i = 0;
+    var vertexNo = 0;
+    var line = undefined,
+        vx = undefined,
+        vy = undefined,
+        vz = undefined,
+        result = undefined;
+    var len = a.length;
+    // find the number of vertices in the file and allocate the buffer
+    var nVertices = countVertices(a);
+    var vertices = new Float32Array(nVertices * 3);
+    while (i < len) {
+        if (isStringInUnit8ArrayAtPosition(a, i, VERTEX_STRING)) {
+            line = extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, '\n');
+            if ((result = PATTERN_VERTEX.exec(line)) !== null) {
+                var _result$slice$map = result.slice(1, 4).map(parseFloat);
+
+                var _result$slice$map2 = _slicedToArray(_result$slice$map, 3);
+
+                vx = _result$slice$map2[0];
+                vy = _result$slice$map2[1];
+                vz = _result$slice$map2[2];
+
+                vertices[3 * vertexNo] = vx;
+                vertices[3 * vertexNo + 1] = vy;
+                vertices[3 * vertexNo + 2] = vz;
+                vertexNo += 1;
+            } else {
+                throw new Error('Unexpected "vertex" at vertex count ' + vertexNo);
+            }
+            // budge along to the next line
+            i += line.length;
+        } else {
+            // not 'vertex...' - just go to the next character
+            i += 1;
+        }
+    }
+
+    var geometry = new THREE.BufferGeometry();
+
+    geometry.addAttribute('position', new THREE.BufferAttribute(vertices, 3));
+
+    geometry.computeFaceNormals();
+    geometry.computeVertexNormals();
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+
+    return geometry;
 }
 
 module.exports = parse;
@@ -67189,4 +67161,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-d5ae9315.js.map
+//# sourceMappingURL=bundle-67db6bdd.js.map
