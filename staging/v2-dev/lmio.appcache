@@ -4,7 +4,7 @@ CACHE MANIFEST
 CACHE:
 http://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic
 https://cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css
-bundle-6591211b.js
+bundle-045df38c.js
 index.html
 bundle-b8d0c3d2.css
 img/dropbox-blue.svg
@@ -15,4 +15,4 @@ img/placeholder.jpg
 NETWORK:
 *
 
-# hash: 88180fac86df4f05f8e4f159e8196d284ed0ab08ca4462ba86604a2f2f616661
+# hash: a85bc14bbfb0f5823b1f024b5271786f32df203ccab150ed29dbb9840604c895

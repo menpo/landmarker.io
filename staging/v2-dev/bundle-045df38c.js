@@ -60412,15 +60412,17 @@ function isStringInUnit8ArrayAtPosition(a, i, str) {
 function extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, sentinal) {
     var str = '',
         c = undefined;
-    while (i < a.length) {
-        c = String.fromCharCode(a[i]);
-        if (c === sentinal) {
+    var len = a.length;
+    while (i < len) {
+        if (c = String.fromCharCode(a[i]) === sentinal) {
             return str;
         }
         str += c;
         i += 1;
     }
-    return str;
+    // we ran out of the array, and the last character wasn't the sentinal.
+    // Return an empty string.
+    return '';
 }
 
 function parseASCII(arrayBuffer) {
@@ -67177,4 +67179,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-6591211b.js.map
+//# sourceMappingURL=bundle-045df38c.js.map
