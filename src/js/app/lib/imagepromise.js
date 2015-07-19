@@ -48,8 +48,11 @@ export function ImagePromise (url, auth=false) {
 }
 
 export function TexturePromise (url, auth) {
-    var texture = new THREE.Texture(undefined, new THREE.UVMapping());
+    var texture = new THREE.Texture(undefined);
     texture.sourceFile = url;
+    // in general our textures will not be powers of two size, so we need
+    // to set our resampling appropriately.
+    texture.minFilter = THREE.LinearFilter;
 
     return ImagePromise(url, auth).then(function(image) {
             texture.image = image;
