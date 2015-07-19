@@ -188,15 +188,17 @@ function isStringInUnit8ArrayAtPosition(a, i, str) {
 
 function extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, sentinal) {
     let str = "", c;
-    while (i < a.length) {
-        c = String.fromCharCode(a[i]);
-        if (c === sentinal) {
+    let len = a.length;
+    while (i < len) {
+        if (c = String.fromCharCode(a[i]) === sentinal) {
             return str;
         }
         str += c;
         i += 1;
     }
-    return str;
+    // we ran out of the array, and the last character wasn't the sentinal.
+    // Return an empty string.
+    return "";
 }
 
 function parseASCII(arrayBuffer) {
