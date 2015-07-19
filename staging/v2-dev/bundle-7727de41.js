@@ -60820,7 +60820,7 @@ function extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, sentinal) {
         c = undefined;
     var len = a.length;
     while (i < len) {
-        if (c = String.fromCharCode(a[i]) === sentinal) {
+        if ((c = String.fromCharCode(a[i])) === sentinal) {
             return str;
         }
         str += c;
@@ -67589,4 +67589,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-7a917579.js.map
+//# sourceMappingURL=bundle-7727de41.js.map
