@@ -8,11 +8,11 @@
 
 'use strict';
 
-let THREE = require('three');
+const THREE = require('three');
 
 function parse(data) {
     console.time('STLLoader');
-    let binData = ensureBinary(data);
+    const binData = ensureBinary(data);
     const geo = isBinary(binData) ? parseBinary(binData) : parseASCII(binData);
     console.timeEnd('STLLoader');
     return geo;
@@ -180,7 +180,7 @@ const PATTERN_VERTEX = /^vertex\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+
 function isStringInUnit8ArrayAtPosition(a, i, str) {
     for (var j = 0; j < str.length; j++) {
         if (i + j >= a.length || String.fromCharCode(a[i + j]) !== str[j]) {
-            return false
+            return false;
         }
     }
     return true;
@@ -188,9 +188,9 @@ function isStringInUnit8ArrayAtPosition(a, i, str) {
 
 function extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, sentinal) {
     let str = "", c;
-    let len = a.length;
+    const len = a.length;
     while (i < len) {
-        if (c = String.fromCharCode(a[i]) === sentinal) {
+        if ((c = String.fromCharCode(a[i])) === sentinal) {
             return str;
         }
         str += c;
@@ -202,14 +202,14 @@ function extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, sentinal) {
 }
 
 function parseASCII(arrayBuffer) {
-    let a = new Uint8Array(arrayBuffer);
+    const a = new Uint8Array(arrayBuffer);
     let i = 0;
     let vertexNo = 0;
     let line, vx, vy, vz, result;
-    let len = a.length;
+    const len = a.length;
     // find the number of vertices in the file and allocate the buffer
-    let nVertices = countVertices(a);
-    let vertices = new Float32Array(nVertices * 3);
+    const nVertices = countVertices(a);
+    const vertices = new Float32Array(nVertices * 3);
     while(i < len) {
         if (isStringInUnit8ArrayAtPosition(a, i, VERTEX_STRING)) {
             line = extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, "\n");
