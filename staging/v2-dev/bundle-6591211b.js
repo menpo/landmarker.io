@@ -59142,9 +59142,10 @@ var Dropbox = _base2['default'].extend('DROPBOX', function (token, cfg) {
     this._listCache = {};
 
     // Save config data
-    this._cfg.set('BACKEND_TYPE', Dropbox.Type);
-    this._cfg.set('BACKEND_DROPBOX_TOKEN', token);
-    this._cfg.save();
+    this._cfg.set({
+        'BACKEND_TYPE': Dropbox.Type,
+        'BACKEND_DROPBOX_TOKEN': token
+    }, true);
 });
 
 exports['default'] = Dropbox;
@@ -61115,7 +61116,22 @@ var App = Backbone.Model.extend({
     },
 
     goToAssetIndex: function goToAssetIndex(newIndex) {
-        return this._switchToAsset(this.assetSource().setIndex(newIndex));
+        var _this7 = this;
+
+        var lms = this.landmarks();
+        var _go = function _go() {
+            _this7._switchToAsset(_this7.assetSource().setIndex(newIndex));
+        };
+
+        if (lms) {
+            if (!lms.tracker.isUpToDate() && !this.isAutoSaveOn()) {
+                _viewModal2['default'].confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
+            } else {
+                lms.save().then(_go);
+            }
+        } else {
+            _go();
+        }
     },
 
     reloadLandmarksFromPrevious: function reloadLandmarksFromPrevious() {
@@ -63732,7 +63748,7 @@ var Intro = _modal2['default'].extend({
         this._cfg.set({
             'OAUTH_STATE': state,
             'BACKEND_TYPE': _backend2['default'].Dropbox.Type
-        });
+        }, true);
         window.location.replace(dropUrl);
     },
 
@@ -67161,4 +67177,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-67db6bdd.js.map
+//# sourceMappingURL=bundle-6591211b.js.map
