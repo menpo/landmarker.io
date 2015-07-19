@@ -49,12 +49,13 @@ var untexturedMeshMaterial = new THREE.MeshPhongMaterial();
 untexturedMeshMaterial.transparent = true;
 
 var imagePlaceholderGeometry = mappedPlane(1, 1);
-var imagePlaceholderMaterial = new THREE.MeshPhongMaterial(
-    {
-        map: THREE.ImageUtils.loadTexture('./img/placeholder.jpg',
-            new THREE.UVMapping())
-    }
-);
+let imagePlaceholderTexture = THREE.ImageUtils.loadTexture('./img/placeholder.jpg');
+// the placeholder texture will not be powers of two size, so we need
+// to set our resampling appropriately.
+imagePlaceholderTexture.minFilter = THREE.LinearFilter;
+var imagePlaceholderMaterial = new THREE.MeshPhongMaterial({
+        map: imagePlaceholderTexture
+    });
 
 var Image = Backbone.Model.extend({
 

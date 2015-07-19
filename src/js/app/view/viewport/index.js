@@ -175,8 +175,8 @@ exports.Viewport = Backbone.View.extend({
         this.s_lights.add(new THREE.AmbientLight(0x404040));
 
         this.renderer = new THREE.WebGLRenderer(
-            { antialias: false, alpha: false,
-              devicePixelRatio: window.devicePixelRatio || 1 });
+            { antialias: false, alpha: false });
+        this.renderer.setPixelRatio(window.devicePixelRatio || 1);
         this.renderer.setClearColor(CLEAR_COLOUR, 1);
         this.renderer.autoClear = false;
         // attach the render on the element we picked out earlier
