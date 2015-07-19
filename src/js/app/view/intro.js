@@ -88,7 +88,7 @@ const Intro = Modal.extend({
         this._cfg.set({
             'OAUTH_STATE': state,
             'BACKEND_TYPE': Backend.Dropbox.Type
-        });
+        }, true);
         window.location.replace(dropUrl);
     },
 

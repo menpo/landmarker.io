@@ -52,9 +52,10 @@ const Dropbox = Base.extend('DROPBOX', function (token, cfg) {
     this._listCache = {};
 
     // Save config data
-    this._cfg.set('BACKEND_TYPE', Dropbox.Type);
-    this._cfg.set('BACKEND_DROPBOX_TOKEN', token);
-    this._cfg.save();
+    this._cfg.set({
+        'BACKEND_TYPE': Dropbox.Type,
+        'BACKEND_DROPBOX_TOKEN': token
+    }, true);
 });
 
 export default Dropbox;
