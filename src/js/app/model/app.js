@@ -1,9 +1,9 @@
 'use strict';
 
-var _ = require('underscore'),
-    Promise = require('promise-polyfill');
-
-var Backbone = require('backbone');
+import _ from 'underscore';
+import $ from 'jquery';
+import Promise from 'promise-polyfill';
+import Backbone from 'backbone';
 
 var LandmarkGroup = require('./landmark_group'),
     Tracker = require('../lib/tracker'),
@@ -200,6 +200,10 @@ var App = Backbone.Model.extend({
             if (idx > -1) {
                 oldIndex = idx;
             }
+        }
+
+        if (this.hasChanged('mode')) {
+            $('#viewportContainer').trigger('resetCamera');
         }
 
         // Construct an asset source (which can query for asset information

@@ -256,16 +256,20 @@ exports.Viewport = Backbone.View.extend({
             //stats.update();
         }
 
-        $('#viewportContainer').on('groupSelected', () => {
+        this.$container.on('groupSelected', () => {
             this._handler.setGroupSelected(true);
         });
 
-        $('#viewportContainer').on('groupDeselected', () => {
+        this.$container.on('groupDeselected', () => {
             this._handler.setGroupSelected(false);
         });
 
-        $('#viewportContainer').on('completeGroupSelection', () => {
+        this.$container.on('completeGroupSelection', () => {
             this._handler.completeGroupSelection();
+        });
+
+        this.$container.on('resetCamera', () => {
+            this.resetCamera();
         });
     },
 
@@ -412,6 +416,7 @@ exports.Viewport = Backbone.View.extend({
         var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION :
                                         IMAGE_MODE_STARTING_POSITION;
 
+        this.cameraController.allowRotation(this.model.meshMode());
         this.cameraController.position(v);
         this.cameraController.focus(this.scene.position);
         this.update();
