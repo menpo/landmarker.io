@@ -61166,20 +61166,31 @@ function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : { 'default': obj };
 }
 
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _promisePolyfill = require('promise-polyfill');
+
+var _promisePolyfill2 = _interopRequireDefault(_promisePolyfill);
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
 var _viewModal = require('../view/modal');
 
 var _viewModal2 = _interopRequireDefault(_viewModal);
-
-var _ = require('underscore'),
-    Promise = require('promise-polyfill');
-
-var Backbone = require('backbone');
 
 var LandmarkGroup = require('./landmark_group'),
     Tracker = require('../lib/tracker'),
     AssetSource = require('./assetsource');
 
-var App = Backbone.Model.extend({
+var App = _backbone2['default'].Model.extend({
 
     defaults: function defaults() {
         return {
@@ -61302,7 +61313,7 @@ var App = Backbone.Model.extend({
     },
 
     initialize: function initialize() {
-        _.bindAll(this, 'assetChanged', 'mesh', 'assetSource', 'landmarks');
+        _underscore2['default'].bindAll(this, 'assetChanged', 'mesh', 'assetSource', 'landmarks');
 
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
@@ -61376,6 +61387,10 @@ var App = Backbone.Model.extend({
             if (idx > -1) {
                 oldIndex = idx;
             }
+        }
+
+        if (this.hasChanged('mode')) {
+            (0, _jquery2['default'])('#viewportContainer').trigger('resetCamera');
         }
 
         // Construct an asset source (which can query for asset information
@@ -61460,7 +61475,7 @@ var App = Backbone.Model.extend({
         });
 
         // if both come true, then set the landmarks
-        return Promise.all([loadLandmarksPromise, loadAssetPromise]).then(function (args) {
+        return _promisePolyfill2['default'].all([loadLandmarksPromise, loadAssetPromise]).then(function (args) {
             var landmarks = args[0];
             console.log('landmarks are loaded and the asset is at a suitable ' + 'state to display');
             // now we know that this is resolved we set the landmarks on the
@@ -61573,7 +61588,7 @@ var App = Backbone.Model.extend({
 
 module.exports = App;
 
-},{"../lib/tracker":55,"../view/modal":72,"./assetsource":59,"./landmark_group":63,"backbone":2,"promise-polyfill":41,"underscore":44}],58:[function(require,module,exports){
+},{"../lib/tracker":55,"../view/modal":72,"./assetsource":59,"./landmark_group":63,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],58:[function(require,module,exports){
 'use strict';
 
 var Backbone = require('backbone');
@@ -65820,6 +65835,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     _.extend(controller, Backbone.Events);
     var STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2 };
     var state = STATE.NONE; // the current state of the Camera
+    var canRotate = !IMAGE_MODE;
 
     // internals
     var enabled = false; // note that we will enable on creation below!
@@ -65965,9 +65981,10 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         mouseDownPosition.set(event.pageX, event.pageY);
         mousePrevPosition.copy(mouseDownPosition);
         mouseCurrentPosition.copy(mousePrevPosition);
+
         switch (event.button) {
             case 0:
-                if (IMAGE_MODE) {
+                if (!canRotate) {
                     state = STATE.PAN;
                 } else {
                     state = STATE.ROTATE;
@@ -66168,6 +66185,13 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         pCam.updateProjectionMatrix();
     }
 
+    function allowRotation() {
+        var allowed = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
+
+        canRotate = allowed;
+    }
+
+    controller.allowRotation = allowRotation;
     controller.enable = enable;
     controller.disable = disable;
     controller.resize = resize;
@@ -67162,16 +67186,20 @@ exports.Viewport = Backbone.View.extend({
             //stats.update();
         }
 
-        $('#viewportContainer').on('groupSelected', function () {
+        this.$container.on('groupSelected', function () {
             _this._handler.setGroupSelected(true);
         });
 
-        $('#viewportContainer').on('groupDeselected', function () {
+        this.$container.on('groupDeselected', function () {
             _this._handler.setGroupSelected(false);
         });
 
-        $('#viewportContainer').on('completeGroupSelection', function () {
+        this.$container.on('completeGroupSelection', function () {
             _this._handler.completeGroupSelection();
+        });
+
+        this.$container.on('resetCamera', function () {
+            _this.resetCamera();
         });
     },
 
@@ -67315,6 +67343,7 @@ exports.Viewport = Backbone.View.extend({
         // reposition the cameras and focus back to the starting point.
         var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION : IMAGE_MODE_STARTING_POSITION;
 
+        this.cameraController.allowRotation(this.model.meshMode());
         this.cameraController.position(v);
         this.cameraController.focus(this.scene.position);
         this.update();
@@ -67589,4 +67618,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-7727de41.js.map
+//# sourceMappingURL=bundle-cd7bd8fe.js.map
