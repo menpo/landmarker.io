@@ -45,6 +45,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     _.extend(controller, Backbone.Events);
     var STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2 };
     var state = STATE.NONE;  // the current state of the Camera
+    var canRotate = !IMAGE_MODE;
 
     // internals
     var enabled = false; // note that we will enable on creation below!
@@ -191,9 +192,10 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         mouseDownPosition.set(event.pageX, event.pageY);
         mousePrevPosition.copy(mouseDownPosition);
         mouseCurrentPosition.copy(mousePrevPosition);
+
         switch (event.button) {
             case 0:
-                if (IMAGE_MODE) {
+                if (!canRotate) {
                     state = STATE.PAN;
                 } else {
                     state = STATE.ROTATE;
@@ -393,6 +395,11 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         pCam.updateProjectionMatrix();
     }
 
+    function allowRotation (allowed=true) {
+        canRotate = allowed;
+    }
+
+    controller.allowRotation = allowRotation;
     controller.enable = enable;
     controller.disable = disable;
     controller.resize = resize;
