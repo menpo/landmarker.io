@@ -355,7 +355,20 @@ var App = Backbone.Model.extend({
     },
 
     goToAssetIndex: function (newIndex) {
-        return this._switchToAsset(this.assetSource().setIndex(newIndex));
+        const lms = this.landmarks();
+        const _go = () => {
+            this._switchToAsset(this.assetSource().setIndex(newIndex));
+        };
+
+        if (lms) {
+            if (!lms.tracker.isUpToDate() && !this.isAutoSaveOn()) {
+                Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
+            } else {
+                lms.save().then(_go);
+            }
+        } else {
+            _go();
+        }
     },
 
     reloadLandmarksFromPrevious: function () {
