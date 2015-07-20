@@ -115,7 +115,6 @@ function parseBinary(data) {
 }
 
 function isBinary(binData) {
-
     let expect, faceSize, nFaces, reader;
     reader = new DataView(binData);
     faceSize = (32 / 8 * 3) + ((32 / 8 * 3) * 3) + (16 / 8);
@@ -148,9 +147,8 @@ function isBinary(binData) {
 }
 
 function ensureBinary(buf) {
-
     if (typeof buf === "string") {
-        var arrayBuffer = new Uint8Array(buf.length);
+        const arrayBuffer = new Uint8Array(buf.length);
         for (var i = 0; i < buf.length; i++) {
             arrayBuffer[i] = buf.charCodeAt(i) & 0xff; // implicitly assumes little-endian
         }
@@ -158,11 +156,10 @@ function ensureBinary(buf) {
     } else {
         return buf;
     }
-
 }
 
 function countVertices(a) {
-    var nVertices = 0, i = 0;
+    let nVertices = 0, i = 0;
     while (i < a.length) {
         if (isStringInUnit8ArrayAtPosition(a, i, VERTEX_STRING)) {
             nVertices += 1;
@@ -186,7 +183,7 @@ function isStringInUnit8ArrayAtPosition(a, i, str) {
     return true;
 }
 
-function extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, sentinal) {
+function extractStringUntilSentinelFromUnit8ArrayAtPosition(a, i, sentinal) {
     let str = "", c;
     const len = a.length;
     while (i < len) {
@@ -196,7 +193,7 @@ function extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, sentinal) {
         str += c;
         i += 1;
     }
-    // we ran out of the array, and the last character wasn't the sentinal.
+    // we ran out of the array, and the last character wasn't the sentinel.
     // Return an empty string.
     return "";
 }
@@ -210,9 +207,9 @@ function parseASCII(arrayBuffer) {
     // find the number of vertices in the file and allocate the buffer
     const nVertices = countVertices(a);
     const vertices = new Float32Array(nVertices * 3);
-    while(i < len) {
+    while (i < len) {
         if (isStringInUnit8ArrayAtPosition(a, i, VERTEX_STRING)) {
-            line = extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, "\n");
+            line = extractStringUntilSentinelFromUnit8ArrayAtPosition(a, i, "\n");
             if ((result = PATTERN_VERTEX.exec(line)) !== null) {
                 [vx, vy, vz] = result.slice(1, 4).map(parseFloat);
                 vertices[3 * vertexNo] = vx;

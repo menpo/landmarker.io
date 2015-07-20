@@ -50,17 +50,6 @@ var descSort = function (a, b) {
     return a.distance - b.distance;
 };
 
-function intersectMesh(raycaster, mesh, octree) {
-    // 1. Bring the ray into model space to intersect (remember, that's where
-    // our octree was constructed)
-    inverseMatrix.getInverse(mesh.matrixWorld);
-    _ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
-    // query our octree (which only stores triangle indices) to find potential intersections.
-    var indices = octree.itemsWhichCouldIntersect(_ray);
-    // now we can just whip through the few triangles in question and check for intersections.
-    return intersectTrianglesAtIndices(_ray, raycaster, mesh, indices);
-}
-
 // this code is largely adapted from THREE.Mesh.prototype.raycast
 // (particularly the geometry instanceof THREE.BufferGeometry branch)
 var intersectTrianglesAtIndices = function(ray, raycaster, mesh, indices) {
@@ -111,6 +100,17 @@ var intersectTrianglesAtIndices = function(ray, raycaster, mesh, indices) {
     intersects.sort(descSort);
     return intersects;
 };
+
+function intersectMesh(raycaster, mesh, octree) {
+    // 1. Bring the ray into model space to intersect (remember, that's where
+    // our octree was constructed)
+    inverseMatrix.getInverse(mesh.matrixWorld);
+    _ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
+    // query our octree (which only stores triangle indices) to find potential intersections.
+    var indices = octree.itemsWhichCouldIntersect(_ray);
+    // now we can just whip through the few triangles in question and check for intersections.
+    return intersectTrianglesAtIndices(_ray, raycaster, mesh, indices);
+}
 
 // The datum stored in our octree. On finalization, these items will be replaced
 // by the payload only.
