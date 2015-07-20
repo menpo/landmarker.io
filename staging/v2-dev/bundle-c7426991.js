@@ -60741,7 +60741,6 @@ function parseBinary(data) {
 }
 
 function isBinary(binData) {
-
     var expect = undefined,
         faceSize = undefined,
         nFaces = undefined,
@@ -60777,7 +60776,6 @@ function isBinary(binData) {
 }
 
 function ensureBinary(buf) {
-
     if (typeof buf === 'string') {
         var arrayBuffer = new Uint8Array(buf.length);
         for (var i = 0; i < buf.length; i++) {
@@ -60815,7 +60813,7 @@ function isStringInUnit8ArrayAtPosition(a, i, str) {
     return true;
 }
 
-function extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, sentinal) {
+function extractStringUntilSentinelFromUnit8ArrayAtPosition(a, i, sentinal) {
     var str = '',
         c = undefined;
     var len = a.length;
@@ -60826,7 +60824,7 @@ function extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, sentinal) {
         str += c;
         i += 1;
     }
-    // we ran out of the array, and the last character wasn't the sentinal.
+    // we ran out of the array, and the last character wasn't the sentinel.
     // Return an empty string.
     return '';
 }
@@ -60846,7 +60844,7 @@ function parseASCII(arrayBuffer) {
     var vertices = new Float32Array(nVertices * 3);
     while (i < len) {
         if (isStringInUnit8ArrayAtPosition(a, i, VERTEX_STRING)) {
-            line = extractStringUntilSentinalFromUnit8ArrayAtPosition(a, i, '\n');
+            line = extractStringUntilSentinelFromUnit8ArrayAtPosition(a, i, '\n');
             if ((result = PATTERN_VERTEX.exec(line)) !== null) {
                 var _result$slice$map = result.slice(1, 4).map(parseFloat);
 
@@ -62893,17 +62891,6 @@ var descSort = function descSort(a, b) {
     return a.distance - b.distance;
 };
 
-function intersectMesh(raycaster, mesh, octree) {
-    // 1. Bring the ray into model space to intersect (remember, that's where
-    // our octree was constructed)
-    inverseMatrix.getInverse(mesh.matrixWorld);
-    _ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
-    // query our octree (which only stores triangle indices) to find potential intersections.
-    var indices = octree.itemsWhichCouldIntersect(_ray);
-    // now we can just whip through the few triangles in question and check for intersections.
-    return intersectTrianglesAtIndices(_ray, raycaster, mesh, indices);
-}
-
 // this code is largely adapted from THREE.Mesh.prototype.raycast
 // (particularly the geometry instanceof THREE.BufferGeometry branch)
 var intersectTrianglesAtIndices = function intersectTrianglesAtIndices(ray, raycaster, mesh, indices) {
@@ -62954,6 +62941,17 @@ var intersectTrianglesAtIndices = function intersectTrianglesAtIndices(ray, rayc
     intersects.sort(descSort);
     return intersects;
 };
+
+function intersectMesh(raycaster, mesh, octree) {
+    // 1. Bring the ray into model space to intersect (remember, that's where
+    // our octree was constructed)
+    inverseMatrix.getInverse(mesh.matrixWorld);
+    _ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
+    // query our octree (which only stores triangle indices) to find potential intersections.
+    var indices = octree.itemsWhichCouldIntersect(_ray);
+    // now we can just whip through the few triangles in question and check for intersections.
+    return intersectTrianglesAtIndices(_ray, raycaster, mesh, indices);
+}
 
 // The datum stored in our octree. On finalization, these items will be replaced
 // by the payload only.
@@ -67447,9 +67445,9 @@ exports.Viewport = Backbone.View.extend({
                 viewport: that
             }));
         });
-        landmarks.connectivity.map(function (a_to_b) {
+        landmarks.connectivity.map(function (ab) {
             that.connectivityViews.push(new LandmarkConnectionTHREEView({
-                model: [landmarks.landmarks[a_to_b[0]], landmarks.landmarks[a_to_b[1]]],
+                model: [landmarks.landmarks[ab[0]], landmarks.landmarks[ab[1]]],
                 viewport: that
             }));
         });
@@ -67618,4 +67616,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-cd7bd8fe.js.map
+//# sourceMappingURL=bundle-c7426991.js.map
