@@ -521,11 +521,11 @@ exports.Viewport = Backbone.View.extend({
                     viewport: that
                 }));
         });
-        landmarks.connectivity.map(function (a_to_b) {
+        landmarks.connectivity.map(function (ab) {
            that.connectivityViews.push(new LandmarkConnectionTHREEView(
                {
-                   model: [landmarks.landmarks[a_to_b[0]],
-                           landmarks.landmarks[a_to_b[1]]],
+                   model: [landmarks.landmarks[ab[0]],
+                           landmarks.landmarks[ab[1]]],
                    viewport: that
                }));
         });

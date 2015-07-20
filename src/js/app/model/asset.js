@@ -1,7 +1,7 @@
 'use strict';
 
-var Backbone = require('backbone');
-var THREE = require('three');
+const Backbone = require('backbone');
+const THREE = require('three');
 
 var FRONT = {
     image: new THREE.Vector3(0, 0, 1),
@@ -45,17 +45,17 @@ function mappedPlane(w, h) {
     return geometry;
 }
 
-var untexturedMeshMaterial = new THREE.MeshPhongMaterial();
+const untexturedMeshMaterial = new THREE.MeshPhongMaterial();
 untexturedMeshMaterial.transparent = true;
 
-var imagePlaceholderGeometry = mappedPlane(1, 1);
-let imagePlaceholderTexture = THREE.ImageUtils.loadTexture('./img/placeholder.jpg');
+const imagePlaceholderGeometry = mappedPlane(1, 1);
+const imagePlaceholderTexture = THREE.ImageUtils.loadTexture('./img/placeholder.jpg');
 // the placeholder texture will not be powers of two size, so we need
 // to set our resampling appropriately.
 imagePlaceholderTexture.minFilter = THREE.LinearFilter;
-var imagePlaceholderMaterial = new THREE.MeshPhongMaterial({
-        map: imagePlaceholderTexture
-    });
+const imagePlaceholderMaterial = new THREE.MeshPhongMaterial({
+    map: imagePlaceholderTexture
+});
 
 var Image = Backbone.Model.extend({
 
