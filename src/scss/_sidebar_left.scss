@@ -18,6 +18,8 @@
   display: block;
   text-align: left;
   background: white(.85);
+  border-top-right-radius: $minorBoarderRadius;
+  border-bottom-right-radius: $minorBoarderRadius;
 
   &:hover {
       background-color: $colorLightGray;
@@ -109,6 +111,8 @@
     @extend %transitionAll;
     background: $colorRed;
     width: 36px;
+    border-top-right-radius: $minorBoarderRadius;
+    border-bottom-right-radius: $minorBoarderRadius;
 }
 
 .AssetInfo > .BackendName:hover > span:last-of-type {
@@ -118,22 +122,22 @@
 .Toolbar {
     opacity: .9;
     background: $colorLightBlue;
-    width: 196px;
-    padding: .4em;
+    width: $toolbarWidth;
+    padding: $mainControlPadding;
+    border-top-right-radius: $mainBorderRadius;
 }
 
 .Toolbar-Row {
     color: white;
     border: none;
     outline: none;
-    width: 100%;
-    height: $mainControlHeight;
+    padding: 5px;
     font-weight: 300;
     font-size: larger;
     display: flex;
     flex-direction: row;
     text-align: center;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
 }
 
@@ -173,7 +177,7 @@
     display: block;
     overflow: hidden;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: $minorBoarderRadius;
 }
 
 .onoffswitch-inner {
@@ -211,7 +215,7 @@
 }
 
 .onoffswitch-switch {
-    border-radius: 2px;
+    border-radius: $minorBoarderRadius;
     width: 20px;
     height: 20px;
     background: $colorLightGray;
@@ -231,10 +235,9 @@ input[type="range"] {
     display: block;
     -webkit-appearance: none;
     background-color: $colorLightGray;
-    width: auto;
+    width: $toolbarWidth - 50px;
     height: 5px;
     border-radius: 5px;
-    margin: 0 auto;
     outline: 0;
 }
 

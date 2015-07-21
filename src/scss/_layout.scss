@@ -73,6 +73,18 @@
     }
 }
 
+.Pager-Item:first-of-type > .Button-Basic {
+     border-top-left-radius: $mainBorderRadius;
+}
+
+.Pager-Item:last-of-type > .Button-Basic {
+    border-top-right-radius: $mainBorderRadius;
+
+    @media screen and (max-width: $breakpointsMobile) {
+        border-top-right-radius: 0;
+    }
+}
+
 .RightSidebar,
 .LeftSidebar {
     display: flex;
