@@ -1,7 +1,7 @@
 'use strict';
 
-var yaml = require('js-yaml'),
-    _ = require('underscore');
+import yaml from 'js-yaml';
+import _ from 'underscore';
 
 const CYCLE_CONNECTIVITY_LABEL = 'cycle';
 const NULL_POINT = {2: [null, null], 3: [null, null, null]};
@@ -13,7 +13,7 @@ const NULL_POINT = {2: [null, null], 3: [null, null, null]};
  *
  * @param {Object} json
  */
-function Template (json) {
+export default function Template (json) {
     this._template = json.groups || json.template;
 
     if (!this._template) {
@@ -151,5 +151,3 @@ Template.prototype.emptyLJSON = function (dims=2) {
 
     return _.clone(this._emptyLmGroup[dims]);
 };
-
-module.exports = Template;
