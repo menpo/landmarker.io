@@ -63092,6 +63092,10 @@ module.exports.intersetMesh = intersectMesh;
 },{"three":43}],65:[function(require,module,exports){
 'use strict';
 
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
 var _slicedToArray = (function () {
     function sliceIterator(arr, i) {
         var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
@@ -63118,8 +63122,19 @@ var _slicedToArray = (function () {
     };
 })();
 
-var yaml = require('js-yaml'),
-    _ = require('underscore');
+exports['default'] = Template;
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _jsYaml = require('js-yaml');
+
+var _jsYaml2 = _interopRequireDefault(_jsYaml);
+
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
 
 var CYCLE_CONNECTIVITY_LABEL = 'cycle';
 var NULL_POINT = { 2: [null, null], 3: [null, null, null] };
@@ -63131,6 +63146,7 @@ var NULL_POINT = { 2: [null, null], 3: [null, null, null] };
  *
  * @param {Object} json
  */
+
 function Template(json) {
     var _this = this;
 
@@ -63191,7 +63207,7 @@ function Template(json) {
  * @return {Template}
  */
 Template.parseYAML = function (rawData) {
-    var json = yaml.safeLoad(rawData);
+    var json = _jsYaml2['default'].safeLoad(rawData);
     return new Template(json);
 };
 
@@ -63244,7 +63260,7 @@ Template.Parsers = {
 };
 
 Template.prototype.toYAML = function () {
-    return yaml.safeDump(this._template);
+    return _jsYaml2['default'].safeDump(this._template);
 };
 
 Template.prototype.toJSON = function () {
@@ -63261,7 +63277,7 @@ Template.prototype.emptyLJSON = function () {
     var dims = arguments.length <= 0 || arguments[0] === undefined ? 2 : arguments[0];
 
     if (this._emptyLmGroup[dims]) {
-        return _.clone(this._emptyLmGroup[dims]);
+        return _underscore2['default'].clone(this._emptyLmGroup[dims]);
     }
 
     var offset = 0;
@@ -63281,11 +63297,11 @@ Template.prototype.emptyLJSON = function () {
 
             globalConnectivity.push([s + offset, e + offset]);
         });
-        labels.push({ label: label, mask: _.range(offset, offset + size) });
+        labels.push({ label: label, mask: _underscore2['default'].range(offset, offset + size) });
         offset += size;
     });
 
-    var points = _.range(this.size).map(function () {
+    var points = _underscore2['default'].range(this.size).map(function () {
         return NULL_POINT[dims];
     });
 
@@ -63295,10 +63311,9 @@ Template.prototype.emptyLJSON = function () {
         landmarks: { connectivity: globalConnectivity, points: points }
     };
 
-    return _.clone(this._emptyLmGroup[dims]);
+    return _underscore2['default'].clone(this._emptyLmGroup[dims]);
 };
-
-module.exports = Template;
+module.exports = exports['default'];
 
 },{"js-yaml":10,"underscore":44}],66:[function(require,module,exports){
 'use strict';
@@ -67616,4 +67631,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-c7426991.js.map
+//# sourceMappingURL=bundle-a43ad154.js.map
