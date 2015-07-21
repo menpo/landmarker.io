@@ -60,6 +60,10 @@
         margin-bottom: 1px;
         cursor: pointer;
 
+        &:first-of-type {
+            border-top-left-radius: $mainBorderRadius;
+        }
+
         &:last-of-type {
             transform: scale(-1, 1);
         }
@@ -91,7 +95,6 @@ is itself a row flexbox */
 .RightSidebar-Controls-Item {
     flex: 2;
     margin-left: 1px;
-    margin-bottom: 1px;
 
     &:last-of-type {
       flex: 1;
