@@ -20,6 +20,7 @@
   background: white(.85);
   border-top-right-radius: $minorBoarderRadius;
   border-bottom-right-radius: $minorBoarderRadius;
+  margin-top: 2px;
 
   &:hover {
       background-color: $colorLightGray;
@@ -111,7 +112,6 @@
     @extend %transitionAll;
     background: $colorRed;
     width: 36px;
-    border-top-right-radius: $minorBoarderRadius;
     border-bottom-right-radius: $minorBoarderRadius;
 }
 
