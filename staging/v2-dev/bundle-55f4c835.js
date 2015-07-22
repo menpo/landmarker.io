@@ -63418,6 +63418,7 @@ var BackendNameView = _backbone2['default'].View.extend({
         var server = this.model.server();
 
         this.$el.find('.octicon-globe').remove();
+        this.$el.show();
 
         if (server instanceof _backend.Dropbox) {
             this.$el.find('.content').html('Dropbox');
@@ -63427,8 +63428,9 @@ var BackendNameView = _backbone2['default'].View.extend({
             this.$el.addClass('BackendName--Server');
             this.$el.prepend((0, _jquery2['default'])('<span class="octicon octicon-globe"></span>'));
         } else {
-            this.fadeOut();
+            this.$el.hide();
         }
+
         return this;
     },
 
@@ -65121,7 +65123,6 @@ var atomic = require('../model/atomic');
 
 var _require = require('../backend');
 
-var Dropbox = _require.Dropbox;
 var Server = _require.Server;
 
 var ListPicker = require('./list_picker');
@@ -65475,7 +65476,7 @@ var TemplatePanel = Backbone.View.extend({
     },
 
     update: function update() {
-        this.$el.toggleClass('Disabled', this.model && this.model.templates().length <= 1 && this.model.server() instanceof Server);
+        this.$el.toggleClass('Disabled', this.model && (this.model.templates().length <= 1 && this.model.server() instanceof Server || typeof this.model.server().pickTemplate !== 'function'));
         this.$el.text(this.model.activeTemplate() || '-');
     },
 
@@ -65483,16 +65484,8 @@ var TemplatePanel = Backbone.View.extend({
         var _this3 = this;
 
         var backend = this.model.server();
-        if (backend instanceof Dropbox) {
-            backend.pickTemplate(function () {
-                _this3.model._initTemplates(true);
-            }, function (err) {
-                Notification.notify({
-                    type: 'error',
-                    msg: 'Error switching template ' + err
-                });
-            }, true);
-        } else if (backend instanceof Server) {
+
+        if (backend instanceof Server) {
 
             var tmpls = this.model.templates();
 
@@ -65513,6 +65506,15 @@ var TemplatePanel = Backbone.View.extend({
                 }
             });
             picker.open();
+        } else if (typeof this.model.server().pickTemplate === 'function') {
+            backend.pickTemplate(function () {
+                _this3.model._initTemplates(true);
+            }, function (err) {
+                Notification.notify({
+                    type: 'error',
+                    msg: 'Error switching template ' + err
+                });
+            }, true);
         }
     }
 });
@@ -67631,4 +67633,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-a43ad154.js.map
+//# sourceMappingURL=bundle-55f4c835.js.map
