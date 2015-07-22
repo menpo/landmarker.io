@@ -62,6 +62,7 @@ export const BackendNameView = Backbone.View.extend({
         const server = this.model.server();
 
         this.$el.find('.octicon-globe').remove();
+        this.$el.show();
 
         if (server instanceof Dropbox) {
             this.$el.find('.content').html('Dropbox');
@@ -72,8 +73,9 @@ export const BackendNameView = Backbone.View.extend({
             this.$el.addClass('BackendName--Server');
             this.$el.prepend($('<span class="octicon octicon-globe"></span>'));
         } else {
-            this.fadeOut();
+            this.$el.hide();
         }
+
         return this;
     },
 
