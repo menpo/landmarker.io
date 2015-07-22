@@ -6,7 +6,7 @@ var $ = require('jquery');
 
 var Notification = require('./notification');
 var atomic = require('../model/atomic');
-var { Dropbox, Server } = require('../backend');
+var { Server } = require('../backend');
 var ListPicker = require('./list_picker');
 
 // Renders a single Landmark. Should update when constituent landmark
@@ -347,24 +347,17 @@ var TemplatePanel = Backbone.View.extend({
     update: function () {
         this.$el.toggleClass(
             'Disabled', this.model &&
-                        this.model.templates().length <= 1 &&
-                        this.model.server() instanceof Server
+                        ((this.model.templates().length <= 1 &&
+                        this.model.server() instanceof Server) ||
+                        typeof this.model.server().pickTemplate !== 'function')
         );
         this.$el.text(this.model.activeTemplate() || '-');
     },
 
     click: function () {
         const backend = this.model.server();
-        if (backend instanceof Dropbox) {
-            backend.pickTemplate(() => {
-                this.model._initTemplates(true);
-            }, function (err) {
-                Notification.notify({
-                    type: 'error',
-                    msg: 'Error switching template ' + err
-                });
-            }, true);
-        } else if (backend instanceof Server) {
+
+        if (backend instanceof Server) {
 
             const tmpls = this.model.templates();
 
@@ -381,6 +374,15 @@ var TemplatePanel = Backbone.View.extend({
                 submit: tmpl => this.model.set('activeTemplate', tmpl)
             });
             picker.open();
+        } else if (typeof this.model.server().pickTemplate === 'function') {
+            backend.pickTemplate(() => {
+                this.model._initTemplates(true);
+            }, function (err) {
+                Notification.notify({
+                    type: 'error',
+                    msg: 'Error switching template ' + err
+                });
+            }, true);
         }
     }
 });
