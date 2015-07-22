@@ -1,13 +1,13 @@
-var Backbone = require('../lib/backbonej');
+'use strict';
 
-"use strict";
+var Backbone = require('backbone');
+
+let atomicTracker;
 
 var AtomicOperationTracker = Backbone.Model.extend({
 
     defaults: function () {
-        return {
-            ATOMIC_OPERATION: false
-        }
+        return { ATOMIC_OPERATION: false };
     },
 
     _startAtomicOperation: function () {
@@ -49,5 +49,5 @@ var AtomicOperationTracker = Backbone.Model.extend({
 
 });
 
-var atomicTracker = new AtomicOperationTracker;
+atomicTracker = new AtomicOperationTracker();
 module.exports = atomicTracker;

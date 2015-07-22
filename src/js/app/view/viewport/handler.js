@@ -1,12 +1,10 @@
-"use strict";
+'use strict';
 
-var _ = require('underscore');
-var THREE = require('three');
-var $ = require('jquery');
+import _ from 'underscore';
+import THREE from 'three';
+import $ from 'jquery';
 
-var atomic = require('../../model/atomic');
-
-const MOVE_TO = 50;
+import atomic from '../../model/atomic';
 
 function createHandler (evtType, el, func) {
 
@@ -67,16 +65,19 @@ function Handler () {
      * @return {Landmark[]}
      */
     var findClosestLandmarks = (lmGroup, loc, locked=false) => {
-        var dist, i, j,
-            lm, lmLoc,
-            minDist, minLm,
-            dists = new Array(4), lms= new Array(4);
+        var dist, i, j, lm, lmLoc, minDist,
+            dists = new Array(4), lms = new Array(4);
 
         for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
             lm = lmGroup.landmarks[i];
+
+            if (lm.isEmpty()) {
+                continue;
+            }
+
             lmLoc = lm.point();
 
-            if (lmLoc === null || (locked && lm === currentTargetLm)) {
+            if (lmLoc === null || locked && lm === currentTargetLm) {
                 continue;
             }
 
@@ -97,7 +98,30 @@ function Handler () {
         }
 
         return lms;
-    }
+    };
+
+    // Setup handler state variables
+    // ------------------------------------------------------------------------
+    var downEvent,
+        lmPressed, lmPressedWasSelected,
+        isPressed, groupSelected,
+        currentTargetLm;
+
+    // x, y position of mouse on click states
+    var onMouseDownPosition = new THREE.Vector2(),
+        onMouseUpPosition = new THREE.Vector2();
+
+    // current screen position when in drag state
+    var positionLmDrag = new THREE.Vector2();
+    // vector difference in one time step
+    var deltaLmDrag = new THREE.Vector2();
+    var dragStartPositions, dragged = false;
+
+    var intersectsWithLms, intersectsWithMesh;
+
+    var landmarkOnDrag, shiftOnDrag,
+        landmarkOnMouseUp, nothingOnMouseUp, shiftOnMouseUp,
+        setGroupSelected;
 
     // Press handling
     // ------------------------------------------------------------------------
@@ -113,7 +137,7 @@ function Handler () {
         } else {
             $(document).one('mouseup.viewportMesh', meshOnMouseUp);
         }
-    }
+    };
 
     var landmarkPressed = () => {
 
@@ -121,7 +145,7 @@ function Handler () {
             return;
         }
 
-        var ctrl = (downEvent.ctrlKey || downEvent.metaKey);
+        var ctrl = downEvent.ctrlKey || downEvent.metaKey;
         console.log('Viewport: landmark pressed');
         // before anything else, disable the camera
         this.cameraController.disable();
@@ -147,10 +171,13 @@ function Handler () {
 
         // record the position of where the drag started.
         positionLmDrag.copy(this.localToScreen(lmPressed.point()));
+        dragStartPositions = this.model.landmarks().selected().map(
+            lm => [lm.get('index'), lm.point().clone()]);
+
         // start listening for dragging landmarks
         $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
         $(document).one('mouseup.viewportLandmark', landmarkOnMouseUp);
-    }
+    };
 
     var nothingPressed = () => {
 
@@ -160,7 +187,7 @@ function Handler () {
 
         console.log('nothing pressed!');
         $(document).one('mouseup.viewportNothing', nothingOnMouseUp);
-    }
+    };
 
     var shiftPressed = () => {
 
@@ -178,13 +205,17 @@ function Handler () {
 
         $(document).on('mousemove.shiftDrag', shiftOnDrag);
         $(document).one('mouseup.viewportShift', shiftOnMouseUp);
-    }
+    };
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
     var onMouseDown = atomic.atomicOperation((event) => {
         event.preventDefault();
         this.$el.focus();
+
+        if (!this.model.landmarks()) {
+            return;
+        }
 
         isPressed = true;
 
@@ -212,7 +243,7 @@ function Handler () {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
                         shiftPressed();
-                    } else if (this.model.isEditingOn()) {
+                    } else if (this.model.isEditingOn() && currentTargetLm) {
                         meshPressed();
                     } else {
                         nothingPressed();
@@ -239,17 +270,14 @@ function Handler () {
                 this.model.landmarks().deselectAll();
                 currentTargetLm = undefined;
                 meshPressed();
-            } else {
-                // Pass right click does nothing in most cases
             }
         }
     });
 
-
     // Drag Handlers
     // ------------------------------------------------------------------------
 
-    var landmarkOnDrag = atomic.atomicOperation((event) => {
+    landmarkOnDrag = atomic.atomicOperation((event) => {
         console.log("drag");
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
@@ -276,6 +304,7 @@ function Handler () {
                 vScreen.x, vScreen.y, this.mesh);
             if (intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
+                dragged = !!dragged || true;
                 lm.setPoint(this.worldToLocal(intersectsWithMesh[0].point));
             } else {
                 // don't update point - it would fall off the surface.
@@ -284,25 +313,20 @@ function Handler () {
         }
     });
 
-    var shiftOnDrag = (event) => {
+    shiftOnDrag = (event) => {
         console.log("shift:drag");
         // note - we use client as we don't want to jump back to zero
         // if user drags into sidebar!
-        var newX = event.clientX;
-        var newY = event.clientY;
+        var newPosition = { x: event.clientX, y: event.clientY };
         // clear the canvas and draw a selection rect.
         this.clearCanvas();
-        var x = onMouseDownPosition.x;
-        var y = onMouseDownPosition.y;
-        var dx = newX - x;
-        var dy = newY - y;
-        this.ctx.strokeRect(x, y, dx, dy);
+        this.drawSelectionBox(onMouseDownPosition, newPosition);
     };
 
     // Up handlers
     // ------------------------------------------------------------------------
 
-    var shiftOnMouseUp = atomic.atomicOperation((event) => {
+    shiftOnMouseUp = atomic.atomicOperation((event) => {
         this.cameraController.enable();
         console.log("shift:up");
         $(document).off('mousemove.shiftDrag', shiftOnDrag);
@@ -310,25 +334,20 @@ function Handler () {
         var y1 = onMouseDownPosition.y;
         var x2 = event.clientX;
         var y2 = event.clientY;
-        var min_x, max_x, min_y, max_y;
+        var minX, maxX, minY, maxY;
         if (x1 < x2) {
-            min_x = x1;
-            max_x = x2;
+            [minX, maxX] = [x1, x2];
         } else {
-            min_x = x2;
-            max_x = x1;
+            [minX, maxX] = [x2, x1];
         }
         if (y1 < y2) {
-            min_y = y1;
-            max_y = y2;
+            [minY, maxY] = [y1, y2];
         } else {
-            min_y = y2;
-            max_y = y1;
+            [minY, maxY] = [y2, y1];
         }
         // First, let's just find all the landmarks in screen space that
         // are within our selection.
-        var lms = this.lmViewsInSelectionBox(min_x, min_y,
-                                             max_x, max_y);
+        var lms = this.lmViewsInSelectionBox(minX, minY, maxX, maxY);
 
         // Of these, filter out the ones which are visible (not
         // obscured) and select the rest
@@ -356,9 +375,14 @@ function Handler () {
             if (isAdjustingUpVector) {
                 this.pointUp(p.clone());
                 // stopOrientationFix();
-            } else if (this.model.isEditingOn() && currentTargetLm) {
+            } else if (
+                this.model.isEditingOn() &&
+                currentTargetLm &&
+                currentTargetLm.group() === this.model.landmarks() &&
+                !currentTargetLm.isEmpty()
+            ) {
                 this.model.landmarks().setLmAt(currentTargetLm, p);
-            } else {
+            } else if (downEvent.button === 2) {
                 this.model.landmarks().insertNew(p);
             }
         }
@@ -368,7 +392,7 @@ function Handler () {
         setGroupSelected(false);
     };
 
-    var nothingOnMouseUp = (event) => {
+    nothingOnMouseUp = (event) => {
         console.log("nothingPress:up");
         onMouseUpPosition.set(event.clientX, event.clientY);
         if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
@@ -380,7 +404,7 @@ function Handler () {
         isPressed = false;
     };
 
-    var landmarkOnMouseUp = atomic.atomicOperation((event) => {
+    landmarkOnMouseUp = atomic.atomicOperation((event) => {
         var ctrl = downEvent.ctrlKey || downEvent.metaKey;
         this.cameraController.enable();
         console.log("landmarkPress:up");
@@ -399,34 +423,49 @@ function Handler () {
             } else if (ctrl) {
                 setGroupSelected(true);
             }
+        } else if (dragged) {
+            this.model.landmarks().selected().forEach((lm, i) => {
+                dragStartPositions[i].push(lm.point().clone());
+            });
+            this.model.landmarks().tracker.record(dragStartPositions);
         }
 
         this.clearCanvas();
+        dragged = false;
+        dragStartPositions = [];
         isPressed = false;
     });
 
     // Move handlers
     // ------------------------------------------------------------------------
 
-    var onMouseMove = createHandler(
-        'mousemove',
-        this.$el,
-        _.throttle(atomic.atomicOperation(
-    (evt) => {
+    var onMouseMove = (evt) => {
+
         this.clearCanvas();
 
-        if (isPressed || !this.model.isEditingOn()) {
+        if (isPressed ||
+            !this.model.isEditingOn() ||
+            !this.model.landmarks() ||
+            this.model.landmarks().isEmpty()
+        ) {
             return null;
         }
 
-        var intersectsWithMesh =
-            this.getIntersectsFromEvent(evt, this.mesh);
+        if (
+            currentTargetLm &&
+            (currentTargetLm.isEmpty() ||
+            this.model.landmarks() !== currentTargetLm.group())
+        ) {
+            currentTargetLm = undefined;
+        }
+
+        intersectsWithMesh = this.getIntersectsFromEvent(evt, this.mesh);
 
         var lmGroup = this.model.landmarks();
 
-        var shouldUpdate = (intersectsWithMesh.length > 0 &&
-                            lmGroup &&
-                            lmGroup.landmarks);
+        var shouldUpdate = intersectsWithMesh.length > 0 &&
+                           lmGroup &&
+                           lmGroup.landmarks;
 
         if (!shouldUpdate) {
             return null;
@@ -445,45 +484,31 @@ function Handler () {
             lms = lms.slice(0, 3);
         }
 
-        if (currentTargetLm && !groupSelected) {
+        if (currentTargetLm && !groupSelected && lms.length > 0) {
 
             if (currentTargetLm !== previousTargetLm) {
                 // Linear operation hence protected
                 currentTargetLm.selectAndDeselectRest();
             }
 
-            this.drawTargetingLine(
-                {x: evt.clientX, y: evt.clientY},
-                this.localToScreen(currentTargetLm.point()));
-
-            lms.forEach((lm) => {
-                this.drawTargetingLine(
-                    {x: evt.clientX, y: evt.clientY},
-                    this.localToScreen(lm.point()), true);
-            });
+            this.drawTargetingLines({x: evt.clientX, y: evt.clientY},
+                currentTargetLm, lms);
         }
     }), MOVE_TO));
 
     // Keyboard handlers
     // ------------------------------------------------------------------------
-
-    var onKeypressTranslate = createHandler(
-        'keydown',
-        window,
-        atomic.atomicOperation(
-    (evt) => {
+    var onKeypress = atomic.atomicOperation((evt) => {
         // Only work in group selection mode
-        if (!groupSelected) {
+        if (
+            !groupSelected || !this.model.landmarks() ||
+            evt.which < 37 || evt.which > 40
+        ) {
             return;
         }
 
-        // Deselect group on escape key
-        if (evt.which === 27) {
-            return setGroupSelected(false);
-        }
-
         // Up and down are inversed due to the way THREE handles coordinates
-        let directions = {
+        const directions = {
             37: [-1, 0],    // Left
             38: [0, -1],     // Up
             39: [1, 0],     // Right
@@ -496,33 +521,35 @@ function Handler () {
         }
 
         // Set a movement of 0.5% of the screen in the suitable direction
-        let [x, y] = directions,
-            move = new THREE.Vector2(),
-            [dx, dy] = [0.005 * window.innerWidth, 0.005 * window.innerHeight];
+        const [x, y] = directions,
+              move = new THREE.Vector2(),
+              [dx, dy] = [.005 * window.innerWidth, .005 * window.innerHeight];
 
         move.set(x * dx, y * dy);
 
+        const ops = [];
         this.model.landmarks().selected().forEach((lm) => {
             const lmScreen = this.localToScreen(lm.point());
             lmScreen.add(move);
 
-            let intersectsWithMesh = this.getIntersects(
+            intersectsWithMesh = this.getIntersects(
                 lmScreen.x, lmScreen.y, this.mesh);
 
             if (intersectsWithMesh.length > 0) {
-                lm.setPoint(this.worldToLocal(intersectsWithMesh[0].point));
-            } else {
-                // Pass > fallen off mesh
+                const pt = this.worldToLocal(intersectsWithMesh[0].point);
+                ops.push([lm.get('index'), lm.point().clone(), pt.clone()]);
+                lm.setPoint(pt);
             }
         });
-    }));
+        this.model.landmarks().tracker.record(ops);
+    });
 
     // Group Selection hook
     // ------------------------------------------------------------------------
 
-    const setGroupSelected = atomic.atomicOperation((val=true) => {
+    setGroupSelected = (val=true) => {
 
-        if (isAdjustingUpVector) {
+        if (isAdjustingUpVector | !this.model.landmarks()) {
             return;
         }
 
@@ -536,14 +563,10 @@ function Handler () {
 
         if (_val) {
             // Use keydown as keypress doesn't register arrows in some context
-            onKeypressTranslate.attach();
-            onMouseMove.detach();
+            $(window).on('keydown', onKeypress);
         } else {
             this.deselectAll();
-            onKeypressTranslate.detach();
-            if (this.editingOn) {
-                onMouseMove.attach();
-            }
+            $(window).off('keydown', onKeypress);
         }
 
         this.clearCanvas();
@@ -555,23 +578,11 @@ function Handler () {
             return;
         }
 
-        this.model.landmarks().labels.forEach((label) => {
+        if (!this.model.landmarks()) {
+            return;
+        }
 
-            let labelSelection = false;
-
-            for (var i = 0; i < label.landmarks.length; i++) {
-                if (label.landmarks[i].isSelected()) {
-                    labelSelection = true;
-                    break;
-                }
-            }
-
-            if (labelSelection) {
-                label.landmarks.forEach((lm) => {
-                    lm.select();
-                });
-            }
-        });
+        this.model.landmarks().completeGroups();
 
         setGroupSelected(true);
     };
@@ -596,13 +607,12 @@ function Handler () {
     // ------------------------------------------------------------------------
     return {
         // State management
-        setGroupSelected,
-        completeGroupSelection,
-        startOrientationFix,
-        stopOrientationFix,
-        // Exposed handler objects
-        onMouseDown,
-        onMouseMove
+        setGroupSelected: atomic.atomicOperation(setGroupSelected),
+        completeGroupSelection: completeGroupSelection,
+
+        // Exposed handlers
+        onMouseDown: atomic.atomicOperation(onMouseDown),
+        onMouseMove: atomic.atomicOperation(onMouseMove)
     };
 
 }

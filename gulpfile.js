@@ -1,3 +1,5 @@
+'use strict';
+
 var gulp = require('gulp');
 var gutil = require('gulp-util');
 var prefix = require('gulp-autoprefixer');
@@ -9,7 +11,6 @@ var manifest = require('gulp-manifest');
 var runSequence = require('run-sequence');
 var rev = require('gulp-rev');
 var buffer = require('gulp-buffer');
-var replace = require('gulp-replace');
 var inject = require('gulp-inject');
 var sass = require('gulp-sass');
 var sourcemaps = require('gulp-sourcemaps');
@@ -25,24 +26,25 @@ var src = {
 var entry = {
     js: './src/js/index.js',
     scss: './src/scss/main.scss'
-}
-
-var built = {
-    js: './',
-    css: './css/'
 };
 
-var built_globs = [
+var buildGlobs = [
     './bundle*js',
     './index.html',
     './bundle*.css',
-    './img/*.png'
+    './img/*'
+];
+
+var remoteCached = [
+    'http://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic',
+    'https://cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css'
 ];
 
 gulp.task('manifest', function(){
-    return gulp.src(built_globs, { base: '.' })
+    return gulp.src(buildGlobs, { base: '.' })
         .pipe(manifest({
             hash: true,
+            cache: remoteCached,
             filename: 'lmio.appcache',
             exclude: 'lmio.appcache'
         }))
@@ -62,25 +64,21 @@ gulp.task('clean-css', function (cb) {
 gulp.task('js', function() {
     var b = browserify(entry.js, {debug: true, transform: [babelify]})
         .bundle();
-    return b.on('error', function(e) {
-            gutil.log(e);
-            b.end();
-        })
-        .pipe(source('bundle.js'))
-        // Start piping stream to tasks!
-        .pipe(buffer())
-        .pipe(rev())
-        .pipe(sourcemaps.init({loadMaps: true}))
-        .pipe(sourcemaps.write('./'))
-        .pipe(gulp.dest('.'))
-        //
-        // Ideally we would now like to minify the bundle, whilst keeping the
-        // source mapping correct. I can't get this working for now, so we
-        // just ignore it. But would be something like...
-        //.pipe(streamify(uglify()))
-        //.pipe(rename('bundle.min.js'))
-        //.pipe(gulp.dest('.'))
-        .pipe(notify('Landmarker.io: JS rebuilt'));
+
+    return b.on('error', function (err) {
+        if (process.env.NODE_ENV === 'production') {
+            throw err;
+        } else {
+            gutil.log('Browserify Error', err.message || err);
+        }
+    })
+    .pipe(source('bundle.js'))
+    .pipe(buffer())
+    .pipe(rev())
+    .pipe(sourcemaps.init({loadMaps: true}))
+    .pipe(sourcemaps.write('./'))
+    .pipe(gulp.dest('.'))
+    .pipe(notify('Landmarker.io: JS rebuilt'));
 });
 
 // Rebuild the SCSS and pass throuhg autoprefixer output
@@ -88,7 +86,14 @@ gulp.task('js', function() {
 gulp.task('sass', function () {
     return gulp.src(entry.scss)
         .pipe(sourcemaps.init())
-        .pipe(sass().on('error', sass.logError))
+        .pipe(sass()
+        .on('error', function (err) {
+            if (process.env.NODE_ENV === 'production') {
+                throw err;
+            } else {
+                gutil.log('Node-Sass Error', err.message || err);
+            }
+        }))
         .pipe(prefix(["last 1 version", "> 1%", "ie 8", "ie 7"],
             { cascade: true }))
         .pipe(sourcemaps.write())
@@ -100,7 +105,7 @@ gulp.task('sass', function () {
 
 gulp.task('html', function() {
     var target = gulp.src('./src/index.html');
-    var sources = gulp.src(built_globs, {read: false});
+    var sources = gulp.src(buildGlobs, {read: false});
     return target.pipe(inject(sources, {addRootSlash: false}))
         .pipe(gulp.dest('.'))
         .pipe(notify('Landmarker.io: HTML rebuilt'));

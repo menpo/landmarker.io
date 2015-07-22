@@ -1,9 +1,11 @@
+'use strict';
+
 var _ = require('underscore');
 var Backbone = require('backbone');
 var $ = require('jquery');
 var Spinner = require('spin.js');
 
-"use strict";
+var { randomString } = require('../lib/utils');
 
 var spinnerOpts = {
     lines: 13, // The number of lines to draw
@@ -24,9 +26,9 @@ var spinnerOpts = {
     left: '50%' // Left position relative to parent
 };
 
-// exports.ThumbnailNotification = Backbone.View.extend({
+// module.exports.ThumbnailNotification = Backbone.View.extend({
 //
-//     initialize : function() {
+//     initialize: function () {
 //         _.bindAll(this, 'render');
 //         this.listenTo(this.model.assetSource(), "change:nPreviews", this.render);
 //     },
@@ -54,7 +56,7 @@ var NOTIFICATION_BASE_CLASS = 'Notification',
                                   'error': 'Notification--Error',
                                   'warning': 'Notification--Warning' };
 
-exports.BaseNotification = Backbone.View.extend({
+module.exports.BaseNotification = Backbone.View.extend({
 
     tagName: 'div',
     container: '#notificationOverlay',
@@ -66,7 +68,7 @@ exports.BaseNotification = Backbone.View.extend({
         onClose,
         persist=false,
         closeTimeout=NOTIFICATION_DEFAULT_CLOSE_TIMEOUT
-    }) {
+    }={}) {
 
         _.bindAll(this, 'render', 'close');
 
@@ -95,14 +97,15 @@ exports.BaseNotification = Backbone.View.extend({
     },
 
     events: {
-        'click .Notification__Action': 'handleClick'
+        'click .Notification__Action': 'handleClick',
+        'click': 'close'
     },
 
     handleClick: function (evt) {
         if (this.actions.length) {
             evt.preventDefault();
             var actionIndex = evt.currentTarget.dataset.index;
-            if (actionIndex > 0 && actionIndex < this.actions.length) {
+            if (actionIndex >= 0 && actionIndex < this.actions.length) {
                 this.actions[actionIndex][1]();
             }
         }
@@ -139,7 +142,7 @@ exports.BaseNotification = Backbone.View.extend({
 
         this.$el.appendTo(this.container);
 
-        if (timeout !== undefined) {
+        if (timeout > 0) {
           setTimeout(this.close, timeout);
         }
     },
@@ -163,13 +166,13 @@ exports.BaseNotification = Backbone.View.extend({
     }
 });
 
-exports.notify = function (opts) {
-    return new exports.BaseNotification(opts);
-}
+module.exports.notify = function (opts) {
+    return new module.exports.BaseNotification(opts);
+};
 
-exports.AssetLoadingNotification = Backbone.View.extend({
+module.exports.AssetLoadingNotification = Backbone.View.extend({
 
-    initialize : function() {
+    initialize: function() {
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change:assetSource",
             this._changeAssetSource);
@@ -195,12 +198,10 @@ exports.AssetLoadingNotification = Backbone.View.extend({
         var isLoading = this.model.assetSource().assetIsLoading();
         if (isLoading !== this.isSpinning) {
             if (isLoading) {
-                console.log('Spinner on!');
                 // need to set the spinner going
                 this.spinner.spin(this.el);
                 this.isSpinning = true;
             } else {
-                console.log('Spinner off.');
                 this.spinner.stop();
                 this.isSpinning = false;
             }
@@ -208,10 +209,9 @@ exports.AssetLoadingNotification = Backbone.View.extend({
     }
 });
 
+module.exports.LandmarkSavingNotification = Backbone.View.extend({
 
-exports.LandmarkSavingNotification = Backbone.View.extend({
-
-    initialize : function() {
+    initialize: function () {
         _.bindAll(this, 'start', 'stop');
         this.spinner = new Spinner().spin();
 
@@ -234,3 +234,58 @@ exports.LandmarkSavingNotification = Backbone.View.extend({
         }
     }
 });
+
+var CornerSpinner = Backbone.View.extend({
+
+    el: '#globalSpinner',
+    initialize: function () {
+        this._operations = {};
+        this._shown = false;
+    },
+
+    render: function (show) {
+
+        if (show === undefined) {
+            show = Object.keys(this._operations).length > 0;
+        }
+
+        if (show && !this._shown) {
+            this.$el.addClass('Display');
+            $('.Viewport').addClass('LoadingCursor');
+            this._shown = true;
+        } else if (!show) {
+            this.$el.removeClass('Display');
+            $('.Viewport').removeClass('LoadingCursor');
+            this._shown = false;
+        }
+
+    },
+
+    start: function () {
+        const rs = randomString(8, true);
+        this._operations[rs] = true;
+        this.render(true);
+        return rs;
+    },
+
+    stop: function (op) {
+        if (op in this._operations) {
+            delete this._operations[op];
+            this.render();
+        }
+    }
+});
+
+var _gs;
+module.exports.loading = {
+
+    start: function () {
+        _gs = _gs || new CornerSpinner();
+        return _gs.start.call(_gs);
+    },
+
+    stop: function (id) {
+        _gs = _gs || new CornerSpinner();
+        _gs.stop.call(_gs, id);
+    }
+};

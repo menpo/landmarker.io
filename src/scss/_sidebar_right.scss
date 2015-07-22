@@ -14,9 +14,69 @@
 }
 
 .RightSidebar-Controls,
-.RightSidebar-LandmarksPanel {
+.RightSidebar-LandmarksPanel,
+.RightSidebar-Header {
     display: flex;
-    text-align: center;
+    opacity: .9;
+}
+
+.RightSidebar-Template {
+    @extend %transitionAll;
+    min-height: $mainControlHeight;
+    line-height: $mainControlHeight;
+    background: $colorDarkerBlue;
+    color: white;
+    cursor: pointer;
+    font-size: large;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    margin-left: 1px;
+    margin-bottom: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    &:hover {
+        background: $colorDarkBlue;
+    }
+
+    &.Disabled {
+        cursor: default;
+        background: $colorDarkerBlue;
+    }
+}
+
+.RightSidebar-UndoRedo {
+    > div {
+        @extend %transitionAll;
+        min-height: $mainControlHeight;
+        line-height: $mainControlHeight;
+        width: $mainControlHeight;
+        background: $colorPurple;
+        color: white;
+        float: left;
+        margin-left: 1px;
+        margin-bottom: 1px;
+        cursor: pointer;
+
+        &:first-of-type {
+            border-top-left-radius: $mainBorderRadius;
+        }
+
+        &:last-of-type {
+            transform: scale(-1, 1);
+        }
+
+        &:hover {
+            background: $colorDarkPurple;
+        }
+
+        &.Disabled {
+            cursor: default;
+            background: $colorGray;
+        }
+    }
 }
 
 /* Special RightSidebar item used for rows (e.g. two buttons).
@@ -26,16 +86,24 @@ is itself a row flexbox */
     justify-content: space-around;
     align-items: center;
     min-height: $mainControlHeight;
+
+    &.Hide {
+        display: none;
+    }
 }
 
 .RightSidebar-Controls-Item {
-    flex: 1;
+    flex: 2;
+    margin-left: 1px;
+
+    &:last-of-type {
+      flex: 1;
+    }
 }
 
 /* Landmarks selector */
 .RightSidebar-LandmarksPanel {
     flex-direction: column;
-    /*overflow: auto; breaks Safari view? */
     cursor: pointer;
 }
 
@@ -59,36 +127,40 @@ is itself a row flexbox */
 }
 
 .LmGroup-Label--Active {
-    font-weight: bold
+    font-weight: 700;
 }
 
 .LmGroup-Flex {
     display: flex;
     align-items: center;
-    opacity: 0.5;
 }
 
 .Lm {
+    @extend %transitionAll;
+    opacity: .5;
     flex: 1;
     height: 30px;
     margin-left: 1px;
     margin-bottom: 1px;
+
+    &:hover {
+        opacity: .75;
+    }
 }
 
 .Lm-Empty {
-    background: #67809f;
+    background: $colorGray;
 }
 
 .Lm-Value {
-    background: #0A4EB2;
+    background: $colorDarkerBlue;
 }
 
 .Lm-Selected {
-    background: #bf55ec;
+    background: $colorPurple;
 }
 
 
 .Lm-NextAvailable {
-    border-bottom: solid white;
-    height: 27px;
+    background: $colorOrange;
 }

@@ -1,40 +1,72 @@
 button,
 .Button {
+    @extend %transitionAll;
     border: none;
     background: white;
+    font-family: $fontFamily;
     outline: none;
     width: 100%;
+    margin: 0;
     min-height: $mainControlHeight;
     line-height: $mainControlHeight;
-    font-weight: 300;
-    font-size: larger;
+    font-weight: bold;
+    font-size: large;
     cursor: pointer;
-}
-
-button:active {
-    background: #2D77C2;
 }
 
 .Button-Basic,
 .Button-Save,
-.Button-Revert {
+.Button-Danger,
+.Button-Info {
     color: white;
+    text-transform: uppercase;
+    font-size: medium;
+}
+
+.Button-Basic#help {
+    font-size: 1em;
+    cursor: help;
 }
 
 .Button-Basic {
-    background: #0A4EB2;
+    background: $colorDarkerBlue;
+    &:hover {
+        background: $colorDarkBlue;
+    }
 }
 
 .Button-Save {
-    background: #5FB632;
+    background: $colorGreen;
+    &:hover {
+        background: $colorDarkGreen;
+    }
+
+    &.Active::before {
+        content: '•';
+        color: $colorRed;
+        font-size: 2.75em;
+        vertical-align: top;
+        position: absolute;
+        left: 12px;
+    }
 }
 
-.Button-Revert {
-    background: #B91109;
+.Button-Info {
+  background: $colorPurple;
+  &:hover {
+      background: $colorDarkPurple;
+  }
+}
+
+.Button-Danger {
+    background: $colorRed;
+    &:hover {
+        background: $colorDarkRed;
+    }
 }
 
 button:disabled,
 .Button--Disabled {
-    opacity: 0.33;
-    cursor: initial;
+    opacity: .33;
+    cursor: default;
 }

@@ -1,9 +1,9 @@
-"use strict";
+'use strict';
 
 var _ = require('underscore');
 var THREE = require('three');
 
-var Backbone = require('../../lib/backbonej');
+var Backbone = require('backbone');
 
 // the default scale for 1.0
 var LM_SCALE = 0.01;
@@ -21,7 +21,6 @@ var lmMaterialForSelected = {
     true: new THREE.MeshBasicMaterial({color: LM_SPHERE_SELECTED_COLOR}),
     false: new THREE.MeshBasicMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
 };
-
 
 var LandmarkTHREEView = Backbone.View.extend({
 

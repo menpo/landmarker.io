@@ -1,0 +1,105 @@
+.Intro {
+    padding: 0;
+    pointer-events: auto;
+
+    h1,
+    h3 {
+        text-align: center;
+    }
+
+    h3 {
+        color: $colorGray;
+    }
+}
+
+.IntroItems {
+    margin-top: 1em;
+    padding: 1em;
+    border-top: 1px dashed $colorLightGray;
+}
+
+.IntroItem {
+    @extend %transitionAll;
+    width: 320px;
+    margin: 1.5em;
+    height: 64px;
+    line-height: 64px;
+    cursor: pointer;
+    border-radius: $minorBoarderRadius;
+    background-color: white;
+    border: 1px solid $colorDarkGray;
+    color: white;
+    background-color: $colorDarkGray;
+    justify-content: center;
+    font-weight: 300;
+
+    display: flex;
+    flex-flow: row no-wrap;
+
+    > span,
+    &::before {
+        transition: border-color .2s ease-in-out;
+        height: 61px;
+        width: 61px;
+        line-height: 64px;
+        vertical-align: center;
+        display: inline-block;
+        font-size: xx-large;
+        text-align: center;
+        border-right: 1px solid $colorGray;
+        text-align: center;
+    }
+
+    > div {
+        flex: 1;
+        margin-left: 1em;
+    }
+
+    &:hover {
+        background-color: white;
+        color: $colorDarkGray;
+
+        > span,
+        &::before {
+            border-color: $colorDarkGray;
+        }
+    }
+
+}
+
+.IntroItem--Dropbox {
+    border-color: $colorDropboxBlue;
+    background-color: $colorDropboxBlue;
+
+    &::before {
+        content: '';
+        background-size: cover;
+        border-color: $colorDropboxLightBlue;
+        background-image: url(img/dropbox-white.svg);
+    }
+
+    &:hover {
+        background-color: white;
+        color: $colorDropboxBlue;
+
+        &::before {
+          border-color: $colorDropboxBlue;
+          background-image: url(img/dropbox-blue.svg);
+        }
+    }
+}
+
+.IntroItem--Demo {
+  border-color: $colorGreen;
+  background-color: $colorGreen;
+
+  &:hover {
+      color: $colorGreen;
+  }
+}
+
+.IntroWarning {
+    @extend p.Error;
+    width: 320px;
+    margin: 1.5em;
+}

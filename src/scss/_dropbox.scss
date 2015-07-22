@@ -1,0 +1,204 @@
+.DropboxSelect {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.DropboxSelectExplore,
+.DropboxSelectList,
+.DropboxSelectSubmit {
+    width: 100%;
+    display: flex;
+    padding: 0;
+}
+
+.DropboxSelectExplore,
+.DropboxSelectSubmit {
+    flex-flow: row;
+    height: 44px;
+    line-height: 44px;
+}
+
+.DropboxSelectExplore {
+
+    border-bottom: 1px solid $colorLightGray;
+    display: flex;
+    flex-direction: row;
+
+    .Action {
+        width: 38px;
+        line-height: 44px;
+        text-align: center;
+        cursor: pointer;
+
+        span {
+            @extend %transitionAll;
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            border-radius: 2px;
+            background: $colorLightGray;
+            color: $colorGray;
+        }
+
+        &:hover span {
+          color: white;
+          background: $colorDropboxBlue;
+        }
+
+        &.Unavailable {
+          display: none;
+        }
+    }
+
+    .Path {
+        padding: 0 8px;
+        flex: 1;
+    }
+}
+
+
+.DropboxSelectSubmit {
+
+    line-height: 52px;
+    height: 52px;
+
+    > span, > div {
+        background: $colorLightGray;
+        padding: 0 8px;
+    }
+
+    > span {
+        flex: 3;
+        color: $colorGreen;
+        font-weight: bold;
+
+        &.Empty {
+            color: $colorRed;
+        }
+    }
+
+    > div {
+        @extend %transitionAll;
+        flex: 1;
+        background: $colorDropboxBlue;
+        color: white;
+        cursor: pointer;
+        text-align: center;
+
+        &:hover {
+            color: $colorDropboxLightBlue;
+        }
+    }
+}
+
+.DropboxSelectList {
+    max-height: 640px;
+    overflow: scroll;
+
+    &.Empty {
+        justify-content: space-between;
+        padding: 16px;
+    }
+
+    > ul {
+        padding: 0;
+        margin: 0;
+        list-style-type: none;
+        display: flex;
+        align-items: flex-start;
+        flex-flow: row wrap;
+        justify-content: flex-start;
+    }
+}
+
+li.DropboxSelectListItem {
+
+    margin: 12px 5px;
+    padding: 0 auto;
+    width: 96px;
+    line-height: auto;
+    text-align: center;
+
+    > span {
+        @extend %transitionAll;
+        display: block;
+        width: 64px;
+        height: 64px;
+        border: 2px solid $colorLightGray;
+        border-radius: 3px;
+        color: $colorGray;
+        text-align: center;
+        line-height: 64px;
+        margin: 0 auto 12px auto;
+        font-size: large;
+    }
+
+
+    cursor: pointer;
+    word-wrap: break-word;
+
+    &:hover,
+    &.Selected {
+        > span {
+            border-color: $colorDropboxBlue;
+        }
+    }
+
+    &.Selected {
+        > span {
+            background-color: $colorDropboxBlue;
+            color: white;
+        }
+    }
+
+    &.Disabled > span {
+      opacity: .75;
+      background: $colorLightGray;
+      border-color: $colorLightGray;
+      color: $colorGray;
+      cursor: default;
+    }
+}
+
+.DropboxRadios {
+    width: 100%;
+    border-bottom: 1px solid $colorLightGray;
+}
+
+.DropboxRadio {
+    width: 100%;
+    margin: 0;
+    padding: 0 1em;
+    height: 44px;
+    line-height: 44px;
+    display: flex;
+
+    > label {
+        flex: 1;
+        text-align: center;
+
+        &:hover {
+            cursor: pointer;
+
+            span {
+                color: $colorDropboxBlue;
+            }
+        }
+    }
+
+    label,
+    input,
+    span {
+        @extend %transitionAll;
+    }
+
+    input {}
+
+    span {}
+
+    input:checked ~ span {
+        color: $colorDropboxBlue;
+    }
+}

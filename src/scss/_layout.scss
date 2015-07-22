@@ -68,8 +68,20 @@
     justify-content: center;
 
     > div {
-        width: $pagerItemWidth;
+        width: 75px;
         z-index: $zIndexUI;
+    }
+}
+
+.Pager-Item:first-of-type > .Button-Basic {
+     border-top-left-radius: $mainBorderRadius;
+}
+
+.Pager-Item:last-of-type > .Button-Basic {
+    border-top-right-radius: $mainBorderRadius;
+
+    @media screen and (max-width: $breakpointsMobile) {
+        border-top-right-radius: 0;
     }
 }
 

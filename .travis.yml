@@ -1,10 +1,17 @@
+sudo: false
 language: node_js
 node_js:
 - '0.12'
-install: npm install
+install:
+  - npm install
+  - gem install s3_website
 script:
+- npm run lint:errors
 - npm run build
-- bash deploy.sh
+- ./deploy.sh
 cache:
   directories:
   - node_modules
+notifications:
+  slack:
+    secure: D7VvuQP+rpk3w+ykJHmznG/87SoORZMMmHZks+WXXnO1RZKaOdS4h4LU0YGKEn4WYXk0rE9W2MtvqF6dD1NISl2VB3ZKw9bVf+IuE+EP0vqZXAiqcLMTxK9htBT+09TmLpJpdNSyqI/B7/CzCVuWa5Sabrh0aQP9j2b6UT2rZPM=

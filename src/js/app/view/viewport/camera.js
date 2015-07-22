@@ -21,9 +21,11 @@
  * for instance) can disable the Controller temporarily with the enabled
  * property.
  */
+'use strict';
+
 var $ = require('jquery');
 var _ = require('underscore');
-var Backbone = require('../../lib/backbonej');
+var Backbone = require('backbone');
 var THREE = require('three');
 
 var MOUSE_WHEEL_SENSITIVITY = 0.5;
@@ -37,14 +39,13 @@ var UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
     2: 1.0  // The delta values are specified in pages.
 };
 
-"use strict";
-
 exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
 
     var controller = {};
     _.extend(controller, Backbone.Events);
     var STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2 };
     var state = STATE.NONE;  // the current state of the Camera
+    var canRotate = !IMAGE_MODE;
 
     // internals
     var enabled = false; // note that we will enable on creation below!
@@ -117,7 +118,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         // the bounds of the orthographic frustum to zoom.
         if (oCam.right - oCam.left < 0.001 && scalar < 0) {
             // trying to zoom in and we are already tight. return.
-            return
+            return;
         }
 
         // Difference must respect aspect ratio, otherwise we will distort
@@ -128,9 +129,9 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
 
         // overall difference in height scale is scalar * 2, but we weight
         // where this comes off based on mouse position
-        oCam.left   -= (scalar * oM.xR) / (a);
-        oCam.right  += (scalar * (1 - oM.xR)) / (a);
-        oCam.top    += scalar * oM.yR;
+        oCam.left -= (scalar * oM.xR) / (a);
+        oCam.right += (scalar * (1 - oM.xR)) / (a);
+        oCam.top += scalar * oM.yR;
         oCam.bottom -= scalar * (1 - oM.yR);
         if (oCam.left > oCam.right) {
             oCam.left = oCam.right - 0.0001;
@@ -184,14 +185,17 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     // mouse
     function onMouseDown(event) {
         console.log('camera: mousedown');
-        if (!enabled) return;
+        if (!enabled) {
+            return;
+        }
         event.preventDefault();
         mouseDownPosition.set(event.pageX, event.pageY);
         mousePrevPosition.copy(mouseDownPosition);
         mouseCurrentPosition.copy(mousePrevPosition);
+
         switch (event.button) {
             case 0:
-                if (IMAGE_MODE) {
+                if (!canRotate) {
                     state = STATE.PAN;
                 } else {
                     state = STATE.ROTATE;
@@ -237,8 +241,8 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
 
     function mousePositionInOrthographicView(v) {
         // convert into relative coordinates (0-1)
-        var x = v.x / domElement.width;
-        var y = v.y / domElement.height;
+        var x = v.x / domElement.offsetWidth;
+        var y = v.y / domElement.offsetHeight;
         // get the current height and width of the orthographic
         var oWidth = oCam.right - oCam.left;
         var oHeight = oCam.top - oCam.bottom;
@@ -266,10 +270,11 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         // TODO this assumes square PIP image
         var zV = zH;
         // reconstructing bounds is easy...
-        oCamZoom.left = oM.x - (zH/2);
-        oCamZoom.right = oM.x + (zH/2);
-        oCamZoom.top = oM.y + (zV/2);
-        oCamZoom.bottom = oM.y - (zV/2);
+        const zHm = zH / 2, zVm = zV / 2;
+        oCamZoom.left = oM.x - (zHm);
+        oCamZoom.right = oM.x + (zHm);
+        oCamZoom.top = oM.y + (zVm);
+        oCamZoom.bottom = oM.y - (zVm);
         oCamZoom.updateProjectionMatrix();
         // emit a special change event. If the viewport is
         // interested (i.e. we are in PIP mode) it can update
@@ -318,7 +323,9 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     var prevDistance = null;
 
     function touchStart(event) {
-        if (!enabled) return;
+        if (!enabled) {
+            return;
+        }
         var touches = event.touches;
         switch (touches.length) {
             case 2:
@@ -331,7 +338,9 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     }
 
     function touchMove(event) {
-        if (!enabled) return;
+        if (!enabled) {
+            return;
+        }
         event.preventDefault();
         event.stopPropagation();
         var touches = event.touches;
@@ -386,6 +395,11 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
         pCam.updateProjectionMatrix();
     }
 
+    function allowRotation (allowed=true) {
+        canRotate = allowed;
+    }
+
+    controller.allowRotation = allowRotation;
     controller.enable = enable;
     controller.disable = disable;
     controller.resize = resize;

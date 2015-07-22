@@ -40,7 +40,7 @@ if [ "$TRAVIS" == "true" ]; then
   # Decrypt the key ecnrypted with travis encrypt-file and add to ssh-agent
   openssl aes-256-cbc -K "$ENCRYPTED_KEY" -iv "$ENCRYPTED_IV" -in id_rsa.enc -out id_rsa -d
   chmod 600 id_rsa
-  eval `ssh-agent -s`
+  eval "$(ssh-agent -s)"
   ssh-add id_rsa
 
   # Ensure correct ssh remote
@@ -61,24 +61,24 @@ else
   SLUG=${SLUG#git@github.com:}
   SLUG=${SLUG%.git}
   ACTOR="LOCAL"
-
 fi
 
 shopt -s extglob
 
-git fetch --all # Make sure we have the latest state
+# Make sure we have the latest state
+git fetch --all || exi 1;
 LAST_COMMIT=$(git log -n 1 --pretty=oneline)
 
 echo "Building gh-pages branch for $BRANCH"
 
 # Assume manifest present means build has happened, otherwise rebuild
-[[ ! -e "$MANIFEST" ]] && npm run build || echo "Already built"
+if [[ ! -e "$MANIFEST" ]]; then  npm run build || exit 1; else echo "Already built"; fi
 
 TMP_DIR=$(mktemp -d "/tmp/landmarker-build-$BRANCH-XXXX")
-mv ./index.html ./bundle-*.* ./*.appcache ./img ./api "$TMP_DIR"
+mv ./index.html ./bundle-*.* ./*.appcache ./img ./api ./*.png ./favicon.ico browserconfig.xml mainfest.json "$TMP_DIR"
 
 # Switch to latests gh-pages branch and enforce correct content
-git checkout gh-pages
+git checkout gh-pages || exit 1
 git clean -f
 git reset --hard
 
@@ -103,12 +103,24 @@ if [[ ! -z "$TRAVIS_TAG" ]]; then
   cp -r "staging/$BRANCH"/* .
 fi
 
+# Clean up old tags (only keep 3)
+for i in $(find staging -name "v*.*.*" | sort | head -n -3); do
+  TAG_NAME=$(basename "$i")
+  echo "Removing $TAG_NAME"
+  sed -i "/id='$TAG_NAME'/d" staging/index.html
+  git rm -rf "staging/$TAG_NAME"
+done
+
 # Save updates to repository
 git status -s
 git add -A .
-git commit --allow-empty -m "[deploy.sh | $ACTOR] $BRANCH ($(date))"
-git push
+git commit --allow-empty -m "[deploy.sh | $ACTOR] $BRANCH ($(date))" || exit 1;
+git push || exit 1;
+
+# S3 Deploy
+if [[ -z $(git checkout "$BRANCH" -- s3_website.yml) ]]; then s3_website push || exit 1; else echo "Couldn't find s3_website file, skipping"; fi
 
 # Clean up
 rm -rf "$TMP_DIR"
+
 shopt -u extglob
