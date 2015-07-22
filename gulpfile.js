@@ -69,7 +69,7 @@ gulp.task('js', function() {
         if (process.env.NODE_ENV === 'production') {
             throw err;
         } else {
-            gutil.log('Browserify Error', err);
+            gutil.log('Browserify Error', err.message || err);
         }
     })
     .pipe(source('bundle.js'))
@@ -91,7 +91,7 @@ gulp.task('sass', function () {
             if (process.env.NODE_ENV === 'production') {
                 throw err;
             } else {
-                gutil.log('Node-Sass Error', err);
+                gutil.log('Node-Sass Error', err.message || err);
             }
         }))
         .pipe(prefix(["last 1 version", "> 1%", "ie 8", "ie 7"],
