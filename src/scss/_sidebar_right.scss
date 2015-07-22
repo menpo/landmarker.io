@@ -85,10 +85,15 @@ is itself a row flexbox */
     flex-direction: row;
     justify-content: space-around;
     align-items: center;
+    margin-bottom: 1px;
     min-height: $mainControlHeight;
 
     &.Hide {
         display: none;
+    }
+
+    &:first-of-type {
+        margin-bottom: 0;
     }
 }
 
