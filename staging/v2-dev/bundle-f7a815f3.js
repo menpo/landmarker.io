@@ -37,6 +37,10 @@ var _appLibSupport = require('./app/lib/support');
 
 var support = _interopRequireWildcard(_appLibSupport);
 
+var _appViewNotification = require('./app/view/notification');
+
+var Notification = _interopRequireWildcard(_appViewNotification);
+
 var _appModelConfig = require('./app/model/config');
 
 var _appModelConfig2 = _interopRequireDefault(_appModelConfig);
@@ -56,8 +60,6 @@ var _appBackend2 = _interopRequireDefault(_appBackend);
 var _appViewKeyboard = require('./app/view/keyboard');
 
 var _appViewKeyboard2 = _interopRequireDefault(_appViewKeyboard);
-
-var Notification = require('./app/view/notification');
 
 var cfg = (0, _appModelConfig2['default'])();
 
@@ -256,7 +258,7 @@ function initLandmarker(server, mode, u) {
 
     new Notification.AssetLoadingNotification({ model: app });
     new SidebarView.Sidebar({ model: app });
-    new _appViewAsset2['default']({ model: app, restart: _appViewIntro2['default'].open });
+    new _appViewAsset2['default']({ model: app });
     new ToolbarView.Toolbar({ model: app });
     new HelpOverlay({ model: app });
 
@@ -59378,7 +59380,7 @@ if (typeof exports !== 'undefined') {
 },{}],45:[function(require,module,exports){
 module.exports={
   "name": "landmarker-io",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "3D mesh annotation in your browser.",
   "main": "index.js",
   "repository": {
@@ -60921,7 +60923,12 @@ var https = (function () {
 })();
 
 exports.https = https;
-exports['default'] = { ie: ie, webgl: webgl, localstorage: localstorage, https: https };
+exports['default'] = {
+    ie: ie,
+    webgl: webgl,
+    localstorage: localstorage,
+    https: https
+};
 
 },{}],55:[function(require,module,exports){
 'use strict';
@@ -63354,6 +63361,10 @@ var _notification = require('./notification');
 
 var Notification = _interopRequireWildcard(_notification);
 
+var _intro = require('./intro');
+
+var _intro2 = _interopRequireDefault(_intro);
+
 var _libUtils = require('../lib/utils');
 
 var _backend = require('../backend');
@@ -63405,12 +63416,9 @@ var BackendNameView = _backbone2['default'].View.extend({
         click: 'handleClick'
     },
 
-    initialize: function initialize(_ref) {
-        var restart = _ref.restart;
-
+    initialize: function initialize() {
         _underscore2['default'].bindAll(this, 'render');
         this.render();
-        this.restart = restart;
         this.listenTo(this.model, 'change:server', this.render);
     },
 
@@ -63436,7 +63444,7 @@ var BackendNameView = _backbone2['default'].View.extend({
 
     handleClick: function handleClick() {
         if (this.model.has('server')) {
-            _modal2['default'].confirm('Log out of the current data source and restart the landmarker ?', this.restart);
+            _modal2['default'].confirm('Log out of the current data source and restart the landmarker ?', _intro2['default'].open);
         }
     }
 });
@@ -63634,8 +63642,8 @@ var CollectionName = _backbone2['default'].View.extend({
 
 exports.CollectionName = CollectionName;
 exports['default'] = _backbone2['default'].View.extend({
-    initialize: function initialize(_ref2) {
-        var restart = _ref2.restart;
+    initialize: function initialize(_ref) {
+        var restart = _ref.restart;
 
         new BackendNameView({ model: this.model, restart: restart });
         new CollectionName({ model: this.model });
@@ -63645,7 +63653,7 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../backend":48,"../lib/utils":56,"./list_picker":71,"./modal":72,"./notification":73,"backbone":2,"jquery":9,"underscore":44}],67:[function(require,module,exports){
+},{"../backend":48,"../lib/utils":56,"./intro":69,"./list_picker":71,"./modal":72,"./notification":73,"backbone":2,"jquery":9,"underscore":44}],67:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = (function () {
@@ -64130,6 +64138,8 @@ var _libSupport = require('../lib/support');
 
 var _libSupport2 = _interopRequireDefault(_libSupport);
 
+var _notification = require('./notification');
+
 var _packageJson = require('../../../../package.json');
 
 var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3>v' + _packageJson.version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect your own server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div></div>';
@@ -64137,6 +64147,8 @@ var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3>v' + _pac
 var lsWarning = '<p class=\'IntroWarning\'>    Your browser doesn\'t support LocalStorage, so Dropbox login has been    disabled.</p>';
 
 var httpsWarning = '<p class=\'IntroWarning\'>    You are currently on an non-https connection. For security reasons Dropbox integration has been disabled.\n</p>';
+
+var mixedContentWarning = '\n<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href=\'http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/\'>unadvisable</a> and thus we do not allow it.<br><br>\nYou can visit <a href=\'http://www.insecure.landmarker.io\'>insecure.landmarker.io</a> to disable this warning.</p>\n';
 
 var Intro = _modal2['default'].extend({
 
@@ -64202,7 +64214,15 @@ var Intro = _modal2['default'].extend({
         var _this = this;
 
         _modal2['default'].prompt('Where is your server located ?', function (value) {
-            _this._restart(value);
+            if (_libSupport2['default'].https && value.indexOf('https://') !== 0) {
+                (0, _notification.notify)({
+                    type: 'error',
+                    msg: (0, _jquery2['default'])(mixedContentWarning),
+                    actions: [['Retry', _this.open]]
+                });
+            } else {
+                _this._restart(value);
+            }
         }, function () {
             _this.open();
         });
@@ -64230,7 +64250,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{"../../../../package.json":45,"../backend":48,"../lib/support":54,"../lib/utils":56,"./modal":72,"jquery":9}],70:[function(require,module,exports){
+},{"../../../../package.json":45,"../backend":48,"../lib/support":54,"../lib/utils":56,"./modal":72,"./notification":73,"jquery":9}],70:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64932,6 +64952,7 @@ module.exports.BaseNotification = Backbone.View.extend({
             var actionIndex = evt.currentTarget.dataset.index;
             if (actionIndex >= 0 && actionIndex < this.actions.length) {
                 this.actions[actionIndex][1]();
+                this.close();
             }
         }
     },
@@ -67059,7 +67080,7 @@ exports.Viewport = Backbone.View.extend({
         // drawing into each frame. This way we only need clear the relevant
         // area of the canvas which is a big perf win.
         // see this.updateCanvasBoundingBox() for usage.
-        this.ctxBox = { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
+        this.ctxBox = this.initialBoundingBox();
 
         // ------ SCENE GRAPH CONSTRUCTION ----- //
         this.scene = new THREE.Scene();
@@ -67524,6 +67545,10 @@ exports.Viewport = Backbone.View.extend({
     },
 
     clearCanvas: function clearCanvas() {
+        if (_.isEqual(this.ctxBox, this.initialBoundingBox())) {
+            // there has been no change to the canvas - no need to clear
+            return;
+        }
         // we only want to clear the area of the canvas that we dirtied
         // since the last clear. The ctxBox object tracks this
         var p = 3; // padding to be added to bounding box
@@ -67535,7 +67560,11 @@ exports.Viewport = Backbone.View.extend({
         var height = maxY - minY;
         this.ctx.clearRect(minX, minY, width, height);
         // reset the tracking of the context bounding box tracking.
-        this.ctxBox = { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
+        this.ctxBox = this.initialBoundingBox();
+    },
+
+    initialBoundingBox: function initialBoundingBox() {
+        return { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
     },
 
     // Coordinates and intersection helpers
@@ -67633,4 +67662,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-55f4c835.js.map
+//# sourceMappingURL=bundle-f7a815f3.js.map
