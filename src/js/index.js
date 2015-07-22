@@ -6,11 +6,9 @@ import url from 'url';
 
 import * as utils from './app/lib/utils';
 import * as support from './app/lib/support';
-
-var Notification = require('./app/view/notification');
+import * as Notification from './app/view/notification';
 
 import Config from './app/model/config';
-const cfg = Config();
 
 import Intro from './app/view/intro';
 import AssetView from './app/view/asset';
@@ -18,6 +16,8 @@ import AssetView from './app/view/asset';
 import Backend from './app/backend';
 
 import KeyboardShortcutsHandler from './app/view/keyboard';
+
+const cfg = Config();
 
 function resolveBackend (u) {
     console.log(
@@ -217,7 +217,7 @@ function initLandmarker(server, mode, u) {
 
     new Notification.AssetLoadingNotification({model: app});
     new SidebarView.Sidebar({model: app});
-    new AssetView({model: app, restart: Intro.open});
+    new AssetView({model: app});
     new ToolbarView.Toolbar({model: app});
     new HelpOverlay({model: app});
 

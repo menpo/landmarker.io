@@ -7,6 +7,7 @@ import Backend from '../backend';
 import { baseUrl } from '../lib/utils';
 
 import support from '../lib/support';
+import { notify } from './notification';
 import { version } from '../../../../package.json';
 
 
@@ -39,6 +40,11 @@ const httpsWarning = `\
 <p class='IntroWarning'>\
     You are currently on an non-https connection. For security reasons Dropbox integration has been disabled.
 </p>`;
+
+const mixedContentWarning = `
+<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href='http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/'>unadvisable</a> and thus we do not allow it.<br><br>
+You can visit <a href='http://www.insecure.landmarker.io'>insecure.landmarker.io</a> to disable this warning.</p>
+`;
 
 const Intro = Modal.extend({
 
@@ -98,7 +104,15 @@ const Intro = Modal.extend({
 
     startServer: function () {
         Modal.prompt('Where is your server located ?', (value) => {
-            this._restart(value);
+            if (support.https && value.indexOf('https://') !== 0) {
+                notify({
+                    type: 'error',
+                    msg: $(mixedContentWarning),
+                    actions: [['Retry', this.open]]
+                });
+            } else {
+                this._restart(value);
+            }
         }, () => {
             this.open();
         });

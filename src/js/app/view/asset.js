@@ -5,6 +5,7 @@ import Backbone from 'backbone';
 import $ from 'jquery';
 
 import * as Notification from './notification';
+import Intro from './intro';
 import { pad, randomString } from '../lib/utils';
 import { Dropbox, Server } from '../backend';
 
@@ -51,10 +52,9 @@ export const BackendNameView = Backbone.View.extend({
         click: "handleClick"
     },
 
-    initialize: function ({restart}) {
+    initialize: function () {
         _.bindAll(this, 'render');
         this.render();
-        this.restart = restart;
         this.listenTo(this.model, "change:server", this.render);
     },
 
@@ -82,8 +82,7 @@ export const BackendNameView = Backbone.View.extend({
     handleClick: function () {
         if (this.model.has('server')) {
             Modal.confirm(
-                'Log out of the current data source and restart the landmarker ?',
-                this.restart);
+                'Log out of the current data source and restart the landmarker ?', Intro.open);
         }
     }
 });

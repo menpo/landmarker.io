@@ -2,7 +2,7 @@
 
 export const ie = (function () {
     return /MSIE (\d+\.\d+);/.test(navigator.userAgent) ||
-           !!navigator.userAgent.match(/Trident.*rv[ :]*11\./);
+        !!navigator.userAgent.match(/Trident.*rv[ :]*11\./);
 })();
 
 export const webgl = (function () {
@@ -10,10 +10,10 @@ export const webgl = (function () {
         var canvas = document.createElement('canvas');
         return !!(
             window.WebGLRenderingContext &&
-            ( canvas.getContext('webgl') ||
-              canvas.getContext('experimental-webgl') )
-        );
-    } catch ( e ) {
+            (canvas.getContext('webgl') ||
+            canvas.getContext('experimental-webgl'))
+            );
+    } catch (e) {
         return false;
     }
 })();
@@ -30,7 +30,12 @@ export const localstorage = (function () {
 })();
 
 export const https = (function () {
-    return window.location.protocol.indexOf("https") > -1;
+    return window.location.protocol.indexOf('https') > -1;
 })();
 
-export default { ie, webgl, localstorage, https };
+export default {
+    ie,
+    webgl,
+    localstorage,
+    https
+};
