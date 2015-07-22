@@ -67547,7 +67547,7 @@ exports.Viewport = Backbone.View.extend({
     clearCanvas: function clearCanvas() {
         if (_.isEqual(this.ctxBox, this.initialBoundingBox())) {
             // there has been no change to the canvas - no need to clear
-            return;
+            return null;
         }
         // we only want to clear the area of the canvas that we dirtied
         // since the last clear. The ctxBox object tracks this
@@ -67662,4 +67662,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-f7a815f3.js.map
+//# sourceMappingURL=bundle-ed7e070e.js.map
