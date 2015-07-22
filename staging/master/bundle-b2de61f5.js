@@ -2,29 +2,26 @@
 'use strict';
 
 var $ = require('jquery');
-
-var DEFAULT_API_URL = 'http://localhost:5000';
+var Server = require('./app/model/server');
 
 var Notification = require('./app/view/notification');
 
 function resolveServer(u) {
-    var server;
-    var Server = require('./app/model/server');
-    var apiUrl = DEFAULT_API_URL;
-    if (u.query.hasOwnProperty('server')) {
-        if (u.query.server === 'demo') {
-            // in demo mode and have mode set.
-            document.title = document.title + ' - demo mode';
-            var $ = require('jquery');
-            server = new Server('');
-            server.demoMode = true;
-            return server;
-        } else {
-            apiUrl = u.query.server;
-            console.log('Setting server to provided value: ' + apiUrl);
-        }
-    } // if no server provided use the default
-    return new Server(apiUrl);
+    var server, apiUrl;
+    if (u.query.hasOwnProperty('server') && u.query.server !== 'demo') {
+        apiUrl = u.query.server;
+        console.log('Setting server to provided value: ' + apiUrl);
+        server = new Server(apiUrl);
+    } else {
+        document.title = document.title + ' - demo mode';
+        server = new Server('');
+        server.demoMode = true;
+        u.query.server = 'demo';
+    }
+    var url = require('url');
+    history.replaceState(null, null, url.format(u).replace('?', '#'));
+    console.log(server);
+    return server;
 }
 
 function resolveMode(server) {
@@ -53717,7 +53714,7 @@ exports.Viewport = Backbone.View.extend({
         // drawing into each frame. This way we only need clear the relevant
         // area of the canvas which is a big perf win.
         // see this.updateCanvasBoundingBox() for usage.
-        this.ctxBox = { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
+        this.ctxBox = this.initialBoundingBox();
 
         // ------ SCENE GRAPH CONSTRUCTION ----- //
         this.scene = new THREE.Scene();
@@ -54177,6 +54174,10 @@ exports.Viewport = Backbone.View.extend({
     },
 
     clearCanvas: function clearCanvas() {
+        if (_.isEqual(this.ctxBox, this.initialBoundingBox())) {
+            // there has been no change to the canvas - no need to clear
+            return;
+        }
         // we only want to clear the area of the canvas that we dirtied
         // since the last clear. The ctxBox object tracks this
         var p = 3; // padding to be added to bounding box
@@ -54188,7 +54189,11 @@ exports.Viewport = Backbone.View.extend({
         var height = maxY - minY;
         this.ctx.clearRect(minX, minY, width, height);
         // reset the tracking of the context bounding box tracking.
-        this.ctxBox = { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
+        this.ctxBox = this.initialBoundingBox();
+    },
+
+    initialBoundingBox: function initialBoundingBox() {
+        return { minX: 999999, minY: 999999, maxX: 0, maxY: 0 };
     },
 
     // Coordinates and intersection helpers
@@ -54286,4 +54291,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":19,"../../model/octree":23,"./camera":32,"./elements":33,"./handler":34,"backbone":2,"jquery":8,"three":11,"underscore":12}]},{},[1])
 
 
-//# sourceMappingURL=bundle-82b4fd98.js.map
+//# sourceMappingURL=bundle-b2de61f5.js.map
