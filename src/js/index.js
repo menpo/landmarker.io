@@ -1,27 +1,24 @@
 var $ = require('jquery');
-
-var DEFAULT_API_URL = 'http://localhost:5000';
+var Server = require('./app/model/server');
 
 var Notification = require('./app/view/notification');
 
 function resolveServer(u) {
-    var server;
-    var Server = require('./app/model/server');
-    var apiUrl = DEFAULT_API_URL;
-    if (u.query.hasOwnProperty('server')) {
-        if (u.query.server === 'demo') {
-            // in demo mode and have mode set.
-            document.title = document.title + ' - demo mode';
-            var $ = require('jquery');
-            server = new Server('');
-            server.demoMode = true;
-            return server;
-        } else {
-            apiUrl = u.query.server;
-            console.log('Setting server to provided value: ' + apiUrl);
-        }
-    } // if no server provided use the default
-    return new Server(apiUrl);
+    var server, apiUrl;
+    if (u.query.hasOwnProperty('server') && u.query.server !== 'demo') {
+        apiUrl = u.query.server;
+        console.log('Setting server to provided value: ' + apiUrl);
+        server = new Server(apiUrl);
+    } else {
+        document.title = document.title + ' - demo mode';
+        server = new Server('');
+        server.demoMode = true;
+        u.query.server = 'demo';
+    }
+    var url = require('url');
+    history.replaceState(null, null, url.format(u).replace('?', '#'));
+    console.log(server);
+    return server;
 }
 
 function resolveMode(server) {
