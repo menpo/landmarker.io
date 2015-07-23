@@ -21,12 +21,16 @@ const contents = `\
         </div>\
         <div class='IntroItem IntroItem--Server'>\
             <span class="octicon octicon-globe"></span>\
-            <div>Connect your own server</div>\
+            <div>Connect to a landmarker server</div>\
         </div>\
         <div class='IntroItem IntroItem--Demo'>\
             See a demo\
         </div>\
     </div>\
+    <a href="https://github.com/menpo/landmarker.io" class='IntroFooter'>\
+        <span class="octicon octicon-mark-github"></span>\
+        More info on Github\
+    </a>\
 </div>\
 `;
 

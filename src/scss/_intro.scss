@@ -12,10 +12,29 @@
     }
 }
 
-.IntroItems {
+.IntroItems,
+.IntroFooter {
     margin-top: 1em;
     padding: 1em;
     border-top: 1px dashed $colorLightGray;
+}
+
+.IntroFooter {
+    @extend %transitionAll;
+    color: $colorGray;
+    text-align: center;
+    display: block;
+    text-decoration: none;
+
+    span {
+        margin-left: 1em;
+        vertical-align: top;
+    }
+
+    &:hover,
+    &:active {
+        color: $colorBlue;
+    }
 }
 
 .IntroItem {
