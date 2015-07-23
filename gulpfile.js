@@ -20,12 +20,13 @@ var del = require('del');
 var src = {
     js: ['src/js/**/*.js'],
     scss: ['src/scss/**/*.scss'],
-    index: ['src/index.html']
+    html: ['src/index.html']
 };
 
 var entry = {
     js: './src/js/index.js',
-    scss: './src/scss/main.scss'
+    scss: './src/scss/main.scss',
+    html: './src/index.html'
 };
 
 var buildGlobs = [
@@ -36,8 +37,8 @@ var buildGlobs = [
 ];
 
 var remoteCached = [
-    'http://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic',
-    'https://cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css'
+    '//fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic',
+    '//cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css'
 ];
 
 gulp.task('manifest', function(){
@@ -104,7 +105,7 @@ gulp.task('sass', function () {
 });
 
 gulp.task('html', function() {
-    var target = gulp.src('./src/index.html');
+    var target = gulp.src(entry.html);
     var sources = gulp.src(buildGlobs, {read: false});
     return target.pipe(inject(sources, {addRootSlash: false}))
         .pipe(gulp.dest('.'))
