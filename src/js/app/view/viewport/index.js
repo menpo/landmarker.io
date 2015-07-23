@@ -1,32 +1,30 @@
 'use strict';
 
-var $ = require('jquery');
-var _ = require('underscore');
-var Backbone = require('backbone');
-var THREE = require('three');
+import _ from 'underscore';
+import Backbone from 'backbone';
+import $ from 'jquery';
+import THREE from 'three';
 
-var atomic = require('../../model/atomic');
-var octree = require('../../model/octree');
+import atomic from '../../model/atomic';
+import * as octree from '../../model/octree';
 
-var Handler = require('./handler');
-var Camera = require('./camera');
-
-var { LandmarkConnectionTHREEView,
-      LandmarkTHREEView } = require('./elements');
+import CameraController from './camera';
+import Handler from './handler';
+import { LandmarkConnectionTHREEView, LandmarkTHREEView } from './elements';
 
 // clear colour for both the main view and PictureInPicture
-var CLEAR_COLOUR = 0xEEEEEE;
-var CLEAR_COLOUR_PIP = 0xCCCCCC;
+const CLEAR_COLOUR = 0xEEEEEE;
+const CLEAR_COLOUR_PIP = 0xCCCCCC;
 
-var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5);
-var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
+const MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5);
+const IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
 
-var PIP_WIDTH = 300;
-var PIP_HEIGHT = 300;
+const PIP_WIDTH = 300;
+const PIP_HEIGHT = 300;
 
-var MESH_SCALE = 1.0;
+const MESH_SCALE = 1.0;
 
-exports.Viewport = Backbone.View.extend({
+export default Backbone.View.extend({
 
     el: '#canvas',
     id: 'canvas',
@@ -145,7 +143,7 @@ exports.Viewport = Backbone.View.extend({
         this.s_camera = this.s_pCam;
 
         // create the cameraController to look after all camera state.
-        this.cameraController = Camera.CameraController(
+        this.cameraController = CameraController(
             this.s_pCam, this.s_oCam, this.s_oCamZoom,
             this.el, this.model.imageMode());
 
@@ -633,7 +631,7 @@ exports.Viewport = Backbone.View.extend({
 
         if (object === this.mesh && this.octree) {
             // we can use the octree to intersect the mesh efficiently.
-            return octree.intersetMesh(this.ray, this.mesh, this.octree);
+            return octree.intersectMesh(this.ray, this.mesh, this.octree);
         } else if (object instanceof Array) {
             return this.ray.intersectObjects(object, true);
         } else {

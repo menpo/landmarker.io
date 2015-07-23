@@ -5,7 +5,7 @@ import $ from 'jquery';
 
 import Modal from './modal';
 
-var ListPicker = Modal.extend({
+export default Modal.extend({
 
     events: {
         'click li': 'click',
@@ -65,5 +65,3 @@ var ListPicker = Modal.extend({
         this.close();
     }
 });
-
-module.exports = ListPicker;

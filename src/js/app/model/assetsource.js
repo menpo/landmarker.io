@@ -1,8 +1,9 @@
 'use strict';
 
-var Backbone = require('backbone');
-var _ = require('underscore');
-var Asset = require('./asset');
+import Backbone from 'backbone';
+import _ from 'underscore';
+
+import * as Asset from './asset';
 
 function abortAllObj (obj) {
     _.values(obj).forEach(function (x) {
@@ -11,7 +12,7 @@ function abortAllObj (obj) {
 }
 
 // Holds a list of available assets.
-var AssetSource = Backbone.Model.extend({
+const AssetSource = Backbone.Model.extend({
 
     defaults: function () {
         return { assets: new Backbone.Collection(), assetIsLoading: false };
@@ -87,10 +88,10 @@ var AssetSource = Backbone.Model.extend({
     }
 });
 
-exports.MeshSource = AssetSource.extend({
+export const MeshSource = AssetSource.extend({
 
     parse: function (response) {
-        var meshes = response.map((assetId) => {
+        const meshes = response.map((assetId) => {
             return new Asset.Mesh({
                 id: assetId,
                 server: this.get('server')
@@ -126,7 +127,7 @@ exports.MeshSource = AssetSource.extend({
         newMesh.loadThumbnail();
         newMesh.loadTexture();
         // fetch the geometry
-        var geometry = newMesh.loadGeometry();
+        const geometry = newMesh.loadGeometry();
 
         // track the request
         this.pending[newMesh.id] = geometry.xhr();
@@ -154,10 +155,10 @@ exports.MeshSource = AssetSource.extend({
 // Holds a list of available images, and a ImageList. The ImageList
 // is populated immediately, although images aren't fetched until demanded.
 // Also has a mesh parameter - the currently active mesh.
-exports.ImageSource = AssetSource.extend({
+export const ImageSource = AssetSource.extend({
 
     parse: function (response) {
-        var images = response.map((assetId) => {
+        const images = response.map((assetId) => {
             return new Asset.Image({
                 id: assetId,
                 server: this.get('server')
@@ -168,15 +169,14 @@ exports.ImageSource = AssetSource.extend({
     },
 
     setAsset: function (newAsset) {
-        var that = this;
-        var oldAsset = this.get('asset');
+        const oldAsset = this.get('asset');
         // stop listening to the old asset
         if (oldAsset) {
             this.stopListening(oldAsset);
         }
         this.set('assetIsLoading', true);
         // set the asset immediately (triggering change in UI)
-        that.set('asset', newAsset);
+        this.set('asset', newAsset);
 
         this.listenTo(newAsset, 'newMeshAvailable', this.updateMesh);
 
@@ -185,13 +185,13 @@ exports.ImageSource = AssetSource.extend({
 
         // fetch the thumbnail and texture aggressively asynchronously.
         newAsset.loadThumbnail();
-        var texture = newAsset.loadTexture();
+        const texture = newAsset.loadTexture();
 
         // after the texture is ready, we want to clear up our tracking of
         // loading requests.
-        texture.then(function () {
+        texture.then(() => {
             console.log('grabbed new image texture');
-            that.set('assetIsLoading', false);
+            this.set('assetIsLoading', false);
         }, function (err) {
             console.log('texture.then something went wrong ' + err.stack);
         });

@@ -8,9 +8,9 @@
 
 'use strict';
 
-const THREE = require('three');
+import THREE from 'three';
 
-function parse(data) {
+export default function parse (data) {
     console.time('STLLoader');
     const binData = ensureBinary(data);
     const geo = isBinary(binData) ? parseBinary(binData) : parseASCII(binData);
@@ -18,7 +18,7 @@ function parse(data) {
     return geo;
 }
 
-function parseBinary(data) {
+function parseBinary (data) {
 
     var reader = new DataView(data);
     var faces = reader.getUint32(80, true);
@@ -242,5 +242,3 @@ function parseASCII(arrayBuffer) {
     return geometry;
 
 }
-
-module.exports = parse;

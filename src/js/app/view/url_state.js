@@ -1,9 +1,9 @@
 'use strict';
 
-var Backbone = require('backbone');
-var url = require('url');
+import url from 'url';
+import Backbone from 'backbone';
 
-module.exports = Backbone.View.extend({
+export default Backbone.View.extend({
 
     initialize: function () {
         console.log('HistoryUpdate:initialize');

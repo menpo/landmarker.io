@@ -11,7 +11,7 @@ import atomic from '../../model/atomic';
  * Holds state usable by all event handlers and should be bound to the
  * Viewport view instance.
  */
-function Handler () {
+export default function Handler () {
 
     // Helpers
     // ------------------------------------------------------------------------
@@ -535,5 +535,3 @@ function Handler () {
     };
 
 }
-
-module.exports = Handler;

@@ -1,10 +1,10 @@
 'use strict';
 
-var Backbone = require('backbone');
+import Backbone from 'backbone';
 
 let atomicTracker;
 
-var AtomicOperationTracker = Backbone.Model.extend({
+const AtomicOperationTracker = Backbone.Model.extend({
 
     defaults: function () {
         return { ATOMIC_OPERATION: false };
@@ -49,5 +49,4 @@ var AtomicOperationTracker = Backbone.Model.extend({
 
 });
 
-atomicTracker = new AtomicOperationTracker();
-module.exports = atomicTracker;
+export default atomicTracker = new AtomicOperationTracker();

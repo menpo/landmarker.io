@@ -11,7 +11,7 @@ import * as support from '../lib/support';
 
 const LOCALSTORAGE_KEY = 'LMIO#CONFIG';
 
-function Config () {
+export function Config () {
     this._data = {};
 }
 

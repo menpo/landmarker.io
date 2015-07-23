@@ -1,9 +1,9 @@
 'use strict';
 
-var Backbone = require('backbone');
-var $ = require('jquery');
+import Backbone from 'backbone';
+import $ from 'jquery';
 
-var HELP_CONTENTS = [
+const HELP_CONTENTS = [
     ['j', 'go to next asset in collection'],
     ['k', 'go to previous asset in collection'],
     [''],
@@ -36,7 +36,7 @@ var HELP_CONTENTS = [
     ['?', 'display this help']
 ];
 
-module.exports = Backbone.View.extend({
+export default Backbone.View.extend({
 
     el: '#helpOverlay',
 

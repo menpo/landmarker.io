@@ -1,28 +1,34 @@
 'use strict';
 
-var _ = require('underscore');
-var THREE = require('three');
-
-var Backbone = require('backbone');
+import _ from 'underscore';
+import THREE from 'three';
+import Backbone from 'backbone';
 
 // the default scale for 1.0
-var LM_SCALE = 0.01;
+const LM_SCALE = 0.01;
 
-var LM_SPHERE_PARTS = 10;
-var LM_SPHERE_SELECTED_COLOR = 0xff75ff;
-var LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
-var LM_CONNECTION_LINE_COLOR = LM_SPHERE_UNSELECTED_COLOR;
+const LM_SPHERE_PARTS = 10;
+const LM_SPHERE_SELECTED_COLOR = 0xff75ff;
+const LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
+const LM_CONNECTION_LINE_COLOR = LM_SPHERE_UNSELECTED_COLOR;
 
 // create a single geometry + material that will be shared by all landmarks
-var lmGeometry = new THREE.SphereGeometry(LM_SCALE, LM_SPHERE_PARTS,
-                                          LM_SPHERE_PARTS);
+const lmGeometry = new THREE.SphereGeometry(
+    LM_SCALE,
+    LM_SPHERE_PARTS,
+    LM_SPHERE_PARTS);
 
-var lmMaterialForSelected = {
+const lmMaterialForSelected = {
     true: new THREE.MeshBasicMaterial({color: LM_SPHERE_SELECTED_COLOR}),
     false: new THREE.MeshBasicMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
 };
 
-var LandmarkTHREEView = Backbone.View.extend({
+const lineMaterial = new THREE.LineBasicMaterial({
+    color: LM_CONNECTION_LINE_COLOR,
+    linewidth: 1
+});
+
+export const LandmarkTHREEView = Backbone.View.extend({
 
     initialize: function (options) {
         _.bindAll(this, 'render', 'changeLandmarkSize');
@@ -93,12 +99,7 @@ var LandmarkTHREEView = Backbone.View.extend({
     }
 });
 
-var lineMaterial = new THREE.LineBasicMaterial({
-    color: LM_CONNECTION_LINE_COLOR,
-    linewidth: 1
-});
-
-var LandmarkConnectionTHREEView = Backbone.View.extend({
+export const LandmarkConnectionTHREEView = Backbone.View.extend({
 
     initialize: function (options) {
         // Listen to both models for changes
@@ -158,5 +159,3 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
         this.symbol.geometry.verticesNeedUpdate = true;
     }
 });
-
-module.exports = {LandmarkConnectionTHREEView, LandmarkTHREEView};

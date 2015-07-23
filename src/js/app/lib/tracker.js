@@ -3,7 +3,7 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
 
-function FixedStack (size) {
+export function FixedStack (size) {
     this.size = size;
     this._stack = [];
 }
@@ -29,7 +29,7 @@ FixedStack.prototype.length = function () {
 
 const _rev = Date.now;
 
-export default function Tracker (maxOps=100, maxCheckpoints=25) {
+export function Tracker (maxOps=100, maxCheckpoints=25) {
     this._operations = new FixedStack(maxOps);
     this._states = new FixedStack(maxCheckpoints);
     this._futureOperations = [];
@@ -40,6 +40,8 @@ export default function Tracker (maxOps=100, maxCheckpoints=25) {
 
     _.extend(this, Backbone.Events);
 }
+
+export default Tracker;
 
 Tracker.prototype.record = function (data) {
     const rev = _rev();

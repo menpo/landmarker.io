@@ -23,23 +23,23 @@
  */
 'use strict';
 
-var $ = require('jquery');
-var _ = require('underscore');
-var Backbone = require('backbone');
-var THREE = require('three');
+import _ from 'underscore';
+import THREE from 'three';
+import $ from 'jquery';
+import Backbone from 'backbone';
 
-var MOUSE_WHEEL_SENSITIVITY = 0.5;
-var ROTATION_SENSITIVITY = 0.005;
-var PIP_ZOOM_FACTOR = 12.0;
+const MOUSE_WHEEL_SENSITIVITY = 0.5;
+const ROTATION_SENSITIVITY = 0.005;
+const PIP_ZOOM_FACTOR = 12.0;
 
 // see https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent.deltaMode
-var UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
+const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
     0: 1.0,  // The delta values are specified in pixels.
     1: 34.0,  // The delta values are specified in lines.
     2: 1.0  // The delta values are specified in pages.
 };
 
-exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
+export default function CameraController (pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
 
     var controller = {};
     _.extend(controller, Backbone.Events);
@@ -407,4 +407,4 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     controller.position = position;
 
     return controller;
-};
+}

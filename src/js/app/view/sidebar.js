@@ -1,17 +1,17 @@
 'use strict';
 
-var _ = require('underscore');
-var Backbone = require('backbone');
-var $ = require('jquery');
+import _ from 'underscore';
+import Backbone from 'backbone';
+import $ from 'jquery';
 
-var Notification = require('./notification');
-var atomic = require('../model/atomic');
-var { Server } = require('../backend');
-var ListPicker = require('./list_picker');
+import * as Notification from './notification';
+import Server from '../backend/server';
+import atomic from '../model/atomic';
+import ListPicker from './list_picker';
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
-var LandmarkView = Backbone.View.extend({
+export const LandmarkView = Backbone.View.extend({
 
     tagName: "div",
 
@@ -27,7 +27,7 @@ var LandmarkView = Backbone.View.extend({
     },
 
     render: function () {
-        var html = $("<div></div>");
+        const html = $("<div></div>");
         html.addClass("Lm", this.model.isEmpty());
 
         html.toggleClass("Lm-Empty", this.model.isEmpty());
@@ -90,7 +90,7 @@ var LandmarkView = Backbone.View.extend({
 // Renders the LandmarkList. Don't think this ListView should ever have to
 // render (as we build a fresh View each time a group is activated
 // and de-activated)
-var LandmarkListView = Backbone.View.extend({
+export const LandmarkListView = Backbone.View.extend({
 
     tagName: 'div',
 
@@ -110,7 +110,7 @@ var LandmarkListView = Backbone.View.extend({
     },
 
     renderOne: function(model) {
-        var lm = new LandmarkView({model: model, labelIndex: this.labelIndex});
+        const lm = new LandmarkView({model, labelIndex: this.labelIndex});
         // reset the view's element to it's template
         this.$el.append(lm.render().$el);
         this.lmViews.push(lm);
@@ -124,20 +124,19 @@ var LandmarkListView = Backbone.View.extend({
 
 });
 
-var LandmarkGroupLabelView = Backbone.View.extend({
+export const LandmarkGroupLabelView = Backbone.View.extend({
 
     className: "LmGroup-Label",
 
     initialize: function () {
-        var label = this.model.label;
-        this.$el.html(label);
+        this.$el.html(this.model.label);
     }
 });
 
 // Renders a single LandmarkGroup. Either the view is closed and we just
 // render the header (LandmarkGroupButtonView) or this group is active and
 // we render all the landmarks (LandmarkListView) as well as the header.
-var LandmarkGroupView = Backbone.View.extend({
+export const LandmarkGroupView = Backbone.View.extend({
 
     tagName: 'div',
 
@@ -179,7 +178,7 @@ var LandmarkGroupView = Backbone.View.extend({
 // Renders a collection of LandmarkGroups. At any one time one of these
 // will be expanded - the rest closed. This View is indifferent - it just
 // builds LandmarkGroupView's and asks them to render in turn.
-var LandmarkGroupListView = Backbone.View.extend({
+export const LandmarkGroupListView = Backbone.View.extend({
 
     initialize: function () {
         _.bindAll(this, 'render', 'renderOne');
@@ -195,7 +194,7 @@ var LandmarkGroupListView = Backbone.View.extend({
     },
 
     renderOne: function(label, labelIndex) {
-        var group = new LandmarkGroupView({model: label, labelIndex});
+        const group = new LandmarkGroupView({model: label, labelIndex});
         // reset the view's element to it's template
         this.$el.append(group.render().$el);
         this.groups.push(group);
@@ -212,7 +211,7 @@ var LandmarkGroupListView = Backbone.View.extend({
 
 });
 
-var ActionsView = Backbone.View.extend({
+export const ActionsView = Backbone.View.extend({
 
     el: '#lmActionsPanel',
 
@@ -287,7 +286,7 @@ var ActionsView = Backbone.View.extend({
     }
 });
 
-var UndoRedoView = Backbone.View.extend({
+export const UndoRedoView = Backbone.View.extend({
 
     el: "#undoRedo",
 
@@ -332,7 +331,7 @@ var UndoRedoView = Backbone.View.extend({
     }
 });
 
-var TemplatePanel = Backbone.View.extend({
+export const TemplatePanel = Backbone.View.extend({
     el: '#templatePanel',
 
     events: {
@@ -387,7 +386,7 @@ var TemplatePanel = Backbone.View.extend({
     }
 });
 
-var LmLoadView = Backbone.View.extend({
+export const LmLoadView = Backbone.View.extend({
     el: '#lmLoadPanel',
 
     events: {
@@ -413,7 +412,7 @@ var LmLoadView = Backbone.View.extend({
     }
 });
 
-var Sidebar = Backbone.View.extend({
+export default Backbone.View.extend({
 
     initialize: function () {
         _.bindAll(this, "landmarksChange");
@@ -443,7 +442,7 @@ var Sidebar = Backbone.View.extend({
             this.lmView.cleanup();
         }
 
-        var lms = this.model.landmarks();
+        const lms = this.model.landmarks();
 
         if (lms === null) {
             return;
@@ -455,7 +454,4 @@ var Sidebar = Backbone.View.extend({
         this.lmView = new LandmarkGroupListView({collection: lms.labels});
         $('#landmarksPanel').html(this.lmView.render().$el);
     }
-
 });
-
-module.exports.Sidebar = Sidebar;

@@ -1,13 +1,13 @@
 
 'use strict';
 
-var THREE = require('three');
+import THREE from 'three';
 
 // once a node gets this full it subdivides.
-var MAX_NODE_ITEMS = 75;
+const MAX_NODE_ITEMS = 75;
 
 // return an octree suitable for use with a buffer geometry instance.
-function octreeForBufferGeometry(geometry) {
+export function octreeForBufferGeometry(geometry) {
     if (geometry.boundingBox === null) {
         geometry.computeBoundingBox();
     }
@@ -21,7 +21,7 @@ function octreeForBufferGeometry(geometry) {
     var tmp = new THREE.Vector3();
     // run through the points array, creating tight bounding boxes for each
     // point. Insert them into the tree.
-    for(var i = 0; i < nTris; i++) {
+    for(let i = 0; i < nTris; i++) {
         box = new THREE.Box3();  // boxes default to empty
         tmp.set(p[i * 9], p[i * 9 + 1], p[i * 9 + 2]);
         box.expandByPoint(tmp);
@@ -46,13 +46,13 @@ var vA = new THREE.Vector3();
 var vB = new THREE.Vector3();
 var vC = new THREE.Vector3();
 
-var descSort = function (a, b) {
+function descSort (a, b) {
     return a.distance - b.distance;
-};
+}
 
 // this code is largely adapted from THREE.Mesh.prototype.raycast
 // (particularly the geometry instanceof THREE.BufferGeometry branch)
-var intersectTrianglesAtIndices = function(ray, raycaster, mesh, indices) {
+function intersectTrianglesAtIndices (ray, raycaster, mesh, indices) {
 
     var intersects = [];
     var material = mesh.material;
@@ -99,9 +99,9 @@ var intersectTrianglesAtIndices = function(ray, raycaster, mesh, indices) {
     }
     intersects.sort(descSort);
     return intersects;
-};
+}
 
-function intersectMesh(raycaster, mesh, octree) {
+export function intersectMesh(raycaster, mesh, octree) {
     // 1. Bring the ray into model space to intersect (remember, that's where
     // our octree was constructed)
     inverseMatrix.getInverse(mesh.matrixWorld);
@@ -119,7 +119,7 @@ function OctreeItem(box, payload) {
     this.payload = payload;
 }
 
-function OctreeNode(min, max) {
+export function OctreeNode(min, max) {
     this.min = min;
     this.max = max;
     this.children = [];
@@ -250,7 +250,3 @@ OctreeNode.prototype.subdivide = function () {
         this.add(toAdd[i]);
     }
 };
-
-module.exports.OctreeNode = OctreeNode;
-module.exports.octreeForBufferGeometry = octreeForBufferGeometry;
-module.exports.intersetMesh = intersectMesh;

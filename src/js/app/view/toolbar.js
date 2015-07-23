@@ -1,10 +1,10 @@
 'use strict';
 
-var _ = require('underscore');
-var Backbone = require('backbone');
-var atomic = require('../model/atomic');
+import _ from 'underscore';
+import Backbone from 'backbone';
+import atomic from '../model/atomic';
 
-var LandmarkSizeSlider = Backbone.View.extend({
+export const LandmarkSizeSlider = Backbone.View.extend({
 
     el: '#lmSizeSlider',
 
@@ -31,7 +31,7 @@ var LandmarkSizeSlider = Backbone.View.extend({
     })
 });
 
-var TextureToggle = Backbone.View.extend({
+export const TextureToggle = Backbone.View.extend({
 
     el: '#textureRow',
 
@@ -77,7 +77,7 @@ var TextureToggle = Backbone.View.extend({
     }
 });
 
-var ConnectivityToggle = Backbone.View.extend({
+export const ConnectivityToggle = Backbone.View.extend({
 
     el: '#connectivityRow',
 
@@ -102,7 +102,7 @@ var ConnectivityToggle = Backbone.View.extend({
     }
 });
 
-var EditingToggle = Backbone.View.extend({
+export const EditingToggle = Backbone.View.extend({
 
     el: '#editingRow',
 
@@ -127,7 +127,7 @@ var EditingToggle = Backbone.View.extend({
     }
 });
 
-var AutoSaveToggle = Backbone.View.extend({
+export const AutoSaveToggle = Backbone.View.extend({
 
     el: '#autosaveRow',
 
@@ -152,7 +152,7 @@ var AutoSaveToggle = Backbone.View.extend({
     }
 });
 
-exports.Toolbar = Backbone.View.extend({
+export default Backbone.View.extend({
 
     el: '#toolbar',
 

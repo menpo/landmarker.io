@@ -13,9 +13,9 @@
 
 'use strict';
 
-const THREE = require('three');
+import THREE from 'three';
 
-function OBJLoader(text) {
+export default function OBJLoader(text) {
 
     console.time('OBJLoader');
 
@@ -271,5 +271,3 @@ function OBJLoader(text) {
     console.timeEnd('OBJLoader');
     return buffergeometry;
 }
-
-module.exports = OBJLoader;

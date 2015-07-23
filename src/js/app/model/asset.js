@@ -1,14 +1,14 @@
 'use strict';
 
-const Backbone = require('backbone');
-const THREE = require('three');
+import Backbone from 'backbone';
+import THREE from 'three';
 
-var FRONT = {
+const FRONT = {
     image: new THREE.Vector3(0, 0, 1),
     mesh: new THREE.Vector3(0, 0, 1)
 };
 
-var UP = {
+const UP = {
     image: new THREE.Vector3(1, 0, 0),
     mesh: new THREE.Vector3(0, 1, 0)
 };
@@ -57,7 +57,7 @@ const imagePlaceholderMaterial = new THREE.MeshPhongMaterial({
     map: imagePlaceholderTexture
 });
 
-var Image = Backbone.Model.extend({
+export const Image = Backbone.Model.extend({
 
     defaults: function () {
         return { textureOn: true };
@@ -254,7 +254,7 @@ var Image = Backbone.Model.extend({
     }
 });
 
-var Mesh = Image.extend({
+export const Mesh = Image.extend({
 
     geometryUrl: function () {
         return this.get('server').map('meshes/' + this.id);
@@ -265,7 +265,7 @@ var Mesh = Image.extend({
             // already loading this geometry
             return this._geometryPromise;
         }
-        var arrayPromise = this.get('server').fetchGeometry(this.id);
+        const arrayPromise = this.get('server').fetchGeometry(this.id);
 
         if (arrayPromise.isGeometry) { // Backend says it parses the geometry
             this._geometryPromise = arrayPromise.then((geometry) => {
@@ -350,7 +350,7 @@ var Mesh = Image.extend({
     },
 
     _newBufferGeometry: function(points, normals, tcoords) {
-        var geometry = new THREE.BufferGeometry();
+        const geometry = new THREE.BufferGeometry();
         geometry.addAttribute('position', new THREE.BufferAttribute(points, 3));
         if (normals) {
             geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3));
@@ -365,6 +365,3 @@ var Mesh = Image.extend({
     }
 
 });
-
-exports.Mesh = Mesh;
-exports.Image = Image;

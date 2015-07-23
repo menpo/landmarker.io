@@ -5,13 +5,12 @@ import $ from 'jquery';
 import Promise from 'promise-polyfill';
 import Backbone from 'backbone';
 
-var LandmarkGroup = require('./landmark_group'),
-    Tracker = require('../lib/tracker'),
-    AssetSource = require('./assetsource');
-
+import Tracker from '../lib/tracker';
+import * as AssetSource from './assetsource';
+import LandmarkGroup from './landmark_group';
 import Modal from '../view/modal';
 
-var App = Backbone.Model.extend({
+export default Backbone.Model.extend({
 
     defaults: function () {
         return {
@@ -210,8 +209,8 @@ var App = Backbone.Model.extend({
         // from the server). Of course, we must pass the server in. The
         // asset source will ensure that the assets produced also get
         // attached to this server.
-        var ASC = this._assetSourceConstructor();
-        var assetSource = new ASC({
+        const ASC = this._assetSourceConstructor();
+        const assetSource = new ASC({
             server: this.server(),
             id: this.activeCollection()
         });
@@ -281,7 +280,7 @@ var App = Backbone.Model.extend({
             tracker[this.asset().id] = new Tracker();
         }
 
-        var loadLandmarksPromise = this.server().fetchLandmarkGroup(
+        const loadLandmarksPromise = this.server().fetchLandmarkGroup(
             this.asset().id,
             this.activeTemplate()
         ).then((json) => {
@@ -299,7 +298,7 @@ var App = Backbone.Model.extend({
         // if both come true, then set the landmarks
         return Promise.all([loadLandmarksPromise,
                             loadAssetPromise]).then((args) => {
-            var landmarks = args[0];
+            const landmarks = args[0];
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display');
             // now we know that this is resolved we set the landmarks on the
@@ -406,5 +405,3 @@ var App = Backbone.Model.extend({
     }
 
 });
-
-module.exports = App;

@@ -6,16 +6,21 @@ import url from 'url';
 
 import * as utils from './app/lib/utils';
 import * as support from './app/lib/support';
+
 import * as Notification from './app/view/notification';
-
-import Config from './app/model/config';
-
 import Intro from './app/view/intro';
 import AssetView from './app/view/asset';
+import SidebarView from './app/view/sidebar';
+import HelpOverlay from './app/view/help';
+import ToolbarView from './app/view/toolbar';
+import URLState from './app/view/url_state';
+import ViewportView from './app/view/viewport';
+import KeyboardShortcutsHandler from './app/view/keyboard';
+
+import Config from './app/model/config';
+import App from './app/model/app';
 
 import Backend from './app/backend';
-
-import KeyboardShortcutsHandler from './app/view/keyboard';
 
 const cfg = Config();
 
@@ -178,7 +183,8 @@ function resolveMode (server, u) {
         } else {
             retry('Received invalid mode', mode);
         }
-    }, function () {
+    }, function (err) {
+        console.log(err);
         retry(`Couldn't get mode from server`);
     });
 }
@@ -186,9 +192,6 @@ function resolveMode (server, u) {
 function initLandmarker(server, mode, u) {
 
     console.log('Starting landmarker in ' + mode + ' mode');
-
-    var App = require('./app/model/app');
-    var URLState = require('./app/view/url_state');
 
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
@@ -210,18 +213,13 @@ function initLandmarker(server, mode, u) {
 
     var app = new App(appInit);
 
-    var SidebarView = require('./app/view/sidebar');
-    var ToolbarView = require('./app/view/toolbar');
-    var ViewportView = require('./app/view/viewport');
-    var HelpOverlay = require('./app/view/help');
-
     new Notification.AssetLoadingNotification({model: app});
-    new SidebarView.Sidebar({model: app});
+    new SidebarView({model: app});
     new AssetView({model: app});
-    new ToolbarView.Toolbar({model: app});
+    new ToolbarView({model: app});
     new HelpOverlay({model: app});
 
-    var viewport = new ViewportView.Viewport({model: app});
+    var viewport = new ViewportView({model: app});
 
     var prevAsset = null;
 

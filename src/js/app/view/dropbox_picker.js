@@ -60,7 +60,7 @@ function DropboxRadio (opts, index) {
     return $radio;
 }
 
-var DropboxPicker = Modal.extend({
+export default Modal.extend({
 
     events: {
         'click .DropboxSelectListItem': 'handleClick',
@@ -332,5 +332,3 @@ var DropboxPicker = Modal.extend({
         this.fetch().then(this.update);
     }
 });
-
-module.exports = DropboxPicker;
