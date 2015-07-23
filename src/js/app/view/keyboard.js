@@ -3,6 +3,7 @@
 import $ from 'jquery';
 
 import Modal from './modal';
+import { notify } from './notification';
 
 export default function KeyboardShortcutsHandler (app, viewport) {
     this._keypress = function (e) {
@@ -21,6 +22,15 @@ export default function KeyboardShortcutsHandler (app, viewport) {
         const lms = app.landmarks();
 
         switch (key) {
+            case 19:  // s = [s]ave (normally 115 but switches to 19 with ctrl)
+                if (lms && e.ctrlKey) {
+                    lms.save().then( function () {
+                        notify({type: 'success', msg: 'Save Completed'});
+                    }, function () {
+                        notify({type: 'error', msg: 'Save Failed'});
+                    });
+                }
+                break;
             case 100:  // d = [d]elete selected
                 if (lms) {
                     lms.deleteSelected();
