@@ -59389,6 +59389,7 @@ module.exports={
   },
   "scripts": {
     "build": "DISABLE_NOTIFIER=true NODE_ENV=production gulp build",
+    "watch": "gulp build",
     "test": "mocha --compilers js:babel/register -R dot test/**/*.js",
     "serve": "http-server -p 4000",
     "lint": "eslint -c .eslintrc src/js",
@@ -64142,7 +64143,7 @@ var _notification = require('./notification');
 
 var _packageJson = require('../../../../package.json');
 
-var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3>v' + _packageJson.version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect your own server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div></div>';
+var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3>v' + _packageJson.version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect to a landmarker server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div>    <a href="https://github.com/menpo/landmarker.io" class=\'IntroFooter\'>        <span class="octicon octicon-mark-github"></span>        More info on Github    </a></div>';
 
 var lsWarning = '<p class=\'IntroWarning\'>    Your browser doesn\'t support LocalStorage, so Dropbox login has been    disabled.</p>';
 
@@ -67662,4 +67663,4 @@ exports.Viewport = Backbone.View.extend({
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-ed7e070e.js.map
+//# sourceMappingURL=bundle-261db9b4.js.map
