@@ -347,7 +347,7 @@ export const TemplatePanel = Backbone.View.extend({
         this.$el.toggleClass(
             'Disabled', this.model &&
                         ((this.model.templates().length <= 1 &&
-                        this.model.server() instanceof Server) ||
+                        this.model.server() instanceof Server) &&
                         typeof this.model.server().pickTemplate !== 'function')
         );
         this.$el.text(this.model.activeTemplate() || '-');
