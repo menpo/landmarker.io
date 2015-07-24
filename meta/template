@@ -26,7 +26,9 @@ It is also possible to provide input and output as parameters (--input, --output
 -f / --force: overrides existing files
 -r / --recursive: in directory mode, will look for templates in subdirectories
 --ext: specify the extension to convert from (json, ljson, yaml or yml), will ignore all other files
---target: specify the extenion to convert to (yaml, or json - defaults to yaml)
+--target: specify the extenion to convert to (yaml, json or js - defaults to yaml)
+
+The js target will wrap the json content in an ES6 importable module.
 
 The scripts excepts the files to be of the correct format, so an ljson file
 saved as .json, while technically valid will fail to convert as it will be
@@ -45,6 +47,7 @@ import Template from '../src/js/app/model/template';
 const action = argv._[0];
 const ACTIONS = ['convert'];
 const SOURCES = ['ljson', 'json', 'yaml', 'yml'];
+const TARGETS = ['json', 'yaml', 'js'];
 
 function _exit (str) {
     console.log(str.red);
@@ -151,6 +154,10 @@ function convertDirectory (input, files, output, ext, target, force, recurse) {
     });
 }
 
+function templateToJS (tmpl) {
+  return `export default ${tmpl.toJSON()};`;
+}
+
 function convertFile (input, output, ext, target, force, single) {
 
     let parser, parsed, tmpl;
@@ -168,8 +175,8 @@ function convertFile (input, output, ext, target, force, single) {
         target = 'yaml';
     }
 
-    if (['yaml', 'json'].indexOf(target) === -1) {
-        _exit(`Invalid target ${target}, use "yaml" or "json"`);
+    if (TARGETS.indexOf(target) === -1) {
+        _exit(`Invalid target ${target}, use any of "${TARGETS}"`);
     }
 
     parser = Template.Parsers[ext];
@@ -202,7 +209,8 @@ function convertFile (input, output, ext, target, force, single) {
         } else {
             tmpl = parser(data.toString());
             parsed = target === 'json' ? tmpl.toJSON() :
-                     target === 'yaml' ? tmpl.toYAML() : null;
+                     target === 'yaml' ? tmpl.toYAML() :
+                     target === 'js' ? templateToJS(tmpl) : null;
             if (!output) {
                 console.log(parsed);
             } else {
