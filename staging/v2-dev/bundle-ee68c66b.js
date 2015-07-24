@@ -65974,7 +65974,9 @@ var TemplatePicker = _backbone2['default'].View.extend({
 
     events: {
         'click li': 'select',
-        'click .RightSidebar-TemplatePicker-Add': 'add'
+        'click .RightSidebar-TemplatePicker-Add': 'add',
+        'click input': 'clickInput',
+        'keyup input': 'filter'
     },
 
     initialize: function initialize() {
@@ -65987,11 +65989,11 @@ var TemplatePicker = _backbone2['default'].View.extend({
         var backend = this.model.server();
         var $ul = (0, _jquery2['default'])('<ul></ul>');
         this.model.templates().forEach(function (tmpl, index) {
-            $ul.append((0, _jquery2['default'])('\n                <li id="templatePick_' + tmpl + '"\n                    data-template="' + tmpl + '"\n                    data-index="' + index + '">' + tmpl + '</li>\n            '));
+            $ul.prepend((0, _jquery2['default'])('\n                <li id="templatePick_' + tmpl + '"\n                    data-template="' + tmpl + '"\n                    data-index="' + index + '">' + tmpl + '</li>\n            '));
         });
 
         this.$el.html($ul);
-        this.$el.css('top', '-' + (this.model.templates().length * 42 + 22) + 'px');
+        this.$el.prepend((0, _jquery2['default'])('<input type="text" placeholder=\'Search templates\'/>'));
 
         if (typeof backend.pickTemplate === 'function') {
             this.$el.append('<div class=\'RightSidebar-TemplatePicker-Add\'></div>');
@@ -66016,6 +66018,7 @@ var TemplatePicker = _backbone2['default'].View.extend({
 
     toggle: function toggle() {
         this.$el.toggleClass('Active');
+        this.$el.find('input').focus();
     },
 
     select: function select(evt) {
@@ -66025,6 +66028,10 @@ var TemplatePicker = _backbone2['default'].View.extend({
             this.toggle();
             this.model.set('activeTemplate', tmpl);
         }
+    },
+
+    clickInput: function clickInput(evt) {
+        evt.stopPropagation();
     },
 
     add: function add(evt) {
@@ -66041,7 +66048,22 @@ var TemplatePicker = _backbone2['default'].View.extend({
                 });
             }, true);
         }
-    }
+    },
+
+    filter: _underscore2['default'].throttle(function (evt) {
+        var value = evt.currentTarget.value.toLowerCase();
+        if (!value || value === '') {
+            this.$el.find('li').fadeIn(200);
+        }
+
+        this.model.templates().forEach(function (tmpl) {
+            if (tmpl.toLowerCase().indexOf(value) > -1) {
+                (0, _jquery2['default'])('#templatePick_' + tmpl).fadeIn(200);
+            } else {
+                (0, _jquery2['default'])('#templatePick_' + tmpl).fadeOut(200);
+            }
+        });
+    }, 50)
 });
 
 exports.TemplatePicker = TemplatePicker;
@@ -68237,4 +68259,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":83,"./elements":84,"./handler":85,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-f9f4b3b6.js.map
+//# sourceMappingURL=bundle-ee68c66b.js.map
