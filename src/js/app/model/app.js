@@ -248,14 +248,22 @@ export default Backbone.Model.extend({
         });
     },
 
+    getTracker: function (assetId, template) {
+        const tracker = this.tracker();
+        if (!tracker[assetId]) {
+            tracker[assetId] = {};
+        }
+
+        if (!tracker[assetId][template]) {
+            tracker[assetId][template] = new Tracker();
+        }
+
+        return tracker[assetId][template];
+    },
+
     reloadLandmarks: function () {
         if (this.landmarks() && this.asset()) {
             this.set('landmarks', null);
-
-            const tracker = this.tracker();
-            if (!tracker[this.asset().id]) {
-                tracker[this.asset().id] = new Tracker();
-            }
 
             this.server().fetchLandmarkGroup(
                 this.asset().id,
@@ -266,7 +274,7 @@ export default Backbone.Model.extend({
                     this.asset().id,
                     this.activeTemplate(),
                     this.server(),
-                    tracker[this.asset().id]
+                    this.getTracker(this.asset().id, this.activeTemplate())
                 ));
             }, () => {
                 console.log('Error in fetching landmark JSON file');
@@ -300,12 +308,6 @@ export default Backbone.Model.extend({
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
 
-        // Try and find an in-memory tracker for this asset
-        const tracker = this.tracker();
-        if (!tracker[this.asset().id]) {
-            tracker[this.asset().id] = new Tracker();
-        }
-
         const loadLandmarksPromise = this.server().fetchLandmarkGroup(
             this.asset().id,
             this.activeTemplate()
@@ -315,7 +317,7 @@ export default Backbone.Model.extend({
                 this.asset().id,
                 this.activeTemplate(),
                 this.server(),
-                tracker[this.asset().id]
+                this.getTracker(this.asset().id, this.activeTemplate())
             );
         }, () => {
             console.log('Error in fetching landmark JSON file');
