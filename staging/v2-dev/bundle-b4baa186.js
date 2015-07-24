@@ -61514,24 +61514,30 @@ exports['default'] = _backbone2['default'].Model.extend({
         });
     },
 
+    getTracker: function getTracker(assetId, template) {
+        var tracker = this.tracker();
+        if (!tracker[assetId]) {
+            tracker[assetId] = {};
+        }
+
+        if (!tracker[assetId][template]) {
+            tracker[assetId][template] = new _libTracker2['default']();
+        }
+
+        return tracker[assetId][template];
+    },
+
     reloadLandmarks: function reloadLandmarks() {
         var _this4 = this;
 
         if (this.landmarks() && this.asset()) {
-            (function () {
-                _this4.set('landmarks', null);
+            this.set('landmarks', null);
 
-                var tracker = _this4.tracker();
-                if (!tracker[_this4.asset().id]) {
-                    tracker[_this4.asset().id] = new _libTracker2['default']();
-                }
-
-                _this4.server().fetchLandmarkGroup(_this4.asset().id, _this4.activeTemplate()).then(function (json) {
-                    _this4.set('landmarks', _landmark_group2['default'].parse(json, _this4.asset().id, _this4.activeTemplate(), _this4.server(), tracker[_this4.asset().id]));
-                }, function () {
-                    console.log('Error in fetching landmark JSON file');
-                });
-            })();
+            this.server().fetchLandmarkGroup(this.asset().id, this.activeTemplate()).then(function (json) {
+                _this4.set('landmarks', _landmark_group2['default'].parse(json, _this4.asset().id, _this4.activeTemplate(), _this4.server(), _this4.getTracker(_this4.asset().id, _this4.activeTemplate())));
+            }, function () {
+                console.log('Error in fetching landmark JSON file');
+            });
         }
     },
 
@@ -61562,14 +61568,8 @@ exports['default'] = _backbone2['default'].Model.extend({
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
 
-        // Try and find an in-memory tracker for this asset
-        var tracker = this.tracker();
-        if (!tracker[this.asset().id]) {
-            tracker[this.asset().id] = new _libTracker2['default']();
-        }
-
         var loadLandmarksPromise = this.server().fetchLandmarkGroup(this.asset().id, this.activeTemplate()).then(function (json) {
-            return _landmark_group2['default'].parse(json, _this5.asset().id, _this5.activeTemplate(), _this5.server(), tracker[_this5.asset().id]);
+            return _landmark_group2['default'].parse(json, _this5.asset().id, _this5.activeTemplate(), _this5.server(), _this5.getTracker(_this5.asset().id, _this5.activeTemplate()));
         }, function () {
             console.log('Error in fetching landmark JSON file');
         });
@@ -68232,4 +68232,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":83,"./elements":84,"./handler":85,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-405cfb46.js.map
+//# sourceMappingURL=bundle-b4baa186.js.map
