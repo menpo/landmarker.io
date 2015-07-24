@@ -256,4 +256,16 @@ const CornerSpinner = Backbone.View.extend({
     }
 });
 
-export const loading = new CornerSpinner();
+let _gs;
+export const loading = {
+    start: function () {
+        if (!_gs) {
+            _gs = new CornerSpinner();
+        }
+        return _gs.start();
+    },
+
+    stop: function (id) {
+        return _gs.stop(id);
+    }
+};
