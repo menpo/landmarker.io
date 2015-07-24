@@ -41,10 +41,6 @@ var _appViewNotification = require('./app/view/notification');
 
 var Notification = _interopRequireWildcard(_appViewNotification);
 
-var _appModelConfig = require('./app/model/config');
-
-var _appModelConfig2 = _interopRequireDefault(_appModelConfig);
-
 var _appViewIntro = require('./app/view/intro');
 
 var _appViewIntro2 = _interopRequireDefault(_appViewIntro);
@@ -53,13 +49,41 @@ var _appViewAsset = require('./app/view/asset');
 
 var _appViewAsset2 = _interopRequireDefault(_appViewAsset);
 
-var _appBackend = require('./app/backend');
+var _appViewSidebar = require('./app/view/sidebar');
 
-var _appBackend2 = _interopRequireDefault(_appBackend);
+var _appViewSidebar2 = _interopRequireDefault(_appViewSidebar);
+
+var _appViewHelp = require('./app/view/help');
+
+var _appViewHelp2 = _interopRequireDefault(_appViewHelp);
+
+var _appViewToolbar = require('./app/view/toolbar');
+
+var _appViewToolbar2 = _interopRequireDefault(_appViewToolbar);
+
+var _appViewUrl_state = require('./app/view/url_state');
+
+var _appViewUrl_state2 = _interopRequireDefault(_appViewUrl_state);
+
+var _appViewViewport = require('./app/view/viewport');
+
+var _appViewViewport2 = _interopRequireDefault(_appViewViewport);
 
 var _appViewKeyboard = require('./app/view/keyboard');
 
 var _appViewKeyboard2 = _interopRequireDefault(_appViewKeyboard);
+
+var _appModelConfig = require('./app/model/config');
+
+var _appModelConfig2 = _interopRequireDefault(_appModelConfig);
+
+var _appModelApp = require('./app/model/app');
+
+var _appModelApp2 = _interopRequireDefault(_appModelApp);
+
+var _appBackend = require('./app/backend');
+
+var _appBackend2 = _interopRequireDefault(_appBackend);
 
 var cfg = (0, _appModelConfig2['default'])();
 
@@ -219,7 +243,8 @@ function resolveMode(server, u) {
         } else {
             retry('Received invalid mode', mode);
         }
-    }, function () {
+    }, function (err) {
+        console.log(err);
         retry('Couldn\'t get mode from server');
     });
 }
@@ -227,9 +252,6 @@ function resolveMode(server, u) {
 function initLandmarker(server, mode, u) {
 
     console.log('Starting landmarker in ' + mode + ' mode');
-
-    var App = require('./app/model/app');
-    var URLState = require('./app/view/url_state');
 
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
@@ -249,20 +271,15 @@ function initLandmarker(server, mode, u) {
         appInit._assetIndex = u.query.i - 1;
     }
 
-    var app = new App(appInit);
-
-    var SidebarView = require('./app/view/sidebar');
-    var ToolbarView = require('./app/view/toolbar');
-    var ViewportView = require('./app/view/viewport');
-    var HelpOverlay = require('./app/view/help');
+    var app = new _appModelApp2['default'](appInit);
 
     new Notification.AssetLoadingNotification({ model: app });
-    new SidebarView.Sidebar({ model: app });
+    new _appViewSidebar2['default']({ model: app });
     new _appViewAsset2['default']({ model: app });
-    new ToolbarView.Toolbar({ model: app });
-    new HelpOverlay({ model: app });
+    new _appViewToolbar2['default']({ model: app });
+    new _appViewHelp2['default']({ model: app });
 
-    var viewport = new ViewportView.Viewport({ model: app });
+    var viewport = new _appViewViewport2['default']({ model: app });
 
     var prevAsset = null;
 
@@ -279,7 +296,7 @@ function initLandmarker(server, mode, u) {
     });
 
     // update the URL of the page as the state changes
-    new URLState({ model: app });
+    new _appViewUrl_state2['default']({ model: app });
 
     // ----- KEYBOARD HANDLER ----- //
     (0, _jquery2['default'])(window).off('keydown');
@@ -59389,7 +59406,7 @@ module.exports={
   },
   "scripts": {
     "build": "DISABLE_NOTIFIER=true NODE_ENV=production gulp build",
-    "watch": "gulp build",
+    "watch": "gulp",
     "test": "mocha --compilers js:babel/register -R dot test/**/*.js",
     "serve": "http-server -p 4000",
     "lint": "eslint -c .eslintrc src/js",
@@ -59432,6 +59449,7 @@ module.exports={
   "devDependencies": {
     "babel-eslint": "^3.1.23",
     "chai": "^3.0.0",
+    "colors": "^1.1.2",
     "esformatter": "^0.7.1",
     "esformatter-braces": "^1.2.1",
     "esformatter-dot-notation": "^1.3.1",
@@ -59439,7 +59457,8 @@ module.exports={
     "eslint": "^0.24.1",
     "http-server": "^0.8.0",
     "mocha": "^2.2.5",
-    "watchify": "^3.2.1"
+    "watchify": "^3.2.1",
+    "yargs": "^3.15.0"
   }
 }
 
@@ -60209,7 +60228,18 @@ exports['default'] = MaterialPromise;
 
 'use strict';
 
-var THREE = require('three');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+exports['default'] = OBJLoader;
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
 
 function OBJLoader(text) {
 
@@ -60408,22 +60438,22 @@ function OBJLoader(text) {
         object = objects[i];
         geometry = object.geometry;
 
-        var buffergeometry = new THREE.BufferGeometry();
+        var buffergeometry = new _three2['default'].BufferGeometry();
 
-        buffergeometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(geometry.vertices), 3));
+        buffergeometry.addAttribute('position', new _three2['default'].BufferAttribute(new Float32Array(geometry.vertices), 3));
 
         if (geometry.normals.length > 0) {
-            buffergeometry.addAttribute('normal', new THREE.BufferAttribute(new Float32Array(geometry.normals), 3));
+            buffergeometry.addAttribute('normal', new _three2['default'].BufferAttribute(new Float32Array(geometry.normals), 3));
         }
 
         if (geometry.uvs.length > 0) {
-            buffergeometry.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(geometry.uvs), 2));
+            buffergeometry.addAttribute('uv', new _three2['default'].BufferAttribute(new Float32Array(geometry.uvs), 2));
         }
 
-        material = new THREE.MeshLambertMaterial();
+        material = new _three2['default'].MeshLambertMaterial();
         material.name = object.material.name;
 
-        var mesh = new THREE.Mesh(buffergeometry, material);
+        var mesh = new _three2['default'].Mesh(buffergeometry, material);
         mesh.name = object.name;
     }
 
@@ -60431,7 +60461,7 @@ function OBJLoader(text) {
     return buffergeometry;
 }
 
-module.exports = OBJLoader;
+module.exports = exports['default'];
 
 },{"three":43}],52:[function(require,module,exports){
 'use strict';
@@ -60612,6 +60642,10 @@ function putJSON(url) {
 
 'use strict';
 
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
 var _slicedToArray = (function () {
     function sliceIterator(arr, i) {
         var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
@@ -60638,7 +60672,15 @@ var _slicedToArray = (function () {
     };
 })();
 
-var THREE = require('three');
+exports['default'] = parse;
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
 
 function parse(data) {
     console.time('STLLoader');
@@ -60683,7 +60725,7 @@ function parseBinary(data) {
 
     var offset = 0;
 
-    var geometry = new THREE.BufferGeometry();
+    var geometry = new _three2['default'].BufferGeometry();
 
     var vertices = new Float32Array(faces * 3 * 3);
     var normals = new Float32Array(faces * 3 * 3);
@@ -60729,11 +60771,11 @@ function parseBinary(data) {
         }
     }
 
-    geometry.addAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3));
+    geometry.addAttribute('position', new _three2['default'].BufferAttribute(vertices, 3));
+    geometry.addAttribute('normal', new _three2['default'].BufferAttribute(normals, 3));
 
     if (hasColors) {
-        geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geometry.addAttribute('color', new _three2['default'].BufferAttribute(colors, 3));
         geometry.hasColors = true;
         geometry.alpha = alpha;
     }
@@ -60872,9 +60914,9 @@ function parseASCII(arrayBuffer) {
         }
     }
 
-    var geometry = new THREE.BufferGeometry();
+    var geometry = new _three2['default'].BufferGeometry();
 
-    geometry.addAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.addAttribute('position', new _three2['default'].BufferAttribute(vertices, 3));
 
     geometry.computeFaceNormals();
     geometry.computeVertexNormals();
@@ -60883,8 +60925,7 @@ function parseASCII(arrayBuffer) {
 
     return geometry;
 }
-
-module.exports = parse;
+module.exports = exports['default'];
 
 },{"three":43}],54:[function(require,module,exports){
 'use strict';
@@ -60937,7 +60978,8 @@ exports['default'] = {
 Object.defineProperty(exports, '__esModule', {
     value: true
 });
-exports['default'] = Tracker;
+exports.FixedStack = FixedStack;
+exports.Tracker = Tracker;
 
 function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : { 'default': obj };
@@ -60991,6 +61033,8 @@ function Tracker() {
 
     _underscore2['default'].extend(this, _backbone2['default'].Events);
 }
+
+exports['default'] = Tracker;
 
 Tracker.prototype.record = function (data) {
     var rev = _rev();
@@ -61080,7 +61124,6 @@ Tracker.prototype.canRedo = function () {
 Tracker.prototype.canUndo = function () {
     return this._operations.length() > 0 || this._states.length() > 1;
 };
-module.exports = exports['default'];
 
 },{"backbone":2,"underscore":44}],56:[function(require,module,exports){
 'use strict';
@@ -61168,6 +61211,22 @@ function maskedArray(array, mask) {
 },{}],57:[function(require,module,exports){
 'use strict';
 
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+function _interopRequireWildcard(obj) {
+    if (obj && obj.__esModule) {
+        return obj;
+    } else {
+        var newObj = {};if (obj != null) {
+            for (var key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key];
+            }
+        }newObj['default'] = obj;return newObj;
+    }
+}
+
 function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : { 'default': obj };
 }
@@ -61188,15 +61247,23 @@ var _backbone = require('backbone');
 
 var _backbone2 = _interopRequireDefault(_backbone);
 
+var _libTracker = require('../lib/tracker');
+
+var _libTracker2 = _interopRequireDefault(_libTracker);
+
+var _assetsource = require('./assetsource');
+
+var AssetSource = _interopRequireWildcard(_assetsource);
+
+var _landmark_group = require('./landmark_group');
+
+var _landmark_group2 = _interopRequireDefault(_landmark_group);
+
 var _viewModal = require('../view/modal');
 
 var _viewModal2 = _interopRequireDefault(_viewModal);
 
-var LandmarkGroup = require('./landmark_group'),
-    Tracker = require('../lib/tracker'),
-    AssetSource = require('./assetsource');
-
-var App = _backbone2['default'].Model.extend({
+exports['default'] = _backbone2['default'].Model.extend({
 
     defaults: function defaults() {
         return {
@@ -61471,11 +61538,11 @@ var App = _backbone2['default'].Model.extend({
         // Try and find an in-memory tracker for this asset
         var tracker = this.tracker();
         if (!tracker[this.asset().id]) {
-            tracker[this.asset().id] = new Tracker();
+            tracker[this.asset().id] = new _libTracker2['default']();
         }
 
         var loadLandmarksPromise = this.server().fetchLandmarkGroup(this.asset().id, this.activeTemplate()).then(function (json) {
-            return LandmarkGroup.parse(json, _this4.asset().id, _this4.activeTemplate(), _this4.server(), tracker[_this4.asset().id]);
+            return _landmark_group2['default'].parse(json, _this4.asset().id, _this4.activeTemplate(), _this4.server(), tracker[_this4.asset().id]);
         }, function () {
             console.log('Error in fetching landmark JSON file');
         });
@@ -61591,44 +61658,56 @@ var App = _backbone2['default'].Model.extend({
     }
 
 });
-
-module.exports = App;
+module.exports = exports['default'];
 
 },{"../lib/tracker":55,"../view/modal":72,"./assetsource":59,"./landmark_group":63,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],58:[function(require,module,exports){
 'use strict';
 
-var Backbone = require('backbone');
-var THREE = require('three');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
 
 var FRONT = {
-    image: new THREE.Vector3(0, 0, 1),
-    mesh: new THREE.Vector3(0, 0, 1)
+    image: new _three2['default'].Vector3(0, 0, 1),
+    mesh: new _three2['default'].Vector3(0, 0, 1)
 };
 
 var UP = {
-    image: new THREE.Vector3(1, 0, 0),
-    mesh: new THREE.Vector3(0, 1, 0)
+    image: new _three2['default'].Vector3(1, 0, 0),
+    mesh: new _three2['default'].Vector3(0, 1, 0)
 };
 
 function mappedPlane(w, h) {
-    var geometry = new THREE.Geometry();
-    geometry.vertices.push(new THREE.Vector3(0, 0, 0));
-    geometry.vertices.push(new THREE.Vector3(h, 0, 0));
-    geometry.vertices.push(new THREE.Vector3(h, w, 0));
-    geometry.vertices.push(new THREE.Vector3(0, w, 0));
+    var geometry = new _three2['default'].Geometry();
+    geometry.vertices.push(new _three2['default'].Vector3(0, 0, 0));
+    geometry.vertices.push(new _three2['default'].Vector3(h, 0, 0));
+    geometry.vertices.push(new _three2['default'].Vector3(h, w, 0));
+    geometry.vertices.push(new _three2['default'].Vector3(0, w, 0));
 
-    geometry.faces.push(new THREE.Face3(0, 1, 3));
-    geometry.faces.push(new THREE.Face3(1, 2, 3));
+    geometry.faces.push(new _three2['default'].Face3(0, 1, 3));
+    geometry.faces.push(new _three2['default'].Face3(1, 2, 3));
 
     var t0 = [];
-    t0.push(new THREE.Vector2(0, 1)); // 1 0
-    t0.push(new THREE.Vector2(0, 0)); // 1 1
-    t0.push(new THREE.Vector2(1, 1)); // 0 1
+    t0.push(new _three2['default'].Vector2(0, 1)); // 1 0
+    t0.push(new _three2['default'].Vector2(0, 0)); // 1 1
+    t0.push(new _three2['default'].Vector2(1, 1)); // 0 1
 
     var t1 = [];
-    t1.push(new THREE.Vector2(0, 0)); // 0 1
-    t1.push(new THREE.Vector2(1, 0)); // 0 0
-    t1.push(new THREE.Vector2(1, 1)); // 1 0
+    t1.push(new _three2['default'].Vector2(0, 0)); // 0 1
+    t1.push(new _three2['default'].Vector2(1, 0)); // 0 0
+    t1.push(new _three2['default'].Vector2(1, 1)); // 1 0
 
     geometry.faceVertexUvs[0].push(t0);
     geometry.faceVertexUvs[0].push(t1);
@@ -61642,19 +61721,19 @@ function mappedPlane(w, h) {
     return geometry;
 }
 
-var untexturedMeshMaterial = new THREE.MeshPhongMaterial();
+var untexturedMeshMaterial = new _three2['default'].MeshPhongMaterial();
 untexturedMeshMaterial.transparent = true;
 
 var imagePlaceholderGeometry = mappedPlane(1, 1);
-var imagePlaceholderTexture = THREE.ImageUtils.loadTexture('./img/placeholder.jpg');
+var imagePlaceholderTexture = _three2['default'].ImageUtils.loadTexture('./img/placeholder.jpg');
 // the placeholder texture will not be powers of two size, so we need
 // to set our resampling appropriately.
-imagePlaceholderTexture.minFilter = THREE.LinearFilter;
-var imagePlaceholderMaterial = new THREE.MeshPhongMaterial({
+imagePlaceholderTexture.minFilter = _three2['default'].LinearFilter;
+var imagePlaceholderMaterial = new _three2['default'].MeshPhongMaterial({
     map: imagePlaceholderTexture
 });
 
-var Image = Backbone.Model.extend({
+var Image = _backbone2['default'].Model.extend({
 
     defaults: function defaults() {
         return { textureOn: true };
@@ -61741,7 +61820,7 @@ var Image = Backbone.Model.extend({
                 material = this.thumbnail;
             }
         }
-        mesh = new THREE.Mesh(geometry, material);
+        mesh = new _three2['default'].Mesh(geometry, material);
         mesh.name = this.id;
         return {
             mesh: mesh,
@@ -61852,6 +61931,7 @@ var Image = Backbone.Model.extend({
     }
 });
 
+exports.Image = Image;
 var Mesh = Image.extend({
 
     geometryUrl: function geometryUrl() {
@@ -61949,43 +62029,69 @@ var Mesh = Image.extend({
     },
 
     _newBufferGeometry: function _newBufferGeometry(points, normals, tcoords) {
-        var geometry = new THREE.BufferGeometry();
-        geometry.addAttribute('position', new THREE.BufferAttribute(points, 3));
+        var geometry = new _three2['default'].BufferGeometry();
+        geometry.addAttribute('position', new _three2['default'].BufferAttribute(points, 3));
         if (normals) {
-            geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3));
+            geometry.addAttribute('normal', new _three2['default'].BufferAttribute(normals, 3));
         } else {
             geometry.computeVertexNormals();
         }
         if (tcoords) {
-            geometry.addAttribute('uv', new THREE.BufferAttribute(tcoords, 2));
+            geometry.addAttribute('uv', new _three2['default'].BufferAttribute(tcoords, 2));
         }
         geometry.computeBoundingSphere();
         return geometry;
     }
 
 });
-
 exports.Mesh = Mesh;
-exports.Image = Image;
 
 },{"backbone":2,"three":43}],59:[function(require,module,exports){
 'use strict';
 
-var Backbone = require('backbone');
-var _ = require('underscore');
-var Asset = require('./asset');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+function _interopRequireWildcard(obj) {
+    if (obj && obj.__esModule) {
+        return obj;
+    } else {
+        var newObj = {};if (obj != null) {
+            for (var key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key];
+            }
+        }newObj['default'] = obj;return newObj;
+    }
+}
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _asset = require('./asset');
+
+var Asset = _interopRequireWildcard(_asset);
 
 function abortAllObj(obj) {
-    _.values(obj).forEach(function (x) {
+    _underscore2['default'].values(obj).forEach(function (x) {
         x.abort();
     });
 }
 
 // Holds a list of available assets.
-var AssetSource = Backbone.Model.extend({
+var AssetSource = _backbone2['default'].Model.extend({
 
     defaults: function defaults() {
-        return { assets: new Backbone.Collection(), assetIsLoading: false };
+        return { assets: new _backbone2['default'].Collection(), assetIsLoading: false };
     },
 
     fetch: function fetch() {
@@ -62058,7 +62164,7 @@ var AssetSource = Backbone.Model.extend({
     }
 });
 
-exports.MeshSource = AssetSource.extend({
+var MeshSource = AssetSource.extend({
 
     parse: function parse(response) {
         var _this2 = this;
@@ -62124,10 +62230,11 @@ exports.MeshSource = AssetSource.extend({
     }
 });
 
+exports.MeshSource = MeshSource;
 // Holds a list of available images, and a ImageList. The ImageList
 // is populated immediately, although images aren't fetched until demanded.
 // Also has a mesh parameter - the currently active mesh.
-exports.ImageSource = AssetSource.extend({
+var ImageSource = AssetSource.extend({
 
     parse: function parse(response) {
         var _this3 = this;
@@ -62143,7 +62250,8 @@ exports.ImageSource = AssetSource.extend({
     },
 
     setAsset: function setAsset(newAsset) {
-        var that = this;
+        var _this4 = this;
+
         var oldAsset = this.get('asset');
         // stop listening to the old asset
         if (oldAsset) {
@@ -62151,7 +62259,7 @@ exports.ImageSource = AssetSource.extend({
         }
         this.set('assetIsLoading', true);
         // set the asset immediately (triggering change in UI)
-        that.set('asset', newAsset);
+        this.set('asset', newAsset);
 
         this.listenTo(newAsset, 'newMeshAvailable', this.updateMesh);
 
@@ -62166,7 +62274,7 @@ exports.ImageSource = AssetSource.extend({
         // loading requests.
         texture.then(function () {
             console.log('grabbed new image texture');
-            that.set('assetIsLoading', false);
+            _this4.set('assetIsLoading', false);
         }, function (err) {
             console.log('texture.then something went wrong ' + err.stack);
         });
@@ -62175,15 +62283,26 @@ exports.ImageSource = AssetSource.extend({
         return texture;
     }
 });
+exports.ImageSource = ImageSource;
 
 },{"./asset":58,"backbone":2,"underscore":44}],60:[function(require,module,exports){
 'use strict';
 
-var Backbone = require('backbone');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
 
 var atomicTracker = undefined;
 
-var AtomicOperationTracker = Backbone.Model.extend({
+var AtomicOperationTracker = _backbone2['default'].Model.extend({
 
     defaults: function defaults() {
         return { ATOMIC_OPERATION: false };
@@ -62228,8 +62347,8 @@ var AtomicOperationTracker = Backbone.Model.extend({
 
 });
 
-atomicTracker = new AtomicOperationTracker();
-module.exports = atomicTracker;
+exports['default'] = atomicTracker = new AtomicOperationTracker();
+module.exports = exports['default'];
 
 },{"backbone":2}],61:[function(require,module,exports){
 /**
@@ -62242,6 +62361,7 @@ module.exports = atomicTracker;
 Object.defineProperty(exports, '__esModule', {
     value: true
 });
+exports.Config = Config;
 
 function _interopRequireWildcard(obj) {
     if (obj && obj.__esModule) {
@@ -62346,8 +62466,6 @@ exports['default'] = function () {
     }
     return _configInstance;
 };
-
-module.exports = exports['default'];
 
 },{"../lib/support":54,"underscore":44}],62:[function(require,module,exports){
 'use strict';
@@ -62851,12 +62969,26 @@ module.exports = exports['default'];
 
 'use strict';
 
-var THREE = require('three');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+exports.octreeForBufferGeometry = octreeForBufferGeometry;
+exports.intersectMesh = intersectMesh;
+exports.OctreeNode = OctreeNode;
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
 
 // once a node gets this full it subdivides.
 var MAX_NODE_ITEMS = 75;
 
 // return an octree suitable for use with a buffer geometry instance.
+
 function octreeForBufferGeometry(geometry) {
     if (geometry.boundingBox === null) {
         geometry.computeBoundingBox();
@@ -62867,11 +62999,11 @@ function octreeForBufferGeometry(geometry) {
     var nTris = pointsAttribute.length / 9;
     var p = pointsAttribute.array;
     var box;
-    var tmp = new THREE.Vector3();
+    var tmp = new _three2['default'].Vector3();
     // run through the points array, creating tight bounding boxes for each
     // point. Insert them into the tree.
     for (var i = 0; i < nTris; i++) {
-        box = new THREE.Box3(); // boxes default to empty
+        box = new _three2['default'].Box3(); // boxes default to empty
         tmp.set(p[i * 9], p[i * 9 + 1], p[i * 9 + 2]);
         box.expandByPoint(tmp);
         tmp.set(p[i * 9 + 3], p[i * 9 + 4], p[i * 9 + 5]);
@@ -62888,20 +63020,20 @@ function octreeForBufferGeometry(geometry) {
 }
 
 // reused for mesh intersections.
-var inverseMatrix = new THREE.Matrix4();
-var _ray = new THREE.Ray();
+var inverseMatrix = new _three2['default'].Matrix4();
+var _ray = new _three2['default'].Ray();
 
-var vA = new THREE.Vector3();
-var vB = new THREE.Vector3();
-var vC = new THREE.Vector3();
+var vA = new _three2['default'].Vector3();
+var vB = new _three2['default'].Vector3();
+var vC = new _three2['default'].Vector3();
 
-var descSort = function descSort(a, b) {
+function descSort(a, b) {
     return a.distance - b.distance;
-};
+}
 
 // this code is largely adapted from THREE.Mesh.prototype.raycast
 // (particularly the geometry instanceof THREE.BufferGeometry branch)
-var intersectTrianglesAtIndices = function intersectTrianglesAtIndices(ray, raycaster, mesh, indices) {
+function intersectTrianglesAtIndices(ray, raycaster, mesh, indices) {
 
     var intersects = [];
     var material = mesh.material;
@@ -62920,10 +63052,10 @@ var intersectTrianglesAtIndices = function intersectTrianglesAtIndices(ray, rayc
         vB.set(p[j + 3], p[j + 4], p[j + 5]);
         vC.set(p[j + 6], p[j + 7], p[j + 8]);
 
-        if (material.side === THREE.BackSide) {
+        if (material.side === _three2['default'].BackSide) {
             intersectionPoint = ray.intersectTriangle(vC, vB, vA, true);
         } else {
-            intersectionPoint = ray.intersectTriangle(vA, vB, vC, material.side !== THREE.DoubleSide);
+            intersectionPoint = ray.intersectTriangle(vA, vB, vC, material.side !== _three2['default'].DoubleSide);
         }
 
         if (intersectionPoint === null) {
@@ -62948,7 +63080,7 @@ var intersectTrianglesAtIndices = function intersectTrianglesAtIndices(ray, rayc
     }
     intersects.sort(descSort);
     return intersects;
-};
+}
 
 function intersectMesh(raycaster, mesh, octree) {
     // 1. Bring the ray into model space to intersect (remember, that's where
@@ -62977,7 +63109,7 @@ function OctreeNode(min, max) {
 
 // by extending Box we save memory - no need to have our node have a box - it
 // *is* one!
-OctreeNode.prototype = Object.create(THREE.Box3.prototype);
+OctreeNode.prototype = Object.create(_three2['default'].Box3.prototype);
 
 // when all is said and done, we have a lot of boxes that are redundant on leaf
 // nodes. Go though and prune them all from the tree.
@@ -63065,20 +63197,20 @@ OctreeNode.prototype.subdivide = function () {
     var c = this.center();
 
     // all subnodes will have this vector from min to max
-    var displacement = new THREE.Vector3();
+    var displacement = new _three2['default'].Vector3();
     displacement.subVectors(this.center(), this.min);
 
     // declare the min value of each new box
     var mins = [
     // bottom level
-    this.min, new THREE.Vector3(c.x, a.y, a.z), new THREE.Vector3(a.x, c.y, a.z), new THREE.Vector3(c.x, c.y, a.z),
+    this.min, new _three2['default'].Vector3(c.x, a.y, a.z), new _three2['default'].Vector3(a.x, c.y, a.z), new _three2['default'].Vector3(c.x, c.y, a.z),
     // top level
-    new THREE.Vector3(a.x, a.y, c.z), new THREE.Vector3(c.x, a.y, c.z), new THREE.Vector3(a.x, c.y, c.z), c];
+    new _three2['default'].Vector3(a.x, a.y, c.z), new _three2['default'].Vector3(c.x, a.y, c.z), new _three2['default'].Vector3(a.x, c.y, c.z), c];
 
     // create the 8 children
     for (var i = 0; i < mins.length; i++) {
         newMin = mins[i];
-        newMax = new THREE.Vector3();
+        newMax = new _three2['default'].Vector3();
         newMax.addVectors(newMin, displacement);
         this.children.push(new OctreeNode(newMin, newMax));
     }
@@ -63092,10 +63224,6 @@ OctreeNode.prototype.subdivide = function () {
         this.add(toAdd[i]);
     }
 };
-
-module.exports.OctreeNode = OctreeNode;
-module.exports.octreeForBufferGeometry = octreeForBufferGeometry;
-module.exports.intersetMesh = intersectMesh;
 
 },{"three":43}],65:[function(require,module,exports){
 'use strict';
@@ -63257,7 +63385,7 @@ Template.parseLJSON = function (ljson) {
         template.push(group);
     });
 
-    return new Template({ template: template });
+    return new Template({ groups: template });
 };
 
 Template.Parsers = {
@@ -63268,11 +63396,11 @@ Template.Parsers = {
 };
 
 Template.prototype.toYAML = function () {
-    return _jsYaml2['default'].safeDump(this._template);
+    return _jsYaml2['default'].safeDump({ groups: this._template });
 };
 
 Template.prototype.toJSON = function () {
-    return JSON.stringify(this._template);
+    return JSON.stringify({ groups: this._template });
 };
 
 /**
@@ -63657,6 +63785,10 @@ exports['default'] = _backbone2['default'].View.extend({
 },{"../backend":48,"../lib/utils":56,"./intro":69,"./list_picker":71,"./modal":72,"./notification":73,"backbone":2,"jquery":9,"underscore":44}],67:[function(require,module,exports){
 'use strict';
 
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
 var _slicedToArray = (function () {
     function sliceIterator(arr, i) {
         var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
@@ -63758,7 +63890,7 @@ function DropboxRadio(opts, index) {
     return $radio;
 }
 
-var DropboxPicker = _modal2['default'].extend({
+exports['default'] = _modal2['default'].extend({
 
     events: {
         'click .DropboxSelectListItem': 'handleClick',
@@ -64017,11 +64149,14 @@ var DropboxPicker = _modal2['default'].extend({
         this.fetch().then(this.update);
     }
 });
-
-module.exports = DropboxPicker;
+module.exports = exports['default'];
 
 },{"../lib/utils":56,"./modal":72,"jquery":9,"promise-polyfill":41,"underscore":44}],68:[function(require,module,exports){
 'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
 var _slicedToArray = (function () {
     function sliceIterator(arr, i) {
@@ -64049,12 +64184,21 @@ var _slicedToArray = (function () {
     };
 })();
 
-var Backbone = require('backbone');
-var $ = require('jquery');
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
 
-var HELP_CONTENTS = [['j', 'go to next asset in collection'], ['k', 'go to previous asset in collection'], [''], ['right click', 'insert next available landmark'], ['snap + click', 'move snapped landmark'], ['snap + ctrl + move', 'lock snapped landmark'], [''], ['a', 'select all landmarks'], ['g', 'select all landmarks in the active group'], ['d', 'delete selected landmarks'], ['q / ESC', 'clear current selection'], ['z', 'undo last operation'], ['y', 'redo last undone operation'], ['click outside', 'clear current selection'], ['ctrl/cmd + click on landmark', 'select and deselect from current selection'], ['click on a landmark', 'select a landmark'], ['click + drag on a landmark', 'move landmark points'], ['shift + drag not on a landmark', 'draw a box to select multiple landmarks'], ['ctrl + shift + drag not on a landmark', 'draw a box to add multiple landmarks to current selection'], [''], ['l', 'toggle links (landmark connections)'], ['t', 'toggle textures (<i>mesh mode only</i>)'], ['c', 'change between orthographic and perspective rendering (<i>mesh mode only</i>)'], [''], ['r', 'reset the camera to default'], ['mouse wheel', 'zoom the camera in and out'], ['click + drag', 'rotate camera (<i>mesh mode only</i>)'], ['right click + drag', 'pan the camera'], [''], ['?', 'display this help']];
+var _backbone = require('backbone');
 
-module.exports = Backbone.View.extend({
+var _backbone2 = _interopRequireDefault(_backbone);
+
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var HELP_CONTENTS = [['j', 'go to next asset in collection'], ['k', 'go to previous asset in collection'], [''], ['right click', 'insert next available landmark'], ['snap + click', 'move snapped landmark'], ['snap + ctrl + move', 'lock snapped landmark'], [''], ['a', 'select all landmarks'], ['g', 'select all landmarks in the active group'], ['d', 'delete selected landmarks'], ['q / ESC', 'clear current selection'], ['z', 'undo last operation'], ['y', 'redo last undone operation'], ['ctrl + s', 'save current landmarks'], ['click outside', 'clear current selection'], ['ctrl/cmd + click on landmark', 'select and deselect from current selection'], ['click on a landmark', 'select a landmark'], ['click + drag on a landmark', 'move landmark points'], ['shift + drag not on a landmark', 'draw a box to select multiple landmarks'], ['ctrl + shift + drag not on a landmark', 'draw a box to add multiple landmarks to current selection'], [''], ['l', 'toggle links (landmark connections)'], ['t', 'toggle textures (<i>mesh mode only</i>)'], ['c', 'change between orthographic and perspective rendering (<i>mesh mode only</i>)'], [''], ['r', 'reset the camera to default'], ['mouse wheel', 'zoom the camera in and out'], ['click + drag', 'rotate camera (<i>mesh mode only</i>)'], ['right click + drag', 'pan the camera'], [''], ['?', 'display this help']];
+
+exports['default'] = _backbone2['default'].View.extend({
 
     el: '#helpOverlay',
 
@@ -64069,7 +64213,7 @@ module.exports = Backbone.View.extend({
             var key = _ref2[0];
             var msg = _ref2[1];
 
-            $tbody.append(msg ? $('<tr><td>' + key + '</td><td>' + msg + '</td></tr>') : $('<tr class=\'title\'><td>' + key + '</td><td></td></tr>'));
+            $tbody.append(msg ? (0, _jquery2['default'])('<tr><td>' + key + '</td><td>' + msg + '</td></tr>') : (0, _jquery2['default'])('<tr class=\'title\'><td>' + key + '</td><td></td></tr>'));
         });
 
         this.render();
@@ -64083,6 +64227,7 @@ module.exports = Backbone.View.extend({
         this.model.toggleHelpOverlay();
     }
 });
+module.exports = exports['default'];
 
 },{"backbone":2,"jquery":9}],69:[function(require,module,exports){
 'use strict';
@@ -64271,6 +64416,8 @@ var _modal = require('./modal');
 
 var _modal2 = _interopRequireDefault(_modal);
 
+var _notification = require('./notification');
+
 function KeyboardShortcutsHandler(app, viewport) {
     this._keypress = function (e) {
 
@@ -64288,6 +64435,16 @@ function KeyboardShortcutsHandler(app, viewport) {
         var lms = app.landmarks();
 
         switch (key) {
+            case 19:
+                // s = [s]ave (normally 115 but switches to 19 with ctrl)
+                if (lms && e.ctrlKey) {
+                    lms.save().then(function () {
+                        (0, _notification.notify)({ type: 'success', msg: 'Save Completed' });
+                    }, function () {
+                        (0, _notification.notify)({ type: 'error', msg: 'Save Failed' });
+                    });
+                }
+                break;
             case 100:
                 // d = [d]elete selected
                 if (lms) {
@@ -64412,8 +64569,12 @@ KeyboardShortcutsHandler.prototype.disable = function () {
 };
 module.exports = exports['default'];
 
-},{"./modal":72,"jquery":9}],71:[function(require,module,exports){
+},{"./modal":72,"./notification":73,"jquery":9}],71:[function(require,module,exports){
 'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
 var _slicedToArray = (function () {
     function sliceIterator(arr, i) {
@@ -64457,7 +64618,7 @@ var _modal = require('./modal');
 
 var _modal2 = _interopRequireDefault(_modal);
 
-var ListPicker = _modal2['default'].extend({
+exports['default'] = _modal2['default'].extend({
 
     events: {
         'click li': 'click',
@@ -64536,8 +64697,7 @@ var ListPicker = _modal2['default'].extend({
         this.close();
     }
 });
-
-module.exports = ListPicker;
+module.exports = exports['default'];
 
 },{"./modal":72,"jquery":9,"underscore":44}],72:[function(require,module,exports){
 'use strict';
@@ -64804,6 +64964,10 @@ exports['default'] = Modal;
 },{"backbone":2,"jquery":9,"underscore":44}],73:[function(require,module,exports){
 'use strict';
 
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
 var _slicedToArray = (function () {
     function sliceIterator(arr, i) {
         var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
@@ -64830,14 +64994,29 @@ var _slicedToArray = (function () {
     };
 })();
 
-var _ = require('underscore');
-var Backbone = require('backbone');
-var $ = require('jquery');
-var Spinner = require('spin.js');
+exports.notify = notify;
 
-var _require = require('../lib/utils');
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
 
-var randomString = _require.randomString;
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _spinJs = require('spin.js');
+
+var _spinJs2 = _interopRequireDefault(_spinJs);
+
+var _libUtils = require('../lib/utils');
 
 var spinnerOpts = {
     lines: 13, // The number of lines to draw
@@ -64858,27 +65037,6 @@ var spinnerOpts = {
     left: '50%' // Left position relative to parent
 };
 
-// module.exports.ThumbnailNotification = Backbone.View.extend({
-//
-//     initialize: function () {
-//         _.bindAll(this, 'render');
-//         this.listenTo(this.model.assetSource(), "change:nPreviews", this.render);
-//     },
-//
-//     render: function () {
-//         var total = this.model.assetSource().nAssets();
-//         var nDone = this.model.assetSource().nPreviews();
-//         if (total === nDone) {
-//             document.getElementById('previewNotification').style.display = 'none';
-//         }
-//         var done = nDone/total;
-//         var todo = 1 - nDone/total;
-//         document.getElementById('previewDone').style.flex = done;
-//         document.getElementById('previewRemaining').style.flex = todo;
-//         return this;
-//     }
-// });
-
 var NOTIFICATION_BASE_CLASS = 'Notification',
     NOTIFICATION_CLOSING_CLASS = 'Notification--Closing',
     NOTIFICATION_PERMANENT_CLASS = 'Notification--Permanent',
@@ -64888,7 +65046,7 @@ var NOTIFICATION_BASE_CLASS = 'Notification',
     'error': 'Notification--Error',
     'warning': 'Notification--Warning' };
 
-module.exports.BaseNotification = Backbone.View.extend({
+var BaseNotification = _backbone2['default'].View.extend({
 
     tagName: 'div',
     container: '#notificationOverlay',
@@ -64910,7 +65068,7 @@ module.exports.BaseNotification = Backbone.View.extend({
         var _ref$closeTimeout = _ref.closeTimeout;
         var closeTimeout = _ref$closeTimeout === undefined ? NOTIFICATION_DEFAULT_CLOSE_TIMEOUT : _ref$closeTimeout;
 
-        _.bindAll(this, 'render', 'close');
+        _underscore2['default'].bindAll(this, 'render', 'close');
 
         if (!(type in NOTIFICATION_TYPE_CLASSES)) {
             type = NOTIFICATION_DEFAULT_TYPE;
@@ -64962,21 +65120,21 @@ module.exports.BaseNotification = Backbone.View.extend({
 
         this.$el.addClass([NOTIFICATION_BASE_CLASS, NOTIFICATION_TYPE_CLASSES[type]].join(' '));
 
-        if (msg instanceof $) {
+        if (msg instanceof _jquery2['default']) {
             this.$el.append(msg);
         } else {
             this.$el.append('<p>' + msg + '</p>');
         }
 
         if (this.actions.length) {
-            var $actions = $('<div></div>');
+            var $actions = (0, _jquery2['default'])('<div></div>');
             this.actions.forEach(function (_ref3, index) {
                 var _ref32 = _slicedToArray(_ref3, 2);
 
                 var label = _ref32[0];
                 var func = _ref32[1];
 
-                $actions.append($('                    <div class=\'Notification__Action\' data-index=' + index + '>                        ' + label + '\n                    </div>                '));
+                $actions.append((0, _jquery2['default'])('                    <div class=\'Notification__Action\' data-index=' + index + '>                        ' + label + '\n                    </div>                '));
             });
             this.$el.append($actions);
         }
@@ -65012,18 +65170,20 @@ module.exports.BaseNotification = Backbone.View.extend({
     }
 });
 
-module.exports.notify = function (opts) {
-    return new module.exports.BaseNotification(opts);
-};
+exports.BaseNotification = BaseNotification;
 
-module.exports.AssetLoadingNotification = Backbone.View.extend({
+function notify(opts) {
+    return new module.exports.BaseNotification(opts);
+}
+
+var AssetLoadingNotification = _backbone2['default'].View.extend({
 
     initialize: function initialize() {
-        _.bindAll(this, 'render');
+        _underscore2['default'].bindAll(this, 'render');
         this.listenTo(this.model, 'change:assetSource', this._changeAssetSource);
-        this.spinner = new Spinner().spin();
+        this.spinner = new _spinJs2['default']().spin();
         this.el = document.getElementById('loadingSpinner');
-        this.spinner = new Spinner(spinnerOpts);
+        this.spinner = new _spinJs2['default'](spinnerOpts);
         this.isSpinning = false;
         this._changeAssetSource();
     },
@@ -65053,14 +65213,15 @@ module.exports.AssetLoadingNotification = Backbone.View.extend({
     }
 });
 
-module.exports.LandmarkSavingNotification = Backbone.View.extend({
+exports.AssetLoadingNotification = AssetLoadingNotification;
+var LandmarkSavingNotification = _backbone2['default'].View.extend({
 
     initialize: function initialize() {
-        _.bindAll(this, 'start', 'stop');
-        this.spinner = new Spinner().spin();
+        _underscore2['default'].bindAll(this, 'start', 'stop');
+        this.spinner = new _spinJs2['default']().spin();
 
         this.el = document.getElementById('loadingSpinner');
-        this.spinner = new Spinner(spinnerOpts);
+        this.spinner = new _spinJs2['default'](spinnerOpts);
         this.isSpinning = false;
     },
 
@@ -65079,7 +65240,8 @@ module.exports.LandmarkSavingNotification = Backbone.View.extend({
     }
 });
 
-var CornerSpinner = Backbone.View.extend({
+exports.LandmarkSavingNotification = LandmarkSavingNotification;
+var CornerSpinner = _backbone2['default'].View.extend({
 
     el: '#globalSpinner',
     initialize: function initialize() {
@@ -65095,17 +65257,17 @@ var CornerSpinner = Backbone.View.extend({
 
         if (show && !this._shown) {
             this.$el.addClass('Display');
-            $('.Viewport').addClass('LoadingCursor');
+            (0, _jquery2['default'])('.Viewport').addClass('LoadingCursor');
             this._shown = true;
         } else if (!show) {
             this.$el.removeClass('Display');
-            $('.Viewport').removeClass('LoadingCursor');
+            (0, _jquery2['default'])('.Viewport').removeClass('LoadingCursor');
             this._shown = false;
         }
     },
 
     start: function start() {
-        var rs = randomString(8, true);
+        var rs = (0, _libUtils.randomString)(8, true);
         this._operations[rs] = true;
         this.render(true);
         return rs;
@@ -65119,39 +65281,63 @@ var CornerSpinner = Backbone.View.extend({
     }
 });
 
-var _gs;
-module.exports.loading = {
-
-    start: function start() {
-        _gs = _gs || new CornerSpinner();
-        return _gs.start.call(_gs);
-    },
-
-    stop: function stop(id) {
-        _gs = _gs || new CornerSpinner();
-        _gs.stop.call(_gs, id);
-    }
-};
+var loading = new CornerSpinner();
+exports.loading = loading;
 
 },{"../lib/utils":56,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],74:[function(require,module,exports){
 'use strict';
 
-var _ = require('underscore');
-var Backbone = require('backbone');
-var $ = require('jquery');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
-var Notification = require('./notification');
-var atomic = require('../model/atomic');
+function _interopRequireWildcard(obj) {
+    if (obj && obj.__esModule) {
+        return obj;
+    } else {
+        var newObj = {};if (obj != null) {
+            for (var key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key];
+            }
+        }newObj['default'] = obj;return newObj;
+    }
+}
 
-var _require = require('../backend');
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
 
-var Server = _require.Server;
+var _underscore = require('underscore');
 
-var ListPicker = require('./list_picker');
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _notification = require('./notification');
+
+var Notification = _interopRequireWildcard(_notification);
+
+var _backendServer = require('../backend/server');
+
+var _backendServer2 = _interopRequireDefault(_backendServer);
+
+var _modelAtomic = require('../model/atomic');
+
+var _modelAtomic2 = _interopRequireDefault(_modelAtomic);
+
+var _list_picker = require('./list_picker');
+
+var _list_picker2 = _interopRequireDefault(_list_picker);
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
-var LandmarkView = Backbone.View.extend({
+var LandmarkView = _backbone2['default'].View.extend({
 
     tagName: 'div',
 
@@ -65163,13 +65349,13 @@ var LandmarkView = Backbone.View.extend({
         var labelIndex = _ref.labelIndex;
 
         this.listenTo(this.model, 'change', this.render);
-        _.bindAll(this, 'select', 'selectGroup', 'handleClick', 'selectAll');
+        _underscore2['default'].bindAll(this, 'select', 'selectGroup', 'handleClick', 'selectAll');
         this._clickedTimeout = null;
         this.labelIndex = labelIndex;
     },
 
     render: function render() {
-        var html = $('<div></div>');
+        var html = (0, _jquery2['default'])('<div></div>');
         html.addClass('Lm', this.model.isEmpty());
 
         html.toggleClass('Lm-Empty', this.model.isEmpty());
@@ -65200,7 +65386,7 @@ var LandmarkView = Backbone.View.extend({
         }
     },
 
-    select: atomic.atomicOperation(function (event) {
+    select: _modelAtomic2['default'].atomicOperation(function (event) {
         if (event.shiftKey) {
             this.selectAll(event);
         } else if (this.model.isSelected()) {
@@ -65208,7 +65394,7 @@ var LandmarkView = Backbone.View.extend({
         } else if (event.ctrlKey || event.metaKey) {
             if (!this.model.isSelected()) {
                 this.model.select();
-                $('#viewportContainer').trigger('groupSelected');
+                (0, _jquery2['default'])('#viewportContainer').trigger('groupSelected');
             }
         } else if (this.model.isEmpty()) {
             // user is clicking on an empty landmark - mark it as the next for
@@ -65222,26 +65408,27 @@ var LandmarkView = Backbone.View.extend({
     selectGroup: function selectGroup() {
         this.model.group().deselectAll();
         this.model.group().labels[this.labelIndex].selectAll();
-        $('#viewportContainer').trigger('groupSelected');
+        (0, _jquery2['default'])('#viewportContainer').trigger('groupSelected');
     },
 
     selectAll: function selectAll() {
         this.model.group().selectAll();
-        $('#viewportContainer').trigger('groupSelected');
+        (0, _jquery2['default'])('#viewportContainer').trigger('groupSelected');
     }
 });
 
+exports.LandmarkView = LandmarkView;
 // Renders the LandmarkList. Don't think this ListView should ever have to
 // render (as we build a fresh View each time a group is activated
 // and de-activated)
-var LandmarkListView = Backbone.View.extend({
+var LandmarkListView = _backbone2['default'].View.extend({
 
     tagName: 'div',
 
     initialize: function initialize(_ref2) {
         var labelIndex = _ref2.labelIndex;
 
-        _.bindAll(this, 'render', 'renderOne');
+        _underscore2['default'].bindAll(this, 'render', 'renderOne');
         this.lmViews = [];
         this.labelIndex = labelIndex;
         this.render();
@@ -65272,27 +65459,28 @@ var LandmarkListView = Backbone.View.extend({
 
 });
 
-var LandmarkGroupLabelView = Backbone.View.extend({
+exports.LandmarkListView = LandmarkListView;
+var LandmarkGroupLabelView = _backbone2['default'].View.extend({
 
     className: 'LmGroup-Label',
 
     initialize: function initialize() {
-        var label = this.model.label;
-        this.$el.html(label);
+        this.$el.html(this.model.label);
     }
 });
 
+exports.LandmarkGroupLabelView = LandmarkGroupLabelView;
 // Renders a single LandmarkGroup. Either the view is closed and we just
 // render the header (LandmarkGroupButtonView) or this group is active and
 // we render all the landmarks (LandmarkListView) as well as the header.
-var LandmarkGroupView = Backbone.View.extend({
+var LandmarkGroupView = _backbone2['default'].View.extend({
 
     tagName: 'div',
 
     initialize: function initialize(_ref3) {
         var labelIndex = _ref3.labelIndex;
 
-        _.bindAll(this, 'render');
+        _underscore2['default'].bindAll(this, 'render');
         this.landmarkList = null;
         this.label = null;
         this.labelIndex = labelIndex;
@@ -65325,13 +65513,14 @@ var LandmarkGroupView = Backbone.View.extend({
     }
 });
 
+exports.LandmarkGroupView = LandmarkGroupView;
 // Renders a collection of LandmarkGroups. At any one time one of these
 // will be expanded - the rest closed. This View is indifferent - it just
 // builds LandmarkGroupView's and asks them to render in turn.
-var LandmarkGroupListView = Backbone.View.extend({
+var LandmarkGroupListView = _backbone2['default'].View.extend({
 
     initialize: function initialize() {
-        _.bindAll(this, 'render', 'renderOne');
+        _underscore2['default'].bindAll(this, 'render', 'renderOne');
         this.groups = [];
         this.render();
     },
@@ -65361,14 +65550,15 @@ var LandmarkGroupListView = Backbone.View.extend({
 
 });
 
-var ActionsView = Backbone.View.extend({
+exports.LandmarkGroupListView = LandmarkGroupListView;
+var ActionsView = _backbone2['default'].View.extend({
 
     el: '#lmActionsPanel',
 
     initialize: function initialize(_ref4) {
         var app = _ref4.app;
 
-        _.bindAll(this, 'save', 'help', 'render');
+        _underscore2['default'].bindAll(this, 'save', 'help', 'render');
         this.listenTo(this.model.tracker, 'change', this.render);
         this.app = app;
         this.render();
@@ -65438,7 +65628,8 @@ var ActionsView = Backbone.View.extend({
     }
 });
 
-var UndoRedoView = Backbone.View.extend({
+exports.ActionsView = ActionsView;
+var UndoRedoView = _backbone2['default'].View.extend({
 
     el: '#undoRedo',
 
@@ -65453,7 +65644,7 @@ var UndoRedoView = Backbone.View.extend({
         this.tracker = this.model.tracker;
         this.app = app;
         this.listenTo(this.tracker, 'change', this.render);
-        _.bindAll(this, 'render', 'cleanup', 'undo', 'redo');
+        _underscore2['default'].bindAll(this, 'render', 'cleanup', 'undo', 'redo');
         this.render();
     },
 
@@ -65485,7 +65676,8 @@ var UndoRedoView = Backbone.View.extend({
     }
 });
 
-var TemplatePanel = Backbone.View.extend({
+exports.UndoRedoView = UndoRedoView;
+var TemplatePanel = _backbone2['default'].View.extend({
     el: '#templatePanel',
 
     events: {
@@ -65493,12 +65685,12 @@ var TemplatePanel = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        _.bindAll(this, 'update');
+        _underscore2['default'].bindAll(this, 'update');
         this.listenTo(this.model, 'change:activeTemplate', this.update);
     },
 
     update: function update() {
-        this.$el.toggleClass('Disabled', this.model && (this.model.templates().length <= 1 && this.model.server() instanceof Server || typeof this.model.server().pickTemplate !== 'function'));
+        this.$el.toggleClass('Disabled', this.model && (this.model.templates().length <= 1 && this.model.server() instanceof _backendServer2['default'] && typeof this.model.server().pickTemplate !== 'function'));
         this.$el.text(this.model.activeTemplate() || '-');
     },
 
@@ -65507,7 +65699,7 @@ var TemplatePanel = Backbone.View.extend({
 
         var backend = this.model.server();
 
-        if (backend instanceof Server) {
+        if (backend instanceof _backendServer2['default']) {
 
             var tmpls = this.model.templates();
 
@@ -65515,7 +65707,7 @@ var TemplatePanel = Backbone.View.extend({
                 return;
             }
 
-            var picker = new ListPicker({
+            var picker = new _list_picker2['default']({
                 list: tmpls.map(function (t) {
                     return [t, t];
                 }),
@@ -65541,7 +65733,8 @@ var TemplatePanel = Backbone.View.extend({
     }
 });
 
-var LmLoadView = Backbone.View.extend({
+exports.TemplatePanel = TemplatePanel;
+var LmLoadView = _backbone2['default'].View.extend({
     el: '#lmLoadPanel',
 
     events: {
@@ -65551,7 +65744,7 @@ var LmLoadView = Backbone.View.extend({
     initialize: function initialize(_ref6) {
         var app = _ref6.app;
 
-        _.bindAll(this, 'render', 'loadPrevious');
+        _underscore2['default'].bindAll(this, 'render', 'loadPrevious');
         this.app = app;
         this.render();
     },
@@ -65568,10 +65761,11 @@ var LmLoadView = Backbone.View.extend({
     }
 });
 
-var Sidebar = Backbone.View.extend({
+exports.LmLoadView = LmLoadView;
+exports['default'] = _backbone2['default'].View.extend({
 
     initialize: function initialize() {
-        _.bindAll(this, 'landmarksChange');
+        _underscore2['default'].bindAll(this, 'landmarksChange');
         this.listenTo(this.model, 'change:landmarks', this.landmarksChange);
         this.actionsView = null;
         this.lmLoadView = null;
@@ -65608,21 +65802,34 @@ var Sidebar = Backbone.View.extend({
         this.lmLoadView = new LmLoadView({ model: lms, app: this.model });
         this.undoRedoView = new UndoRedoView({ model: lms });
         this.lmView = new LandmarkGroupListView({ collection: lms.labels });
-        $('#landmarksPanel').html(this.lmView.render().$el);
+        (0, _jquery2['default'])('#landmarksPanel').html(this.lmView.render().$el);
     }
-
 });
 
-module.exports.Sidebar = Sidebar;
-
-},{"../backend":48,"../model/atomic":60,"./list_picker":71,"./notification":73,"backbone":2,"jquery":9,"underscore":44}],75:[function(require,module,exports){
+},{"../backend/server":49,"../model/atomic":60,"./list_picker":71,"./notification":73,"backbone":2,"jquery":9,"underscore":44}],75:[function(require,module,exports){
 'use strict';
 
-var _ = require('underscore');
-var Backbone = require('backbone');
-var atomic = require('../model/atomic');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
-var LandmarkSizeSlider = Backbone.View.extend({
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
+var _modelAtomic = require('../model/atomic');
+
+var _modelAtomic2 = _interopRequireDefault(_modelAtomic);
+
+var LandmarkSizeSlider = _backbone2['default'].View.extend({
 
     el: '#lmSizeSlider',
 
@@ -65631,7 +65838,7 @@ var LandmarkSizeSlider = Backbone.View.extend({
     },
 
     initialize: function initialize() {
-        _.bindAll(this, 'render', 'changeLandmarkSize');
+        _underscore2['default'].bindAll(this, 'render', 'changeLandmarkSize');
         this.listenTo(this.model, 'change:landmarkSize', this.render);
         // set the size immediately.
         this.render();
@@ -65642,12 +65849,13 @@ var LandmarkSizeSlider = Backbone.View.extend({
         return this;
     },
 
-    changeLandmarkSize: atomic.atomicOperation(function (event) {
+    changeLandmarkSize: _modelAtomic2['default'].atomicOperation(function (event) {
         this.model.set('landmarkSize', Math.max(Number(event.target.value) / 100, 0.05));
     })
 });
 
-var TextureToggle = Backbone.View.extend({
+exports.LandmarkSizeSlider = LandmarkSizeSlider;
+var TextureToggle = _backbone2['default'].View.extend({
 
     el: '#textureRow',
 
@@ -65657,7 +65865,7 @@ var TextureToggle = Backbone.View.extend({
 
     initialize: function initialize() {
         this.$toggle = this.$el.find('#textureToggle')[0];
-        _.bindAll(this, 'changeMesh', 'render', 'textureToggle');
+        _underscore2['default'].bindAll(this, 'changeMesh', 'render', 'textureToggle');
         this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
         // there could already be an asset we have missed
         if (this.model.asset()) {
@@ -65692,7 +65900,8 @@ var TextureToggle = Backbone.View.extend({
     }
 });
 
-var ConnectivityToggle = Backbone.View.extend({
+exports.TextureToggle = TextureToggle;
+var ConnectivityToggle = _backbone2['default'].View.extend({
 
     el: '#connectivityRow',
 
@@ -65702,7 +65911,7 @@ var ConnectivityToggle = Backbone.View.extend({
 
     initialize: function initialize() {
         this.$toggle = this.$el.find('#connectivityToggle')[0];
-        _.bindAll(this, 'render', 'connectivityToggle');
+        _underscore2['default'].bindAll(this, 'render', 'connectivityToggle');
         this.listenTo(this.model, 'change:connectivityOn', this.render);
         this.render();
     },
@@ -65717,7 +65926,8 @@ var ConnectivityToggle = Backbone.View.extend({
     }
 });
 
-var EditingToggle = Backbone.View.extend({
+exports.ConnectivityToggle = ConnectivityToggle;
+var EditingToggle = _backbone2['default'].View.extend({
 
     el: '#editingRow',
 
@@ -65727,7 +65937,7 @@ var EditingToggle = Backbone.View.extend({
 
     initialize: function initialize() {
         this.$toggle = this.$el.find('#editingToggle')[0];
-        _.bindAll(this, 'render', 'editingToggle');
+        _underscore2['default'].bindAll(this, 'render', 'editingToggle');
         this.listenTo(this.model, 'change:editingOn', this.render);
         this.render();
     },
@@ -65742,7 +65952,8 @@ var EditingToggle = Backbone.View.extend({
     }
 });
 
-var AutoSaveToggle = Backbone.View.extend({
+exports.EditingToggle = EditingToggle;
+var AutoSaveToggle = _backbone2['default'].View.extend({
 
     el: '#autosaveRow',
 
@@ -65752,7 +65963,7 @@ var AutoSaveToggle = Backbone.View.extend({
 
     initialize: function initialize() {
         this.$toggle = this.$el.find('#autosaveToggle')[0];
-        _.bindAll(this, 'render', 'toggle');
+        _underscore2['default'].bindAll(this, 'render', 'toggle');
         this.listenTo(this.model, 'change:autoSaveOn', this.render);
         this.render();
     },
@@ -65767,7 +65978,8 @@ var AutoSaveToggle = Backbone.View.extend({
     }
 });
 
-exports.Toolbar = Backbone.View.extend({
+exports.AutoSaveToggle = AutoSaveToggle;
+exports['default'] = _backbone2['default'].View.extend({
 
     el: '#toolbar',
 
@@ -65789,10 +66001,23 @@ exports.Toolbar = Backbone.View.extend({
 },{"../model/atomic":60,"backbone":2,"underscore":44}],76:[function(require,module,exports){
 'use strict';
 
-var Backbone = require('backbone');
-var url = require('url');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
-module.exports = Backbone.View.extend({
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _url = require('url');
+
+var _url2 = _interopRequireDefault(_url);
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
+exports['default'] = _backbone2['default'].View.extend({
 
     initialize: function initialize() {
         console.log('HistoryUpdate:initialize');
@@ -65805,7 +66030,7 @@ module.exports = Backbone.View.extend({
     },
 
     assetChanged: function assetChanged() {
-        var u = url.parse(window.location.href.replace('#', '?'), true);
+        var u = _url2['default'].parse(window.location.href.replace('#', '?'), true);
         u.search = null;
 
         if (this.model.activeTemplate()) {
@@ -65820,9 +66045,10 @@ module.exports = Backbone.View.extend({
             u.query.i = this.model.assetIndex() + 1;
         }
 
-        history.replaceState(null, null, url.format(u).replace('?', '#'));
+        history.replaceState(null, null, _url2['default'].format(u).replace('?', '#'));
     }
 });
+module.exports = exports['default'];
 
 },{"backbone":2,"url":8}],77:[function(require,module,exports){
 /**
@@ -65850,10 +66076,30 @@ module.exports = Backbone.View.extend({
  */
 'use strict';
 
-var $ = require('jquery');
-var _ = require('underscore');
-var Backbone = require('backbone');
-var THREE = require('three');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+exports['default'] = CameraController;
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
+
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
 
 var MOUSE_WHEEL_SENSITIVITY = 0.5;
 var ROTATION_SENSITIVITY = 0.005;
@@ -65866,32 +66112,32 @@ var UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
     2: 1.0 // The delta values are specified in pages.
 };
 
-exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
+function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
 
     var controller = {};
-    _.extend(controller, Backbone.Events);
+    _underscore2['default'].extend(controller, _backbone2['default'].Events);
     var STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2 };
     var state = STATE.NONE; // the current state of the Camera
     var canRotate = !IMAGE_MODE;
 
     // internals
     var enabled = false; // note that we will enable on creation below!
-    var tvec = new THREE.Vector3(); // a temporary vector for efficient maths
-    var tinput = new THREE.Vector3(); // temp vec used for
+    var tvec = new _three2['default'].Vector3(); // a temporary vector for efficient maths
+    var tinput = new _three2['default'].Vector3(); // temp vec used for
 
-    var target = new THREE.Vector3(); // where the camera is looking
-    var normalMatrix = new THREE.Matrix3();
+    var target = new _three2['default'].Vector3(); // where the camera is looking
+    var normalMatrix = new _three2['default'].Matrix3();
 
     // mouse tracking variables
-    var mouseDownPosition = new THREE.Vector2();
-    var mousePrevPosition = new THREE.Vector2();
+    var mouseDownPosition = new _three2['default'].Vector2();
+    var mousePrevPosition = new _three2['default'].Vector2();
 
     // Mouses position when in the middle of a click operation.
-    var mouseCurrentPosition = new THREE.Vector2();
+    var mouseCurrentPosition = new _three2['default'].Vector2();
 
     // Mouses position hovering over the surface
-    var mouseHoverPosition = new THREE.Vector2();
-    var mouseMouseDelta = new THREE.Vector2();
+    var mouseHoverPosition = new _three2['default'].Vector2();
+    var mouseMouseDelta = new _three2['default'].Vector2();
 
     function focus(newTarget) {
         // focus all cameras at a new target.
@@ -66034,9 +66280,9 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
                 state = STATE.PAN;
                 break;
         }
-        $(document).on('mousemove.camera', onMouseMove);
+        (0, _jquery2['default'])(document).on('mousemove.camera', onMouseMove);
         // listen once for the mouse up
-        $(document).one('mouseup.camera', onMouseUp);
+        (0, _jquery2['default'])(document).one('mouseup.camera', onMouseUp);
     }
 
     function onMouseMove(event) {
@@ -66111,7 +66357,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     function onMouseUp(event) {
         console.log('camera: up');
         event.preventDefault();
-        $(document).off('mousemove.camera');
+        (0, _jquery2['default'])(document).off('mousemove.camera');
         state = STATE.NONE;
     }
 
@@ -66130,23 +66376,23 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     function disable() {
         console.log('camera: disable');
         enabled = false;
-        $(domElement).off('mousedown.camera');
-        $(domElement).off('wheel.camera');
-        $(document).off('mousemove.camera');
+        (0, _jquery2['default'])(domElement).off('mousedown.camera');
+        (0, _jquery2['default'])(domElement).off('wheel.camera');
+        (0, _jquery2['default'])(document).off('mousemove.camera');
     }
 
     function enable() {
         if (!enabled) {
             console.log('camera: enable');
             enabled = true;
-            $(domElement).on('mousedown.camera', onMouseDown);
-            $(domElement).on('wheel.camera', onMouseWheel);
+            (0, _jquery2['default'])(domElement).on('mousedown.camera', onMouseDown);
+            (0, _jquery2['default'])(domElement).on('wheel.camera', onMouseWheel);
         }
     }
 
     // touch
-    var touch = new THREE.Vector3();
-    var prevTouch = new THREE.Vector3();
+    var touch = new _three2['default'].Vector3();
+    var prevTouch = new _three2['default'].Vector3();
     var prevDistance = null;
 
     function touchStart(event) {
@@ -66180,7 +66426,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
                 var dx = touches[0].pageX - touches[1].pageX;
                 var dy = touches[0].pageY - touches[1].pageY;
                 var distance = Math.sqrt(dx * dx + dy * dy);
-                zoom(new THREE.Vector3(0, 0, prevDistance - distance));
+                zoom(new _three2['default'].Vector3(0, 0, prevDistance - distance));
                 prevDistance = distance;
                 break;
             case 3:
@@ -66196,7 +66442,7 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
 
     // enable everything on creation
     enable();
-    $(domElement).on('mousemove.pip', onMouseMoveHover);
+    (0, _jquery2['default'])(domElement).on('mousemove.pip', onMouseMoveHover);
 
     function resize(w, h) {
         var aspect = w / h;
@@ -66236,15 +66482,32 @@ exports.CameraController = function (pCam, oCam, oCamZoom, domElement, IMAGE_MOD
     controller.position = position;
 
     return controller;
-};
+}
+
+module.exports = exports['default'];
 
 },{"backbone":2,"jquery":9,"three":43,"underscore":44}],78:[function(require,module,exports){
 'use strict';
 
-var _ = require('underscore');
-var THREE = require('three');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
-var Backbone = require('backbone');
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
 
 // the default scale for 1.0
 var LM_SCALE = 0.01;
@@ -66255,17 +66518,22 @@ var LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
 var LM_CONNECTION_LINE_COLOR = LM_SPHERE_UNSELECTED_COLOR;
 
 // create a single geometry + material that will be shared by all landmarks
-var lmGeometry = new THREE.SphereGeometry(LM_SCALE, LM_SPHERE_PARTS, LM_SPHERE_PARTS);
+var lmGeometry = new _three2['default'].SphereGeometry(LM_SCALE, LM_SPHERE_PARTS, LM_SPHERE_PARTS);
 
 var lmMaterialForSelected = {
-    'true': new THREE.MeshBasicMaterial({ color: LM_SPHERE_SELECTED_COLOR }),
-    'false': new THREE.MeshBasicMaterial({ color: LM_SPHERE_UNSELECTED_COLOR })
+    'true': new _three2['default'].MeshBasicMaterial({ color: LM_SPHERE_SELECTED_COLOR }),
+    'false': new _three2['default'].MeshBasicMaterial({ color: LM_SPHERE_UNSELECTED_COLOR })
 };
 
-var LandmarkTHREEView = Backbone.View.extend({
+var lineMaterial = new _three2['default'].LineBasicMaterial({
+    color: LM_CONNECTION_LINE_COLOR,
+    linewidth: 1
+});
+
+var LandmarkTHREEView = _backbone2['default'].View.extend({
 
     initialize: function initialize(options) {
-        _.bindAll(this, 'render', 'changeLandmarkSize');
+        _underscore2['default'].bindAll(this, 'render', 'changeLandmarkSize');
         this.listenTo(this.model, 'change', this.render);
         this.viewport = options.viewport;
         this.app = this.viewport.model;
@@ -66303,7 +66571,7 @@ var LandmarkTHREEView = Backbone.View.extend({
 
     createSphere: function createSphere(v, radius, selected) {
         //console.log('creating sphere of radius ' + radius);
-        var landmark = new THREE.Mesh(lmGeometry, lmMaterialForSelected[selected]);
+        var landmark = new _three2['default'].Mesh(lmGeometry, lmMaterialForSelected[selected]);
         landmark.name = 'Landmark ' + landmark.id;
         landmark.position.copy(v);
         return landmark;
@@ -66333,12 +66601,8 @@ var LandmarkTHREEView = Backbone.View.extend({
     }
 });
 
-var lineMaterial = new THREE.LineBasicMaterial({
-    color: LM_CONNECTION_LINE_COLOR,
-    linewidth: 1
-});
-
-var LandmarkConnectionTHREEView = Backbone.View.extend({
+exports.LandmarkTHREEView = LandmarkTHREEView;
+var LandmarkConnectionTHREEView = _backbone2['default'].View.extend({
 
     initialize: function initialize(options) {
         // Listen to both models for changes
@@ -66375,11 +66639,11 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
     },
 
     createLine: function createLine(start, end) {
-        var geometry = new THREE.Geometry();
+        var geometry = new _three2['default'].Geometry();
         geometry.dynamic = true;
         geometry.vertices.push(start.clone());
         geometry.vertices.push(end.clone());
-        return new THREE.Line(geometry, lineMaterial);
+        return new _three2['default'].Line(geometry, lineMaterial);
     },
 
     dispose: function dispose() {
@@ -66396,11 +66660,14 @@ var LandmarkConnectionTHREEView = Backbone.View.extend({
         this.symbol.geometry.verticesNeedUpdate = true;
     }
 });
-
-module.exports = { LandmarkConnectionTHREEView: LandmarkConnectionTHREEView, LandmarkTHREEView: LandmarkTHREEView };
+exports.LandmarkConnectionTHREEView = LandmarkConnectionTHREEView;
 
 },{"backbone":2,"three":43,"underscore":44}],79:[function(require,module,exports){
 'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
 var _slicedToArray = (function () {
     function sliceIterator(arr, i) {
@@ -66428,6 +66695,8 @@ var _slicedToArray = (function () {
     };
 })();
 
+exports['default'] = Handler;
+
 function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : { 'default': obj };
 }
@@ -66453,6 +66722,7 @@ var _modelAtomic2 = _interopRequireDefault(_modelAtomic);
  * Holds state usable by all event handlers and should be bound to the
  * Viewport view instance.
  */
+
 function Handler() {
     var _this = this;
 
@@ -66967,40 +67237,78 @@ function Handler() {
     };
 }
 
-module.exports = Handler;
+module.exports = exports['default'];
 
 },{"../../model/atomic":60,"jquery":9,"three":43,"underscore":44}],80:[function(require,module,exports){
 'use strict';
 
-var $ = require('jquery');
-var _ = require('underscore');
-var Backbone = require('backbone');
-var THREE = require('three');
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
-var atomic = require('../../model/atomic');
-var octree = require('../../model/octree');
+function _interopRequireWildcard(obj) {
+    if (obj && obj.__esModule) {
+        return obj;
+    } else {
+        var newObj = {};if (obj != null) {
+            for (var key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key];
+            }
+        }newObj['default'] = obj;return newObj;
+    }
+}
 
-var Handler = require('./handler');
-var Camera = require('./camera');
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
 
-var _require = require('./elements');
+var _underscore = require('underscore');
 
-var LandmarkConnectionTHREEView = _require.LandmarkConnectionTHREEView;
-var LandmarkTHREEView = _require.LandmarkTHREEView;
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
+
+var _modelAtomic = require('../../model/atomic');
+
+var _modelAtomic2 = _interopRequireDefault(_modelAtomic);
+
+var _modelOctree = require('../../model/octree');
+
+var octree = _interopRequireWildcard(_modelOctree);
+
+var _camera = require('./camera');
+
+var _camera2 = _interopRequireDefault(_camera);
+
+var _handler = require('./handler');
+
+var _handler2 = _interopRequireDefault(_handler);
+
+var _elements = require('./elements');
 
 // clear colour for both the main view and PictureInPicture
 var CLEAR_COLOUR = 0xEEEEEE;
 var CLEAR_COLOUR_PIP = 0xCCCCCC;
 
-var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5);
-var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
+var MESH_MODE_STARTING_POSITION = new _three2['default'].Vector3(1.0, 0.20, 1.5);
+var IMAGE_MODE_STARTING_POSITION = new _three2['default'].Vector3(0.0, 0.0, 1.0);
 
 var PIP_WIDTH = 300;
 var PIP_HEIGHT = 300;
 
 var MESH_SCALE = 1.0;
 
-exports.Viewport = Backbone.View.extend({
+exports['default'] = _backbone2['default'].View.extend({
 
     el: '#canvas',
     id: 'canvas',
@@ -67012,7 +67320,7 @@ exports.Viewport = Backbone.View.extend({
         this.meshScale = MESH_SCALE; // The radius of the mesh's bounding sphere
 
         // TODO bind all methods on the Viewport
-        _.bindAll(this, 'resize', 'render', 'changeMesh', 'mousedownHandler', 'update', 'lmViewsInSelectionBox');
+        _underscore2['default'].bindAll(this, 'resize', 'render', 'changeMesh', 'mousedownHandler', 'update', 'lmViewsInSelectionBox');
 
         // ----- DOM ----- //
         // We have three DOM concerns:
@@ -67024,9 +67332,9 @@ exports.Viewport = Backbone.View.extend({
         // The viewport and vpoverlay need to be position:fixed for WebGL
         // reasons. we listen for document resize and keep the size of these
         // two children in sync with the viewportContainer parent.
-        this.$container = $('#viewportContainer');
+        this.$container = (0, _jquery2['default'])('#viewportContainer');
         // and grab the viewport div
-        this.$webglel = $('#viewport');
+        this.$webglel = (0, _jquery2['default'])('#viewport');
 
         // we need to track the pixel ratio of this device (i.e. is it a
         // HIDPI/retina display?)
@@ -67084,27 +67392,27 @@ exports.Viewport = Backbone.View.extend({
         this.ctxBox = this.initialBoundingBox();
 
         // ------ SCENE GRAPH CONSTRUCTION ----- //
-        this.scene = new THREE.Scene();
+        this.scene = new _three2['default'].Scene();
 
         // we use an initial top level to handle the absolute positioning of
         // the mesh and landmarks. Rotation and scale are applied to the
         // s_meshAndLms node directly.
-        this.s_scaleRotate = new THREE.Object3D();
-        this.s_translate = new THREE.Object3D();
+        this.s_scaleRotate = new _three2['default'].Object3D();
+        this.s_translate = new _three2['default'].Object3D();
 
         // ----- SCENE: MODEL AND LANDMARKS ----- //
         // s_meshAndLms stores the mesh and landmarks in the meshes original
         // coordinates. This is always transformed to the unit sphere for
         // consistency of camera.
-        this.s_meshAndLms = new THREE.Object3D();
+        this.s_meshAndLms = new _three2['default'].Object3D();
         // s_lms stores the scene landmarks. This is a useful container to
         // get at all landmarks in one go, and is a child of s_meshAndLms
-        this.s_lms = new THREE.Object3D();
+        this.s_lms = new _three2['default'].Object3D();
         this.s_meshAndLms.add(this.s_lms);
         // s_mesh is the parent of the mesh itself in the THREE scene.
         // This will only ever have one child (the mesh).
         // Child of s_meshAndLms
-        this.s_mesh = new THREE.Object3D();
+        this.s_mesh = new _three2['default'].Object3D();
         this.s_meshAndLms.add(this.s_mesh);
         this.s_translate.add(this.s_meshAndLms);
         this.s_scaleRotate.add(this.s_translate);
@@ -67113,14 +67421,14 @@ exports.Viewport = Backbone.View.extend({
         // ----- SCENE: CAMERA AND DIRECTED LIGHTS ----- //
         // s_camera holds the camera, and (optionally) any
         // lights that track with the camera as children
-        this.s_oCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 20);
-        this.s_oCamZoom = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 20);
-        this.s_pCam = new THREE.PerspectiveCamera(50, 1, 0.02, 20);
+        this.s_oCam = new _three2['default'].OrthographicCamera(-1, 1, 1, -1, 0, 20);
+        this.s_oCamZoom = new _three2['default'].OrthographicCamera(-1, 1, 1, -1, 0, 20);
+        this.s_pCam = new _three2['default'].PerspectiveCamera(50, 1, 0.02, 20);
         // start with the perspective camera as the main one
         this.s_camera = this.s_pCam;
 
         // create the cameraController to look after all camera state.
-        this.cameraController = Camera.CameraController(this.s_pCam, this.s_oCam, this.s_oCamZoom, this.el, this.model.imageMode());
+        this.cameraController = (0, _camera2['default'])(this.s_pCam, this.s_oCam, this.s_oCamZoom, this.el, this.model.imageMode());
 
         // when the camera updates, render
         this.cameraController.on('change', this.update);
@@ -67136,18 +67444,18 @@ exports.Viewport = Backbone.View.extend({
         // ----- SCENE: GENERAL LIGHTING ----- //
         // TODO make lighting customizable
         // TODO no spot light for images
-        this.s_lights = new THREE.Object3D();
-        var pointLightLeft = new THREE.PointLight(0x404040, 1, 0);
+        this.s_lights = new _three2['default'].Object3D();
+        var pointLightLeft = new _three2['default'].PointLight(0x404040, 1, 0);
         pointLightLeft.position.set(-100, 0, 100);
         this.s_lights.add(pointLightLeft);
-        var pointLightRight = new THREE.PointLight(0x404040, 1, 0);
+        var pointLightRight = new _three2['default'].PointLight(0x404040, 1, 0);
         pointLightRight.position.set(100, 0, 100);
         this.s_lights.add(pointLightRight);
         this.scene.add(this.s_lights);
         // add a soft white ambient light
-        this.s_lights.add(new THREE.AmbientLight(0x404040));
+        this.s_lights.add(new _three2['default'].AmbientLight(0x404040));
 
-        this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
+        this.renderer = new _three2['default'].WebGLRenderer({ antialias: false, alpha: false });
         this.renderer.setPixelRatio(window.devicePixelRatio || 1);
         this.renderer.setClearColor(CLEAR_COLOUR, 1);
         this.renderer.autoClear = false;
@@ -67157,16 +67465,16 @@ exports.Viewport = Backbone.View.extend({
         // we  build a second scene for various helpers we may need
         // (intersection planes) and for connectivity information (so it
         // shows through)
-        this.sceneHelpers = new THREE.Scene();
+        this.sceneHelpers = new _three2['default'].Scene();
 
         // s_lmsconnectivity is used to store the connectivity representation
         // of the mesh. Note that we want
-        this.s_lmsconnectivity = new THREE.Object3D();
+        this.s_lmsconnectivity = new _three2['default'].Object3D();
         // we want to replicate the mesh scene graph in the scene helpers, so we can
         // have show-though connectivity..
-        this.s_h_scaleRotate = new THREE.Object3D();
-        this.s_h_translate = new THREE.Object3D();
-        this.s_h_meshAndLms = new THREE.Object3D();
+        this.s_h_scaleRotate = new _three2['default'].Object3D();
+        this.s_h_translate = new _three2['default'].Object3D();
+        this.s_h_meshAndLms = new _three2['default'].Object3D();
         this.s_h_meshAndLms.add(this.s_lmsconnectivity);
         this.s_h_translate.add(this.s_h_meshAndLms);
         this.s_h_scaleRotate.add(this.s_h_translate);
@@ -67181,7 +67489,7 @@ exports.Viewport = Backbone.View.extend({
         this.connectivityViews = [];
 
         // Tools for moving between screen and world coordinates
-        this.ray = new THREE.Raycaster();
+        this.ray = new _three2['default'].Raycaster();
 
         // ----- MOUSE HANDLER ----- //
         // There is quite a lot of finicky state in handling the mouse
@@ -67189,7 +67497,7 @@ exports.Viewport = Backbone.View.extend({
         // We wrap all this complexity up in a closure so it can enjoy access
         // to the general viewport state without leaking it's state all over
         // the place.
-        this._handler = Handler.apply(this);
+        this._handler = _handler2['default'].apply(this);
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
@@ -67208,7 +67516,7 @@ exports.Viewport = Backbone.View.extend({
         //     this.clearCanvas();
         // });
 
-        this.listenTo(atomic, 'change:ATOMIC_OPERATION', this.batchHandler);
+        this.listenTo(_modelAtomic2['default'], 'change:ATOMIC_OPERATION', this.batchHandler);
 
         // trigger resize to initially size the viewport
         // this will also clearCanvas (will draw context box if needed)
@@ -67263,7 +67571,7 @@ exports.Viewport = Backbone.View.extend({
         front = meshPayload.front;
         this.mesh = mesh;
 
-        if (mesh.geometry instanceof THREE.BufferGeometry) {
+        if (mesh.geometry instanceof _three2['default'].BufferGeometry) {
             // octree only makes sense if we are dealing with a true mesh
             // (not images). Such meshes are always BufferGeometry instances.
             this.octree = octree.octreeForBufferGeometry(mesh.geometry);
@@ -67306,7 +67614,7 @@ exports.Viewport = Backbone.View.extend({
             return;
         }
         // if in batch mode - noop.
-        if (atomic.atomicOperationUnderway()) {
+        if (_modelAtomic2['default'].atomicOperationUnderway()) {
             return;
         }
         //console.log('Viewport:update');
@@ -67398,11 +67706,11 @@ exports.Viewport = Backbone.View.extend({
         this._handler.onMouseDown(event);
     },
 
-    updateConnectivityDisplay: atomic.atomicOperation(function () {
+    updateConnectivityDisplay: _modelAtomic2['default'].atomicOperation(function () {
         this.showConnectivity = this.model.isConnectivityOn();
     }),
 
-    updateEditingDisplay: atomic.atomicOperation(function () {
+    updateEditingDisplay: _modelAtomic2['default'].atomicOperation(function () {
         this.editingOn = this.model.isEditingOn();
         this.clearCanvas();
         this._handler.setGroupSelected(false);
@@ -67456,15 +67764,15 @@ exports.Viewport = Backbone.View.extend({
         }
     },
 
-    changeLandmarks: atomic.atomicOperation(function () {
+    changeLandmarks: _modelAtomic2['default'].atomicOperation(function () {
         console.log('Viewport: landmarks have changed');
         var that = this;
 
         // 1. Dispose of all landmark and connectivity views
-        _.map(this.landmarkViews, function (lmView) {
+        _underscore2['default'].map(this.landmarkViews, function (lmView) {
             lmView.dispose();
         });
-        _.map(this.connectivityViews, function (connView) {
+        _underscore2['default'].map(this.connectivityViews, function (connView) {
             connView.dispose();
         });
 
@@ -67479,13 +67787,13 @@ exports.Viewport = Backbone.View.extend({
             return;
         }
         landmarks.landmarks.map(function (lm) {
-            that.landmarkViews.push(new LandmarkTHREEView({
+            that.landmarkViews.push(new _elements.LandmarkTHREEView({
                 model: lm,
                 viewport: that
             }));
         });
         landmarks.connectivity.map(function (ab) {
-            that.connectivityViews.push(new LandmarkConnectionTHREEView({
+            that.connectivityViews.push(new _elements.LandmarkConnectionTHREEView({
                 model: [landmarks.landmarks[ab[0]], landmarks.landmarks[ab[1]]],
                 viewport: that
             }));
@@ -67546,7 +67854,7 @@ exports.Viewport = Backbone.View.extend({
     },
 
     clearCanvas: function clearCanvas() {
-        if (_.isEqual(this.ctxBox, this.initialBoundingBox())) {
+        if (_underscore2['default'].isEqual(this.ctxBox, this.initialBoundingBox())) {
             // there has been no change to the canvas - no need to clear
             return null;
         }
@@ -67575,7 +67883,7 @@ exports.Viewport = Backbone.View.extend({
         if (object === null || object.length === 0) {
             return [];
         }
-        var vector = new THREE.Vector3(x / this.width() * 2 - 1, -(y / this.height()) * 2 + 1, 0.5);
+        var vector = new _three2['default'].Vector3(x / this.width() * 2 - 1, -(y / this.height()) * 2 + 1, 0.5);
 
         if (this.s_camera === this.s_pCam) {
             // perspective selection
@@ -67586,13 +67894,13 @@ exports.Viewport = Backbone.View.extend({
             // orthographic selection
             vector.setZ(-1);
             vector.unproject(this.s_camera);
-            var dir = new THREE.Vector3(0, 0, -1).transformDirection(this.s_camera.matrixWorld);
+            var dir = new _three2['default'].Vector3(0, 0, -1).transformDirection(this.s_camera.matrixWorld);
             this.ray.set(vector, dir);
         }
 
         if (object === this.mesh && this.octree) {
             // we can use the octree to intersect the mesh efficiently.
-            return octree.intersetMesh(this.ray, this.mesh, this.octree);
+            return octree.intersectMesh(this.ray, this.mesh, this.octree);
         } else if (object instanceof Array) {
             return this.ray.intersectObjects(object, true);
         } else {
@@ -67633,7 +67941,7 @@ exports.Viewport = Backbone.View.extend({
         var c;
         var lmsInBox = [];
         var that = this;
-        _.each(this.landmarkViews, function (lmView) {
+        _underscore2['default'].each(this.landmarkViews, function (lmView) {
             if (lmView.symbol) {
                 c = that.lmToScreen(lmView.symbol);
                 if (c.x > x1 && c.x < x2 && c.y > y1 && c.y < y2) {
@@ -67659,8 +67967,9 @@ exports.Viewport = Backbone.View.extend({
     }
 
 });
+module.exports = exports['default'];
 
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-261db9b4.js.map
+//# sourceMappingURL=bundle-2ba57774.js.map
