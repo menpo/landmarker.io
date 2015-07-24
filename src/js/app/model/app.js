@@ -137,7 +137,7 @@ export default Backbone.Model.extend({
 
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
-        this.listenTo(this, 'change:activeTemplate', this.reloadAssetSource);
+        this.listenTo(this, 'change:activeTemplate', this.reloadLandmarks);
         this.listenTo(this, 'change:mode', this.reloadAssetSource);
 
         this._initTemplates();
@@ -246,6 +246,32 @@ export default Backbone.Model.extend({
             throw new Error('Failed to fetch assets (is landmarkerio' +
                             'running from your command line?).');
         });
+    },
+
+    reloadLandmarks: function () {
+        if (this.landmarks() && this.asset()) {
+            this.set('landmarks', null);
+
+            const tracker = this.tracker();
+            if (!tracker[this.asset().id]) {
+                tracker[this.asset().id] = new Tracker();
+            }
+
+            this.server().fetchLandmarkGroup(
+                this.asset().id,
+                this.activeTemplate()
+            ).then((json) => {
+                this.set('landmarks', LandmarkGroup.parse(
+                    json,
+                    this.asset().id,
+                    this.activeTemplate(),
+                    this.server(),
+                    tracker[this.asset().id]
+                ));
+            }, () => {
+                console.log('Error in fetching landmark JSON file');
+            });
+        }
     },
 
     _assetSourceConstructor: function () {
