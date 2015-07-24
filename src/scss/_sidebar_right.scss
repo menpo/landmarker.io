@@ -225,6 +225,9 @@ is itself a row flexbox */
     pointer-events: none;
     font-size: larger;
     color: white;
+    align-items: center;
+    justify-content: center;
+    display: flex;
 }
 
 .LmGroup-Label--Active {
@@ -234,6 +237,14 @@ is itself a row flexbox */
 .LmGroup-Flex {
     display: flex;
     align-items: center;
+
+    &.MultiLine {
+        flex-wrap: wrap;
+
+        .Lm {
+            min-width: 8%;
+        }
+    }
 }
 
 .Lm {

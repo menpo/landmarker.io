@@ -189,6 +189,9 @@ export const LandmarkGroupListView = Backbone.View.extend({
         this.cleanup();
         this.$el.empty();
         this.collection.map(this.renderOne);
+        if (this.collection.length === 1) {
+            this.$el.find('.LmGroup-Flex').addClass('MultiLine');
+        }
         return this;
     },
 
