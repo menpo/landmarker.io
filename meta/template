@@ -1,7 +1,6 @@
 #!./node_modules/.bin/babel-node
 
-/*
-Convert between template formats for landmarker.oi and menpo
+/* Convert between template formats for landmarker.oi and menpo
 
 See: https://github.com/menpo/landmarker.io/wiki/Templates-specification
 for the specification of the template files.
@@ -137,7 +136,7 @@ function convertDirectory (input, files, output, ext, target, force, recurse) {
                 const fileExtension = path.extname(filepath).slice(1);
                 if (!ext && SOURCES.indexOf(fileExtension) === -1) {
                     console.log(`Ignored file "${filepath}" with extension "${fileExtension}" (authorised extensions are "${SOURCES}")`);
-                } else if (!ext && fileExtension !== ext) {
+                } else if (ext && fileExtension !== ext) {
                     console.log(`Ignored file "${filepath}" with extension "${fileExtension}" (specified extension is "${ext}")`);
                 } else {
                     convertFile(
