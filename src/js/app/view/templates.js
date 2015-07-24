@@ -13,7 +13,9 @@ export const TemplatePicker = Backbone.View.extend({
 
     events: {
         'click li': 'select',
-        'click .RightSidebar-TemplatePicker-Add': 'add'
+        'click .RightSidebar-TemplatePicker-Add': 'add',
+        'click input': 'clickInput',
+        'keyup input': 'filter'
     },
 
     initialize: function () {
@@ -26,7 +28,7 @@ export const TemplatePicker = Backbone.View.extend({
         const backend = this.model.server();
         const $ul = $('<ul></ul>');
         this.model.templates().forEach((tmpl, index) => {
-            $ul.append($(`
+            $ul.prepend($(`
                 <li id="templatePick_${tmpl}"
                     data-template="${tmpl}"
                     data-index="${index}">${tmpl}</li>
@@ -34,8 +36,7 @@ export const TemplatePicker = Backbone.View.extend({
         });
 
         this.$el.html($ul);
-        this.$el.css(
-            'top', `-${this.model.templates().length * 42 + 22}px`);
+        this.$el.prepend($(`<input type="text" placeholder='Search templates'/>`));
 
         if (typeof backend.pickTemplate === 'function') {
             this.$el.append(`<div class='RightSidebar-TemplatePicker-Add'></div>`);
@@ -61,6 +62,7 @@ export const TemplatePicker = Backbone.View.extend({
 
     toggle: function () {
         this.$el.toggleClass('Active');
+        this.$el.find('input').focus();
     },
 
     select: function (evt) {
@@ -70,6 +72,10 @@ export const TemplatePicker = Backbone.View.extend({
             this.toggle();
             this.model.set('activeTemplate', tmpl);
         }
+    },
+
+    clickInput: function (evt) {
+        evt.stopPropagation();
     },
 
     add: function (evt) {
@@ -84,7 +90,22 @@ export const TemplatePicker = Backbone.View.extend({
                 });
             }, true);
         }
-    }
+    },
+
+    filter: _.throttle(function (evt) {
+        const value = evt.currentTarget.value.toLowerCase();
+        if (!value || value === "") {
+            this.$el.find('li').fadeIn(200);
+        }
+
+        this.model.templates().forEach(function (tmpl) {
+            if (tmpl.toLowerCase().indexOf(value) > -1) {
+                $(`#templatePick_${tmpl}`).fadeIn(200);
+            } else {
+                $(`#templatePick_${tmpl}`).fadeOut(200);
+            }
+        });
+    }, 50)
 });
 
 export const TemplatePanel = Backbone.View.extend({

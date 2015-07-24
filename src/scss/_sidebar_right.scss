@@ -57,6 +57,9 @@
     opacity: 0;
     visibility: hidden;
     position: absolute;
+    transform: translateY(-100%);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .15);
+    top: -16px;
     background-color: white;
     flex-flow: column;
     right: .4em;
@@ -65,6 +68,23 @@
     color: $colorDarkGray;
     cursor: pointer;
     border-radius: $minorBoarderRadius;
+
+    input {
+        @extend %transitionAll;
+        display: inline;
+        padding: 0 .5em;
+        margin: 2%;
+        width: 96%;
+        border: 2px solid $colorLightGray;
+        border-radius: 2px;
+        outline: none;
+        line-height: 24px;
+
+        &:active,
+        &:focus {
+            border-color: $colorDarkerBlue;
+        }
+    }
 
     &::after {
         top: 100%;
@@ -90,6 +110,8 @@
         list-style-type: none;
         margin: 0;
         padding: 0;
+        max-height: 270px;
+        overflow: scroll;
     }
 
     li {
@@ -118,17 +140,17 @@
 
 .RightSidebar-TemplatePicker-Add {
     position: absolute;
-    top: -19px;
-    left: 50%;
+    top: -15px;
+    left: -15px;
     background-color: $colorDarkPurple;
-    height: 38px;
-    line-height: 33px;
-    font-size: 1.25em;
-    width: 38px;
+    height: 30px;
+    line-height: 27px;
+    font-size: 1.1em;
+    width: 30px;
     border-radius: 50%;
-    margin-left: -19px;
     border: solid 2px $colorLightGray;
     color: white;
+    font-weight: bold;
 
     &::after {
         content: '+';
