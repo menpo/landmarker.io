@@ -66005,11 +66005,15 @@ var TemplatePicker = _backbone2['default'].View.extend({
     },
 
     select: function select(evt) {
+        var _this = this;
+
         evt.stopPropagation();
         var tmpl = evt.currentTarget.dataset.template;
         if (tmpl !== this.model.activeTemplate()) {
             this.toggle();
-            this.model.set('activeTemplate', tmpl);
+            this.model.autoSaveWrapper(function () {
+                _this.model.set('activeTemplate', tmpl);
+            });
         }
     },
 
@@ -66018,12 +66022,12 @@ var TemplatePicker = _backbone2['default'].View.extend({
     },
 
     add: function add(evt) {
-        var _this = this;
+        var _this2 = this;
 
         evt.stopPropagation();
         if (typeof this.model.server().pickTemplate === 'function') {
             this.model.server().pickTemplate(function () {
-                _this.model._initTemplates(true);
+                _this2.model._initTemplates(true);
             }, function (err) {
                 Notification.notify({
                     type: 'error',
@@ -68242,4 +68246,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":83,"./elements":84,"./handler":85,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-0aa2a72b.js.map
+//# sourceMappingURL=bundle-7fa90348.js.map
