@@ -3,6 +3,8 @@
 import yaml from 'js-yaml';
 import _ from 'underscore';
 
+import defaults from './defaults';
+
 const CYCLE_CONNECTIVITY_LABEL = 'cycle';
 const NULL_POINT = {2: [null, null], 3: [null, null, null]};
 
@@ -150,4 +152,16 @@ Template.prototype.emptyLJSON = function (dims=2) {
     };
 
     return _.clone(this._emptyLmGroup[dims]);
+};
+
+let _defaultTemplates;
+
+Template.loadDefaultTemplates = function () {
+    if (!_defaultTemplates) {
+        _defaultTemplates = {};
+        defaults.forEach(function ([json, key]) {
+            _defaultTemplates[key] = new Template(json);
+        });
+    }
+    return _defaultTemplates;
 };

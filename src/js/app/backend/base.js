@@ -5,14 +5,14 @@ export default function Base () {}
 // Abstract prototype methods
 const abstractMethods = [
     'fetchMode',
-      'fetchTemplates',
-      'fetchCollections',
-      'fetchCollection',
-      'fetchLandmarkGroup',
-      'saveLandmarkGroup',
-      'fetchThumbnail',
-      'fetchTexture',
-      'fetchGeometry'
+    'fetchTemplates',
+    'fetchCollections',
+    'fetchCollection',
+    'fetchLandmarkGroup',
+    'saveLandmarkGroup',
+    'fetchThumbnail',
+    'fetchTexture',
+    'fetchGeometry'
 ];
 
 abstractMethods.forEach(function (name) {

@@ -22,6 +22,7 @@
 
 .RightSidebar-Template {
     @extend %transitionAll;
+    position: relative;
     min-height: $mainControlHeight;
     line-height: $mainControlHeight;
     background: $colorDarkerBlue;
@@ -33,9 +34,12 @@
     justify-content: center;
     margin-left: 1px;
     margin-bottom: 1px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+
+    span {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
 
     &:hover {
         background: $colorDarkBlue;
@@ -44,6 +48,94 @@
     &.Disabled {
         cursor: default;
         background: $colorDarkerBlue;
+    }
+}
+
+.RightSidebar-TemplatePicker {
+    @extend %transitionAll;
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    background-color: white;
+    flex-flow: column;
+    right: .4em;
+    left: .4em;
+    z-index: $zIndexNotifications;
+    color: $colorDarkGray;
+    cursor: pointer;
+    border-radius: $minorBoarderRadius;
+
+    &::after {
+        top: 100%;
+        left: 50%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+        border-top-color: white;
+        border-width: 10px;
+        margin-left: -10px;
+    }
+
+    &.Active {
+        display: flex;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    li {
+        @extend %transitionAll;
+        height: 42px;
+        line-height: 42px;
+        text-align: left;
+        margin: 0;
+        padding: 0 .5em;
+        border-bottom: 1px dashed $colorLightGray;
+
+        &:last-of-type {
+            border-bottom: none;
+        }
+
+        &:hover {
+            color: $colorBlue;
+        }
+
+        &.Active {
+            color: $colorDarkerBlue;
+            font-weight: bold;
+        }
+    }
+}
+
+.RightSidebar-TemplatePicker-Add {
+    position: absolute;
+    top: -19px;
+    left: 50%;
+    background-color: $colorDarkPurple;
+    height: 38px;
+    line-height: 33px;
+    font-size: 1.25em;
+    width: 38px;
+    border-radius: 50%;
+    margin-left: -19px;
+    border: solid 2px $colorLightGray;
+    color: white;
+
+    &::after {
+        content: '+';
+    }
+
+    &:hover {
+        background-color: $colorPurple;
     }
 }
 
@@ -77,6 +169,10 @@
             background: $colorGray;
         }
     }
+}
+
+.RightSidebar-TemplatePicker {
+
 }
 
 /* Special RightSidebar item used for rows (e.g. two buttons).

@@ -3,6 +3,7 @@
 import $ from 'jquery';
 import THREE from 'three';
 import url from 'url';
+import Promise from 'promise-polyfill';
 
 import * as utils from './app/lib/utils';
 import * as support from './app/lib/support';
@@ -140,7 +141,7 @@ function _loadDropboxAssets (dropbox, u) {
 
     function _pick () {
         dropbox.pickAssets(function () {
-            _loadDropboxTemplate(dropbox, u);
+            _loadDropboxTemplates(dropbox, u);
         }, function (err) {
             retry(`Couldn't find assets: ${err}`);
         });
@@ -148,31 +149,30 @@ function _loadDropboxAssets (dropbox, u) {
 
     if (assetsPath) {
         dropbox.setAssets(assetsPath).then(function () {
-            _loadDropboxTemplate(dropbox, u);
+            _loadDropboxTemplates(dropbox, u);
         }, _pick);
     } else {
         _pick();
     }
 }
 
-function _loadDropboxTemplate (dropbox, u) {
+function _loadDropboxTemplates (dropbox, u) {
 
-    const templatePath = cfg.get('BACKEND_DROPBOX_TEMPLATE_PATH');
+    const templatesPaths = cfg.get('BACKEND_DROPBOX_TEMPLATES_PATHS');
 
-    function _pick () {
-        dropbox.pickTemplate(function () {
-            resolveMode(dropbox, u);
-        }, function (err) {
-            retry(`Couldn't find template: ${err}`);
+    if (templatesPaths) {
+        const templatesPromises = [];
+        Object.keys(templatesPaths).forEach(function (key) {
+            templatesPromises.push(
+                dropbox.addTemplate(templatesPaths[key])
+            );
         });
-    }
 
-    if (templatePath) {
-        dropbox.setTemplate(templatePath).then(function () {
+        Promise.all(templatesPromises).then(function () {
             resolveMode(dropbox, u);
-        }, _pick);
+        });
     } else {
-        _pick();
+        resolveMode(dropbox, u);
     }
 }
 

@@ -31,12 +31,10 @@ import { randomString,
       baseUrl } from '../lib/utils';
 
 import { notify } from '../view/notification';
-
 import { getJSON, get, putJSON, getArrayBuffer } from '../lib/requests';
 import ImagePromise from '../lib/imagepromise';
-import Template from '../model/template';
+import Template from '../template';
 import Picker from '../view/dropbox_picker.js';
-
 import Base from './base';
 
 const Dropbox = Base.extend('DROPBOX', function (token, cfg) {
@@ -50,6 +48,9 @@ const Dropbox = Base.extend('DROPBOX', function (token, cfg) {
     this._mediaCache = {};
     this._imgCache = {};
     this._listCache = {};
+
+    this._templates = Template.loadDefaultTemplates();
+    this._templatesPaths = {};
 
     // Save config data
     this._cfg.set({
@@ -110,9 +111,9 @@ Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
         title: 'Select a template yaml file to use (you can also use an already annotated asset)',
         closable,
         submit: (tmplPath) => {
-            this.setTemplate(tmplPath).then(() => {
+            this.addTemplate(tmplPath).then(() => {
                 picker.dispose();
-                success(this.templates);
+                success();
             }, error);
         }
     });
@@ -121,7 +122,7 @@ Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
     return picker;
 };
 
-Dropbox.prototype.setTemplate = function (path, json) {
+Dropbox.prototype.addTemplate = function (path) {
 
     if (!path) {
         return Promise.resolve(null);
@@ -134,23 +135,22 @@ Dropbox.prototype.setTemplate = function (path, json) {
         );
     }
 
-    let q;
-
-    if (json) {
-        q = Promise.resolve(json);
-    } else {
-        q = this.download(path);
-    }
-
-    return q.then((data) => {
+    return this.download(path).then((data) => {
          const tmpl = Template.Parsers[ext](data);
          const name = basename(path, true).split('_').pop();
-         this.templates = {};
-         this.templates[name] = tmpl;
+
+         // Avoid duplicates
+         let uniqueName = name, i = 1;
+         while (uniqueName in this._templates) {
+             uniqueName = `${name}-${i}`;
+             i++;
+         }
+
+         this._templates[uniqueName] = tmpl;
+         this._templatesPaths[uniqueName] = path;
 
         this._cfg.set({
-            'BACKEND_DROPBOX_TEMPLATE_PATH': path,
-            'BACKEND_DROPBOX_TEMPLATE_CONTENT': tmpl.toJSON()
+            'BACKEND_DROPBOX_TEMPLATES_PATHS': this._templatesPaths
         }, true);
     });
 };
@@ -331,7 +331,7 @@ Dropbox.prototype.fetchMode = function () {
 };
 
 Dropbox.prototype.fetchTemplates = function () {
-    return Promise.resolve(Object.keys(this.templates));
+    return Promise.resolve(Object.keys(this._templates));
 };
 
 Dropbox.prototype.fetchCollections = function () {
@@ -426,7 +426,7 @@ Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
         this.download(path).then((data) => {
             resolve(JSON.parse(data));
         }, () => {
-            resolve(this.templates[type].emptyLJSON(dim));
+            resolve(this._templates[type].emptyLJSON(dim));
         });
     });
 };

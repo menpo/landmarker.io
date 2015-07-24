@@ -5,9 +5,8 @@ import Backbone from 'backbone';
 import $ from 'jquery';
 
 import * as Notification from './notification';
-import Server from '../backend/server';
 import atomic from '../model/atomic';
-import ListPicker from './list_picker';
+import TemplatePanel from './templates';
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -327,61 +326,6 @@ export const UndoRedoView = Backbone.View.extend({
             return;
         } else {
             this.model.redo();
-        }
-    }
-});
-
-export const TemplatePanel = Backbone.View.extend({
-    el: '#templatePanel',
-
-    events: {
-        'click': 'click'
-    },
-
-    initialize: function () {
-        _.bindAll(this, "update");
-        this.listenTo(this.model, "change:activeTemplate", this.update);
-    },
-
-    update: function () {
-        this.$el.toggleClass(
-            'Disabled', this.model &&
-                        ((this.model.templates().length <= 1 &&
-                        this.model.server() instanceof Server) &&
-                        typeof this.model.server().pickTemplate !== 'function')
-        );
-        this.$el.text(this.model.activeTemplate() || '-');
-    },
-
-    click: function () {
-        const backend = this.model.server();
-
-        if (backend instanceof Server) {
-
-            const tmpls = this.model.templates();
-
-            if (tmpls.length <= 1) {
-                return;
-            }
-
-            const picker = new ListPicker({
-                list: tmpls.map(t => [t, t]),
-                title: 'Select a template',
-                closable: true,
-                disposeOnClose: true,
-                useFilter: tmpls.length > 5,
-                submit: tmpl => this.model.set('activeTemplate', tmpl)
-            });
-            picker.open();
-        } else if (typeof this.model.server().pickTemplate === 'function') {
-            backend.pickTemplate(() => {
-                this.model._initTemplates(true);
-            }, function (err) {
-                Notification.notify({
-                    type: 'error',
-                    msg: 'Error switching template ' + err
-                });
-            }, true);
         }
     }
 });

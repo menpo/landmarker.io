@@ -42,7 +42,7 @@ import path from 'path';
 import 'colors';
 import { argv } from 'yargs';
 
-import Template from '../src/js/app/model/template';
+import Template from '../src/js/app/template';
 
 const action = argv._[0];
 const ACTIONS = ['convert'];
