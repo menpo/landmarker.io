@@ -70,7 +70,9 @@ export const TemplatePicker = Backbone.View.extend({
         const tmpl = evt.currentTarget.dataset.template;
         if (tmpl !== this.model.activeTemplate()) {
             this.toggle();
-            this.model.set('activeTemplate', tmpl);
+            this.model.autoSaveWrapper(() => {
+                this.model.set('activeTemplate', tmpl);
+            });
         }
     },
 

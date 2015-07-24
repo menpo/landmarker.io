@@ -263,22 +263,25 @@ export default Backbone.Model.extend({
 
     reloadLandmarks: function () {
         if (this.landmarks() && this.asset()) {
-            this.set('landmarks', null);
-
-            this.server().fetchLandmarkGroup(
-                this.asset().id,
-                this.activeTemplate()
-            ).then((json) => {
-                this.set('landmarks', LandmarkGroup.parse(
-                    json,
-                    this.asset().id,
-                    this.activeTemplate(),
-                    this.server(),
-                    this.getTracker(this.asset().id, this.activeTemplate())
-                ));
-            }, () => {
-                console.log('Error in fetching landmark JSON file');
+            this.autoSaveWrapper(() => {
+                this.set('landmarks', null);
+                this.loadLandmarksPromise().then((lms) => {
+                    this.set('landmarks', lms);
+                });
             });
+        }
+    },
+
+    autoSaveWrapper: function (fn) {
+        const lms = this.landmarks();
+        if (lms && !lms.tracker.isUpToDate()) {
+            if (!this.isAutoSaveOn()) {
+                Modal.confirm('You have unsaved changes, are you sure you want to proceed ? (Your changes will be lost)', fn);
+            } else {
+                lms.save().then(fn);
+            }
+        } else {
+            fn();
         }
     },
 
@@ -304,11 +307,8 @@ export default Backbone.Model.extend({
         this.trigger('newMeshAvailable');
     },
 
-    _promiseLandmarksWithAsset: function (loadAssetPromise) {
-        // returns a promise that will only resolve when the asset and
-        // landmarks are both downloaded and ready.
-
-        const loadLandmarksPromise = this.server().fetchLandmarkGroup(
+    loadLandmarksPromise: function () {
+        return this.server().fetchLandmarkGroup(
             this.asset().id,
             this.activeTemplate()
         ).then((json) => {
@@ -322,9 +322,14 @@ export default Backbone.Model.extend({
         }, () => {
             console.log('Error in fetching landmark JSON file');
         });
+    },
+
+    _promiseLandmarksWithAsset: function (loadAssetPromise) {
+        // returns a promise that will only resolve when the asset and
+        // landmarks are both downloaded and ready.
 
         // if both come true, then set the landmarks
-        return Promise.all([loadLandmarksPromise,
+        return Promise.all([this.loadLandmarksPromise(),
                             loadAssetPromise]).then((args) => {
             const landmarks = args[0];
             console.log('landmarks are loaded and the asset is at a suitable ' +
@@ -349,57 +354,24 @@ export default Backbone.Model.extend({
 
     nextAsset: function () {
         if (this.assetSource().hasSuccessor()) {
-            const lms = this.landmarks();
-            const _go = () => {
+            this.autoSaveWrapper(() => {
                 this._switchToAsset(this.assetSource().next());
-            };
-
-            if (lms && !lms.tracker.isUpToDate()) {
-                if (!this.isAutoSaveOn()) {
-                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
-                } else {
-                    lms.save().then(_go);
-                }
-            } else {
-                _go();
-            }
+            });
         }
     },
 
     previousAsset: function () {
         if (this.assetSource().hasPredecessor()) {
-            const lms = this.landmarks();
-            const _go = () => {
+            this.autoSaveWrapper(() => {
                 this._switchToAsset(this.assetSource().previous());
-            };
-
-            if (lms && !lms.tracker.isUpToDate()) {
-                if (!this.isAutoSaveOn()) {
-                    Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
-                } else {
-                    lms.save().then(_go);
-                }
-            } else {
-                return _go();
-            }
+            });
         }
     },
 
     goToAssetIndex: function (newIndex) {
-        const lms = this.landmarks();
-        const _go = () => {
+        this.autoSaveWrapper(() => {
             this._switchToAsset(this.assetSource().setIndex(newIndex));
-        };
-
-        if (lms) {
-            if (!lms.tracker.isUpToDate() && !this.isAutoSaveOn()) {
-                Modal.confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
-            } else {
-                lms.save().then(_go);
-            }
-        } else {
-            _go();
-        }
+        });
     },
 
     reloadLandmarksFromPrevious: function () {
