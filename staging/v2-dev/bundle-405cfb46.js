@@ -29,6 +29,10 @@ var _url = require('url');
 
 var _url2 = _interopRequireDefault(_url);
 
+var _promisePolyfill = require('promise-polyfill');
+
+var _promisePolyfill2 = _interopRequireDefault(_promisePolyfill);
+
 var _appLibUtils = require('./app/lib/utils');
 
 var utils = _interopRequireWildcard(_appLibUtils);
@@ -200,7 +204,7 @@ function _loadDropboxAssets(dropbox, u) {
 
     function _pick() {
         dropbox.pickAssets(function () {
-            _loadDropboxTemplate(dropbox, u);
+            _loadDropboxTemplates(dropbox, u);
         }, function (err) {
             retry('Couldn\'t find assets: ' + err);
         });
@@ -208,31 +212,30 @@ function _loadDropboxAssets(dropbox, u) {
 
     if (assetsPath) {
         dropbox.setAssets(assetsPath).then(function () {
-            _loadDropboxTemplate(dropbox, u);
+            _loadDropboxTemplates(dropbox, u);
         }, _pick);
     } else {
         _pick();
     }
 }
 
-function _loadDropboxTemplate(dropbox, u) {
+function _loadDropboxTemplates(dropbox, u) {
 
-    var templatePath = cfg.get('BACKEND_DROPBOX_TEMPLATE_PATH');
+    var templatesPaths = cfg.get('BACKEND_DROPBOX_TEMPLATES_PATHS');
 
-    function _pick() {
-        dropbox.pickTemplate(function () {
-            resolveMode(dropbox, u);
-        }, function (err) {
-            retry('Couldn\'t find template: ' + err);
-        });
-    }
+    if (templatesPaths) {
+        (function () {
+            var templatesPromises = [];
+            Object.keys(templatesPaths).forEach(function (key) {
+                templatesPromises.push(dropbox.addTemplate(templatesPaths[key]));
+            });
 
-    if (templatePath) {
-        dropbox.setTemplate(templatePath).then(function () {
-            resolveMode(dropbox, u);
-        }, _pick);
+            _promisePolyfill2['default'].all(templatesPromises).then(function () {
+                resolveMode(dropbox, u);
+            });
+        })();
     } else {
-        _pick();
+        resolveMode(dropbox, u);
     }
 }
 
@@ -356,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resolveBackend(u);
 });
 
-},{"./app/backend":48,"./app/lib/support":54,"./app/lib/utils":56,"./app/model/app":57,"./app/model/config":61,"./app/view/asset":66,"./app/view/help":68,"./app/view/intro":69,"./app/view/keyboard":70,"./app/view/notification":73,"./app/view/sidebar":74,"./app/view/toolbar":75,"./app/view/url_state":76,"./app/view/viewport":80,"jquery":9,"three":43,"url":8}],2:[function(require,module,exports){
+},{"./app/backend":48,"./app/lib/support":54,"./app/lib/utils":56,"./app/model/app":57,"./app/model/config":61,"./app/view/asset":71,"./app/view/help":73,"./app/view/intro":74,"./app/view/keyboard":75,"./app/view/notification":78,"./app/view/sidebar":79,"./app/view/toolbar":81,"./app/view/url_state":82,"./app/view/viewport":86,"jquery":9,"promise-polyfill":41,"three":43,"url":8}],2:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.2.1
 
@@ -59535,9 +59538,9 @@ var _libImagepromise = require('../lib/imagepromise');
 
 var _libImagepromise2 = _interopRequireDefault(_libImagepromise);
 
-var _modelTemplate = require('../model/template');
+var _template = require('../template');
 
-var _modelTemplate2 = _interopRequireDefault(_modelTemplate);
+var _template2 = _interopRequireDefault(_template);
 
 var _viewDropbox_pickerJs = require('../view/dropbox_picker.js');
 
@@ -59565,6 +59568,9 @@ var Dropbox = _base2['default'].extend('DROPBOX', function (token, cfg) {
     this._mediaCache = {};
     this._imgCache = {};
     this._listCache = {};
+
+    this._templates = _template2['default'].loadDefaultTemplates();
+    this._templatesPaths = {};
 
     // Save config data
     this._cfg.set({
@@ -59625,13 +59631,13 @@ Dropbox.prototype.pickTemplate = function (success, error) {
     var picker = new _viewDropbox_pickerJs2['default']({
         dropbox: this,
         selectFilesOnly: true,
-        extensions: Object.keys(_modelTemplate2['default'].Parsers),
+        extensions: Object.keys(_template2['default'].Parsers),
         title: 'Select a template yaml file to use (you can also use an already annotated asset)',
         closable: closable,
         submit: function submit(tmplPath) {
-            _this.setTemplate(tmplPath).then(function () {
+            _this.addTemplate(tmplPath).then(function () {
                 picker.dispose();
-                success(_this.templates);
+                success();
             }, error);
         }
     });
@@ -59640,7 +59646,7 @@ Dropbox.prototype.pickTemplate = function (success, error) {
     return picker;
 };
 
-Dropbox.prototype.setTemplate = function (path, json) {
+Dropbox.prototype.addTemplate = function (path) {
     var _this2 = this;
 
     if (!path) {
@@ -59648,27 +59654,27 @@ Dropbox.prototype.setTemplate = function (path, json) {
     }
 
     var ext = (0, _libUtils.extname)(path);
-    if (!(ext in _modelTemplate2['default'].Parsers)) {
+    if (!(ext in _template2['default'].Parsers)) {
         return _promisePolyfill2['default'].reject(new Error('Incorrect extension ' + ext + ' for template'));
     }
 
-    var q = undefined;
-
-    if (json) {
-        q = _promisePolyfill2['default'].resolve(json);
-    } else {
-        q = this.download(path);
-    }
-
-    return q.then(function (data) {
-        var tmpl = _modelTemplate2['default'].Parsers[ext](data);
+    return this.download(path).then(function (data) {
+        var tmpl = _template2['default'].Parsers[ext](data);
         var name = (0, _libUtils.basename)(path, true).split('_').pop();
-        _this2.templates = {};
-        _this2.templates[name] = tmpl;
+
+        // Avoid duplicates
+        var uniqueName = name,
+            i = 1;
+        while (uniqueName in _this2._templates) {
+            uniqueName = name + '-' + i;
+            i++;
+        }
+
+        _this2._templates[uniqueName] = tmpl;
+        _this2._templatesPaths[uniqueName] = path;
 
         _this2._cfg.set({
-            'BACKEND_DROPBOX_TEMPLATE_PATH': path,
-            'BACKEND_DROPBOX_TEMPLATE_CONTENT': tmpl.toJSON()
+            'BACKEND_DROPBOX_TEMPLATES_PATHS': _this2._templatesPaths
         }, true);
     });
 };
@@ -59876,7 +59882,7 @@ Dropbox.prototype.fetchMode = function () {
 };
 
 Dropbox.prototype.fetchTemplates = function () {
-    return _promisePolyfill2['default'].resolve(Object.keys(this.templates));
+    return _promisePolyfill2['default'].resolve(Object.keys(this._templates));
 };
 
 Dropbox.prototype.fetchCollections = function () {
@@ -59980,7 +59986,7 @@ Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
         _this9.download(path).then(function (data) {
             resolve(JSON.parse(data));
         }, function () {
-            resolve(_this9.templates[type].emptyLJSON(dim));
+            resolve(_this9._templates[type].emptyLJSON(dim));
         });
     });
 };
@@ -59993,7 +59999,7 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
 };
 module.exports = exports['default'];
 
-},{"../lib/imagepromise":50,"../lib/obj_loader":51,"../lib/requests":52,"../lib/stl_loader":53,"../lib/utils":56,"../model/template":65,"../view/dropbox_picker.js":67,"../view/notification":73,"./base":46,"promise-polyfill":41,"url":8}],48:[function(require,module,exports){
+},{"../lib/imagepromise":50,"../lib/obj_loader":51,"../lib/requests":52,"../lib/stl_loader":53,"../lib/utils":56,"../template":68,"../view/dropbox_picker.js":72,"../view/notification":78,"./base":46,"promise-polyfill":41,"url":8}],48:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60212,7 +60218,7 @@ function MaterialPromise(url, auth) {
 
 exports['default'] = MaterialPromise;
 
-},{"../view/notification":73,"promise-polyfill":41,"three":43}],51:[function(require,module,exports){
+},{"../view/notification":78,"promise-polyfill":41,"three":43}],51:[function(require,module,exports){
 /**
  * Adapted from
  * https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/OBJLoader.js
@@ -60631,7 +60637,7 @@ function putJSON(url) {
     });
 }
 
-},{"../view/notification":73,"promise-polyfill":41,"querystring":7}],53:[function(require,module,exports){
+},{"../view/notification":78,"promise-polyfill":41,"querystring":7}],53:[function(require,module,exports){
 /**
  *
  * Adapted from https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/STLLoader.js
@@ -61390,7 +61396,7 @@ exports['default'] = _backbone2['default'].Model.extend({
 
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
-        this.listenTo(this, 'change:activeTemplate', this.reloadAssetSource);
+        this.listenTo(this, 'change:activeTemplate', this.reloadLandmarks);
         this.listenTo(this, 'change:mode', this.reloadAssetSource);
 
         this._initTemplates();
@@ -61508,6 +61514,27 @@ exports['default'] = _backbone2['default'].Model.extend({
         });
     },
 
+    reloadLandmarks: function reloadLandmarks() {
+        var _this4 = this;
+
+        if (this.landmarks() && this.asset()) {
+            (function () {
+                _this4.set('landmarks', null);
+
+                var tracker = _this4.tracker();
+                if (!tracker[_this4.asset().id]) {
+                    tracker[_this4.asset().id] = new _libTracker2['default']();
+                }
+
+                _this4.server().fetchLandmarkGroup(_this4.asset().id, _this4.activeTemplate()).then(function (json) {
+                    _this4.set('landmarks', _landmark_group2['default'].parse(json, _this4.asset().id, _this4.activeTemplate(), _this4.server(), tracker[_this4.asset().id]));
+                }, function () {
+                    console.log('Error in fetching landmark JSON file');
+                });
+            })();
+        }
+    },
+
     _assetSourceConstructor: function _assetSourceConstructor() {
         if (this.imageMode()) {
             return AssetSource.ImageSource;
@@ -61530,7 +61557,7 @@ exports['default'] = _backbone2['default'].Model.extend({
     },
 
     _promiseLandmarksWithAsset: function _promiseLandmarksWithAsset(loadAssetPromise) {
-        var _this4 = this;
+        var _this5 = this;
 
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
@@ -61542,7 +61569,7 @@ exports['default'] = _backbone2['default'].Model.extend({
         }
 
         var loadLandmarksPromise = this.server().fetchLandmarkGroup(this.asset().id, this.activeTemplate()).then(function (json) {
-            return _landmark_group2['default'].parse(json, _this4.asset().id, _this4.activeTemplate(), _this4.server(), tracker[_this4.asset().id]);
+            return _landmark_group2['default'].parse(json, _this5.asset().id, _this5.activeTemplate(), _this5.server(), tracker[_this5.asset().id]);
         }, function () {
             console.log('Error in fetching landmark JSON file');
         });
@@ -61554,7 +61581,7 @@ exports['default'] = _backbone2['default'].Model.extend({
             // now we know that this is resolved we set the landmarks on the
             // app. This way we know the landmarks will always be set with a
             // valid asset.
-            _this4.set('landmarks', landmarks);
+            _this5.set('landmarks', landmarks);
         });
     },
 
@@ -61570,12 +61597,12 @@ exports['default'] = _backbone2['default'].Model.extend({
     },
 
     nextAsset: function nextAsset() {
-        var _this5 = this;
+        var _this6 = this;
 
         if (this.assetSource().hasSuccessor()) {
             var lms = this.landmarks();
             var _go = function _go() {
-                _this5._switchToAsset(_this5.assetSource().next());
+                _this6._switchToAsset(_this6.assetSource().next());
             };
 
             if (lms && !lms.tracker.isUpToDate()) {
@@ -61591,12 +61618,12 @@ exports['default'] = _backbone2['default'].Model.extend({
     },
 
     previousAsset: function previousAsset() {
-        var _this6 = this;
+        var _this7 = this;
 
         if (this.assetSource().hasPredecessor()) {
             var lms = this.landmarks();
             var _go = function _go() {
-                _this6._switchToAsset(_this6.assetSource().previous());
+                _this7._switchToAsset(_this7.assetSource().previous());
             };
 
             if (lms && !lms.tracker.isUpToDate()) {
@@ -61612,11 +61639,11 @@ exports['default'] = _backbone2['default'].Model.extend({
     },
 
     goToAssetIndex: function goToAssetIndex(newIndex) {
-        var _this7 = this;
+        var _this8 = this;
 
         var lms = this.landmarks();
         var _go = function _go() {
-            _this7._switchToAsset(_this7.assetSource().setIndex(newIndex));
+            _this8._switchToAsset(_this8.assetSource().setIndex(newIndex));
         };
 
         if (lms) {
@@ -61660,7 +61687,7 @@ exports['default'] = _backbone2['default'].Model.extend({
 });
 module.exports = exports['default'];
 
-},{"../lib/tracker":55,"../view/modal":72,"./assetsource":59,"./landmark_group":63,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],58:[function(require,module,exports){
+},{"../lib/tracker":55,"../view/modal":77,"./assetsource":59,"./landmark_group":63,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],58:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63232,6 +63259,104 @@ Object.defineProperty(exports, '__esModule', {
     value: true
 });
 
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _face = require('./face');
+
+var _face2 = _interopRequireDefault(_face);
+
+var _ibug68 = require('./ibug68');
+
+var _ibug682 = _interopRequireDefault(_ibug68);
+
+var _simple10 = require('./simple10');
+
+var _simple102 = _interopRequireDefault(_simple10);
+
+var _simple42 = require('./simple42');
+
+var _simple422 = _interopRequireDefault(_simple42);
+
+exports['default'] = [[_face2['default'], 'face'], [_ibug682['default'], 'ibug68'], [_simple102['default'], 'simple10'], [_simple422['default'], 'simple42']];
+module.exports = exports['default'];
+
+},{"./face":66,"./ibug68":67,"./simple10":69,"./simple42":70}],66:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+exports['default'] = {
+    'groups': [{
+        'label': 'mouth',
+        'points': 6
+    }, {
+        'label': 'nose',
+        'points': 3,
+        'connectivity': ['0 1', '1 2']
+    }, {
+        'label': 'left_eye',
+        'points': 8,
+        'connectivity': ['0:7', '7 0']
+    }, {
+        'label': 'right_eye',
+        'points': 8,
+        'connectivity': 'cycle'
+    }, {
+        'label': 'chin',
+        'points': 1
+    }]
+};
+module.exports = exports['default'];
+
+},{}],67:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+exports['default'] = {
+    'groups': [{
+        'label': 'chin',
+        'points': 17,
+        'connectivity': ['0 1', '1 2', '2 3', '3 4', '4 5', '5 6', '6 7', '7 8', '8 9', '9 10', '10 11', '11 12', '12 13', '13 14', '14 15', '15 16']
+    }, {
+        'label': 'leye',
+        'points': 6,
+        'connectivity': ['0 1', '1 2', '2 3', '3 4', '4 5', '5 0']
+    }, {
+        'label': 'reye',
+        'points': 6,
+        'connectivity': ['0 1', '1 2', '2 3', '3 4', '4 5', '5 0']
+    }, {
+        'label': 'leyebrow',
+        'points': 5,
+        'connectivity': ['0 1', '1 2', '2 3', '3 4']
+    }, {
+        'label': 'nose',
+        'points': 9,
+        'connectivity': ['0 1', '1 2', '2 3', '4 5', '5 6', '6 7', '7 8']
+    }, {
+        'label': 'reyebrow',
+        'points': 5,
+        'connectivity': ['0 1', '1 2', '2 3', '3 4']
+    }, {
+        'label': 'mouth',
+        'points': 20,
+        'connectivity': ['0 1', '1 2', '2 3', '3 4', '4 5', '5 6', '6 7', '7 8', '8 9', '9 10', '10 11', '11 0', '12 13', '13 14', '14 15', '15 16', '16 17', '17 18', '18 19', '19 12']
+    }]
+};
+module.exports = exports['default'];
+
+},{}],68:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
 var _slicedToArray = (function () {
     function sliceIterator(arr, i) {
         var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
@@ -63271,6 +63396,10 @@ var _jsYaml2 = _interopRequireDefault(_jsYaml);
 var _underscore = require('underscore');
 
 var _underscore2 = _interopRequireDefault(_underscore);
+
+var _defaults = require('./defaults');
+
+var _defaults2 = _interopRequireDefault(_defaults);
 
 var CYCLE_CONNECTIVITY_LABEL = 'cycle';
 var NULL_POINT = { 2: [null, null], 3: [null, null, null] };
@@ -63449,9 +63578,54 @@ Template.prototype.emptyLJSON = function () {
 
     return _underscore2['default'].clone(this._emptyLmGroup[dims]);
 };
+
+var _defaultTemplates = undefined;
+
+Template.loadDefaultTemplates = function () {
+    if (!_defaultTemplates) {
+        _defaultTemplates = {};
+        _defaults2['default'].forEach(function (_ref5) {
+            var _ref52 = _slicedToArray(_ref5, 2);
+
+            var json = _ref52[0];
+            var key = _ref52[1];
+
+            _defaultTemplates[key] = new Template(json);
+        });
+    }
+    return _defaultTemplates;
+};
 module.exports = exports['default'];
 
-},{"js-yaml":10,"underscore":44}],66:[function(require,module,exports){
+},{"./defaults":65,"js-yaml":10,"underscore":44}],69:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+exports['default'] = {
+    'groups': [{
+        'label': 'all',
+        'points': 10
+    }]
+};
+module.exports = exports['default'];
+
+},{}],70:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+exports['default'] = {
+    'groups': [{
+        'label': 'all',
+        'points': 42
+    }]
+};
+module.exports = exports['default'];
+
+},{}],71:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63782,7 +63956,7 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../backend":48,"../lib/utils":56,"./intro":69,"./list_picker":71,"./modal":72,"./notification":73,"backbone":2,"jquery":9,"underscore":44}],67:[function(require,module,exports){
+},{"../backend":48,"../lib/utils":56,"./intro":74,"./list_picker":76,"./modal":77,"./notification":78,"backbone":2,"jquery":9,"underscore":44}],72:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64151,7 +64325,7 @@ exports['default'] = _modal2['default'].extend({
 });
 module.exports = exports['default'];
 
-},{"../lib/utils":56,"./modal":72,"jquery":9,"promise-polyfill":41,"underscore":44}],68:[function(require,module,exports){
+},{"../lib/utils":56,"./modal":77,"jquery":9,"promise-polyfill":41,"underscore":44}],73:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64229,7 +64403,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"jquery":9}],69:[function(require,module,exports){
+},{"backbone":2,"jquery":9}],74:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64396,7 +64570,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{"../../../../package.json":45,"../backend":48,"../lib/support":54,"../lib/utils":56,"./modal":72,"./notification":73,"jquery":9}],70:[function(require,module,exports){
+},{"../../../../package.json":45,"../backend":48,"../lib/support":54,"../lib/utils":56,"./modal":77,"./notification":78,"jquery":9}],75:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64569,7 +64743,7 @@ KeyboardShortcutsHandler.prototype.disable = function () {
 };
 module.exports = exports['default'];
 
-},{"./modal":72,"./notification":73,"jquery":9}],71:[function(require,module,exports){
+},{"./modal":77,"./notification":78,"jquery":9}],76:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64699,7 +64873,7 @@ exports['default'] = _modal2['default'].extend({
 });
 module.exports = exports['default'];
 
-},{"./modal":72,"jquery":9,"underscore":44}],72:[function(require,module,exports){
+},{"./modal":77,"jquery":9,"underscore":44}],77:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64961,7 +65135,7 @@ Modal.prompt = function (msg, submit, cancel) {
 exports['default'] = Modal;
 /* opts */
 
-},{"backbone":2,"jquery":9,"underscore":44}],73:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"underscore":44}],78:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65281,10 +65455,22 @@ var CornerSpinner = _backbone2['default'].View.extend({
     }
 });
 
-var loading = new CornerSpinner();
+var _gs = undefined;
+var loading = {
+    start: function start() {
+        if (!_gs) {
+            _gs = new CornerSpinner();
+        }
+        return _gs.start();
+    },
+
+    stop: function stop(id) {
+        return _gs.stop(id);
+    }
+};
 exports.loading = loading;
 
-},{"../lib/utils":56,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],74:[function(require,module,exports){
+},{"../lib/utils":56,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],79:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65323,17 +65509,13 @@ var _notification = require('./notification');
 
 var Notification = _interopRequireWildcard(_notification);
 
-var _backendServer = require('../backend/server');
-
-var _backendServer2 = _interopRequireDefault(_backendServer);
-
 var _modelAtomic = require('../model/atomic');
 
 var _modelAtomic2 = _interopRequireDefault(_modelAtomic);
 
-var _list_picker = require('./list_picker');
+var _templates = require('./templates');
 
-var _list_picker2 = _interopRequireDefault(_list_picker);
+var _templates2 = _interopRequireDefault(_templates);
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -65529,6 +65711,9 @@ var LandmarkGroupListView = _backbone2['default'].View.extend({
         this.cleanup();
         this.$el.empty();
         this.collection.map(this.renderOne);
+        if (this.collection.length === 1) {
+            this.$el.find('.LmGroup-Flex').addClass('MultiLine');
+        }
         return this;
     },
 
@@ -65677,63 +65862,6 @@ var UndoRedoView = _backbone2['default'].View.extend({
 });
 
 exports.UndoRedoView = UndoRedoView;
-var TemplatePanel = _backbone2['default'].View.extend({
-    el: '#templatePanel',
-
-    events: {
-        'click': 'click'
-    },
-
-    initialize: function initialize() {
-        _underscore2['default'].bindAll(this, 'update');
-        this.listenTo(this.model, 'change:activeTemplate', this.update);
-    },
-
-    update: function update() {
-        this.$el.toggleClass('Disabled', this.model && (this.model.templates().length <= 1 && this.model.server() instanceof _backendServer2['default'] && typeof this.model.server().pickTemplate !== 'function'));
-        this.$el.text(this.model.activeTemplate() || '-');
-    },
-
-    click: function click() {
-        var _this3 = this;
-
-        var backend = this.model.server();
-
-        if (backend instanceof _backendServer2['default']) {
-
-            var tmpls = this.model.templates();
-
-            if (tmpls.length <= 1) {
-                return;
-            }
-
-            var picker = new _list_picker2['default']({
-                list: tmpls.map(function (t) {
-                    return [t, t];
-                }),
-                title: 'Select a template',
-                closable: true,
-                disposeOnClose: true,
-                useFilter: tmpls.length > 5,
-                submit: function submit(tmpl) {
-                    return _this3.model.set('activeTemplate', tmpl);
-                }
-            });
-            picker.open();
-        } else if (typeof this.model.server().pickTemplate === 'function') {
-            backend.pickTemplate(function () {
-                _this3.model._initTemplates(true);
-            }, function (err) {
-                Notification.notify({
-                    type: 'error',
-                    msg: 'Error switching template ' + err
-                });
-            }, true);
-        }
-    }
-});
-
-exports.TemplatePanel = TemplatePanel;
 var LmLoadView = _backbone2['default'].View.extend({
     el: '#lmLoadPanel',
 
@@ -65771,7 +65899,7 @@ exports['default'] = _backbone2['default'].View.extend({
         this.lmLoadView = null;
         this.lmView = null;
         this.undoRedoView = null;
-        this.templatePanel = new TemplatePanel({ model: this.model });
+        this.templatePanel = new _templates2['default']({ model: this.model });
     },
 
     landmarksChange: function landmarksChange() {
@@ -65806,7 +65934,139 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../backend/server":49,"../model/atomic":60,"./list_picker":71,"./notification":73,"backbone":2,"jquery":9,"underscore":44}],75:[function(require,module,exports){
+},{"../model/atomic":60,"./notification":78,"./templates":80,"backbone":2,"jquery":9,"underscore":44}],80:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _backbone = require('backbone');
+
+var _backbone2 = _interopRequireDefault(_backbone);
+
+var _jquery = require('jquery');
+
+var _jquery2 = _interopRequireDefault(_jquery);
+
+var _backendServer = require('../backend/server');
+
+var _backendServer2 = _interopRequireDefault(_backendServer);
+
+// import ListPicker from './list_picker';
+
+var TemplatePicker = _backbone2['default'].View.extend({
+
+    el: '#templatePicker',
+
+    events: {
+        'click li': 'select',
+        'click .RightSidebar-TemplatePicker-Add': 'add'
+    },
+
+    initialize: function initialize() {
+        _underscore2['default'].bindAll(this, 'update', 'render', 'select', 'add', 'reload');
+        this.listenTo(this.model, 'change:activeTemplate', this.update);
+        this.listenTo(this.model, 'change:templates', this.reload);
+    },
+
+    render: function render() {
+        var backend = this.model.server();
+        var $ul = (0, _jquery2['default'])('<ul></ul>');
+        this.model.templates().forEach(function (tmpl, index) {
+            $ul.append((0, _jquery2['default'])('\n                <li id="templatePick_' + tmpl + '"\n                    data-template="' + tmpl + '"\n                    data-index="' + index + '">' + tmpl + '</li>\n            '));
+        });
+
+        this.$el.html($ul);
+        this.$el.css('top', '-' + (this.model.templates().length * 42 + 22) + 'px');
+
+        if (typeof backend.pickTemplate === 'function') {
+            this.$el.append('<div class=\'RightSidebar-TemplatePicker-Add\'></div>');
+        }
+
+        this.update();
+    },
+
+    update: function update() {
+        var activeTmpl = this.model.activeTemplate();
+        if (activeTmpl) {
+            this.$el.find('li').removeClass('Active');
+            this.$el.find('#templatePick_' + activeTmpl).addClass('Active');
+        }
+    },
+
+    reload: function reload() {
+        this.undelegateEvents();
+        this.render();
+        this.delegateEvents();
+    },
+
+    toggle: function toggle() {
+        this.$el.toggleClass('Active');
+    },
+
+    select: function select(evt) {
+        evt.stopPropagation();
+        var tmpl = evt.currentTarget.dataset.template;
+        if (tmpl !== this.model.activeTemplate()) {
+            this.toggle();
+            this.model.set('activeTemplate', tmpl);
+        }
+    },
+
+    add: function add(evt) {
+        var _this = this;
+
+        evt.stopPropagation();
+        if (typeof this.model.server().pickTemplate === 'function') {
+            this.model.server().pickTemplate(function () {
+                _this.model._initTemplates(true);
+            }, function (err) {
+                Notification.notify({
+                    type: 'error',
+                    msg: 'Error picking template ' + err
+                });
+            }, true);
+        }
+    }
+});
+
+exports.TemplatePicker = TemplatePicker;
+var TemplatePanel = _backbone2['default'].View.extend({
+    el: '#templatePanel',
+
+    events: {
+        'click': 'click'
+    },
+
+    initialize: function initialize() {
+        _underscore2['default'].bindAll(this, 'update');
+        this.picker = new TemplatePicker({ model: this.model });
+        this.listenTo(this.model, 'change:activeTemplate', this.update);
+    },
+
+    update: function update() {
+        this.$el.toggleClass('Disabled', this.model && (this.model.templates().length <= 1 && this.model.server() instanceof _backendServer2['default'] && typeof this.model.server().pickTemplate !== 'function'));
+        this.$el.find('span').text(this.model.activeTemplate() || '-');
+    },
+
+    click: function click() {
+        this.picker.toggle();
+    }
+});
+
+exports.TemplatePanel = TemplatePanel;
+exports['default'] = TemplatePanel;
+
+},{"../backend/server":49,"backbone":2,"jquery":9,"underscore":44}],81:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65998,7 +66258,7 @@ exports['default'] = _backbone2['default'].View.extend({
 
 });
 
-},{"../model/atomic":60,"backbone":2,"underscore":44}],76:[function(require,module,exports){
+},{"../model/atomic":60,"backbone":2,"underscore":44}],82:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66050,7 +66310,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"url":8}],77:[function(require,module,exports){
+},{"backbone":2,"url":8}],83:[function(require,module,exports){
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -66486,7 +66746,7 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
 
 module.exports = exports['default'];
 
-},{"backbone":2,"jquery":9,"three":43,"underscore":44}],78:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"three":43,"underscore":44}],84:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66662,7 +66922,7 @@ var LandmarkConnectionTHREEView = _backbone2['default'].View.extend({
 });
 exports.LandmarkConnectionTHREEView = LandmarkConnectionTHREEView;
 
-},{"backbone":2,"three":43,"underscore":44}],79:[function(require,module,exports){
+},{"backbone":2,"three":43,"underscore":44}],85:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -67239,7 +67499,7 @@ function Handler() {
 
 module.exports = exports['default'];
 
-},{"../../model/atomic":60,"jquery":9,"three":43,"underscore":44}],80:[function(require,module,exports){
+},{"../../model/atomic":60,"jquery":9,"three":43,"underscore":44}],86:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -67969,7 +68229,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"../../model/atomic":60,"../../model/octree":64,"./camera":77,"./elements":78,"./handler":79,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
+},{"../../model/atomic":60,"../../model/octree":64,"./camera":83,"./elements":84,"./handler":85,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-2ba57774.js.map
+//# sourceMappingURL=bundle-405cfb46.js.map
