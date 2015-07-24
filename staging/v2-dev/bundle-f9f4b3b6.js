@@ -64722,6 +64722,11 @@ function KeyboardShortcutsHandler(app, viewport) {
             return;
         }
 
+        if ((0, _jquery2['default'])('#templatePicker').hasClass('Active')) {
+            (0, _jquery2['default'])('#templatePicker').removeClass('Active');
+            return;
+        }
+
         var lms = app.landmarks();
         if (lms) {
             app.landmarks().deselectAll();
@@ -68232,4 +68237,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":83,"./elements":84,"./handler":85,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-b4baa186.js.map
+//# sourceMappingURL=bundle-f9f4b3b6.js.map
