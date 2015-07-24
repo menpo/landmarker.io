@@ -61531,13 +61531,25 @@ exports['default'] = _backbone2['default'].Model.extend({
         var _this4 = this;
 
         if (this.landmarks() && this.asset()) {
-            this.set('landmarks', null);
-
-            this.server().fetchLandmarkGroup(this.asset().id, this.activeTemplate()).then(function (json) {
-                _this4.set('landmarks', _landmark_group2['default'].parse(json, _this4.asset().id, _this4.activeTemplate(), _this4.server(), _this4.getTracker(_this4.asset().id, _this4.activeTemplate())));
-            }, function () {
-                console.log('Error in fetching landmark JSON file');
+            this.autoSaveWrapper(function () {
+                _this4.set('landmarks', null);
+                _this4.loadLandmarksPromise().then(function (lms) {
+                    _this4.set('landmarks', lms);
+                });
             });
+        }
+    },
+
+    autoSaveWrapper: function autoSaveWrapper(fn) {
+        var lms = this.landmarks();
+        if (lms && !lms.tracker.isUpToDate()) {
+            if (!this.isAutoSaveOn()) {
+                _viewModal2['default'].confirm('You have unsaved changes, are you sure you want to proceed ? (Your changes will be lost)', fn);
+            } else {
+                lms.save().then(fn);
+            }
+        } else {
+            fn();
         }
     },
 
@@ -61562,26 +61574,30 @@ exports['default'] = _backbone2['default'].Model.extend({
         this.trigger('newMeshAvailable');
     },
 
-    _promiseLandmarksWithAsset: function _promiseLandmarksWithAsset(loadAssetPromise) {
+    loadLandmarksPromise: function loadLandmarksPromise() {
         var _this5 = this;
 
-        // returns a promise that will only resolve when the asset and
-        // landmarks are both downloaded and ready.
-
-        var loadLandmarksPromise = this.server().fetchLandmarkGroup(this.asset().id, this.activeTemplate()).then(function (json) {
+        return this.server().fetchLandmarkGroup(this.asset().id, this.activeTemplate()).then(function (json) {
             return _landmark_group2['default'].parse(json, _this5.asset().id, _this5.activeTemplate(), _this5.server(), _this5.getTracker(_this5.asset().id, _this5.activeTemplate()));
         }, function () {
             console.log('Error in fetching landmark JSON file');
         });
+    },
+
+    _promiseLandmarksWithAsset: function _promiseLandmarksWithAsset(loadAssetPromise) {
+        var _this6 = this;
+
+        // returns a promise that will only resolve when the asset and
+        // landmarks are both downloaded and ready.
 
         // if both come true, then set the landmarks
-        return _promisePolyfill2['default'].all([loadLandmarksPromise, loadAssetPromise]).then(function (args) {
+        return _promisePolyfill2['default'].all([this.loadLandmarksPromise(), loadAssetPromise]).then(function (args) {
             var landmarks = args[0];
             console.log('landmarks are loaded and the asset is at a suitable ' + 'state to display');
             // now we know that this is resolved we set the landmarks on the
             // app. This way we know the landmarks will always be set with a
             // valid asset.
-            _this5.set('landmarks', landmarks);
+            _this6.set('landmarks', landmarks);
         });
     },
 
@@ -61597,64 +61613,31 @@ exports['default'] = _backbone2['default'].Model.extend({
     },
 
     nextAsset: function nextAsset() {
-        var _this6 = this;
+        var _this7 = this;
 
         if (this.assetSource().hasSuccessor()) {
-            var lms = this.landmarks();
-            var _go = function _go() {
-                _this6._switchToAsset(_this6.assetSource().next());
-            };
-
-            if (lms && !lms.tracker.isUpToDate()) {
-                if (!this.isAutoSaveOn()) {
-                    _viewModal2['default'].confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
-                } else {
-                    lms.save().then(_go);
-                }
-            } else {
-                _go();
-            }
+            this.autoSaveWrapper(function () {
+                _this7._switchToAsset(_this7.assetSource().next());
+            });
         }
     },
 
     previousAsset: function previousAsset() {
-        var _this7 = this;
+        var _this8 = this;
 
         if (this.assetSource().hasPredecessor()) {
-            var lms = this.landmarks();
-            var _go = function _go() {
-                _this7._switchToAsset(_this7.assetSource().previous());
-            };
-
-            if (lms && !lms.tracker.isUpToDate()) {
-                if (!this.isAutoSaveOn()) {
-                    _viewModal2['default'].confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
-                } else {
-                    lms.save().then(_go);
-                }
-            } else {
-                return _go();
-            }
+            this.autoSaveWrapper(function () {
+                _this8._switchToAsset(_this8.assetSource().previous());
+            });
         }
     },
 
     goToAssetIndex: function goToAssetIndex(newIndex) {
-        var _this8 = this;
+        var _this9 = this;
 
-        var lms = this.landmarks();
-        var _go = function _go() {
-            _this8._switchToAsset(_this8.assetSource().setIndex(newIndex));
-        };
-
-        if (lms) {
-            if (!lms.tracker.isUpToDate() && !this.isAutoSaveOn()) {
-                _viewModal2['default'].confirm('You have unsaved changes, are you sure you want to leave this asset ? (Your changes will be lost)', _go);
-            } else {
-                lms.save().then(_go);
-            }
-        } else {
-            _go();
-        }
+        this.autoSaveWrapper(function () {
+            _this9._switchToAsset(_this9.assetSource().setIndex(newIndex));
+        });
     },
 
     reloadLandmarksFromPrevious: function reloadLandmarksFromPrevious() {
@@ -68259,4 +68242,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":60,"../../model/octree":64,"./camera":83,"./elements":84,"./handler":85,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-ee68c66b.js.map
+//# sourceMappingURL=bundle-0aa2a72b.js.map
