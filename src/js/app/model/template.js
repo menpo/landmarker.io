@@ -99,7 +99,7 @@ Template.parseLJSON = function (ljson) {
         template.push(group);
     });
 
-    return new Template({template});
+    return new Template({groups: template});
 };
 
 Template.Parsers = {
@@ -110,11 +110,11 @@ Template.Parsers = {
 };
 
 Template.prototype.toYAML = function () {
-    return yaml.safeDump(this._template);
+    return yaml.safeDump({groups: this._template});
 };
 
 Template.prototype.toJSON = function () {
-    return JSON.stringify(this._template);
+    return JSON.stringify({groups: this._template});
 };
 
 /**
