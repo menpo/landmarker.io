@@ -120,6 +120,11 @@ export default function KeyboardShortcutsHandler (app, viewport) {
             return;
         }
 
+        if ($('#templatePicker').hasClass('Active')) {
+            $('#templatePicker').removeClass('Active');
+            return;
+        }
+
         const lms = app.landmarks();
         if (lms) {
             app.landmarks().deselectAll();
