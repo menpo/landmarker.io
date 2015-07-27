@@ -248,7 +248,7 @@ function resolveMode(server, u) {
         }
     }, function (err) {
         console.log(err);
-        retry('Couldn\'t get mode from server');
+        retry('Couldn\'t reach server, are you sure the url was correct');
     });
 }
 
@@ -59410,7 +59410,8 @@ module.exports={
   "scripts": {
     "build": "DISABLE_NOTIFIER=true NODE_ENV=production gulp build",
     "watch": "gulp",
-    "test": "mocha --compilers js:babel/register -R dot test/**/*.js",
+    "test": "mocha --compilers js:babel/register -R spec --recursive ./test",
+    "coverage": "istanbul cover _mocha -- --compilers js:babel/register -R dot --recursive ./test",
     "serve": "http-server -p 4000",
     "lint": "eslint -c .eslintrc src/js",
     "lint:errors": "eslint -c .eslintrc --quiet src/js"
@@ -59459,6 +59460,7 @@ module.exports={
     "esformatter-quotes": "^1.0.2",
     "eslint": "^0.24.1",
     "http-server": "^0.8.0",
+    "istanbul": "^0.3.17",
     "mocha": "^2.2.5",
     "watchify": "^3.2.1",
     "yargs": "^3.15.0"
@@ -61039,7 +61041,6 @@ exports['default'] = {
 Object.defineProperty(exports, '__esModule', {
     value: true
 });
-exports.FixedStack = FixedStack;
 exports.Tracker = Tracker;
 
 function _interopRequireDefault(obj) {
@@ -61054,137 +61055,302 @@ var _backbone = require('backbone');
 
 var _backbone2 = _interopRequireDefault(_backbone);
 
-function FixedStack(size) {
-    this.size = size;
-    this._stack = [];
-}
-
-FixedStack.prototype.push = function (item) {
-    this._stack.push(item);
-    if (this._stack.length >= this.size) {
-        this._stack = this._stack.slice(1);
-    }
-};
-
-FixedStack.prototype.peek = function () {
-    return this._stack[this._stack.length - 1];
-};
-
-FixedStack.prototype.pop = function () {
-    return this._stack.pop();
-};
-
-FixedStack.prototype.length = function () {
-    return this._stack.length;
-};
-
-var _rev = Date.now;
+/**
+ * @class Tracker
+ *
+ * General purpose undo/redo data structure.
+ * Uncorelated to the target data, provides 2 levels of granularity:
+ *
+ * - operation : small updates in between saved states
+ * - state :     checkpoint in the data, should contain the all the tracked data
+ *
+ * There're no constraint on how you structure the operations / states as they
+ * will be passed back to you as is. Making sure the data is updated
+ * consistently is up to the caller.
+ *
+ * When recording a state, it can be marked as 'saved' which is taken as a
+ * marker that the data is up to date with your source of truth (usually the
+ * the remote location).
+ *
+ * Any call which changes the data structure will trigger a 'change' event on
+ * the instance. For undo and redo operations which have no effect, a 'noop'
+ * event will be triggered. Extends Backbone.Events for event firing and
+ * listening.
+ *
+ */
 
 function Tracker() {
-    var maxOps = arguments.length <= 0 || arguments[0] === undefined ? 100 : arguments[0];
-    var maxCheckpoints = arguments.length <= 1 || arguments[1] === undefined ? 25 : arguments[1];
-
-    this._operations = new FixedStack(maxOps);
-    this._states = new FixedStack(maxCheckpoints);
+    this._operations = [];
+    this._states = [];
     this._futureOperations = [];
     this._futureStates = [];
+    this._lastSavedState = undefined;
 
-    this._saved = undefined;
-    this.startedAt = new Date();
+    this._lastRev = 0;
 
     _underscore2['default'].extend(this, _backbone2['default'].Events);
+
+    this.on('change', function () {
+        console.log(this._states.map(function (i) {
+            return i.rev;
+        }), this._operations.map(function (i) {
+            return i.rev;
+        }), this._futureStates.map(function (i) {
+            return i.rev;
+        }), this._futureOperations.map(function (i) {
+            return i.rev;
+        }));
+    });
 }
 
-exports['default'] = Tracker;
+/**
+ * Generate the incremental revision number used to order states and operations
+ * @returns {integer}
+ */
+Tracker.prototype.rev = function () {
+    return ++this._lastRev;
+};
 
+/**
+ * Record an single operation,
+ * Will lose any operations or state which were undone before
+ * @param {object} data - Any kind of data
+ * @fires Tracker#change
+ */
 Tracker.prototype.record = function (data) {
-    var rev = _rev();
+    var rev = this.rev();
+
+    console.log('RO >>', data);
+
     this._operations.push({ rev: rev, data: data });
     this._futureOperations = [];
     this._futureStates = [];
+
     this.trigger('change');
 };
 
+/**
+ * Record a state
+ *
+ * 'saved' means it is currently in sync with your source of truth.
+ *
+ * In practice a recorded state should not deviate from current operations, that
+ *  is to maintain consistency across undo/redo. To visualise, take this situation:
+ *
+ * >> record state 3    (state is known to be 3)
+ * >> record +1         (state is assumed to be 4)
+ * >> record +2         (state is assumed to be 6)
+ * >> record state 12   (state is known to be 12)
+ *
+ * now to undo from 12, we have no data as reference. We could go back to 3 and
+ * perform all subsequent operations, but that would require assumption on the
+ * callbacks and their side-effects. To allow safe override of data, use
+ * 'override' to erase all operations between this new state and the last known
+ * state. Not setting it correctly will likely end up in broken data
+ *
+ * @param  {object} data
+ * @param  {Boolean} [saved=false]
+ * @param  {Boolean} [override=false]
+ */
 Tracker.prototype.recordState = function (data) {
     var saved = arguments.length <= 1 || arguments[1] === undefined ? false : arguments[1];
+    var override = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
-    var last = this._states.peek();
-    var op = this._operations.peek();
+    var state = _underscore2['default'].last(this._states),
+        op = _underscore2['default'].last(this._operations);
     var rev = undefined;
 
-    if (!op && last && _underscore2['default'].isEqual(data, last.data)) {
-        rev = last.rev;
+    console.log('RS >>', data, saved, override);
+
+    if (!op && state && _underscore2['default'].isEqual(data, state.data)) {
+        // No op and we have the same data than before, don't fill twice
+        rev = state.rev;
     } else {
-        rev = op ? op.rev : _rev();
+        // There are changes, store the state
+        if (op && !override && (!state || state.rev !== op.rev)) {
+            rev = op.rev; // Track the lastest operation
+        } else {
+            rev = this.rev();
+        }
         this._states.push({ rev: rev, data: data });
     }
 
+    if (override) {
+        // Remove all operations between the new state and the last
+        var prev = _underscore2['default'].last(this._operations);
+        while (prev && prev.rev > state.rev) {
+            this._operations.pop();
+            prev = _underscore2['default'].last(this._operations);
+        }
+    }
+
+    // Mark as saved, only one saved value at any point in time
     if (saved) {
-        this._saved = rev;
+        this._lastSavedState = rev;
     }
 
     this.trigger('change');
 };
 
+/**
+ * Does the current (state, operation) combo correspond to the last saved state
+ * @return {Boolean}
+ */
 Tracker.prototype.isUpToDate = function () {
-    var state = this._states.peek(),
-        op = this._operations.peek();
+    var state = _underscore2['default'].last(this._states),
+        op = _underscore2['default'].last(this._operations);
 
     if (!state) {
         // No state stored, cannot be up to date
         return false;
     }
 
+    var stateOk = this._lastSavedState === state.rev;
+
     if (op) {
         // Last operation must correspond to checkpoint
-        return op.rev === state.rev && state.rev === this._saved;
+        return stateOk && op.rev === state.rev;
     } else {
         // We may be in a restoring process (not at the last checkpoint)
-        return state.rev === this._saved;
+        return stateOk;
     }
-
-    return false;
 };
 
+/**
+ * Perform undo
+ *
+ * 'process' and 'restore' are called depending on which type of data is to be
+ * undone
+ *
+ * @param  {Function} process - callback receiving an operation
+ * @param  {Function} restore - callback receiving a state
+ * @fires Tracker#change
+ * @fires Tracker#noop
+ * @return {Boolean} - If there was any change in the data structure
+ */
 Tracker.prototype.undo = function (process, restore) {
-    var op = this._operations.pop();
+    var state = _underscore2['default'].last(this._states),
+        op = _underscore2['default'].last(this._operations);
+
+    var CASE = 0;
+
+    console.log(' U >>', op, state, this._states.length);
+
     if (op) {
-        console.log('Tracker:Undoing', op);
-        this._futureOperations.push(op);
-        process(op.data, op.rev);
-        this.trigger('change');
-    } else if (this._states.length() > 1) {
-        this._futureStates.push(this._states.pop());
-        var state = this._states.peek();
-        restore(state.data, state.rev);
-        this.trigger('change');
-    }
-};
-
-Tracker.prototype.redo = function (process, restore) {
-    if (this._futureStates.length > 0) {
-        var state = this._futureStates.pop();
-        this._states.push(state);
-        restore(state.data, state.rev);
-        this.trigger('change');
-    } else {
-        var op = this._futureOperations.pop();
-        if (op) {
-            console.log('Tracker:Redoing', op);
-            this._operations.push(op);
-            process(op.data, op.rev);
-            this.trigger('change');
+        if (!state) {
+            CASE = 1;
+        } else {
+            if (state.rev === op.rev) {
+                CASE = 3;
+            } else if (state.rev > op.rev) {
+                CASE = 2;
+            } else {
+                CASE = 1;
+            }
         }
+    } else {
+        CASE = !!state && this._states.length > 1 ? 2 : 0;
     }
+
+    if (CASE === 1) {
+        this._futureOperations.push(this._operations.pop());
+        process(op.data, op.rev);
+    } else if (CASE === 2) {
+        this._futureStates.push(this._states.pop());
+
+        var _$last = _underscore2['default'].last(this._states);
+
+        var rev = _$last.rev;
+        var data = _$last.data;
+
+        restore(data, rev);
+    } else if (CASE === 3) {
+        this._futureStates.push(this._states.pop());
+        this._futureOperations.push(this._operations.pop());
+        process(op.data, op.rev);
+    } else {
+        this.trigger('noop');
+        return false;
+    }
+
+    this.trigger('change');
+    return true;
 };
 
+/**
+ * Perform redo
+ *
+ * 'process' and 'restore' are called depending on which type of data is to be
+ * undone
+ *
+ * @param  {Function} process - callback receiving an operation
+ * @param  {Function} restore - callback receiving a state
+ * @fires Tracker#change
+ * @fires Tracker#noop
+ * @return {Boolean} - If there was any change in the data structure
+ */
+Tracker.prototype.redo = function (process, restore) {
+    var state = _underscore2['default'].last(this._futureStates),
+        op = _underscore2['default'].last(this._futureOperations);
+
+    var CASE = 0;
+
+    console.log(' R >>', op, state);
+
+    if (op) {
+        if (!state) {
+            CASE = 1;
+        } else {
+            if (state.rev > op.rev) {
+                CASE = 1;
+            } else if (state.rev === op.rev) {
+                CASE = 3;
+            } else {
+                CASE = 2;
+            }
+        }
+    } else {
+        CASE = state ? 2 : 0;
+    }
+
+    if (CASE === 1) {
+        this._operations.push(this._futureOperations.pop());
+        process(op.data, op.rev);
+    } else if (CASE === 2) {
+        this._states.push(this._futureStates.pop());
+        restore(state.data, state.rev);
+    } else if (CASE === 3) {
+        this._states.push(this._futureStates.pop());
+        this._operations.push(this._futureOperations.pop());
+        process(op.data, op.rev);
+    } else {
+        this.trigger('noop');
+        return false;
+    }
+
+    this.trigger('change');
+    return true;
+};
+
+/**
+ * Is in a state when redo is available
+ * @return {Boolean}
+ */
 Tracker.prototype.canRedo = function () {
-    return this._futureOperations.length > 0 || this._futureStates.length > 0;
+    return this._futureOperations.length + this._futureStates.length > 0;
 };
 
+/**
+ * Is in a state when undo is available
+ * We do not undo with only one state, as we would have no point of reference
+ * after this point.
+ * @return {Boolean}
+ */
 Tracker.prototype.canUndo = function () {
-    return this._operations.length() > 0 || this._states.length() > 1;
+    return this._operations.length > 0 || this._states.length > 1;
 };
+
+exports['default'] = Tracker;
 
 },{"backbone":2,"underscore":44}],57:[function(require,module,exports){
 'use strict';
@@ -61701,8 +61867,9 @@ exports['default'] = _backbone2['default'].Model.extend({
             var as = this.assetSource();
             if (this.assetSource().hasPredecessor()) {
                 this.server().fetchLandmarkGroup(as.assets()[as.assetIndex() - 1].id, this.activeTemplate()).then(function (json) {
-                    lms.restore(json);
                     lms.tracker.recordState(lms.toJSON());
+                    lms.restore(json);
+                    lms.tracker.recordState(lms.toJSON(), false, true);
                 }, function () {
                     console.log('Error in fetching landmark JSON file');
                 });
@@ -63453,7 +63620,7 @@ var NULL_POINT = { 2: [null, null], 3: [null, null, null] };
 function Template(json) {
     var _this = this;
 
-    this._template = json.groups || json.template;
+    this._template = json.groups;
 
     if (!this._template) {
         throw new ReferenceError('Missing top-level "groups" or "template" key');
@@ -67659,6 +67826,15 @@ exports['default'] = _backbone2['default'].View.extend({
         // ----- CONFIGURATION ----- //
         this.meshScale = MESH_SCALE; // The radius of the mesh's bounding sphere
 
+        // Disable context menu on viewport related elements
+        (0, _jquery2['default'])('canvas').on('contextmenu', function (e) {
+            e.preventDefault();
+        });
+
+        (0, _jquery2['default'])('#viewportContainer').on('contextmenu', function (e) {
+            e.preventDefault();
+        });
+
         // TODO bind all methods on the Viewport
         _underscore2['default'].bindAll(this, 'resize', 'render', 'changeMesh', 'mousedownHandler', 'update', 'lmViewsInSelectionBox');
 
@@ -68312,4 +68488,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-bba3eef0.js.map
+//# sourceMappingURL=bundle-049a35d4.js.map
