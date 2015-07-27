@@ -185,7 +185,7 @@ function resolveMode (server, u) {
         }
     }, function (err) {
         console.log(err);
-        retry(`Couldn't get mode from server`);
+        retry(`Couldn't reach server, are you sure the url was correct`);
     });
 }
 
