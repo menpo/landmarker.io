@@ -36,15 +36,6 @@ export function Tracker () {
     this._lastRev = 0;
 
     _.extend(this, Backbone.Events);
-
-    this.on('change', function () {
-        console.log(
-            this._states.map(i => i.rev),
-            this._operations.map(i => i.rev),
-            this._futureStates.map(i => i.rev),
-            this._futureOperations.map(i => i.rev)
-        );
-    });
 }
 
 /**
@@ -63,8 +54,6 @@ Tracker.prototype.rev = function () {
  */
 Tracker.prototype.record = function (data) {
     const rev = this.rev();
-
-    console.log('RO >>', data);
 
     this._operations.push({rev, data});
     this._futureOperations = [];
@@ -100,8 +89,6 @@ Tracker.prototype.recordState = function (data, saved=false, override=false) {
     const state = _.last(this._states),
         op = _.last(this._operations);
     let rev;
-
-    console.log('RS >>', data, saved, override);
 
     if (!op && state && _.isEqual(data, state.data)) {
         // No op and we have the same data than before, don't fill twice
@@ -171,8 +158,6 @@ Tracker.prototype.undo = function (process, restore) {
 
     let CASE = 0;
 
-    console.log(' U >>', op, state, this._states.length);
-
     if (op) {
         if (!state) {
             CASE = 1;
@@ -226,8 +211,6 @@ Tracker.prototype.redo = function (process, restore) {
          op = _.last(this._futureOperations);
 
     let CASE = 0;
-
-    console.log(' R >>', op, state);
 
     if (op) {
         if (!state) {
