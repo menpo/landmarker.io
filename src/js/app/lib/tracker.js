@@ -34,9 +34,7 @@ export function Tracker (maxOps=100, maxCheckpoints=25) {
     this._states = new FixedStack(maxCheckpoints);
     this._futureOperations = [];
     this._futureStates = [];
-
-    this._saved = undefined;
-    this.startedAt = new Date();
+    this._lastSavedState = undefined;
 
     _.extend(this, Backbone.Events);
 }
@@ -64,7 +62,7 @@ Tracker.prototype.recordState = function (data, saved=false) {
     }
 
     if (saved) {
-        this._saved = rev;
+        this._lastSavedState = rev;
     }
 
     this.trigger('change');
@@ -78,10 +76,12 @@ Tracker.prototype.isUpToDate = function () {
         return false;
     }
 
+    const stateOk = this._lastSavedState === state.rev;
+
     if (op) { // Last operation must correspond to checkpoint
-        return op.rev === state.rev && state.rev === this._saved;
+        return stateOk && op.rev === state.rev;
     } else { // We may be in a restoring process (not at the last checkpoint)
-        return state.rev === this._saved;
+        return stateOk;
     }
 
     return false;
@@ -89,38 +89,63 @@ Tracker.prototype.isUpToDate = function () {
 
 Tracker.prototype.undo = function (process, restore) {
     const op = this._operations.pop();
+    let state;
+
     if (op) {
-        console.log('Tracker:Undoing', op);
         this._futureOperations.push(op);
+
+        state = this._states.peek();
+        if (state.rev === op.rev) {
+            this._futureStates.push(this._states.pop());
+        }
+
         process(op.data, op.rev);
         this.trigger('change');
     } else if (this._states.length() > 1) {
         this._futureStates.push(this._states.pop());
-        const state = this._states.peek();
+        state = this._states.peek();
+
         restore(state.data, state.rev);
         this.trigger('change');
     }
 };
 
 Tracker.prototype.redo = function (process, restore) {
-    if (this._futureStates.length > 0) {
-        const state = this._futureStates.pop();
-        this._states.push(state);
-        restore(state.data, state.rev);
-        this.trigger('change');
-    } else {
-        const op = this._futureOperations.pop();
-        if (op) {
-            console.log('Tracker:Redoing', op);
+    const op = this._futureOperations.pop();
+    const state = this._futureStates[this._futureStates.length - 1];
+    let CASE = 0;
+
+    if (op) {
+        if (state && state.rev < op.rev) {
+            this._states.push(this._futureStates.pop());
+            CASE = 2;
+        } else if (state && state.rev === op.rev) {
             this._operations.push(op);
-            process(op.data, op.rev);
-            this.trigger('change');
+            this._states.push(this._futureStates.pop());
+            CASE = 1;
+        } else {
+            CASE = 1;
+            this._operations.push(op);
         }
+    } else if (state) {
+        this._states.push(this._futureStates.pop());
+        restore(state.data, state.rev);
+
     }
+
+    if (CASE === 1) {
+        process(op.data, op.rev);
+    } else if (CASE === 2) {
+        restore(state.data, state.rev);
+    } else {
+        return;
+    }
+
+    this.trigger('change');
 };
 
 Tracker.prototype.canRedo = function () {
-    return this._futureOperations.length > 0 || this._futureStates.length > 0;
+    return this._futureOperations.length + this._futureStates.length > 0;
 };
 
 Tracker.prototype.canUndo = function () {
