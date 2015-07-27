@@ -83,7 +83,8 @@ export const TemplatePicker = Backbone.View.extend({
     add: function (evt) {
         evt.stopPropagation();
         if (typeof this.model.server().pickTemplate === 'function') {
-            this.model.server().pickTemplate(() => {
+            this.model.server().pickTemplate((name) => {
+                this.model.set('_activeTemplate', name);
                 this.model._initTemplates(true);
             }, function (err) {
                 Notification.notify({
@@ -114,7 +115,8 @@ export const TemplatePanel = Backbone.View.extend({
     el: '#templatePanel',
 
     events: {
-        'click': 'click'
+        'click .TemplateName': 'open',
+        'click .TemplateDownload': 'download'
     },
 
     initialize: function () {
@@ -124,17 +126,47 @@ export const TemplatePanel = Backbone.View.extend({
     },
 
     update: function () {
-        this.$el.toggleClass(
+
+        if (!this.model) {
+            return;
+        }
+
+        const server = this.model.server();
+        const activeTemplate = this.model.activeTemplate();
+        const templates = this.model.templates();
+
+        const $tn = this.$el.find('.TemplateName');
+
+        $tn.toggleClass(
             'Disabled', this.model &&
-            ((this.model.templates().length <= 1 &&
-            this.model.server() instanceof Server) &&
-            typeof this.model.server().pickTemplate !== 'function')
+            ((templates.length <= 1 && server instanceof Server) &&
+            typeof server.pickTemplate !== 'function')
         );
-        this.$el.find('span').text(this.model.activeTemplate() || '-');
+
+        $tn.text(activeTemplate || '-');
+
+        if (
+            typeof server.downloadTemplate === 'function' &&
+            activeTemplate && activeTemplate !== ''
+        ) {
+            this.$el.append(`<div class='TemplateDownload'><span class="octicon octicon-cloud-download"></span></div>`);
+        } else {
+            this.$el.find('.TemplateDownload').remove();
+        }
     },
 
-    click: function () {
+    open: function () {
         this.picker.toggle();
+    },
+
+    download: function (evt) {
+        evt.stopPropagation();
+        const server = this.model.server();
+        const tmpl = this.model.activeTemplate();
+
+        if (typeof server.downloadTemplate === 'function' && tmpl) {
+            server.downloadTemplate(tmpl);
+        }
     }
 });
 

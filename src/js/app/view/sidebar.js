@@ -5,6 +5,7 @@ import Backbone from 'backbone';
 import $ from 'jquery';
 
 import * as Notification from './notification';
+import download from '../lib/download';
 import atomic from '../model/atomic';
 import TemplatePanel from './templates';
 
@@ -255,33 +256,10 @@ export const ActionsView = Backbone.View.extend({
     download: function (evt) {
         evt.stopPropagation();
         if (this.model) {
-            const spinner = Notification.loading.start();
             this.$el.find('#download').addClass('Button--Disabled');
-            const data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.model.toJSON())),
-                filename = `${this.app.asset().id}_${this.app.activeTemplate()}.ljson`;
-
-            // Remove previous element from dom
-            const previous = document.getElementById('downloadLMLink');
-            if (previous) {
-                previous.remove();
-            }
-
-            const link = document.createElement('a');
-            link.setAttribute('style', 'display:none;');
-            link.setAttribute('download', filename);
-            link.setAttribute('href', `data:${data}`);
-            link.setAttribute('id', `downloadLMLink`);
-            link.setAttribute('hidden', `true`);
-
-            // target="_blank" for Safari who still does not understand
-            // the download attribute
-            link.setAttribute('target', '_blank');
-
-            // Add to DOM and click
-            document.body.appendChild(link);
-            document.getElementById('downloadLMLink').click();
-
-            Notification.loading.stop(spinner);
+            const data = JSON.stringify(this.model.toJSON());
+            const filename = `${this.app.asset().id}_${this.app.activeTemplate()}.ljson`;
+            download(data, filename, 'json');
             this.$el.find('#download').removeClass('Button--Disabled');
 
         }

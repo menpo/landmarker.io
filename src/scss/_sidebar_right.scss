@@ -21,25 +21,25 @@
 }
 
 .RightSidebar-Template {
-    @extend %transitionAll;
     position: relative;
-    min-height: $mainControlHeight;
-    line-height: $mainControlHeight;
-    background: $colorDarkerBlue;
-    color: white;
-    cursor: pointer;
-    font-size: large;
     flex: 1;
     display: flex;
     justify-content: center;
+}
+
+.TemplateName,
+.TemplateDownload {
+    @extend %transitionAll;
+    min-height: $mainControlHeight;
+    line-height: $mainControlHeight;
+    background: $colorDarkerBlue;
+    float: left;
+    color: white;
+    cursor: pointer;
     margin-left: 1px;
     margin-bottom: 1px;
-
-    span {
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-    }
+    cursor: pointer;
+    font-size: large;
 
     &:hover {
         background: $colorDarkBlue;
@@ -49,6 +49,17 @@
         cursor: default;
         background: $colorDarkerBlue;
     }
+}
+
+.TemplateName {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.TemplateDownload {
+    width: $mainControlHeight;
 }
 
 .RightSidebar-TemplatePicker {

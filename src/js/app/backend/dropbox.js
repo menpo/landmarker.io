@@ -23,12 +23,12 @@ import Promise from 'promise-polyfill';
 
 import OBJLoader from '../lib/obj_loader';
 import STLLoader from '../lib/stl_loader';
-
 import { randomString,
       basename,
       extname,
       stripExtension,
       baseUrl } from '../lib/utils';
+import download from '../lib/download';
 
 import { notify } from '../view/notification';
 import { getJSON, get, putJSON, getArrayBuffer } from '../lib/requests';
@@ -51,6 +51,8 @@ const Dropbox = Base.extend('DROPBOX', function (token, cfg) {
 
     this._templates = Template.loadDefaultTemplates();
     this._templatesPaths = {};
+
+    window.templates = this._templates;
 
     // Save config data
     this._cfg.set({
@@ -103,6 +105,7 @@ Dropbox.prototype.setMode = function (mode) {
     this._cfg.set({'BACKEND_DROPBOX_MODE': this.mode}, true);
 };
 
+// Template management
 Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
     const picker = new Picker({
         dropbox: this,
@@ -125,7 +128,7 @@ Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
 Dropbox.prototype.addTemplate = function (path) {
 
     if (!path) {
-        return Promise.resolve(null);
+        return Promise.reject(null);
     }
 
     const ext = extname(path);
@@ -152,9 +155,18 @@ Dropbox.prototype.addTemplate = function (path) {
         this._cfg.set({
             'BACKEND_DROPBOX_TEMPLATES_PATHS': this._templatesPaths
         }, true);
+
+        return name;
     });
 };
 
+Dropbox.prototype.downloadTemplate = function (name) {
+    if (this._templates[name]) {
+        download(this._templates[name].toYAML(), `${name}.yaml`, 'yaml');
+    }
+};
+
+// Assets management
 Dropbox.prototype.pickAssets = function (success, error, closable=false) {
     const picker = new Picker({
         dropbox: this,
@@ -166,9 +178,9 @@ Dropbox.prototype.pickAssets = function (success, error, closable=false) {
         }],
         closable,
         submit: (path, isFolder, {mode}) => {
-            this.setAssets(path, mode).then(() => {
+            this.setAssets(path, mode).then((name) => {
                 picker.dispose();
-                success(path);
+                success(name);
             }, error);
         }
     });
