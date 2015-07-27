@@ -33,6 +33,15 @@ export default Backbone.View.extend({
         // ----- CONFIGURATION ----- //
         this.meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
 
+        // Disable context menu on viewport related elements
+        $('canvas').on("contextmenu", function(e){
+            e.preventDefault();
+        });
+
+        $('#viewportContainer').on("contextmenu", function(e){
+            e.preventDefault();
+        });
+
         // TODO bind all methods on the Viewport
         _.bindAll(this, 'resize', 'render', 'changeMesh',
             'mousedownHandler', 'update', 'lmViewsInSelectionBox');
