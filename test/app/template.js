@@ -1,25 +1,44 @@
+'use strict';
+
 var assert = require('chai').assert;
 
-var cwd = process.cwd(),
-    fs = require('fs');
+var cwd = process.cwd();
+var fs = require('fs');
 
-var Template = require(cwd + '/src/js/app/model/template');
+var Template = require(cwd + '/src/js/app/template');
 
 var faceYAMLPath = cwd + '/test/fixtures/face.yml',
     faceJSON = {
-    "groups": [
-        {"label": "mouth", "points":6 },
-        {"label": "nose", "points":3, "connectivity": ["0 1", "1 2"] },
-        {"label": "l_eye", "points":8, "connectivity": ["0:7", "7 0"] },
-        {"label": "r_eye", "points":8, "connectivity":"cycle" },
-        {"label": "chin", "points": 1}
-    ]
-};
+        'groups': [
+            {
+                'label': 'mouth',
+                'points': 6
+            },
+            {
+                'label': 'nose',
+                'points': 3,
+                'connectivity': ['0 1', '1 2']
+            },
+            {
+                'label': 'l_eye',
+                'points': 8,
+                'connectivity': ['0:7', '7 0']
+            },
+            {
+                'label': 'r_eye',
+                'points': 8,
+                'connectivity': 'cycle'
+            },
+            {
+                'label': 'chin',
+                'points': 1
+            }
+        ]
+    };
 
 // Taken from python server
 var LJSON2D = require(cwd + '/test/fixtures/face_2d_ljson.json');
 var LJSON3D = require(cwd + '/test/fixtures/face_3d_ljson.json');
-
 
 describe('Template$constructor', function () {
     var tmpl;
