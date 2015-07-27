@@ -52,8 +52,6 @@ const Dropbox = Base.extend('DROPBOX', function (token, cfg) {
     this._templates = Template.loadDefaultTemplates();
     this._templatesPaths = {};
 
-    window.templates = this._templates;
-
     // Save config data
     this._cfg.set({
         'BACKEND_TYPE': Dropbox.Type,
