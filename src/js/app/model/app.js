@@ -383,8 +383,9 @@ export default Backbone.Model.extend({
                     as.assets()[as.assetIndex() - 1].id,
                     this.activeTemplate()
                 ).then((json) => {
-                    lms.restore(json);
                     lms.tracker.recordState(lms.toJSON());
+                    lms.restore(json);
+                    lms.tracker.recordState(lms.toJSON(), false, true);
                 }, () => {
                     console.log('Error in fetching landmark JSON file');
                 });

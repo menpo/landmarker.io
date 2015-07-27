@@ -10,7 +10,8 @@
   "scripts": {
     "build": "DISABLE_NOTIFIER=true NODE_ENV=production gulp build",
     "watch": "gulp",
-    "test": "mocha --compilers js:babel/register -R dot test/**/*.js",
+    "test": "mocha --compilers js:babel/register -R spec --recursive ./test",
+    "coverage": "istanbul cover _mocha -- --compilers js:babel/register -R dot --recursive ./test",
     "serve": "http-server -p 4000",
     "lint": "eslint -c .eslintrc src/js",
     "lint:errors": "eslint -c .eslintrc --quiet src/js"
@@ -59,6 +60,7 @@
     "esformatter-quotes": "^1.0.2",
     "eslint": "^0.24.1",
     "http-server": "^0.8.0",
+    "istanbul": "^0.3.17",
     "mocha": "^2.2.5",
     "watchify": "^3.2.1",
     "yargs": "^3.15.0"
