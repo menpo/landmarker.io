@@ -61281,6 +61281,10 @@ Tracker.prototype.redo = function (process, restore) {
         if (!state) {
             CASE = 1;
         } else {
+            // Case in for security reason but shouldn't happen
+            // as state untracked by an operation (see recordState doc)
+            // This ensure the structure doesn't get stuck,
+            // but does not guarantee consistency
             if (state.rev > op.rev) {
                 CASE = 1;
             } else if (state.rev === op.rev) {
@@ -68468,4 +68472,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-f9e568e1.js.map
+//# sourceMappingURL=bundle-9315bcdc.js.map
