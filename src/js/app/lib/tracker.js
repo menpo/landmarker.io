@@ -216,6 +216,10 @@ Tracker.prototype.redo = function (process, restore) {
         if (!state) {
             CASE = 1;
         } else {
+            // Case in for security reason but shouldn't happen
+            // as state untracked by an operation (see recordState doc)
+            // This ensure the structure doesn't get stuck,
+            // but does not guarantee consistency
             if (state.rev > op.rev) {
                 CASE = 1;
             } else if (state.rev === op.rev) {

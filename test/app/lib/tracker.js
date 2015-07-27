@@ -184,6 +184,17 @@ scenarios.push(['Full Scenario 4', [
     [null,   null, null, false, false, false, [ 0,  0,  0 ]],
     ['SAVE', 1,     2,   true,  false, false, [ 1,  2,  0 ]],
     ['ACTN', 1,     2,   false, true,  false, [ 1,  4,  0 ]],
+    ['RCRD', 1,     7,   false, true,  false, [ 1,  7,  0 ]],
+    ['ACTN', 1,     3,   false, true,  false, [ 1,  10, 0 ]],
+    ['UNDO', null, null, false, true,  true,  [ 1,  7,  0 ]],
+    ['UNDO', null, null, true,  false, true,  [ 1,  2,  0 ]],
+    ['REDO', null, null, false, true,  true,  [ 1,  7,  0 ]],
+]]);
+
+scenarios.push(['Full Scenario 5', [
+    [null,   null, null, false, false, false, [ 0,  0,  0 ]],
+    ['SAVE', 1,     2,   true,  false, false, [ 1,  2,  0 ]],
+    ['ACTN', 1,     2,   false, true,  false, [ 1,  4,  0 ]],
     ['RCRD', 1,     4,   false, true,  false, [ 1,  4,  0 ]],
     ['RCRD', 1,     8,   false, true,  false, [ 1,  8,  0 ]],
     ['UNDO', null, null, false, true,  true,  [ 1,  4,  0 ]],
