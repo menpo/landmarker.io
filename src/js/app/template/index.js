@@ -16,7 +16,7 @@ const NULL_POINT = {2: [null, null], 3: [null, null, null]};
  * @param {Object} json
  */
 export default function Template (json) {
-    this._template = json.groups || json.template;
+    this._template = json.groups;
 
     if (!this._template) {
         throw new ReferenceError(

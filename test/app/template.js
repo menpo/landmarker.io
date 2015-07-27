@@ -105,11 +105,31 @@ describe('Template$parseLJSON', function () {
 
     before(function () {
         jsonTmpl = new Template(faceJSON);
-        ljsonTmpl = Template.parseLJSON(jsonTmpl.emptyLJSON(2));
     });
 
     it('should have the correct data', function () {
+        ljsonTmpl = Template.parseLJSON(jsonTmpl.emptyLJSON(2));
         assert.deepEqual(ljsonTmpl.groups, jsonTmpl.groups);
         assert.deepEqual(ljsonTmpl.size, jsonTmpl.size);
+    });
+
+    it('should accept a string', function () {
+        ljsonTmpl = Template.parseLJSON(JSON.stringify(jsonTmpl.emptyLJSON(2)));
+        assert.deepEqual(ljsonTmpl.groups, jsonTmpl.groups);
+        assert.deepEqual(ljsonTmpl.size, jsonTmpl.size);
+    });
+});
+
+describe('Template$parseJSON', function () {
+    var jsonTmpl2, jsonTmpl;
+
+    before(function () {
+        jsonTmpl = new Template(faceJSON);
+    });
+
+    it('should accept a string', function () {
+        jsonTmpl2 = Template.parseJSON(JSON.stringify(faceJSON));
+        assert.deepEqual(jsonTmpl2.groups, jsonTmpl.groups);
+        assert.deepEqual(jsonTmpl2.size, jsonTmpl.size);
     });
 });
