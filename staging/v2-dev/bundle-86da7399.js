@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resolveBackend(u);
 });
 
-},{"./app/backend":48,"./app/lib/support":54,"./app/lib/utils":56,"./app/model/app":57,"./app/model/config":61,"./app/view/asset":71,"./app/view/help":73,"./app/view/intro":74,"./app/view/keyboard":75,"./app/view/notification":78,"./app/view/sidebar":79,"./app/view/toolbar":81,"./app/view/url_state":82,"./app/view/viewport":86,"jquery":9,"promise-polyfill":41,"three":43,"url":8}],2:[function(require,module,exports){
+},{"./app/backend":48,"./app/lib/support":55,"./app/lib/utils":57,"./app/model/app":58,"./app/model/config":62,"./app/view/asset":72,"./app/view/help":74,"./app/view/intro":75,"./app/view/keyboard":76,"./app/view/notification":79,"./app/view/sidebar":80,"./app/view/toolbar":82,"./app/view/url_state":83,"./app/view/viewport":87,"jquery":9,"promise-polyfill":41,"three":43,"url":8}],2:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.2.1
 
@@ -59530,6 +59530,10 @@ var _libStl_loader2 = _interopRequireDefault(_libStl_loader);
 
 var _libUtils = require('../lib/utils');
 
+var _libDownload = require('../lib/download');
+
+var _libDownload2 = _interopRequireDefault(_libDownload);
+
 var _viewNotification = require('../view/notification');
 
 var _libRequests = require('../lib/requests');
@@ -59571,6 +59575,8 @@ var Dropbox = _base2['default'].extend('DROPBOX', function (token, cfg) {
 
     this._templates = _template2['default'].loadDefaultTemplates();
     this._templatesPaths = {};
+
+    window.templates = this._templates;
 
     // Save config data
     this._cfg.set({
@@ -59623,6 +59629,7 @@ Dropbox.prototype.setMode = function (mode) {
     this._cfg.set({ 'BACKEND_DROPBOX_MODE': this.mode }, true);
 };
 
+// Template management
 Dropbox.prototype.pickTemplate = function (success, error) {
     var _this = this;
 
@@ -59650,7 +59657,7 @@ Dropbox.prototype.addTemplate = function (path) {
     var _this2 = this;
 
     if (!path) {
-        return _promisePolyfill2['default'].resolve(null);
+        return _promisePolyfill2['default'].reject(null);
     }
 
     var ext = (0, _libUtils.extname)(path);
@@ -59676,9 +59683,18 @@ Dropbox.prototype.addTemplate = function (path) {
         _this2._cfg.set({
             'BACKEND_DROPBOX_TEMPLATES_PATHS': _this2._templatesPaths
         }, true);
+
+        return name;
     });
 };
 
+Dropbox.prototype.downloadTemplate = function (name) {
+    if (this._templates[name]) {
+        (0, _libDownload2['default'])(this._templates[name].toYAML(), name + '.yaml', 'yaml');
+    }
+};
+
+// Assets management
 Dropbox.prototype.pickAssets = function (success, error) {
     var _this3 = this;
 
@@ -59696,9 +59712,9 @@ Dropbox.prototype.pickAssets = function (success, error) {
         submit: function submit(path, isFolder, _ref) {
             var mode = _ref.mode;
 
-            _this3.setAssets(path, mode).then(function () {
+            _this3.setAssets(path, mode).then(function (name) {
                 picker.dispose();
-                success(path);
+                success(name);
             }, error);
         }
     });
@@ -59999,7 +60015,7 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
 };
 module.exports = exports['default'];
 
-},{"../lib/imagepromise":50,"../lib/obj_loader":51,"../lib/requests":52,"../lib/stl_loader":53,"../lib/utils":56,"../template":68,"../view/dropbox_picker.js":72,"../view/notification":78,"./base":46,"promise-polyfill":41,"url":8}],48:[function(require,module,exports){
+},{"../lib/download":50,"../lib/imagepromise":51,"../lib/obj_loader":52,"../lib/requests":53,"../lib/stl_loader":54,"../lib/utils":57,"../template":69,"../view/dropbox_picker.js":73,"../view/notification":79,"./base":46,"promise-polyfill":41,"url":8}],48:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60129,7 +60145,48 @@ Server.prototype.fetchGeometry = function (assetId) {
 };
 module.exports = exports['default'];
 
-},{"../lib/imagepromise":50,"../lib/requests":52,"../lib/utils":56,"./base":46}],50:[function(require,module,exports){
+},{"../lib/imagepromise":51,"../lib/requests":53,"../lib/utils":57,"./base":46}],50:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+exports['default'] = download;
+
+var _viewNotification = require('../view/notification');
+
+function download(str, filename) {
+    var type = arguments.length <= 2 || arguments[2] === undefined ? 'json' : arguments[2];
+
+    var spinner = _viewNotification.loading.start();
+
+    var previous = document.getElementById('localDownloadLink');
+    if (previous) {
+        previous.remove();
+    }
+
+    var data = 'text/' + type + ';charset=utf-8,' + encodeURIComponent(str);
+
+    var link = document.createElement('a');
+    link.setAttribute('style', 'display:none;');
+    link.setAttribute('download', filename || 'download.' + type);
+    link.setAttribute('href', 'data:' + data);
+    link.setAttribute('id', 'localDownloadLink');
+    link.setAttribute('hidden', 'true');
+
+    // target="_blank" for Safari who still does not understand
+    // the download attribute
+    link.setAttribute('target', '_blank');
+
+    // Add to DOM and click
+    document.body.appendChild(link);
+    document.getElementById('localDownloadLink').click();
+    _viewNotification.loading.stop(spinner);
+}
+
+module.exports = exports['default'];
+
+},{"../view/notification":79}],51:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60218,7 +60275,7 @@ function MaterialPromise(url, auth) {
 
 exports['default'] = MaterialPromise;
 
-},{"../view/notification":78,"promise-polyfill":41,"three":43}],51:[function(require,module,exports){
+},{"../view/notification":79,"promise-polyfill":41,"three":43}],52:[function(require,module,exports){
 /**
  * Adapted from
  * https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/OBJLoader.js
@@ -60469,7 +60526,7 @@ function OBJLoader(text) {
 
 module.exports = exports['default'];
 
-},{"three":43}],52:[function(require,module,exports){
+},{"three":43}],53:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60637,7 +60694,7 @@ function putJSON(url) {
     });
 }
 
-},{"../view/notification":78,"promise-polyfill":41,"querystring":7}],53:[function(require,module,exports){
+},{"../view/notification":79,"promise-polyfill":41,"querystring":7}],54:[function(require,module,exports){
 /**
  *
  * Adapted from https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/STLLoader.js
@@ -60933,7 +60990,7 @@ function parseASCII(arrayBuffer) {
 }
 module.exports = exports['default'];
 
-},{"three":43}],54:[function(require,module,exports){
+},{"three":43}],55:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60978,7 +61035,7 @@ exports['default'] = {
     https: https
 };
 
-},{}],55:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61131,7 +61188,7 @@ Tracker.prototype.canUndo = function () {
     return this._operations.length() > 0 || this._states.length() > 1;
 };
 
-},{"backbone":2,"underscore":44}],56:[function(require,module,exports){
+},{"backbone":2,"underscore":44}],57:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61214,7 +61271,7 @@ function maskedArray(array, mask) {
     return masked;
 }
 
-},{}],57:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61670,7 +61727,7 @@ exports['default'] = _backbone2['default'].Model.extend({
 });
 module.exports = exports['default'];
 
-},{"../lib/tracker":55,"../view/modal":77,"./assetsource":59,"./landmark_group":63,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],58:[function(require,module,exports){
+},{"../lib/tracker":56,"../view/modal":78,"./assetsource":60,"./landmark_group":64,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],59:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62056,7 +62113,7 @@ var Mesh = Image.extend({
 });
 exports.Mesh = Mesh;
 
-},{"backbone":2,"three":43}],59:[function(require,module,exports){
+},{"backbone":2,"three":43}],60:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62295,7 +62352,7 @@ var ImageSource = AssetSource.extend({
 });
 exports.ImageSource = ImageSource;
 
-},{"./asset":58,"backbone":2,"underscore":44}],60:[function(require,module,exports){
+},{"./asset":59,"backbone":2,"underscore":44}],61:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62360,7 +62417,7 @@ var AtomicOperationTracker = _backbone2['default'].Model.extend({
 exports['default'] = atomicTracker = new AtomicOperationTracker();
 module.exports = exports['default'];
 
-},{"backbone":2}],61:[function(require,module,exports){
+},{"backbone":2}],62:[function(require,module,exports){
 /**
  * Persistable config object with get and set logic
  * Requires localstorage to work properly (throws Error otherwise),
@@ -62477,7 +62534,7 @@ exports['default'] = function () {
     return _configInstance;
 };
 
-},{"../lib/support":54,"underscore":44}],62:[function(require,module,exports){
+},{"../lib/support":55,"underscore":44}],63:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62594,7 +62651,7 @@ exports['default'] = _backbone2['default'].Model.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"underscore":44}],63:[function(require,module,exports){
+},{"backbone":2,"underscore":44}],64:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62975,7 +63032,7 @@ LandmarkGroup.parse = function (json, id, type, server, tracker) {
 };
 module.exports = exports['default'];
 
-},{"../lib/tracker":55,"../lib/utils":56,"./atomic":60,"./landmark":62,"three":43}],64:[function(require,module,exports){
+},{"../lib/tracker":56,"../lib/utils":57,"./atomic":61,"./landmark":63,"three":43}],65:[function(require,module,exports){
 
 'use strict';
 
@@ -63235,7 +63292,7 @@ OctreeNode.prototype.subdivide = function () {
     }
 };
 
-},{"three":43}],65:[function(require,module,exports){
+},{"three":43}],66:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63265,7 +63322,7 @@ var _simple422 = _interopRequireDefault(_simple42);
 exports['default'] = [[_face2['default'], 'face'], [_ibug682['default'], 'ibug68'], [_simple102['default'], 'simple10'], [_simple422['default'], 'simple42']];
 module.exports = exports['default'];
 
-},{"./face":66,"./ibug68":67,"./simple10":69,"./simple42":70}],66:[function(require,module,exports){
+},{"./face":67,"./ibug68":68,"./simple10":70,"./simple42":71}],67:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63294,7 +63351,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],67:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63333,7 +63390,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],68:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63580,7 +63637,7 @@ Template.loadDefaultTemplates = function () {
 };
 module.exports = exports['default'];
 
-},{"./defaults":65,"js-yaml":10,"underscore":44}],69:[function(require,module,exports){
+},{"./defaults":66,"js-yaml":10,"underscore":44}],70:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63594,7 +63651,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],70:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63608,7 +63665,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],71:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63939,7 +63996,7 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../backend":48,"../lib/utils":56,"./intro":74,"./list_picker":76,"./modal":77,"./notification":78,"backbone":2,"jquery":9,"underscore":44}],72:[function(require,module,exports){
+},{"../backend":48,"../lib/utils":57,"./intro":75,"./list_picker":77,"./modal":78,"./notification":79,"backbone":2,"jquery":9,"underscore":44}],73:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64308,7 +64365,7 @@ exports['default'] = _modal2['default'].extend({
 });
 module.exports = exports['default'];
 
-},{"../lib/utils":56,"./modal":77,"jquery":9,"promise-polyfill":41,"underscore":44}],73:[function(require,module,exports){
+},{"../lib/utils":57,"./modal":78,"jquery":9,"promise-polyfill":41,"underscore":44}],74:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64386,7 +64443,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"jquery":9}],74:[function(require,module,exports){
+},{"backbone":2,"jquery":9}],75:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64451,7 +64508,7 @@ var lsWarning = '<p class=\'IntroWarning\'>    Your browser doesn\'t support Loc
 
 var httpsWarning = '<p class=\'IntroWarning\'>    You are currently on an non-https connection. For security reasons Dropbox integration has been disabled.\n</p>';
 
-var mixedContentWarning = '\n<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href=\'http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/\'>unadvisable</a> and thus we do not allow it.<br><br>\nYou can visit <a href=\'http://www.insecure.landmarker.io\'>insecure.landmarker.io</a> to disable this warning.</p>\n';
+var mixedContentWarning = '\n<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href=\'http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/\'>unadvisable</a> and thus we do not allow it.<br><br>\nYou can visit <a href=\'http://insecure.landmarker.io\'>insecure.landmarker.io</a> to disable this warning.</p>\n';
 
 var Intro = _modal2['default'].extend({
 
@@ -64553,7 +64610,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{"../../../../package.json":45,"../backend":48,"../lib/support":54,"../lib/utils":56,"./modal":77,"./notification":78,"jquery":9}],75:[function(require,module,exports){
+},{"../../../../package.json":45,"../backend":48,"../lib/support":55,"../lib/utils":57,"./modal":78,"./notification":79,"jquery":9}],76:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64731,7 +64788,7 @@ KeyboardShortcutsHandler.prototype.disable = function () {
 };
 module.exports = exports['default'];
 
-},{"./modal":77,"./notification":78,"jquery":9}],76:[function(require,module,exports){
+},{"./modal":78,"./notification":79,"jquery":9}],77:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64861,7 +64918,7 @@ exports['default'] = _modal2['default'].extend({
 });
 module.exports = exports['default'];
 
-},{"./modal":77,"jquery":9,"underscore":44}],77:[function(require,module,exports){
+},{"./modal":78,"jquery":9,"underscore":44}],78:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65123,7 +65180,7 @@ Modal.prompt = function (msg, submit, cancel) {
 exports['default'] = Modal;
 /* opts */
 
-},{"backbone":2,"jquery":9,"underscore":44}],78:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"underscore":44}],79:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65458,7 +65515,7 @@ var loading = {
 };
 exports.loading = loading;
 
-},{"../lib/utils":56,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],79:[function(require,module,exports){
+},{"../lib/utils":57,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],80:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65496,6 +65553,10 @@ var _jquery2 = _interopRequireDefault(_jquery);
 var _notification = require('./notification');
 
 var Notification = _interopRequireWildcard(_notification);
+
+var _libDownload = require('../lib/download');
+
+var _libDownload2 = _interopRequireDefault(_libDownload);
 
 var _modelAtomic = require('../model/atomic');
 
@@ -65769,33 +65830,10 @@ var ActionsView = _backbone2['default'].View.extend({
     download: function download(evt) {
         evt.stopPropagation();
         if (this.model) {
-            var spinner = Notification.loading.start();
             this.$el.find('#download').addClass('Button--Disabled');
-            var data = 'text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(this.model.toJSON())),
-                filename = this.app.asset().id + '_' + this.app.activeTemplate() + '.ljson';
-
-            // Remove previous element from dom
-            var previous = document.getElementById('downloadLMLink');
-            if (previous) {
-                previous.remove();
-            }
-
-            var link = document.createElement('a');
-            link.setAttribute('style', 'display:none;');
-            link.setAttribute('download', filename);
-            link.setAttribute('href', 'data:' + data);
-            link.setAttribute('id', 'downloadLMLink');
-            link.setAttribute('hidden', 'true');
-
-            // target="_blank" for Safari who still does not understand
-            // the download attribute
-            link.setAttribute('target', '_blank');
-
-            // Add to DOM and click
-            document.body.appendChild(link);
-            document.getElementById('downloadLMLink').click();
-
-            Notification.loading.stop(spinner);
+            var data = JSON.stringify(this.model.toJSON());
+            var filename = this.app.asset().id + '_' + this.app.activeTemplate() + '.ljson';
+            (0, _libDownload2['default'])(data, filename, 'json');
             this.$el.find('#download').removeClass('Button--Disabled');
         }
     }
@@ -65922,7 +65960,7 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../model/atomic":60,"./notification":78,"./templates":80,"backbone":2,"jquery":9,"underscore":44}],80:[function(require,module,exports){
+},{"../lib/download":50,"../model/atomic":61,"./notification":79,"./templates":81,"backbone":2,"jquery":9,"underscore":44}],81:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66026,7 +66064,8 @@ var TemplatePicker = _backbone2['default'].View.extend({
 
         evt.stopPropagation();
         if (typeof this.model.server().pickTemplate === 'function') {
-            this.model.server().pickTemplate(function () {
+            this.model.server().pickTemplate(function (name) {
+                _this2.model.set('_activeTemplate', name);
                 _this2.model._initTemplates(true);
             }, function (err) {
                 Notification.notify({
@@ -66058,7 +66097,8 @@ var TemplatePanel = _backbone2['default'].View.extend({
     el: '#templatePanel',
 
     events: {
-        'click': 'click'
+        'click .TemplateName': 'open',
+        'click .TemplateDownload': 'download'
     },
 
     initialize: function initialize() {
@@ -66068,19 +66108,47 @@ var TemplatePanel = _backbone2['default'].View.extend({
     },
 
     update: function update() {
-        this.$el.toggleClass('Disabled', this.model && (this.model.templates().length <= 1 && this.model.server() instanceof _backendServer2['default'] && typeof this.model.server().pickTemplate !== 'function'));
-        this.$el.find('span').text(this.model.activeTemplate() || '-');
+
+        if (!this.model) {
+            return;
+        }
+
+        var server = this.model.server();
+        var activeTemplate = this.model.activeTemplate();
+        var templates = this.model.templates();
+
+        var $tn = this.$el.find('.TemplateName');
+
+        $tn.toggleClass('Disabled', this.model && (templates.length <= 1 && server instanceof _backendServer2['default'] && typeof server.pickTemplate !== 'function'));
+
+        $tn.text(activeTemplate || '-');
+
+        if (typeof server.downloadTemplate === 'function' && activeTemplate && activeTemplate !== '') {
+            this.$el.append('<div class=\'TemplateDownload\'><span class="octicon octicon-cloud-download"></span></div>');
+        } else {
+            this.$el.find('.TemplateDownload').remove();
+        }
     },
 
-    click: function click() {
+    open: function open() {
         this.picker.toggle();
+    },
+
+    download: function download(evt) {
+        evt.stopPropagation();
+        var server = this.model.server();
+        var tmpl = this.model.activeTemplate();
+
+        if (typeof server.downloadTemplate === 'function' && tmpl) {
+            server.downloadTemplate(tmpl);
+        }
     }
 });
 
 exports.TemplatePanel = TemplatePanel;
 exports['default'] = TemplatePanel;
 
-},{"../backend/server":49,"backbone":2,"jquery":9,"underscore":44}],81:[function(require,module,exports){
+},{"../backend/server":49,"backbone":2,"jquery":9,"underscore":44}],82:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66272,7 +66340,7 @@ exports['default'] = _backbone2['default'].View.extend({
 
 });
 
-},{"../model/atomic":60,"backbone":2,"underscore":44}],82:[function(require,module,exports){
+},{"../model/atomic":61,"backbone":2,"underscore":44}],83:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66324,7 +66392,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"url":8}],83:[function(require,module,exports){
+},{"backbone":2,"url":8}],84:[function(require,module,exports){
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -66760,7 +66828,7 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
 
 module.exports = exports['default'];
 
-},{"backbone":2,"jquery":9,"three":43,"underscore":44}],84:[function(require,module,exports){
+},{"backbone":2,"jquery":9,"three":43,"underscore":44}],85:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66936,7 +67004,7 @@ var LandmarkConnectionTHREEView = _backbone2['default'].View.extend({
 });
 exports.LandmarkConnectionTHREEView = LandmarkConnectionTHREEView;
 
-},{"backbone":2,"three":43,"underscore":44}],85:[function(require,module,exports){
+},{"backbone":2,"three":43,"underscore":44}],86:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -67513,7 +67581,7 @@ function Handler() {
 
 module.exports = exports['default'];
 
-},{"../../model/atomic":60,"jquery":9,"three":43,"underscore":44}],86:[function(require,module,exports){
+},{"../../model/atomic":61,"jquery":9,"three":43,"underscore":44}],87:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -68243,7 +68311,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"../../model/atomic":60,"../../model/octree":64,"./camera":83,"./elements":84,"./handler":85,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
+},{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-7fa90348.js.map
+//# sourceMappingURL=bundle-86da7399.js.map
