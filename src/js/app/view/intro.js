@@ -47,7 +47,7 @@ const httpsWarning = `\
 
 const mixedContentWarning = `
 <p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href='http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/'>unadvisable</a> and thus we do not allow it.<br><br>
-You can visit <a href='http://www.insecure.landmarker.io'>insecure.landmarker.io</a> to disable this warning.</p>
+You can visit <a href='http://insecure.landmarker.io'>insecure.landmarker.io</a> to disable this warning.</p>
 `;
 
 const Intro = Modal.extend({
