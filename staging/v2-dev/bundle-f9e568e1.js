@@ -61089,18 +61089,6 @@ function Tracker() {
     this._lastRev = 0;
 
     _underscore2['default'].extend(this, _backbone2['default'].Events);
-
-    this.on('change', function () {
-        console.log(this._states.map(function (i) {
-            return i.rev;
-        }), this._operations.map(function (i) {
-            return i.rev;
-        }), this._futureStates.map(function (i) {
-            return i.rev;
-        }), this._futureOperations.map(function (i) {
-            return i.rev;
-        }));
-    });
 }
 
 /**
@@ -61119,8 +61107,6 @@ Tracker.prototype.rev = function () {
  */
 Tracker.prototype.record = function (data) {
     var rev = this.rev();
-
-    console.log('RO >>', data);
 
     this._operations.push({ rev: rev, data: data });
     this._futureOperations = [];
@@ -61159,8 +61145,6 @@ Tracker.prototype.recordState = function (data) {
     var state = _underscore2['default'].last(this._states),
         op = _underscore2['default'].last(this._operations);
     var rev = undefined;
-
-    console.log('RS >>', data, saved, override);
 
     if (!op && state && _underscore2['default'].isEqual(data, state.data)) {
         // No op and we have the same data than before, don't fill twice
@@ -61234,8 +61218,6 @@ Tracker.prototype.undo = function (process, restore) {
 
     var CASE = 0;
 
-    console.log(' U >>', op, state, this._states.length);
-
     if (op) {
         if (!state) {
             CASE = 1;
@@ -61294,8 +61276,6 @@ Tracker.prototype.redo = function (process, restore) {
         op = _underscore2['default'].last(this._futureOperations);
 
     var CASE = 0;
-
-    console.log(' R >>', op, state);
 
     if (op) {
         if (!state) {
@@ -68488,4 +68468,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-049a35d4.js.map
+//# sourceMappingURL=bundle-f9e568e1.js.map
