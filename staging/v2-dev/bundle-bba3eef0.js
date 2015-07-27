@@ -59576,8 +59576,6 @@ var Dropbox = _base2['default'].extend('DROPBOX', function (token, cfg) {
     this._templates = _template2['default'].loadDefaultTemplates();
     this._templatesPaths = {};
 
-    window.templates = this._templates;
-
     // Save config data
     this._cfg.set({
         'BACKEND_TYPE': Dropbox.Type,
@@ -68314,4 +68312,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-86da7399.js.map
+//# sourceMappingURL=bundle-bba3eef0.js.map
