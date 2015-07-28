@@ -131,11 +131,15 @@ export const TemplatePanel = Backbone.View.extend({
             return;
         }
 
+        this.undelegateEvents();
+
         const server = this.model.server();
         const activeTemplate = this.model.activeTemplate();
         const templates = this.model.templates();
 
         const $tn = this.$el.find('.TemplateName');
+
+        this.$el.find('.TemplateDownload').remove();
 
         $tn.toggleClass(
             'Disabled', this.model &&
@@ -153,6 +157,8 @@ export const TemplatePanel = Backbone.View.extend({
         } else {
             this.$el.find('.TemplateDownload').remove();
         }
+
+        this.delegateEvents();
     },
 
     open: function () {
