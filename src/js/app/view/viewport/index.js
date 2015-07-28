@@ -420,12 +420,10 @@ export default Backbone.View.extend({
 
     resetCamera: function () {
         // reposition the cameras and focus back to the starting point.
-        var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION :
+        const v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION :
                                         IMAGE_MODE_STARTING_POSITION;
-
-        this.cameraController.allowRotation(this.model.meshMode());
-        this.cameraController.position(v);
-        this.cameraController.focus(this.scene.position);
+        this.cameraController.reset(
+            v, this.scene.position, this.model.meshMode());
         this.update();
     },
 
