@@ -1,6 +1,6 @@
 {
   "name": "landmarker-io",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "3D mesh annotation in your browser.",
   "main": "index.js",
   "repository": {
