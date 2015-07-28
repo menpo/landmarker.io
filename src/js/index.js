@@ -25,6 +25,11 @@ import Backend from './app/backend';
 
 const cfg = Config();
 
+const mixedContentWarning = `
+<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href='http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/'>unadvisable</a> and thus we do not allow it.<br><br>
+You can visit <a href='http://insecure.landmarker.io${window.location.search}'>insecure.landmarker.io</a> to disable this warning.</p>
+`;
+
 function resolveBackend (u) {
     console.log(
         'Resolving which backend to use for url:', window.location.href, u,
@@ -33,19 +38,34 @@ function resolveBackend (u) {
     // Found a server parameter >> override to traditionnal mode
     if (u.query.server) {
         const serverUrl = utils.stripTrailingSlash(u.query.server);
-        const server = new Backend.Server(serverUrl);
         cfg.clear(); // Reset all stored data, we use the url
+        try {
+            const server = new Backend.Server(serverUrl);
 
-        if (!server.demoMode) { // Don't persist demo mode
-            cfg.set({
-                'BACKEND_TYPE': Backend.Server.Type,
-                'BACKEND_SERVER_URL': u.query.server
-            }, true);
-        } else {
-            document.title = document.title + ' - demo mode';
+            if (!server.demoMode) { // Don't persist demo mode
+                cfg.set({
+                    'BACKEND_TYPE': Backend.Server.Type,
+                    'BACKEND_SERVER_URL': u.query.server
+                }, true);
+            } else {
+                document.title = document.title + ' - demo mode';
+            }
+
+            return resolveMode(server, u);
+        } catch (e) {
+            if (e.message === 'Mixed Content') {
+                Intro.close();
+                Notification.notify({
+                    type: 'error',
+                    persist: true,
+                    msg: $(mixedContentWarning),
+                    actions: [['Restart', utils.restart]]
+                });
+            } else {
+                throw e;
+            }
+            return null;
         }
-
-        return resolveMode(server, u);
     }
 
     const backendType = cfg.get('BACKEND_TYPE');
@@ -62,21 +82,12 @@ function resolveBackend (u) {
     }
 }
 
-function restart (serverUrl) {
-    cfg.clear();
-    const restartUrl = (
-        utils.baseUrl() +
-        (serverUrl ? `?server=${serverUrl}` : '')
-    );
-    window.location.replace(restartUrl);
-}
-
-var goToDemo = restart.bind(undefined, 'demo');
+var goToDemo = utils.restart.bind(undefined, 'demo');
 
 function retry (msg) {
     Notification.notify({
         msg, type: 'error', persist: true,
-        actions: [['Restart', restart], ['Go to Demo', goToDemo]]
+        actions: [['Restart', utils.restart], ['Go to Demo', goToDemo]]
     });
 }
 

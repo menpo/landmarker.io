@@ -1,12 +1,16 @@
 'use strict';
 
+import $ from 'jquery';
+
 import { getJSON, putJSON, getArrayBuffer } from '../lib/requests';
 import { capitalize } from '../lib/utils';
+import support from '../lib/support';
 import ImagePromise from '../lib/imagepromise';
 
 import Base from './base';
 
 const Server = Base.extend('LANDMARKER SERVER', function (url) {
+
     this.url = url;
     this.demoMode = false;
     this.version = 2;
@@ -20,6 +24,11 @@ const Server = Base.extend('LANDMARKER SERVER', function (url) {
     }
 
     this.httpAuth = url.indexOf('https://') === 0;
+
+    if (!this.demoMode && support.https && url.indexOf('https://') !== 0) {
+        throw new Error('Mixed Content');
+    }
+
 });
 
 export default Server;

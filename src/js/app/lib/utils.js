@@ -1,5 +1,7 @@
 'use strict';
 
+import Config from '../model/config';
+
 export function randomString (length, useTime=true) {
     var result = '',
         ch = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -61,4 +63,12 @@ export function maskedArray (array, mask) {
         }
     }
     return masked;
+}
+
+export function restart (serverUrl) {
+    Config().clear();
+    const restartUrl = (
+        baseUrl() + (serverUrl ? `?server=${serverUrl}` : '')
+    );
+    window.location.replace(restartUrl);
 }

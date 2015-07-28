@@ -4,10 +4,9 @@ import $ from 'jquery';
 
 import Modal from './modal';
 import Backend from '../backend';
-import { baseUrl } from '../lib/utils';
+import { baseUrl, restart } from '../lib/utils';
 
 import support from '../lib/support';
-import { notify } from './notification';
 import { version } from '../../../../package.json';
 
 
@@ -45,11 +44,6 @@ const httpsWarning = `\
     You are currently on an non-https connection. For security reasons Dropbox integration has been disabled.
 </p>`;
 
-const mixedContentWarning = `
-<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href='http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/'>unadvisable</a> and thus we do not allow it.<br><br>
-You can visit <a href='http://insecure.landmarker.io'>insecure.landmarker.io</a> to disable this warning.</p>
-`;
-
 const Intro = Modal.extend({
 
     closable: false,
@@ -84,14 +78,6 @@ const Intro = Modal.extend({
         return $contents;
     },
 
-    _restart: function (serverUrl) {
-        this._cfg.clear();
-        const restartUrl = (
-            baseUrl() + (serverUrl ? `?server=${serverUrl}` : '')
-        );
-        window.location.replace(restartUrl);
-    },
-
     startDropbox: function () {
         this._cfg.clear();
         const [dropUrl, state] = Backend.Dropbox.authorize();
@@ -103,20 +89,12 @@ const Intro = Modal.extend({
     },
 
     startDemo: function () {
-        this._restart('demo');
+        restart('demo');
     },
 
     startServer: function () {
         Modal.prompt('Where is your server located ?', (value) => {
-            if (support.https && value.indexOf('https://') !== 0) {
-                notify({
-                    type: 'error',
-                    msg: $(mixedContentWarning),
-                    actions: [['Retry', this.open]]
-                });
-            } else {
-                this._restart(value);
-            }
+            restart(value);
         }, () => {
             this.open();
         });
