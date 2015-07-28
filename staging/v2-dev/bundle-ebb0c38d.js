@@ -66262,11 +66262,15 @@ var TemplatePanel = _backbone2['default'].View.extend({
             return;
         }
 
+        this.undelegateEvents();
+
         var server = this.model.server();
         var activeTemplate = this.model.activeTemplate();
         var templates = this.model.templates();
 
         var $tn = this.$el.find('.TemplateName');
+
+        this.$el.find('.TemplateDownload').remove();
 
         $tn.toggleClass('Disabled', this.model && (templates.length <= 1 && server instanceof _backendServer2['default'] && typeof server.pickTemplate !== 'function'));
 
@@ -66277,6 +66281,8 @@ var TemplatePanel = _backbone2['default'].View.extend({
         } else {
             this.$el.find('.TemplateDownload').remove();
         }
+
+        this.delegateEvents();
     },
 
     open: function open() {
@@ -68472,4 +68478,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-9315bcdc.js.map
+//# sourceMappingURL=bundle-ebb0c38d.js.map
