@@ -275,7 +275,7 @@ is itself a row flexbox */
         flex-wrap: wrap;
 
         .Lm {
-            min-width: 8%;
+            flex: 1 1 8%
         }
     }
 }
