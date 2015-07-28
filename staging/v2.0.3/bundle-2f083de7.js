@@ -91,26 +91,43 @@ var _appBackend2 = _interopRequireDefault(_appBackend);
 
 var cfg = (0, _appModelConfig2['default'])();
 
+var mixedContentWarning = '\n<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href=\'http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/\'>unadvisable</a> and thus we do not allow it.<br><br>\nYou can visit <a href=\'http://insecure.landmarker.io' + window.location.search + '\'>insecure.landmarker.io</a> to disable this warning.</p>\n';
+
 function resolveBackend(u) {
     console.log('Resolving which backend to use for url:', window.location.href, u, 'and config:', cfg.get());
 
     // Found a server parameter >> override to traditionnal mode
     if (u.query.server) {
         var serverUrl = utils.stripTrailingSlash(u.query.server);
-        var server = new _appBackend2['default'].Server(serverUrl);
         cfg.clear(); // Reset all stored data, we use the url
+        try {
+            var server = new _appBackend2['default'].Server(serverUrl);
 
-        if (!server.demoMode) {
-            // Don't persist demo mode
-            cfg.set({
-                'BACKEND_TYPE': _appBackend2['default'].Server.Type,
-                'BACKEND_SERVER_URL': u.query.server
-            }, true);
-        } else {
-            document.title = document.title + ' - demo mode';
+            if (!server.demoMode) {
+                // Don't persist demo mode
+                cfg.set({
+                    'BACKEND_TYPE': _appBackend2['default'].Server.Type,
+                    'BACKEND_SERVER_URL': u.query.server
+                }, true);
+            } else {
+                document.title = document.title + ' - demo mode';
+            }
+
+            return resolveMode(server, u);
+        } catch (e) {
+            if (e.message === 'Mixed Content') {
+                _appViewIntro2['default'].close();
+                Notification.notify({
+                    type: 'error',
+                    persist: true,
+                    msg: (0, _jquery2['default'])(mixedContentWarning),
+                    actions: [['Restart', utils.restart]]
+                });
+            } else {
+                throw e;
+            }
+            return null;
         }
-
-        return resolveMode(server, u);
     }
 
     var backendType = cfg.get('BACKEND_TYPE');
@@ -59394,7 +59411,7 @@ if (typeof exports !== 'undefined') {
 },{}],45:[function(require,module,exports){
 module.exports={
   "name": "landmarker-io",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "3D mesh annotation in your browser.",
   "main": "index.js",
   "repository": {
@@ -60054,8 +60071,6 @@ var _libSupport = require('../lib/support');
 
 var _libSupport2 = _interopRequireDefault(_libSupport);
 
-var _viewNotification = require('../view/notification');
-
 var _libImagepromise = require('../lib/imagepromise');
 
 var _libImagepromise2 = _interopRequireDefault(_libImagepromise);
@@ -60063,8 +60078,6 @@ var _libImagepromise2 = _interopRequireDefault(_libImagepromise);
 var _base = require('./base');
 
 var _base2 = _interopRequireDefault(_base);
-
-var mixedContentWarning = '\n<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href=\'http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/\'>unadvisable</a> and thus we do not allow it.<br><br>\nYou can visit <a href=\'http://insecure.landmarker.io' + window.location.search + '\'>insecure.landmarker.io</a> to disable this warning.</p>\n';
 
 var Server = _base2['default'].extend('LANDMARKER SERVER', function (url) {
 
@@ -60083,12 +60096,6 @@ var Server = _base2['default'].extend('LANDMARKER SERVER', function (url) {
     this.httpAuth = url.indexOf('https://') === 0;
 
     if (!this.demoMode && _libSupport2['default'].https && url.indexOf('https://') !== 0) {
-        (0, _viewNotification.notify)({
-            type: 'error',
-            persist: true,
-            msg: (0, _jquery2['default'])(mixedContentWarning),
-            actions: [['Restart', _libUtils.restart]]
-        });
         throw new Error('Mixed Content');
     }
 });
@@ -60162,7 +60169,7 @@ Server.prototype.fetchGeometry = function (assetId) {
 };
 module.exports = exports['default'];
 
-},{"../lib/imagepromise":51,"../lib/requests":53,"../lib/support":55,"../lib/utils":57,"../view/notification":79,"./base":46,"jquery":9}],50:[function(require,module,exports){
+},{"../lib/imagepromise":51,"../lib/requests":53,"../lib/support":55,"../lib/utils":57,"./base":46,"jquery":9}],50:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -68501,4 +68508,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-14dfae2b.js.map
+//# sourceMappingURL=bundle-2f083de7.js.map
