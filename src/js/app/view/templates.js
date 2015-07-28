@@ -135,18 +135,10 @@ export const TemplatePanel = Backbone.View.extend({
 
         const server = this.model.server();
         const activeTemplate = this.model.activeTemplate();
-        const templates = this.model.templates();
 
         const $tn = this.$el.find('.TemplateName');
-
         this.$el.find('.TemplateDownload').remove();
-
-        $tn.toggleClass(
-            'Disabled', this.model &&
-            ((templates.length <= 1 && server instanceof Server) &&
-            typeof server.pickTemplate !== 'function')
-        );
-
+        $tn.toggleClass('Disabled', this.disabled());
         $tn.text(activeTemplate || '-');
 
         if (
@@ -161,8 +153,22 @@ export const TemplatePanel = Backbone.View.extend({
         this.delegateEvents();
     },
 
+    disabled: function () {
+
+        if (!this.model) {
+            return true;
+        }
+
+        const server = this.model.server();
+        const templates = this.model.templates();
+        return (templates.length <= 1 && server instanceof Server) &&
+               typeof server.pickTemplate !== 'function';
+    },
+
     open: function () {
-        this.picker.toggle();
+        if (!this.disabled()) {
+            this.picker.toggle();
+        }
     },
 
     download: function (evt) {
