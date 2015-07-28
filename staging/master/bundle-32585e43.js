@@ -91,26 +91,43 @@ var _appBackend2 = _interopRequireDefault(_appBackend);
 
 var cfg = (0, _appModelConfig2['default'])();
 
+var mixedContentWarning = '\n<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href=\'http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/\'>unadvisable</a> and thus we do not allow it.<br><br>\nYou can visit <a href=\'http://insecure.landmarker.io' + window.location.search + '\'>insecure.landmarker.io</a> to disable this warning.</p>\n';
+
 function resolveBackend(u) {
     console.log('Resolving which backend to use for url:', window.location.href, u, 'and config:', cfg.get());
 
     // Found a server parameter >> override to traditionnal mode
     if (u.query.server) {
         var serverUrl = utils.stripTrailingSlash(u.query.server);
-        var server = new _appBackend2['default'].Server(serverUrl);
         cfg.clear(); // Reset all stored data, we use the url
+        try {
+            var server = new _appBackend2['default'].Server(serverUrl);
 
-        if (!server.demoMode) {
-            // Don't persist demo mode
-            cfg.set({
-                'BACKEND_TYPE': _appBackend2['default'].Server.Type,
-                'BACKEND_SERVER_URL': u.query.server
-            }, true);
-        } else {
-            document.title = document.title + ' - demo mode';
+            if (!server.demoMode) {
+                // Don't persist demo mode
+                cfg.set({
+                    'BACKEND_TYPE': _appBackend2['default'].Server.Type,
+                    'BACKEND_SERVER_URL': u.query.server
+                }, true);
+            } else {
+                document.title = document.title + ' - demo mode';
+            }
+
+            return resolveMode(server, u);
+        } catch (e) {
+            if (e.message === 'Mixed Content') {
+                _appViewIntro2['default'].close();
+                Notification.notify({
+                    type: 'error',
+                    persist: true,
+                    msg: (0, _jquery2['default'])(mixedContentWarning),
+                    actions: [['Restart', utils.restart]]
+                });
+            } else {
+                throw e;
+            }
+            return null;
         }
-
-        return resolveMode(server, u);
     }
 
     var backendType = cfg.get('BACKEND_TYPE');
@@ -127,18 +144,12 @@ function resolveBackend(u) {
     }
 }
 
-function restart(serverUrl) {
-    cfg.clear();
-    var restartUrl = utils.baseUrl() + (serverUrl ? '?server=' + serverUrl : '');
-    window.location.replace(restartUrl);
-}
-
-var goToDemo = restart.bind(undefined, 'demo');
+var goToDemo = utils.restart.bind(undefined, 'demo');
 
 function retry(msg) {
     Notification.notify({
         msg: msg, type: 'error', persist: true,
-        actions: [['Restart', restart], ['Go to Demo', goToDemo]]
+        actions: [['Restart', utils.restart], ['Go to Demo', goToDemo]]
     });
 }
 
@@ -59400,7 +59411,7 @@ if (typeof exports !== 'undefined') {
 },{}],45:[function(require,module,exports){
 module.exports={
   "name": "landmarker-io",
-  "version": "2.0.0",
+  "version": "2.0.3",
   "description": "3D mesh annotation in your browser.",
   "main": "index.js",
   "repository": {
@@ -60052,6 +60063,10 @@ var _libRequests = require('../lib/requests');
 
 var _libUtils = require('../lib/utils');
 
+var _libSupport = require('../lib/support');
+
+var _libSupport2 = _interopRequireDefault(_libSupport);
+
 var _libImagepromise = require('../lib/imagepromise');
 
 var _libImagepromise2 = _interopRequireDefault(_libImagepromise);
@@ -60061,6 +60076,7 @@ var _base = require('./base');
 var _base2 = _interopRequireDefault(_base);
 
 var Server = _base2['default'].extend('LANDMARKER SERVER', function (url) {
+
     this.url = url;
     this.demoMode = false;
     this.version = 2;
@@ -60074,6 +60090,10 @@ var Server = _base2['default'].extend('LANDMARKER SERVER', function (url) {
     }
 
     this.httpAuth = url.indexOf('https://') === 0;
+
+    if (!this.demoMode && _libSupport2['default'].https && url.indexOf('https://') !== 0) {
+        throw new Error('Mixed Content');
+    }
 });
 
 exports['default'] = Server;
@@ -60145,7 +60165,7 @@ Server.prototype.fetchGeometry = function (assetId) {
 };
 module.exports = exports['default'];
 
-},{"../lib/imagepromise":51,"../lib/requests":53,"../lib/utils":57,"./base":46}],50:[function(require,module,exports){
+},{"../lib/imagepromise":51,"../lib/requests":53,"../lib/support":55,"../lib/utils":57,"./base":46}],50:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61352,6 +61372,15 @@ exports.baseUrl = baseUrl;
 exports.pad = pad;
 exports.capitalize = capitalize;
 exports.maskedArray = maskedArray;
+exports.restart = restart;
+
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _modelConfig = require('../model/config');
+
+var _modelConfig2 = _interopRequireDefault(_modelConfig);
 
 function randomString(length) {
     var useTime = arguments.length <= 1 || arguments[1] === undefined ? true : arguments[1];
@@ -61419,7 +61448,13 @@ function maskedArray(array, mask) {
     return masked;
 }
 
-},{}],58:[function(require,module,exports){
+function restart(serverUrl) {
+    (0, _modelConfig2['default'])().clear();
+    var restartUrl = baseUrl() + (serverUrl ? '?server=' + serverUrl : '');
+    window.location.replace(restartUrl);
+}
+
+},{"../model/config":62}],58:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64647,8 +64682,6 @@ var _libSupport = require('../lib/support');
 
 var _libSupport2 = _interopRequireDefault(_libSupport);
 
-var _notification = require('./notification');
-
 var _packageJson = require('../../../../package.json');
 
 var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3>v' + _packageJson.version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect to a landmarker server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div>    <a href="https://github.com/menpo/landmarker.io" class=\'IntroFooter\'>        <span class="octicon octicon-mark-github"></span>        More info on Github    </a></div>';
@@ -64656,8 +64689,6 @@ var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3>v' + _pac
 var lsWarning = '<p class=\'IntroWarning\'>    Your browser doesn\'t support LocalStorage, so Dropbox login has been    disabled.</p>';
 
 var httpsWarning = '<p class=\'IntroWarning\'>    You are currently on an non-https connection. For security reasons Dropbox integration has been disabled.\n</p>';
-
-var mixedContentWarning = '\n<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href=\'http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/\'>unadvisable</a> and thus we do not allow it.<br><br>\nYou can visit <a href=\'http://insecure.landmarker.io\'>insecure.landmarker.io</a> to disable this warning.</p>\n';
 
 var Intro = _modal2['default'].extend({
 
@@ -64692,12 +64723,6 @@ var Intro = _modal2['default'].extend({
         return $contents;
     },
 
-    _restart: function _restart(serverUrl) {
-        this._cfg.clear();
-        var restartUrl = (0, _libUtils.baseUrl)() + (serverUrl ? '?server=' + serverUrl : '');
-        window.location.replace(restartUrl);
-    },
-
     startDropbox: function startDropbox() {
         this._cfg.clear();
 
@@ -64716,22 +64741,14 @@ var Intro = _modal2['default'].extend({
     },
 
     startDemo: function startDemo() {
-        this._restart('demo');
+        (0, _libUtils.restart)('demo');
     },
 
     startServer: function startServer() {
         var _this = this;
 
         _modal2['default'].prompt('Where is your server located ?', function (value) {
-            if (_libSupport2['default'].https && value.indexOf('https://') !== 0) {
-                (0, _notification.notify)({
-                    type: 'error',
-                    msg: (0, _jquery2['default'])(mixedContentWarning),
-                    actions: [['Retry', _this.open]]
-                });
-            } else {
-                _this._restart(value);
-            }
+            (0, _libUtils.restart)(value);
         }, function () {
             _this.open();
         });
@@ -64759,7 +64776,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{"../../../../package.json":45,"../backend":48,"../lib/support":55,"../lib/utils":57,"./modal":78,"./notification":79,"jquery":9}],76:[function(require,module,exports){
+},{"../../../../package.json":45,"../backend":48,"../lib/support":55,"../lib/utils":57,"./modal":78,"jquery":9}],76:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66266,14 +66283,10 @@ var TemplatePanel = _backbone2['default'].View.extend({
 
         var server = this.model.server();
         var activeTemplate = this.model.activeTemplate();
-        var templates = this.model.templates();
 
         var $tn = this.$el.find('.TemplateName');
-
         this.$el.find('.TemplateDownload').remove();
-
-        $tn.toggleClass('Disabled', this.model && (templates.length <= 1 && server instanceof _backendServer2['default'] && typeof server.pickTemplate !== 'function'));
-
+        $tn.toggleClass('Disabled', this.disabled());
         $tn.text(activeTemplate || '-');
 
         if (typeof server.downloadTemplate === 'function' && activeTemplate && activeTemplate !== '') {
@@ -66285,8 +66298,21 @@ var TemplatePanel = _backbone2['default'].View.extend({
         this.delegateEvents();
     },
 
+    disabled: function disabled() {
+
+        if (!this.model) {
+            return true;
+        }
+
+        var server = this.model.server();
+        var templates = this.model.templates();
+        return templates.length <= 1 && server instanceof _backendServer2['default'] && typeof server.pickTemplate !== 'function';
+    },
+
     open: function open() {
-        this.picker.toggle();
+        if (!this.disabled()) {
+            this.picker.toggle();
+        }
     },
 
     download: function download(evt) {
@@ -68478,4 +68504,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-10ba2e0f.js.map
+//# sourceMappingURL=bundle-32585e43.js.map
