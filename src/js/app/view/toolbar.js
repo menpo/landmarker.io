@@ -1,49 +1,45 @@
-var _ = require('underscore');
-var Backbone = require('../lib/backbonej');
-var $ = require('jquery');
-var atomic = require('../model/atomic');
+'use strict';
 
-"use strict";
+import _ from 'underscore';
+import Backbone from 'backbone';
+import atomic from '../model/atomic';
 
-var LandmarkSizeSlider = Backbone.View.extend({
+export const LandmarkSizeSlider = Backbone.View.extend({
 
     el: '#lmSizeSlider',
 
     events: {
-        input : "changeLandmarkSize"
+        input: "changeLandmarkSize"
     },
 
-    initialize : function() {
-        console.log('LandmarkSizeSlider:initialize');
+    initialize: function () {
         _.bindAll(this, 'render', 'changeLandmarkSize');
         this.listenTo(this.model, "change:landmarkSize", this.render);
         // set the size immediately.
         this.render();
     },
 
-
     render: function () {
-        console.log('LandmarkSizeSlider:render');
         this.$el[0].value = this.model.get("landmarkSize") * 100;
         return this;
     },
 
     changeLandmarkSize: atomic.atomicOperation(function (event) {
-        console.log('LandmarkSizeSlider:changeLandmarkSize');
-        this.model.set("landmarkSize", (Number(event.target.value) / 100));
+        this.model.set(
+            "landmarkSize",
+            Math.max(Number(event.target.value) / 100, 0.05));
     })
 });
 
-var TextureToggle = Backbone.View.extend({
+export const TextureToggle = Backbone.View.extend({
 
     el: '#textureRow',
 
     events: {
-        'click #textureToggle' : "textureToggle"
+        'click #textureToggle': "textureToggle"
     },
 
-    initialize : function() {
-        console.log('TextureToggle:initialize');
+    initialize: function () {
         this.$toggle = this.$el.find('#textureToggle')[0];
         _.bindAll(this, 'changeMesh', 'render', 'textureToggle');
         this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
@@ -55,7 +51,6 @@ var TextureToggle = Backbone.View.extend({
     },
 
     changeMesh: function () {
-        console.log('TextureToggle:changeMesh');
         if (this.mesh) {
             this.stopListening(this.mesh);
         }
@@ -64,7 +59,6 @@ var TextureToggle = Backbone.View.extend({
     },
 
     render: function () {
-        console.log('TextureToggle:render');
         if (this.mesh) {
             this.$el.toggleClass('Toolbar-Row--Disabled',
                 !this.mesh.hasTexture());
@@ -76,7 +70,6 @@ var TextureToggle = Backbone.View.extend({
     },
 
     textureToggle: function () {
-        console.log('TextureToggle:textureToggle');
         if (!this.mesh) {
             return;
         }
@@ -84,17 +77,15 @@ var TextureToggle = Backbone.View.extend({
     }
 });
 
-
-var ConnectivityToggle = Backbone.View.extend({
+export const ConnectivityToggle = Backbone.View.extend({
 
     el: '#connectivityRow',
 
     events: {
-        'click #connectivityToggle' : "connectivityToggle"
+        'click #connectivityToggle': "connectivityToggle"
     },
 
-    initialize : function() {
-        console.log('ConnectivityToggle:initialize');
+    initialize: function () {
         this.$toggle = this.$el.find('#connectivityToggle')[0];
         _.bindAll(this, 'render', 'connectivityToggle');
         this.listenTo(this.model, 'change:connectivityOn', this.render);
@@ -102,27 +93,24 @@ var ConnectivityToggle = Backbone.View.extend({
     },
 
     render: function () {
-        console.log('ConnectivityToggle:render');
         this.$toggle.checked = this.model.isConnectivityOn();
         return this;
     },
 
     connectivityToggle: function () {
-        console.log('ConnectivityToggle:connectivityToggle');
         this.model.toggleConnectivity();
     }
 });
 
-var EditingToggle = Backbone.View.extend({
+export const EditingToggle = Backbone.View.extend({
 
     el: '#editingRow',
 
     events: {
-        'click #editingToggle' : "editingToggle"
+        'click #editingToggle': "editingToggle"
     },
 
-    initialize : function() {
-        console.log('ConnectivityToggle:initialize');
+    initialize: function () {
         this.$toggle = this.$el.find('#editingToggle')[0];
         _.bindAll(this, 'render', 'editingToggle');
         this.listenTo(this.model, 'change:editingOn', this.render);
@@ -130,33 +118,55 @@ var EditingToggle = Backbone.View.extend({
     },
 
     render: function () {
-        console.log('EditingToggle:render');
         this.$toggle.checked = this.model.isEditingOn();
         return this;
     },
 
     editingToggle: function () {
-        console.log('EditingToggle:editingToggle');
         this.model.toggleEditing();
     }
 });
 
-exports.Toolbar = Backbone.View.extend({
+export const AutoSaveToggle = Backbone.View.extend({
+
+    el: '#autosaveRow',
+
+    events: {
+        'click #autosaveToggle': "toggle"
+    },
+
+    initialize: function () {
+        this.$toggle = this.$el.find('#autosaveToggle')[0];
+        _.bindAll(this, 'render', 'toggle');
+        this.listenTo(this.model, 'change:autoSaveOn', this.render);
+        this.render();
+    },
+
+    render: function () {
+        this.$toggle.checked = this.model.isAutoSaveOn();
+        return this;
+    },
+
+    toggle: function () {
+        this.model.toggleAutoSave();
+    }
+});
+
+export default Backbone.View.extend({
 
     el: '#toolbar',
 
-    initialize : function () {
-        console.log('Toolbar:initialize');
+    initialize: function () {
         this.lmSizeSlider = new LandmarkSizeSlider({model: this.model});
-        this.connectivityToggle = new ConnectivityToggle({model : this.model});
-        this.editingToggle = new EditingToggle({model : this.model});
+        this.connectivityToggle = new ConnectivityToggle({model: this.model});
+        this.editingToggle = new EditingToggle({model: this.model});
         if (this.model.meshMode()) {
             this.textureToggle = new TextureToggle({model: this.model});
         } else {
             // in image mode, we shouldn't even have these controls.
-            this.$el.find('#alphaRow').css("display", "none");
             this.$el.find('#textureRow').css("display", "none");
         }
+        this.autosaveToggle = new AutoSaveToggle({model: this.model});
     }
 
 });

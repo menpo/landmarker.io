@@ -1,0 +1,178 @@
+.ModalsWrapper {
+    @extend %transitionAll;
+    z-index: $zIndexOverlay;
+    background-color: black(.6);
+    pointer-events: auto;
+    justify-content: flex-start;
+
+    opacity: 0;
+    visibility: hidden;
+}
+
+.ModalsWrapper--Open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.ModalWindow {
+
+    @extend %transitionAll;
+    margin-top: 64px;
+
+    &, & * {
+      box-sizing: border-box;
+      }
+
+    background: white;
+    border-radius: $mainBorderRadius;
+    width: 96%;
+    max-width: 640px;
+    position: relative;
+
+    box-shadow: 0 16px 16px black(.1);
+
+    opacity: 0;
+    visibility: hidden;
+    display: none;
+}
+
+.ModalWindow--Small {
+    width: auto;
+}
+
+.ModalWindow--Open {
+    opacity: 1;
+    visibility: visible;
+    overflow: auto;
+    display: block;
+}
+
+.ModalWindow__Close {
+    @extend %transitionAll;
+    cursor: pointer;
+    position: absolute;
+    font-weight: bold;
+    top: .75em;
+    right: 1em;
+    color: #333;
+
+    &:hover {
+        color: $colorRed;
+    }
+}
+
+.ModalWindow__Content,
+.ModalWindow__Title {
+    padding: 1em;
+}
+
+.ModalWindow__Title {
+    border-bottom: 1px solid $colorLightGray;
+    font-size: 1.2em;
+    font-weight: medium;
+    padding-right: 2em;
+}
+
+.ModalWindow__Content {
+
+  > input, p {
+      margin: 2%;
+  }
+
+  > input {
+      @extend %transitionAll;
+      margin: 2%;
+      padding: 0 .5em;
+      line-height: 48px;
+      border: 1px solid $colorLightGray;
+      border-radius: 2px;
+      outline: none;
+      width: 96%;
+      font-size: 1.2em;
+
+      &:active,
+      &:focus {
+          border: 1px solid $colorBlue;
+      }
+  }
+}
+
+.ListPicker {
+
+    box-shadow: 0 -48px 48px -48px black(.4) inset;
+    padding: 0;
+
+    ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      max-height: 512px;
+      overflow: scroll;
+    }
+
+    li {
+        @extend %transitionAll;
+        line-height: 48px;
+        max-height: 256px;
+        padding: 0 1em;
+        cursor: pointer;
+        border-bottom: solid 1px $colorLightGray;
+        opacity: 1;
+        visibility: visible;
+        transform: translate3d(0,0,0);
+
+        &:hover {
+            background-color: $colorLightGray;
+        }
+
+        &.Hidden {
+            opacity: 0;
+            visibility: hidden;
+            max-height: 0;
+            border: none;
+        }
+    }
+}
+
+.ConfirmDialog {
+    padding: 0;
+    min-width: 256px;
+    max-width: 380px;
+
+    > p {
+        padding: 2em;
+        margin: 0;
+        line-height: 1.4;
+    }
+}
+
+.ConfirmActions {
+    display: flex;
+    flex-flow: row;
+}
+
+.ConfirmAction {
+    @extend %transitionAll;
+    color: white;
+    flex: 1;
+    cursor: pointer;
+    text-align: center;
+    height: 46px;
+    line-height: 46px;
+}
+
+.ConfirmAction--Yes {
+    @extend .ConfirmAction;
+    background: $colorGreen;
+    &:hover {
+        background: $colorDarkGreen;
+    }
+}
+
+.ConfirmAction--No {
+    @extend .ConfirmAction;
+    background: $colorRed;
+    &:hover {
+        background: $colorDarkRed;
+    }
+}

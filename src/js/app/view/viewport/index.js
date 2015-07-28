@@ -1,46 +1,30 @@
-"use strict";
+'use strict';
 
-var $ = require('jquery');
-var _ = require('underscore');
-var Backbone = require('backbone');
-var THREE = require('three');
+import _ from 'underscore';
+import Backbone from 'backbone';
+import $ from 'jquery';
+import THREE from 'three';
 
-var atomic = require('../../model/atomic');
-var octree = require('../../model/octree');
+import atomic from '../../model/atomic';
+import * as octree from '../../model/octree';
 
-var Handler = require('./handler');
-var Camera = require('./camera');
-
-var { LandmarkConnectionTHREEView,
-      LandmarkTHREEView } = require('./elements');
-
-// uncomment to monitor FPS performance
-//
-//var Stats = require('stats-js');
-//
-//var stats = new Stats();
-//stats.setMode(0); // 0: fps, 1: ms
-//
-//// Align top-left
-//stats.domElement.style.position = 'absolute';
-//stats.domElement.style.right = '0px';
-//stats.domElement.style.top = '0px';
-//
-//document.body.appendChild(stats.domElement);
+import CameraController from './camera';
+import Handler from './handler';
+import { LandmarkConnectionTHREEView, LandmarkTHREEView } from './elements';
 
 // clear colour for both the main view and PictureInPicture
-var CLEAR_COLOUR = 0xEEEEEE;
-var CLEAR_COLOUR_PIP = 0xCCCCCC;
+const CLEAR_COLOUR = 0xEEEEEE;
+const CLEAR_COLOUR_PIP = 0xCCCCCC;
 
-var MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5);
-var IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
+const MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5);
+const IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
 
-var PIP_WIDTH = 300;
-var PIP_HEIGHT = 300;
+const PIP_WIDTH = 300;
+const PIP_HEIGHT = 300;
 
-var MESH_SCALE = 1.0;
+const MESH_SCALE = 1.0;
 
-exports.Viewport = Backbone.View.extend({
+export default Backbone.View.extend({
 
     el: '#canvas',
     id: 'canvas',
@@ -48,6 +32,15 @@ exports.Viewport = Backbone.View.extend({
     initialize: function () {
         // ----- CONFIGURATION ----- //
         this.meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
+
+        // Disable context menu on viewport related elements
+        $('canvas').on("contextmenu", function(e){
+            e.preventDefault();
+        });
+
+        $('#viewportContainer').on("contextmenu", function(e){
+            e.preventDefault();
+        });
 
         // TODO bind all methods on the Viewport
         _.bindAll(this, 'resize', 'render', 'changeMesh',
@@ -122,7 +115,6 @@ exports.Viewport = Backbone.View.extend({
         // see this.updateCanvasBoundingBox() for usage.
         this.ctxBox = this.initialBoundingBox();
 
-
         // ------ SCENE GRAPH CONSTRUCTION ----- //
         this.scene = new THREE.Scene();
 
@@ -160,7 +152,7 @@ exports.Viewport = Backbone.View.extend({
         this.s_camera = this.s_pCam;
 
         // create the cameraController to look after all camera state.
-        this.cameraController = Camera.CameraController(
+        this.cameraController = CameraController(
             this.s_pCam, this.s_oCam, this.s_oCamZoom,
             this.el, this.model.imageMode());
 
@@ -190,8 +182,8 @@ exports.Viewport = Backbone.View.extend({
         this.s_lights.add(new THREE.AmbientLight(0x404040));
 
         this.renderer = new THREE.WebGLRenderer(
-            { antialias: false, alpha: false,
-              devicePixelRatio: window.devicePixelRatio || 1 });
+            { antialias: false, alpha: false });
+        this.renderer.setPixelRatio(window.devicePixelRatio || 1);
         this.renderer.setClearColor(CLEAR_COLOUR, 1);
         this.renderer.autoClear = false;
         // attach the render on the element we picked out earlier
@@ -271,30 +263,34 @@ exports.Viewport = Backbone.View.extend({
             //stats.update();
         }
 
-        $('#viewportContainer').on('groupSelected', () => {
+        this.$container.on('groupSelected', () => {
             this._handler.setGroupSelected(true);
         });
 
-        $('#viewportContainer').on('groupDeselected', () => {
+        this.$container.on('groupDeselected', () => {
             this._handler.setGroupSelected(false);
         });
 
-        $('#viewportContainer').on('completeGroupSelection', () => {
+        this.$container.on('completeGroupSelection', () => {
             this._handler.completeGroupSelection();
+        });
+
+        this.$container.on('resetCamera', () => {
+            this.resetCamera();
         });
     },
 
     width: function () {
-        return this.$container[0].offsetWidth
+        return this.$container[0].offsetWidth;
     },
 
     height: function () {
-        return this.$container[0].offsetHeight
+        return this.$container[0].offsetHeight;
     },
 
     changeMesh: function () {
         var meshPayload, mesh, up, front;
-        console.log('Viewport:changeMesh - memory before: ' +  this.memoryString());
+        console.log('Viewport:changeMesh - memory before: ' + this.memoryString());
         // firstly, remove any existing mesh
         this.removeMeshIfPresent();
 
@@ -341,9 +337,9 @@ exports.Viewport = Backbone.View.extend({
     },
 
     memoryString: function () {
-        return  'geo:' + this.renderer.info.memory.geometries +
-                ' tex:' + this.renderer.info.memory.textures +
-                ' prog:' + this.renderer.info.memory.programs;
+        return 'geo:' + this.renderer.info.memory.geometries +
+               ' tex:' + this.renderer.info.memory.textures +
+               ' prog:' + this.renderer.info.memory.programs;
     },
 
     // this is called whenever there is a state change on the THREE scene
@@ -362,7 +358,7 @@ exports.Viewport = Backbone.View.extend({
         h = this.height();
         this.renderer.setViewport(0, 0, w, h);
         this.renderer.setScissor(0, 0, w, h);
-        this.renderer.enableScissorTest (true);
+        this.renderer.enableScissorTest(true);
         this.renderer.clear();
         this.renderer.render(this.scene, this.s_camera);
 
@@ -427,6 +423,7 @@ exports.Viewport = Backbone.View.extend({
         var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION :
                                         IMAGE_MODE_STARTING_POSITION;
 
+        this.cameraController.allowRotation(this.model.meshMode());
         this.cameraController.position(v);
         this.cameraController.focus(this.scene.position);
         this.update();
@@ -436,7 +433,7 @@ exports.Viewport = Backbone.View.extend({
     // =========================================================================
 
     events: {
-        'mousedown' : "mousedownHandler",
+        'mousedown': "mousedownHandler"
     },
 
     mousedownHandler: function (event) {
@@ -462,7 +459,7 @@ exports.Viewport = Backbone.View.extend({
     }),
 
     deselectAll: function () {
-        let lms = this.model.get('landmarks');
+        const lms = this.model.get('landmarks');
         if (lms) {
             lms.deselectAll();
         }
@@ -531,11 +528,11 @@ exports.Viewport = Backbone.View.extend({
                     viewport: that
                 }));
         });
-        landmarks.connectivity.map(function (a_to_b) {
+        landmarks.connectivity.map(function (ab) {
            that.connectivityViews.push(new LandmarkConnectionTHREEView(
                {
-                   model: [landmarks.landmarks[a_to_b[0]],
-                           landmarks.landmarks[a_to_b[1]]],
+                   model: [landmarks.landmarks[ab[0]],
+                           landmarks.landmarks[ab[1]]],
                    viewport: that
                }));
         });
@@ -597,7 +594,7 @@ exports.Viewport = Backbone.View.extend({
     clearCanvas: function () {
         if (_.isEqual(this.ctxBox, this.initialBoundingBox())) {
             // there has been no change to the canvas - no need to clear
-            return
+            return null;
         }
         // we only want to clear the area of the canvas that we dirtied
         // since the last clear. The ctxBox object tracks this
@@ -636,13 +633,14 @@ exports.Viewport = Backbone.View.extend({
             // orthographic selection
             vector.setZ(-1);
             vector.unproject(this.s_camera);
-            var dir = new THREE.Vector3(0, 0, - 1).transformDirection(this.s_camera.matrixWorld);
+            var dir = new THREE.Vector3(0, 0, -1)
+                .transformDirection(this.s_camera.matrixWorld);
             this.ray.set(vector, dir);
         }
 
         if (object === this.mesh && this.octree) {
             // we can use the octree to intersect the mesh efficiently.
-            return octree.intersetMesh(this.ray, this.mesh, this.octree);
+            return octree.intersectMesh(this.ray, this.mesh, this.octree);
         } else if (object instanceof Array) {
             return this.ray.intersectObjects(object, true);
         } else {

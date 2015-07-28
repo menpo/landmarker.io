@@ -1,57 +1,70 @@
-var Promise = require('promise-polyfill');
-var THREE = require('three');
+'use strict';
 
+import Promise from 'promise-polyfill';
+import THREE from 'three';
 
-window.ImagePromise = function (url) {
+import { loading } from '../view/notification';
+
+export function ImagePromise (url, auth=false) {
+
     return new Promise(function (resolve, reject) {
 
         var xhr = new XMLHttpRequest();
+
         xhr.open('GET', url, true);
         xhr.responseType = 'blob';
-        var img = new Image;
+        var img = new Image();
 
-        if(url.indexOf('https://') == 0) {
-            // if it's HTTPS request with credentials
-            xhr.withCredentials = true;
-        }
+        xhr.withCredentials = !!auth;
+        var asyncId = loading.start();
 
         xhr.addEventListener('load', function () {
-            if (this.status == 200) {
+            if (this.status === 200) {
                 var blob = this.response;
                 img.addEventListener('load', function () {
+                    loading.stop(asyncId);
                     window.URL.revokeObjectURL(img.src); // Clean up after ourselves.
                     resolve(img);
                 });
                 img.src = window.URL.createObjectURL(blob);
             } else {
+                loading.stop(asyncId);
                 reject(Error(xhr.statusText));
             }
         });
 
-        // Handle network errors
         xhr.addEventListener('error', function() {
-            reject(Error("Network Error"));
+            loading.stop(asyncId);
+            reject(Error('Network Error'));
+        });
+
+        xhr.addEventListener('abort', function() {
+            loading.stop(asyncId);
+            reject(Error('Aborted'));
         });
 
         xhr.send();
     });
-};
+}
 
-window.TexturePromise = function (url) {
-    var texture = new THREE.Texture(undefined, new THREE.UVMapping());
+export function TexturePromise (url, auth) {
+    var texture = new THREE.Texture(undefined);
     texture.sourceFile = url;
+    // in general our textures will not be powers of two size, so we need
+    // to set our resampling appropriately.
+    texture.minFilter = THREE.LinearFilter;
 
-    return ImagePromise(url).then(function(image) {
+    return ImagePromise(url, auth).then(function(image) {
             texture.image = image;
             texture.needsUpdate = true;
             return texture;
     });
-};
+}
 
-window.MaterialPromise = function(url) {
-    return TexturePromise(url).then(function (texture) {
+export function MaterialPromise (url, auth) {
+    return TexturePromise(url, auth).then(function (texture) {
         return new THREE.MeshBasicMaterial({map: texture});
     });
-};
+}
 
-module.exports = MaterialPromise;
+export default MaterialPromise;

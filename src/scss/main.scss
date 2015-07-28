@@ -2,35 +2,47 @@
 
 @import 'variables';
 
-* { user-select: none; } /* Don't want user selectable text */
-
 html {
     height: 100%;
     overflow: hidden;
 }
 
+html {
+    box-sizing: border-box;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
 body {
     height: 100%;
     margin: 0;
-    font-family: "HelveticaNeue-Light", "Helvetica Neue Light",
-        "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
-    font-weight: 300;
-}
-
-/* Use nice fonts in text boxes */
-input, textarea, select{
-    font-family:inherit;
-    font-size: 150%;
+    font-family: $fontFamily;
+    font-weight: 400;
 }
 
 .Viewport {
   cursor: crosshair;
+
+  &.LoadingCursor {
+      cursor: wait;
+  }
+}
+
+p.Error {
+    color: $colorDarkRed;
+    font-weight: bold;
 }
 
 @import 'button';
 @import 'layout';
 
 @import 'notifications';
+@import 'modal';
 @import 'sidebar_left';
 @import 'sidebar_right';
+
 @import 'help';
+@import 'intro';
+@import 'dropbox';

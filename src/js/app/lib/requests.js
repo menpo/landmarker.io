@@ -1,76 +1,51 @@
-var Promise = require('promise-polyfill');
+'use strict';
 
-var XMLHttpRequestPromise = function (responseType, url) {
+import Promise from 'promise-polyfill';
+import querystring from 'querystring';
+
+import { loading } from '../view/notification';
+
+function _url(url, data) {
+    if (!data || Object.keys(data).length === 0) {
+        return url;
+    } else {
+        return `${url}?${querystring.stringify(data)}`;
+    }
+}
+
+export default function XMLHttpRequestPromise(
+    url, {
+        method='GET',
+        responseType,
+        contentType,
+        headers={},
+        data,
+        auth=false
+    }
+){
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', url);
+    xhr.open(method, url);
     // Return a new promise.
     var promise = new Promise(function(resolve, reject) {
         // Do the usual XHR stuff
-        xhr.responseType = responseType;
-        if(url.indexOf('https://') == 0) {
-            // if it's HTTPS request with credentials
-            xhr.withCredentials = true;
+        xhr.responseType = responseType || 'text';
+        var asyncId = loading.start();
+
+        xhr.withCredentials = !!auth;
+
+        Object.keys(headers).forEach(function (key) {
+            xhr.setRequestHeader(key, headers[key]);
+        });
+
+        if (contentType) {
+            xhr.setRequestHeader('Content-Type', contentType);
         }
 
         xhr.onload = function() {
             // This is called even on 404 etc
             // so check the status
-            if (xhr.status == 200) {
-                    // Resolve the promise with the response text
-                resolve(xhr.response);
-            }
-            else {
-                // Otherwise reject with the status text
-                // which will hopefully be a meaningful error
-                reject(Error(xhr.statusText));
-            }
-        };
-
-        // Handle network errors
-        xhr.onerror = function() {
-            reject(Error("Network Error"));
-        };
-
-        // Make the request
-        xhr.send();
-    });
-
-    // for compatibility, want to be able to get access to the underlying
-    // xhr so we can abort if needed at a later time.
-    promise.xhr = function () {
-        return xhr;
-    };
-
-    return promise;
-};
-
-
-exports.ArrayBufferGetPromise = function (url) {
-    return XMLHttpRequestPromise('arraybuffer', url);
-};
-
-exports.JSONGetPromise = function (url) {
-    return XMLHttpRequestPromise('json', url);
-};
-
-
-var JSONPutPromise = function (url, json) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('PUT', url);
-    // Return a new promise.
-    var promise = new Promise(function(resolve, reject) {
-        // Do the usual XHR stuff
-        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-
-        if(url.indexOf('https://') == 0) {
-            // if it's HTTPS request with credentials
-            xhr.withCredentials = true;
-        }
-
-        xhr.onload = function() {
-            // This is called even on 404 etc
-            // so check the status
-            if (xhr.status == 200) {
+            loading.stop(asyncId);
+            if ((xhr.status / 100 || 0) === 2) {
                 // Resolve the promise with the response text
                 resolve(xhr.response);
             }
@@ -82,21 +57,57 @@ var JSONPutPromise = function (url, json) {
         };
 
         // Handle network errors
-        xhr.onerror = function() {
-            reject(Error("Network Error"));
+        xhr.onerror = function () {
+            loading.stop(asyncId);
+            reject(new Error('Network Error'));
+        };
+
+        xhr.onabort = function () {
+            loading.stop(asyncId);
+            reject(new Error('Aborted'));
         };
 
         // Make the request
-        xhr.send(JSON.stringify(json));
+        if (data) {
+            xhr.send(data);
+        } else {
+            xhr.send();
+        }
     });
 
     // for compatibility, want to be able to get access to the underlying
     // xhr so we can abort if needed at a later time.
-    promise.xhr = function () {
-        return xhr;
-    };
+    promise.xhr = () => xhr;
 
     return promise;
-};
+}
 
-exports.JSONPutPromise = JSONPutPromise;
+export const Request = XMLHttpRequestPromise;
+
+// Below are some shortcuts around the basic Request object for common
+// network calls
+export function getArrayBuffer (url, {headers={}, auth=false}={}) {
+    return XMLHttpRequestPromise(
+        url, {responseType: 'arraybuffer', headers, auth});
+}
+
+export function get (url, {headers={}, data={}, auth=false}={}) {
+    return XMLHttpRequestPromise(
+        _url(url, data), {headers, auth});
+}
+
+export function getJSON (url, {headers={}, data={}, auth=false}={}) {
+    return XMLHttpRequestPromise(
+        _url(url, data), {responseType: 'json', headers, auth});
+}
+
+export function putJSON (url, {headers={}, data={}, auth=false}={}) {
+    return XMLHttpRequestPromise(url, {
+        headers,
+        auth,
+        responseType: 'json',
+        method: 'PUT',
+        data: JSON.stringify(data),
+        contentType: 'application/json;charset=UTF-8'
+    });
+}

@@ -1,16 +1,16 @@
-var _ = require('underscore');
-var Promise = require('promise-polyfill');
-var Backbone = require('../lib/backbonej');
-var Landmark = require('./landmark');
-var Template = require('./template');
-var AssetSource = require('./assetsource');
-var Collection = require('./collection');
+'use strict';
 
-"use strict";
+import _ from 'underscore';
+import $ from 'jquery';
+import Promise from 'promise-polyfill';
+import Backbone from 'backbone';
 
-var _instance = null;
+import Tracker from '../lib/tracker';
+import * as AssetSource from './assetsource';
+import LandmarkGroup from './landmark_group';
+import Modal from '../view/modal';
 
-var App = Backbone.Model.extend({
+export default Backbone.Model.extend({
 
     defaults: function () {
         return {
@@ -18,15 +18,24 @@ var App = Backbone.Model.extend({
             mode: 'mesh',
             connectivityOn: true,
             editingOn: true,
+            autoSaveOn: true,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
-
-        }
+            tracker: {}
+        };
     },
 
     isConnectivityOn: function () {
         return this.get('connectivityOn');
+    },
+
+    isAutoSaveOn: function () {
+        return this.get('autoSaveOn');
+    },
+
+    toggleAutoSave: function () {
+        return this.set('autoSaveOn', !this.isAutoSaveOn());
     },
 
     toggleConnectivity: function () {
@@ -39,7 +48,7 @@ var App = Backbone.Model.extend({
 
     toggleEditing: function () {
         this.set('editingOn', !this.isEditingOn());
-        if (!this.isEditingOn()) {
+        if (!this.isEditingOn() && this.landmarks()) {
             this.landmarks().deselectAll();
             this.landmarks().resetNextAvailable();
         }
@@ -51,6 +60,10 @@ var App = Backbone.Model.extend({
 
     toggleHelpOverlay: function () {
         this.set('helpOverlayIsDisplayed', !this.isHelpOverlayOn());
+    },
+
+    mode: function () {
+        return this.get('mode');
     },
 
     imageMode: function () {
@@ -81,6 +94,10 @@ var App = Backbone.Model.extend({
         return this.get('activeCollection');
     },
 
+    tracker: function () {
+            return this.get('tracker');
+    },
+
     hasAssetSource: function () {
         return this.has('assetSource');
     },
@@ -90,7 +107,9 @@ var App = Backbone.Model.extend({
     },
 
     assetIndex: function () {
-        return this.get('assetSource').assetIndex();
+        if (this.has('assetSource')) {
+            return this.get('assetSource').assetIndex();
+        }
     },
 
     // returns the currently active Asset (Image or Asset).
@@ -118,82 +137,80 @@ var App = Backbone.Model.extend({
 
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
+        this.listenTo(this, 'change:activeTemplate', this.reloadLandmarks);
+        this.listenTo(this, 'change:mode', this.reloadAssetSource);
 
         this._initTemplates();
         this._initCollections();
     },
 
-    _initTemplates: function () {
-        var that = this;
+    _initTemplates: function (override=false) {
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.
-        var labels;
-        var templates = new Template.TemplateLabels({server: this.server()});
-        this.set('templates', templates);
-        templates.fetch({
-            success: function () {
-                labels = templates.get('labels');
-                var label = labels[0];
-                console.log('Available templates are ' + labels);
-                if (that.has('_activeTemplate')) {
-                    // user has specified a preset! Use that if we can
-                    // TODO should validate here if we can actually use template
-                    label = that.get('_activeTemplate');
-                    console.log("template is preset to '" + label + "'");
+        this.server().fetchTemplates().then((templates) => {
+            this.set('templates', templates);
+            let selected = templates[0];
+            if (!override && this.has('_activeTemplate')) {
+                // user has specified a preset! Use that if we can
+                // TODO should validate here if we can actually use template
+                const preset = this.get('_activeTemplate');
+                if (templates.indexOf(preset) > -1) {
+                    selected = preset;
                 }
-                console.log("template set to '" + label + "'");
-                that.set('activeTemplate', label);
-
-            },
-            error: function () {
-                throw Error('Failed to talk server for templates (is ' +
-                            'landmarkerio running from your command line?).');
             }
+            this.set('activeTemplate', selected);
+        }, () => {
+            throw new Error('Failed to talk server for templates (is ' +
+                            'landmarkerio running from your command line?).');
         });
     },
 
-    _initCollections: function () {
-        var that = this;
-        // we also need to find out what collections are available.
-        var labels;
-        var collections = new Collection.CollectionLabels({server: this.server()});
-        this.set('collections', collections);
-        collections.fetch({
-            success: function () {
-                labels = collections.get('labels');
-                console.log('Available collections are ' + labels + ' setting ' +
-                    labels[0] + ' to start');
-                if (that.has('_activeCollection')) {
-                    that.set('activeCollection',
-                        that.get('_activeCollection'));
-                } else {
-                    that.set('activeCollection', labels[0]);
+    _initCollections: function (override=false) {
+        this.server().fetchCollections().then((collections) => {
+            this.set('collections', collections);
+            let selected = collections[0];
+            if (!override && this.has('_activeCollection')) {
+                const preset = this.get('_activeCollection');
+                if (collections.indexOf(preset) > -1) {
+                    selected = preset;
                 }
-            },
-            error: function () {
-                throw Error('Failed to talk server for collections (is ' +
-                            'landmarkerio running from your command line?).');
             }
+            this.set('activeCollection', selected);
+        }, () => {
+            throw new Error('Failed to talk server for collections (is ' +
+                            'landmarkerio running from your command line?).');
         });
     },
 
     reloadAssetSource: function () {
         // needs to have an activeCollection to preceed. AssetSource should be
         // updated every time the active collection is updated.
-        var that = this;
         if (!this.get('activeCollection')) {
             // can only proceed with an activeCollection...
             console.log('App:reloadAssetSource with no activeCollection - doing nothing');
             return;
         }
+
         console.log('App: reloading asset source');
+
+        let oldIndex;
+        if (this.has('asset') && this.has('assetSource')) {
+            const idx = this.assetSource().assetIndex(this.asset());
+            if (idx > -1) {
+                oldIndex = idx;
+            }
+        }
+
+        if (this.hasChanged('mode')) {
+            $('#viewportContainer').trigger('resetCamera');
+        }
 
         // Construct an asset source (which can query for asset information
         // from the server). Of course, we must pass the server in. The
         // asset source will ensure that the assets produced also get
         // attached to this server.
-        var asc = this._assetSourceConstructor();
-        var assetSource = new asc({
+        const ASC = this._assetSourceConstructor();
+        const assetSource = new ASC({
             server: this.server(),
             id: this.activeCollection()
         });
@@ -201,27 +218,71 @@ var App = Backbone.Model.extend({
             this.stopListening(this.get('assetSource'));
         }
         this.set('assetSource', assetSource);
+        this.set('tracker', {});
         // whenever our asset source changes it's current asset and mesh we need
         // to update the app state.
         this.listenTo(assetSource, 'change:asset', this.assetChanged);
         this.listenTo(assetSource, 'change:mesh', this.meshChanged);
 
-        Backbone.promiseFetch(assetSource).then(function () {
-                var i = 0;
-                console.log('assetSource retrieved - setting');
-                if (that.has('_assetIndex')) {
-                    i = that.get('_assetIndex');
-                }
-                if (i < 0 ||  i > (assetSource.nAssets() - 1)) {
-                    throw Error('Error trying to set index to ' + i + ' - needs to'
-                    + ' be in the range 0-' + assetSource.nAssets());
-                }
-                return that.goToAssetIndex(i);
-            },
-            function () {
-                throw Error('Failed to fetch assets (is landmarkerio' +
+        assetSource.fetch().then(() => {
+            let i;
+
+            console.log('assetSource retrieved - setting');
+
+            if (oldIndex >= 0 && !this.hasChanged('activeCollection')) {
+                i = oldIndex;
+            } else if (this.has('_assetIndex') && !this.has('asset')) {
+                i = this.get('_assetIndex');
+            } else {
+                i = 0;
+            }
+
+            if (i < 0 || i > assetSource.nAssets() - 1) {
+                throw Error(`Error trying to set index to ${i} - needs to be in the range 0-${assetSource.nAssets()}`);
+            }
+
+            return this.goToAssetIndex(i);
+        }, () => {
+            throw new Error('Failed to fetch assets (is landmarkerio' +
                             'running from your command line?).');
+        });
+    },
+
+    getTracker: function (assetId, template) {
+        const tracker = this.tracker();
+        if (!tracker[assetId]) {
+            tracker[assetId] = {};
+        }
+
+        if (!tracker[assetId][template]) {
+            tracker[assetId][template] = new Tracker();
+        }
+
+        return tracker[assetId][template];
+    },
+
+    reloadLandmarks: function () {
+        if (this.landmarks() && this.asset()) {
+            this.autoSaveWrapper(() => {
+                this.set('landmarks', null);
+                this.loadLandmarksPromise().then((lms) => {
+                    this.set('landmarks', lms);
+                });
             });
+        }
+    },
+
+    autoSaveWrapper: function (fn) {
+        const lms = this.landmarks();
+        if (lms && !lms.tracker.isUpToDate()) {
+            if (!this.isAutoSaveOn()) {
+                Modal.confirm('You have unsaved changes, are you sure you want to proceed ? (Your changes will be lost)', fn);
+            } else {
+                lms.save().then(fn);
+            }
+        } else {
+            fn();
+        }
     },
 
     _assetSourceConstructor: function () {
@@ -246,58 +307,102 @@ var App = Backbone.Model.extend({
         this.trigger('newMeshAvailable');
     },
 
+    loadLandmarksPromise: function () {
+        return this.server().fetchLandmarkGroup(
+            this.asset().id,
+            this.activeTemplate()
+        ).then((json) => {
+            return LandmarkGroup.parse(
+                json,
+                this.asset().id,
+                this.activeTemplate(),
+                this.server(),
+                this.getTracker(this.asset().id, this.activeTemplate())
+            );
+        }, () => {
+            console.log('Error in fetching landmark JSON file');
+        });
+    },
+
     _promiseLandmarksWithAsset: function (loadAssetPromise) {
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
-        var that = this;
-        // Make a new landmark object for the new asset.
-        var loadLandmarksPromise = Landmark.promiseLandmarkGroup(
-            this.asset().id, this.activeTemplate(), this.get('server'));
+
         // if both come true, then set the landmarks
-        return Promise.all([loadLandmarksPromise,
-                            loadAssetPromise]).then(function (args) {
-            var landmarks = args[0];
+        return Promise.all([this.loadLandmarksPromise(),
+                            loadAssetPromise]).then((args) => {
+            const landmarks = args[0];
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display');
             // now we know that this is resolved we set the landmarks on the
             // app. This way we know the landmarks will always be set with a
             // valid asset.
-            that.set('landmarks', landmarks);
+            this.set('landmarks', landmarks);
         });
     },
 
     _switchToAsset: function (newAssetPromise) {
-        this.set('landmarks', null);
         // The asset promise should come from the assetSource and will only
         // resolve when all the key data for annotating is loaded, the
         // promiseLandmark wraps it and only resolves when both landmarks (if
         // applicable) and asset data are present
-        return this._promiseLandmarksWithAsset(newAssetPromise);
+        if (newAssetPromise) {
+            this.set('landmarks', null);
+            return this._promiseLandmarksWithAsset(newAssetPromise);
+        }
     },
 
     nextAsset: function () {
-        return this._switchToAsset(this.assetSource().next());
+        if (this.assetSource().hasSuccessor()) {
+            this.autoSaveWrapper(() => {
+                this._switchToAsset(this.assetSource().next());
+            });
+        }
     },
 
     previousAsset: function () {
-        return this._switchToAsset(this.assetSource().previous());
+        if (this.assetSource().hasPredecessor()) {
+            this.autoSaveWrapper(() => {
+                this._switchToAsset(this.assetSource().previous());
+            });
+        }
     },
 
     goToAssetIndex: function (newIndex) {
-        return this._switchToAsset(this.assetSource().setIndex(newIndex));
+        this.autoSaveWrapper(() => {
+            this._switchToAsset(this.assetSource().setIndex(newIndex));
+        });
+    },
+
+    reloadLandmarksFromPrevious: function () {
+        const lms = this.landmarks();
+        if (lms) {
+            const as = this.assetSource();
+            if (this.assetSource().hasPredecessor()) {
+                this.server().fetchLandmarkGroup(
+                    as.assets()[as.assetIndex() - 1].id,
+                    this.activeTemplate()
+                ).then((json) => {
+                    lms.tracker.recordState(lms.toJSON());
+                    lms.restore(json);
+                    lms.tracker.recordState(lms.toJSON(), false, true);
+                }, () => {
+                    console.log('Error in fetching landmark JSON file');
+                });
+            }
+        }
+    },
+
+    incrementLandmarkSize: function () {
+        const size = this.get('landmarkSize');
+        const factor = Math.floor(size / 0.25) + 1;
+        this.set('landmarkSize', Math.min(0.25 * factor, 1));
+    },
+
+    decrementLandmarkSize: function () {
+        const size = this.get('landmarkSize');
+        const factor = Math.floor(size / 0.25) - 1;
+        this.set('landmarkSize', Math.max(0.25 * factor, 0.05));
     }
 
 });
-
-module.exports = function (appInit) {
-    if (_instance) {
-        return _instance;
-    }
-
-    if (!appInit) {
-        throw new Error('App requires to be initialised');
-    }
-
-    _instance = new App(appInit);
-    return _instance;
-}

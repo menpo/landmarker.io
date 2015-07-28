@@ -1,12 +1,19 @@
-landmarker.io
-=============
+![](favicon-194x194.png)
 
-3D mesh and image annotation in the browser.
+# landmarker.io
 
+[![Build Status](https://travis-ci.org/menpo/landmarker.io.svg?branch=master)](https://travis-ci.org/menpo/landmarker.io)
 
+3D mesh and image annotation in the browser, the app is live at [https://www.landmarker.io](https://www.landmarker.io).
 
-Getting set up for development
-==============================
+Check out [the wiki](https://github.com/menpo/landmarker.io/wiki) for [usage instructions](https://github.com/menpo/landmarker.io/wiki/User-guide) and specifications. Read on if you want to contribute.
+
+Found an issue, want to suggest an improvement: head over to the [issue tracker](https://github.com/menpo/landmarker.io/issues). You can reach out to us through [@teammenpo](https://twitter.com/@teammenpo), or if you have a more involved question and you don't know where to take it, try posting to our [mailing list](menpo-users@googlegroups.com):  [menpo-users@googlegroups.com](mailt:menpo-users@googlegroups.com).
+
+See [landmarkerio-server](https://github.com/menpo/landmarkerio-server) for
+installation instructions for the server.
+
+## Getting set up for development
 
 The landmarker.io client uses NPM for all dependencies. As a prerequisite, you'll need node.js and NPM installed on your system. With these set up, just `cd` to the top landmarker.io directory and run:
 
@@ -16,29 +23,56 @@ The landmarker.io client uses NPM for all dependencies. As a prerequisite, you'l
 
 This may take some time as all dependencies are installed.
 
-We use [gulp](http://gulpjs.com/) for handling the build of the code. You'll probably want that installed as a global command line tool:
+We use [gulp](http://gulpjs.com/) for handling the build of the code. You'll probably want that installed as a global command line tool (you may need the sudo depending on your node installation):
 
 ```
 > [sudo] npm install -g gulp
 ```
-You may need the sudo depending on your node installation.
 
-Now you are all set. Run
-``` 
+To start working, run
+
+```
 > gulp
-````
-in the top directory. Any changes to the files will trigger a rebuild by gulp, so you can just edit the JS and reload the page to see the changes.
+```
 
-Note that you edit the individual modules in `src/js` - gulp compiles these all together using [browserify](http://browserify.org) and produces a monolithic JS file called `bundle-SOMEHASH.js`. When debugging in your browser, source maps hide this from you, so you'll be able to place breakpoints and step through code as it looks on disk, not the compiled moonlithic file.
+from the project's root directory. This will create an `index.html` file as well as `bundle-xxxx.js` and `bundle-xxxx.css` (and respective source maps) at the root, and update them anytime a source file changes. All other files necessary for serving are already at the root, so you just need to have a static server run. `npm run serve` will server on [http://localhost:4000](http://localhost:4000) through [http-server](https://www.npmjs.com/package/http-server))
 
-See  [landmarkerio-server](https://github.com/menpo/landmarkerio-server) for
-installation instructions for the server.
+Alternatively you can use
 
+```
+> npm run watch
+```
 
-### Landmark JSON format
+for the same effect without requiring gulp to be installed globally, and
 
-Landmarks are served as JSON payloads. See 
+```
+> npm run build
+```
 
-https://github.com/menpo/landmarker.io/blob/master/api/v2/landmarks/james/ibug68.json
+will perform a one-off build ready for deployment.
 
-for an example of this format.
+### Javascript considerations
+
+All javascript files are passed through [the babel compiler](https://babeljs.io/) so you can write valid ES2015 code. All code is bundled with [browserify](http://browserify.org/).
+
+You can run `npm run lint` to run the [eslint](http://eslint.org/) tool on the code with our settings. The rules listed on the left hand side of the output are explained [here](http://eslint.org/docs/rules/). Errors should be fixed otherwise the travis build will fail.
+
+Testing is not there yet. We have some tests and coverage with istanbul and mocha, but nothing extensive project-wide.
+
+### CSS considerations
+
+We use [SCSS](http://sass-lang.com/) for styles. There are currently no particular requirements other than putting all variables in `src/scss/_variables.scss` and importing module in the entrypoint `src/scss/main.scss`. Try and keep module at a reasonable size and make sure they contain related styles, don't hesitate to split them up.
+
+## Notes on deployment
+
+We use [Travis CI](https://travis-ci.org/menpo/landmarker.io/) for deployment.
+
+`deploy.sh` is the script we run for our travis ci build. It simply builds the current branch and update the github pages branch to track the released version as well as staged versions. The deployment on Amazon S3 is done with [s3_website](https://github.com/laurilehmijoki/s3_website) by mirroring the content of this branch.
+
+A release is done through a tag, which will update the root directory and clean the rolling history (only the last 3 deployed tags are kept). Any other branch (including master) is deployed at `/staging/branchname` and gets a link in `/staging/index.html`. We release by tagging master and pushing tags, this can be done with `npm version`. For example to release a minor version change:
+
+```
+> git checkout master
+> npm version minor
+> git push --tags
+```

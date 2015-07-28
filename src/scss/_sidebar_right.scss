@@ -14,9 +14,198 @@
 }
 
 .RightSidebar-Controls,
-.RightSidebar-LandmarksPanel {
+.RightSidebar-LandmarksPanel,
+.RightSidebar-Header {
     display: flex;
-    text-align: center;
+    opacity: .9;
+}
+
+.RightSidebar-Template {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.TemplateName,
+.TemplateDownload {
+    @extend %transitionAll;
+    min-height: $mainControlHeight;
+    line-height: $mainControlHeight;
+    background: $colorDarkerBlue;
+    float: left;
+    color: white;
+    cursor: pointer;
+    margin-left: 1px;
+    margin-bottom: 1px;
+    cursor: pointer;
+    font-size: large;
+
+    &:hover {
+        background: $colorDarkBlue;
+    }
+
+    &.Disabled {
+        cursor: default;
+        background: $colorDarkerBlue;
+    }
+}
+
+.TemplateName {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.TemplateDownload {
+    width: $mainControlHeight;
+}
+
+.RightSidebar-TemplatePicker {
+    @extend %transitionAll;
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    transform: translateY(-100%);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .15);
+    top: -16px;
+    background-color: white;
+    flex-flow: column;
+    right: .4em;
+    left: .4em;
+    z-index: $zIndexNotifications;
+    color: $colorDarkGray;
+    cursor: pointer;
+    border-radius: $minorBoarderRadius;
+
+    input {
+        @extend %transitionAll;
+        display: inline;
+        padding: 0 .5em;
+        margin: 2%;
+        width: 96%;
+        border: 2px solid $colorLightGray;
+        border-radius: 2px;
+        outline: none;
+        line-height: 24px;
+
+        &:active,
+        &:focus {
+            border-color: $colorDarkerBlue;
+        }
+    }
+
+    &::after {
+        top: 100%;
+        left: 50%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+        border-top-color: white;
+        border-width: 10px;
+        margin-left: -10px;
+    }
+
+    &.Active {
+        display: flex;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+        max-height: 270px;
+        overflow: scroll;
+    }
+
+    li {
+        @extend %transitionAll;
+        height: 42px;
+        line-height: 42px;
+        text-align: left;
+        margin: 0;
+        padding: 0 .5em;
+        border-bottom: 1px dashed $colorLightGray;
+
+        &:last-of-type {
+            border-bottom: none;
+        }
+
+        &:hover {
+            color: $colorBlue;
+        }
+
+        &.Active {
+            color: $colorDarkerBlue;
+            font-weight: bold;
+        }
+    }
+}
+
+.RightSidebar-TemplatePicker-Add {
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    background-color: $colorDarkPurple;
+    height: 30px;
+    line-height: 27px;
+    font-size: 1.1em;
+    width: 30px;
+    border-radius: 50%;
+    border: solid 2px $colorLightGray;
+    color: white;
+    font-weight: bold;
+
+    &::after {
+        content: '+';
+    }
+
+    &:hover {
+        background-color: $colorPurple;
+    }
+}
+
+.RightSidebar-UndoRedo {
+    > div {
+        @extend %transitionAll;
+        min-height: $mainControlHeight;
+        line-height: $mainControlHeight;
+        width: $mainControlHeight;
+        background: $colorPurple;
+        color: white;
+        float: left;
+        margin-left: 1px;
+        margin-bottom: 1px;
+        cursor: pointer;
+
+        &:first-of-type {
+            border-top-left-radius: $mainBorderRadius;
+        }
+
+        &:last-of-type {
+            transform: scale(-1, 1);
+        }
+
+        &:hover {
+            background: $colorDarkPurple;
+        }
+
+        &.Disabled {
+            cursor: default;
+            background: $colorGray;
+        }
+    }
+}
+
+.RightSidebar-TemplatePicker {
+
 }
 
 /* Special RightSidebar item used for rows (e.g. two buttons).
@@ -25,17 +214,30 @@ is itself a row flexbox */
     flex-direction: row;
     justify-content: space-around;
     align-items: center;
+    margin-bottom: 1px;
     min-height: $mainControlHeight;
+
+    &.Hide {
+        display: none;
+    }
+
+    &:first-of-type {
+        margin-bottom: 0;
+    }
 }
 
 .RightSidebar-Controls-Item {
-    flex: 1;
+    flex: 2;
+    margin-left: 1px;
+
+    &:last-of-type {
+      flex: 1;
+    }
 }
 
 /* Landmarks selector */
 .RightSidebar-LandmarksPanel {
     flex-direction: column;
-    /*overflow: auto; breaks Safari view? */
     cursor: pointer;
 }
 
@@ -56,39 +258,54 @@ is itself a row flexbox */
     pointer-events: none;
     font-size: larger;
     color: white;
+    align-items: center;
+    justify-content: center;
+    display: flex;
 }
 
 .LmGroup-Label--Active {
-    font-weight: bold
+    font-weight: 700;
 }
 
 .LmGroup-Flex {
     display: flex;
     align-items: center;
-    opacity: 0.5;
+
+    &.MultiLine {
+        flex-wrap: wrap;
+
+        .Lm {
+            flex: 1 1 8%
+        }
+    }
 }
 
 .Lm {
+    @extend %transitionAll;
+    opacity: .5;
     flex: 1;
     height: 30px;
     margin-left: 1px;
     margin-bottom: 1px;
+
+    &:hover {
+        opacity: .75;
+    }
 }
 
 .Lm-Empty {
-    background: #67809f;
+    background: $colorGray;
 }
 
 .Lm-Value {
-    background: #0A4EB2;
+    background: $colorDarkerBlue;
 }
 
 .Lm-Selected {
-    background: #bf55ec;
+    background: $colorPurple;
 }
 
 
 .Lm-NextAvailable {
-    border-bottom: solid white;
-    height: 27px;
+    background: $colorOrange;
 }

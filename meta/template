@@ -1,0 +1,239 @@
+#!./node_modules/.bin/babel-node
+
+/* Convert between template formats for landmarker.oi and menpo
+
+See: https://github.com/menpo/landmarker.io/wiki/Templates-specification
+for the specification of the template files.
+
+The script exposes the convert command which can take a file or a directory as
+input. From the project's root, basic usage is:
+
+>   ./meta/template convert template.ljson
+
+Which will output the yaml representation of the temlate in standard output.
+It is possible to specify an ouput file:
+
+>   ./meta/template convert template.ljson templates/template.yaml
+
+or work with a directory
+
+> ./meta template convert landmarks templates
+
+this will create the 'templates' directory if needed.
+
+It is also possible to provide input and output as parameters (--input, --output). Other parameters are:
+
+-f / --force: overrides existing files
+-r / --recursive: in directory mode, will look for templates in subdirectories
+--ext: specify the extension to convert from (json, ljson, yaml or yml), will ignore all other files
+--target: specify the extenion to convert to (yaml, json or js - defaults to yaml)
+
+The js target will wrap the json content in an ES6 importable module.
+
+The scripts excepts the files to be of the correct format, so an ljson file
+saved as .json, while technically valid will fail to convert as it will be
+assumed to be correct json.
+ */
+
+'use strict';
+
+import fs from 'fs';
+import path from 'path';
+import 'colors';
+import { argv } from 'yargs';
+
+import Template from '../src/js/app/template';
+
+const action = argv._[0];
+const ACTIONS = ['convert'];
+const SOURCES = ['ljson', 'json', 'yaml', 'yml'];
+const TARGETS = ['json', 'yaml', 'js'];
+
+function _exit (str) {
+    console.log(str.red);
+    process.exit(1);
+}
+
+switch (action) {
+    case 'convert':
+        convert();
+        break;
+    default:
+        _exit(`Unrecognized action "${action}", available actions are "${ACTIONS}"`);
+}
+
+function convert () {
+    const force = argv.f || argv.force;
+    let input = argv._[1] || argv.input;
+    const output = argv._[2] || argv.output;
+    const ext = argv.ext;
+    const target = argv.target;
+    const recurse = argv.r || argv.recursive;
+    let directory;
+
+    if (!input) {
+        _exit(`Missing input parameter`);
+    } else {
+        input = path.resolve(input);
+    }
+
+    if (ext && SOURCES.indexOf(ext) === -1) {
+        _exit(`Specified extension ${ext} is invalid, should be one of ${SOURCES}`);
+    }
+
+    try {
+        directory = fs.statSync(input).isDirectory();
+    } catch (e) {
+        if (e.code === "ENOENT") {
+            _exit(`${input} doesn't exist`);
+        } else {
+            throw e;
+        }
+    }
+
+    if (directory) {
+        fs.readdir(input, function (err, files) {
+            if (err) {
+                throw err;
+            }
+            convertDirectory(input, files, output, ext, target, force, recurse);
+        });
+    } else {
+        convertFile(input, output, ext, target, force, true);
+    }
+}
+
+function convertDirectory (input, files, output, ext, target, force, recurse) {
+    if (!output) {
+        output = path.resolve(input);
+    } else {
+        output = path.resolve(output);
+    }
+
+    fs.stat(output, function (err, stat) {
+        if (err && err.code === 'ENOENT') {
+            console.log(`Created directory ${output}`);
+            fs.mkdirSync(output);
+        } else if (err) {
+            throw err;
+        } else if (!stat.isDirectory()) {
+            _exit(`${output} is not a directory`);
+        }
+
+        files.forEach(function (filename) {
+            const filepath = path.join(input, filename);
+            const isDir = fs.statSync(filepath).isDirectory();
+
+            if (isDir && recurse) {
+                fs.readdir(filepath, function (e, subfiles) {
+                    if (e) {
+                        throw e;
+                    }
+                    convertDirectory(
+                        filepath, subfiles,
+                        output, ext, target, force, recurse);
+                });
+            } else if (isDir) {
+                console.log(`Ignored subdirectory "${filepath}", use "-r" to convert recursively`);
+            } else if (!isDir) {
+                const fileExtension = path.extname(filepath).slice(1);
+                if (!ext && SOURCES.indexOf(fileExtension) === -1) {
+                    console.log(`Ignored file "${filepath}" with extension "${fileExtension}" (authorised extensions are "${SOURCES}")`);
+                } else if (ext && fileExtension !== ext) {
+                    console.log(`Ignored file "${filepath}" with extension "${fileExtension}" (specified extension is "${ext}")`);
+                } else {
+                    convertFile(
+                        filepath,
+                        path.join(output, filename.split('.').shift()),
+                        ext, target, force, recurse, false);
+                }
+
+            }
+        });
+
+    });
+}
+
+function templateToJS (tmpl) {
+  return `export default ${tmpl.toJSON()};`;
+}
+
+function convertFile (input, output, ext, target, force, single) {
+
+    let parser, parsed, tmpl;
+    const inputExtension = path.extname(input).slice(1);
+
+    if (!ext) {
+        ext = inputExtension;
+    } else {
+        if (ext !== inputExtension) {
+            _exit(`Invalid extension ${inputExtension} for ${input}`);
+        }
+    }
+
+    if (!target) {
+        target = 'yaml';
+    }
+
+    if (TARGETS.indexOf(target) === -1) {
+        _exit(`Invalid target ${target}, use any of "${TARGETS}"`);
+    }
+
+    parser = Template.Parsers[ext];
+
+    if (!parser) {
+        if (single) {
+            _exit(`Extension ${ext} for ${input} is invalid (valid extensions: ${Object.keys(Template.Parsers)})`);
+        } else {
+            console.log(`Ignored ${input}, extension ${ext} is invalid (valid extensions: ${Object.keys(Template.Parsers)})`.yellow);
+        }
+    }
+
+    if (!output) {
+        output = input.split('.').slice(0, -1).join('.');
+    }
+
+    if (path.extname(output) === '') {
+        output = output + '.' + target;
+    }
+
+    fs.readFile(input, {
+        encoding: argv.encoding | 'utf8'
+    }, function (err, data) {
+        if (err) {
+            if (err.code === 'ENOENT') {
+                _exit(`File "${input}" not found`);
+            } else {
+                throw err;
+            }
+        } else {
+            tmpl = parser(data.toString());
+            parsed = target === 'json' ? tmpl.toJSON() :
+                     target === 'yaml' ? tmpl.toYAML() :
+                     target === 'js' ? templateToJS(tmpl) : null;
+            if (!output) {
+                console.log(parsed);
+            } else {
+                fs.exists(output, function (exists) {
+                    if (exists && !force) {
+                        if (single) {
+                            _exit(`${output} already exists`);
+                        } else {
+                            console.log(`${output} already exists, use "-f" to override`.yellow);
+                        }
+                    } else {
+                        fs.writeFile(output, parsed, {
+                            encoding: argv.encoding | 'utf8'
+                        }, function (e) {
+                            if (e) {
+                                _exit(`Failed to write ${output} (${err})`);
+                            } else {
+                                console.log(`${input} > ${output}`.green);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+    });
+}

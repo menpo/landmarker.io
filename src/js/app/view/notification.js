@@ -1,11 +1,13 @@
-var _ = require('underscore');
-var Backbone = require('backbone');
-var $ = require('jquery');
-var Spinner = require('spin.js');
+'use strict';
 
-"use strict";
+import _ from 'underscore';
+import Backbone from 'backbone';
+import $ from 'jquery';
+import Spinner from 'spin.js';
 
-var spinnerOpts = {
+import {randomString} from '../lib/utils';
+
+const spinnerOpts = {
     lines: 13, // The number of lines to draw
     length: 20, // The length of each line
     width: 10, // The line thickness
@@ -24,28 +26,7 @@ var spinnerOpts = {
     left: '50%' // Left position relative to parent
 };
 
-// exports.ThumbnailNotification = Backbone.View.extend({
-//
-//     initialize : function() {
-//         _.bindAll(this, 'render');
-//         this.listenTo(this.model.assetSource(), "change:nPreviews", this.render);
-//     },
-//
-//     render: function () {
-//         var total = this.model.assetSource().nAssets();
-//         var nDone = this.model.assetSource().nPreviews();
-//         if (total === nDone) {
-//             document.getElementById('previewNotification').style.display = 'none';
-//         }
-//         var done = nDone/total;
-//         var todo = 1 - nDone/total;
-//         document.getElementById('previewDone').style.flex = done;
-//         document.getElementById('previewRemaining').style.flex = todo;
-//         return this;
-//     }
-// });
-
-var NOTIFICATION_BASE_CLASS = 'Notification',
+const NOTIFICATION_BASE_CLASS = 'Notification',
     NOTIFICATION_CLOSING_CLASS = 'Notification--Closing',
     NOTIFICATION_PERMANENT_CLASS = 'Notification--Permanent',
     NOTIFICATION_DEFAULT_CLOSE_TIMEOUT = 1500,
@@ -54,7 +35,7 @@ var NOTIFICATION_BASE_CLASS = 'Notification',
                                   'error': 'Notification--Error',
                                   'warning': 'Notification--Warning' };
 
-exports.BaseNotification = Backbone.View.extend({
+export const BaseNotification = Backbone.View.extend({
 
     tagName: 'div',
     container: '#notificationOverlay',
@@ -66,7 +47,7 @@ exports.BaseNotification = Backbone.View.extend({
         onClose,
         persist=false,
         closeTimeout=NOTIFICATION_DEFAULT_CLOSE_TIMEOUT
-    }) {
+    }={}) {
 
         _.bindAll(this, 'render', 'close');
 
@@ -95,15 +76,17 @@ exports.BaseNotification = Backbone.View.extend({
     },
 
     events: {
-        'click .Notification__Action': 'handleClick'
+        'click .Notification__Action': 'handleClick',
+        'click': 'close'
     },
 
     handleClick: function (evt) {
         if (this.actions.length) {
             evt.preventDefault();
             var actionIndex = evt.currentTarget.dataset.index;
-            if (actionIndex > 0 && actionIndex < this.actions.length) {
+            if (actionIndex >= 0 && actionIndex < this.actions.length) {
                 this.actions[actionIndex][1]();
+                this.close();
             }
         }
     },
@@ -139,7 +122,7 @@ exports.BaseNotification = Backbone.View.extend({
 
         this.$el.appendTo(this.container);
 
-        if (timeout !== undefined) {
+        if (timeout > 0) {
           setTimeout(this.close, timeout);
         }
     },
@@ -163,13 +146,13 @@ exports.BaseNotification = Backbone.View.extend({
     }
 });
 
-exports.notify = function (opts) {
-    return new exports.BaseNotification(opts);
+export function notify (opts) {
+    return new module.exports.BaseNotification(opts);
 }
 
-exports.AssetLoadingNotification = Backbone.View.extend({
+export const AssetLoadingNotification = Backbone.View.extend({
 
-    initialize : function() {
+    initialize: function() {
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change:assetSource",
             this._changeAssetSource);
@@ -195,12 +178,10 @@ exports.AssetLoadingNotification = Backbone.View.extend({
         var isLoading = this.model.assetSource().assetIsLoading();
         if (isLoading !== this.isSpinning) {
             if (isLoading) {
-                console.log('Spinner on!');
                 // need to set the spinner going
                 this.spinner.spin(this.el);
                 this.isSpinning = true;
             } else {
-                console.log('Spinner off.');
                 this.spinner.stop();
                 this.isSpinning = false;
             }
@@ -208,10 +189,9 @@ exports.AssetLoadingNotification = Backbone.View.extend({
     }
 });
 
+export const LandmarkSavingNotification = Backbone.View.extend({
 
-exports.LandmarkSavingNotification = Backbone.View.extend({
-
-    initialize : function() {
+    initialize: function () {
         _.bindAll(this, 'start', 'stop');
         this.spinner = new Spinner().spin();
 
@@ -234,3 +214,58 @@ exports.LandmarkSavingNotification = Backbone.View.extend({
         }
     }
 });
+
+const CornerSpinner = Backbone.View.extend({
+
+    el: '#globalSpinner',
+    initialize: function () {
+        this._operations = {};
+        this._shown = false;
+    },
+
+    render: function (show) {
+
+        if (show === undefined) {
+            show = Object.keys(this._operations).length > 0;
+        }
+
+        if (show && !this._shown) {
+            this.$el.addClass('Display');
+            $('.Viewport').addClass('LoadingCursor');
+            this._shown = true;
+        } else if (!show) {
+            this.$el.removeClass('Display');
+            $('.Viewport').removeClass('LoadingCursor');
+            this._shown = false;
+        }
+
+    },
+
+    start: function () {
+        const rs = randomString(8, true);
+        this._operations[rs] = true;
+        this.render(true);
+        return rs;
+    },
+
+    stop: function (op) {
+        if (op in this._operations) {
+            delete this._operations[op];
+            this.render();
+        }
+    }
+});
+
+let _gs;
+export const loading = {
+    start: function () {
+        if (!_gs) {
+            _gs = new CornerSpinner();
+        }
+        return _gs.start();
+    },
+
+    stop: function (id) {
+        return _gs.stop(id);
+    }
+};

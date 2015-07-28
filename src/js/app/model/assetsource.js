@@ -1,8 +1,9 @@
-var Backbone = require('../lib/backbonej');
-var _ = require('underscore');
-var Asset = require('./asset');
+'use strict';
 
-"use strict";
+import Backbone from 'backbone';
+import _ from 'underscore';
+
+import * as Asset from './asset';
 
 function abortAllObj (obj) {
     _.values(obj).forEach(function (x) {
@@ -11,19 +12,18 @@ function abortAllObj (obj) {
 }
 
 // Holds a list of available assets.
-var AssetSource = Backbone.Model.extend({
+const AssetSource = Backbone.Model.extend({
 
     defaults: function () {
-        return {
-            assets: new Backbone.Collection,
-            assetIsLoading: false
-        };
+        return { assets: new Backbone.Collection(), assetIsLoading: false };
     },
 
-    urlRoot : "collections",
-
-    url: function () {
-        return this.get('server').map(this.urlRoot + '/' + this.id);
+    fetch: function () {
+        return (
+            this.get('server').fetchCollection(this.id).then((response) => {
+                this.set('assets', this.parse(response).assets);
+            })
+        );
     },
 
     asset: function () {
@@ -35,7 +35,8 @@ var AssetSource = Backbone.Model.extend({
     },
 
     mesh: function () {
-        return this.get('asset').mesh();
+        const asset = this.asset();
+        return asset ? asset.mesh() : undefined;
     },
 
     assetIsLoading: function () {
@@ -61,21 +62,21 @@ var AssetSource = Backbone.Model.extend({
 
     next: function () {
         if (!this.hasSuccessor()) {
-            return;
+            return undefined;
         }
         return this.setAsset(this.assets()[this.assetIndex() + 1]);
     },
 
     previous: function () {
         if (!this.hasPredecessor()) {
-            return;
+            return undefined;
         }
         return this.setAsset(this.assets()[this.assetIndex() - 1]);
     },
 
     setIndex: function (newIndex) {
         if (newIndex < 0 || newIndex >= this.nAssets()) {
-            console.log("Can't go to asset with index " + newIndex + 1);
+            console.log(`Can't go to asset with index ${newIndex + 1}`);
             return null;
         } else {
             return this.setAsset(this.assets()[newIndex]);
@@ -87,21 +88,17 @@ var AssetSource = Backbone.Model.extend({
     }
 });
 
-exports.MeshSource = AssetSource.extend({
+export const MeshSource = AssetSource.extend({
 
     parse: function (response) {
-        var that = this;
-        var mesh;
-        var meshes = _.map(response, function (assetId) {
-            mesh = new Asset.Mesh({
+        const meshes = response.map((assetId) => {
+            return new Asset.Mesh({
                 id: assetId,
-                server: that.get('server')
+                server: this.get('server')
             });
-            return mesh;
         });
-        return {
-            assets: meshes
-        };
+
+        return { assets: meshes };
     },
 
     setAsset: function (newMesh) {
@@ -130,7 +127,7 @@ exports.MeshSource = AssetSource.extend({
         newMesh.loadThumbnail();
         newMesh.loadTexture();
         // fetch the geometry
-        var geometry = newMesh.loadGeometry();
+        const geometry = newMesh.loadGeometry();
 
         // track the request
         this.pending[newMesh.id] = geometry.xhr();
@@ -158,33 +155,28 @@ exports.MeshSource = AssetSource.extend({
 // Holds a list of available images, and a ImageList. The ImageList
 // is populated immediately, although images aren't fetched until demanded.
 // Also has a mesh parameter - the currently active mesh.
-exports.ImageSource = AssetSource.extend({
+export const ImageSource = AssetSource.extend({
 
     parse: function (response) {
-        var that = this;
-        var image;
-        var images = _.map(response, function (assetId) {
-            image =  new Asset.Image({
+        const images = response.map((assetId) => {
+            return new Asset.Image({
                 id: assetId,
-                server: that.get('server')
+                server: this.get('server')
             });
-            return image;
         });
-        return {
-            assets: images
-        };
+
+        return { assets: images };
     },
 
     setAsset: function (newAsset) {
-        var that = this;
-        var oldAsset = this.get('asset');
+        const oldAsset = this.get('asset');
         // stop listening to the old asset
         if (oldAsset) {
             this.stopListening(oldAsset);
         }
         this.set('assetIsLoading', true);
         // set the asset immediately (triggering change in UI)
-        that.set('asset', newAsset);
+        this.set('asset', newAsset);
 
         this.listenTo(newAsset, 'newMeshAvailable', this.updateMesh);
 
@@ -193,16 +185,15 @@ exports.ImageSource = AssetSource.extend({
 
         // fetch the thumbnail and texture aggressively asynchronously.
         newAsset.loadThumbnail();
-        var texture = newAsset.loadTexture();
+        const texture = newAsset.loadTexture();
 
         // after the texture is ready, we want to clear up our tracking of
         // loading requests.
-        texture.then(function () {
+        texture.then(() => {
             console.log('grabbed new image texture');
-            that.set('assetIsLoading', false);
+            this.set('assetIsLoading', false);
         }, function (err) {
             console.log('texture.then something went wrong ' + err.stack);
-            that.set('assetIsLoading', false);
         });
         // return the texture promise. Once the texture is ready, landmarks
         // can be displayed.

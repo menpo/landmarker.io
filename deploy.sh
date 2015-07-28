@@ -75,7 +75,7 @@ echo "Building gh-pages branch for $BRANCH"
 if [[ ! -e "$MANIFEST" ]]; then  npm run build || exit 1; else echo "Already built"; fi
 
 TMP_DIR=$(mktemp -d "/tmp/landmarker-build-$BRANCH-XXXX")
-mv ./index.html ./bundle-*.* ./*.appcache ./img ./api "$TMP_DIR"
+mv ./index.html ./bundle-*.* ./*.appcache ./img ./api ./*.png ./favicon.ico browserconfig.xml mainfest.json "$TMP_DIR"
 
 # Switch to latests gh-pages branch and enforce correct content
 git checkout gh-pages || exit 1
