@@ -60064,7 +60064,7 @@ var _base = require('./base');
 
 var _base2 = _interopRequireDefault(_base);
 
-var mixedContentWarning = '\n<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href=\'http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/\'>unadvisable</a> and thus we do not allow it.<br><br>\nYou can visit <a href=\'http://insecure.landmarker.io\'>insecure.landmarker.io</a> to disable this warning.</p>\n';
+var mixedContentWarning = '\n<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href=\'http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/\'>unadvisable</a> and thus we do not allow it.<br><br>\nYou can visit <a href=\'http://insecure.landmarker.io' + window.location.search + '\'>insecure.landmarker.io</a> to disable this warning.</p>\n';
 
 var Server = _base2['default'].extend('LANDMARKER SERVER', function (url) {
 
@@ -60085,8 +60085,9 @@ var Server = _base2['default'].extend('LANDMARKER SERVER', function (url) {
     if (!this.demoMode && _libSupport2['default'].https && url.indexOf('https://') !== 0) {
         (0, _viewNotification.notify)({
             type: 'error',
+            persist: true,
             msg: (0, _jquery2['default'])(mixedContentWarning),
-            actions: [['Retry', _libUtils.restart]]
+            actions: [['Restart', _libUtils.restart]]
         });
         throw new Error('Mixed Content');
     }
@@ -68500,4 +68501,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-6ac97dbb.js.map
+//# sourceMappingURL=bundle-eb336cb2.js.map
