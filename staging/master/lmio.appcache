@@ -2,12 +2,17 @@ CACHE MANIFEST
 
 
 CACHE:
-bundle-b2de61f5.js
+//fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic
+//cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css
+bundle-895e5770.js
 index.html
-bundle-4b8bb2ba.css
+bundle-a910adca.css
+img/dropbox-blue.svg
+img/dropbox-white.svg
+img/placeholder.jpg
 
 
 NETWORK:
 *
 
-# hash: d2123aac29be0de3f1c0ea6dd1a485c90228cdf8701c013115a88c01bef8088f
+# hash: 3ecf4831e7b8d14dc187315bdd6c1d930a03ee631e6db67372dab9f65d3d2cc8
