@@ -60,7 +60,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
                 // trigger changeLandmarkSize to make sure sizing is correct
                 this.changeLandmarkSize();
                 // and add it to the scene
-                this.viewport.s_lms.add(this.symbol);
+                this.viewport.sLms.add(this.symbol);
             }
         }
         // tell our viewport to update
@@ -83,7 +83,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
 
     dispose: function () {
         if (this.symbol) {
-            this.viewport.s_lms.remove(this.symbol);
+            this.viewport.sLms.remove(this.symbol);
             this.symbol = null;
         }
     },
@@ -130,7 +130,7 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
                         this.model[1].get('point'));
                 this.updateSymbol();
                 // and add it to the scene
-                this.viewport.s_lmsconnectivity.add(this.symbol);
+                this.viewport.sLmsConnectivity.add(this.symbol);
             }
         }
         // tell our viewport to update
@@ -147,7 +147,7 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
 
     dispose: function () {
         if (this.symbol) {
-            this.viewport.s_lmsconnectivity.remove(this.symbol);
+            this.viewport.sLmsConnectivity.remove(this.symbol);
             this.symbol.geometry.dispose();
             this.symbol = null;
         }

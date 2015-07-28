@@ -120,44 +120,44 @@ export default Backbone.View.extend({
 
         // we use an initial top level to handle the absolute positioning of
         // the mesh and landmarks. Rotation and scale are applied to the
-        // s_meshAndLms node directly.
-        this.s_scaleRotate = new THREE.Object3D();
-        this.s_translate = new THREE.Object3D();
+        // sMeshAndLms node directly.
+        this.sScaleRotate = new THREE.Object3D();
+        this.sTranslate = new THREE.Object3D();
 
         // ----- SCENE: MODEL AND LANDMARKS ----- //
-        // s_meshAndLms stores the mesh and landmarks in the meshes original
+        // sMeshAndLms stores the mesh and landmarks in the meshes original
         // coordinates. This is always transformed to the unit sphere for
         // consistency of camera.
-        this.s_meshAndLms = new THREE.Object3D();
-        // s_lms stores the scene landmarks. This is a useful container to
-        // get at all landmarks in one go, and is a child of s_meshAndLms
-        this.s_lms = new THREE.Object3D();
-        this.s_meshAndLms.add(this.s_lms);
-        // s_mesh is the parent of the mesh itself in the THREE scene.
+        this.sMeshAndLms = new THREE.Object3D();
+        // sLms stores the scene landmarks. This is a useful container to
+        // get at all landmarks in one go, and is a child of sMeshAndLms
+        this.sLms = new THREE.Object3D();
+        this.sMeshAndLms.add(this.sLms);
+        // sMesh is the parent of the mesh itself in the THREE scene.
         // This will only ever have one child (the mesh).
-        // Child of s_meshAndLms
-        this.s_mesh = new THREE.Object3D();
-        this.s_meshAndLms.add(this.s_mesh);
-        this.s_translate.add(this.s_meshAndLms);
-        this.s_scaleRotate.add(this.s_translate);
-        this.scene.add(this.s_scaleRotate);
+        // Child of sMeshAndLms
+        this.sMesh = new THREE.Object3D();
+        this.sMeshAndLms.add(this.sMesh);
+        this.sTranslate.add(this.sMeshAndLms);
+        this.sScaleRotate.add(this.sTranslate);
+        this.scene.add(this.sScaleRotate);
 
         // ----- SCENE: CAMERA AND DIRECTED LIGHTS ----- //
-        // s_camera holds the camera, and (optionally) any
+        // sCamera holds the camera, and (optionally) any
         // lights that track with the camera as children
-        this.s_oCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
-        this.s_oCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
-        this.s_pCam = new THREE.PerspectiveCamera(50, 1, 0.02, 20);
+        this.sOCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
+        this.sOCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
+        this.sPCam = new THREE.PerspectiveCamera(50, 1, 0.02, 20);
         // start with the perspective camera as the main one
-        this.s_camera = this.s_pCam;
+        this.sCamera = this.sPCam;
 
         // create the cameraController to look after all camera state.
         this.cameraController = CameraController(
-            this.s_pCam, this.s_oCam, this.s_oCamZoom,
+            this.sPCam, this.sOCam, this.sOCamZoom,
             this.el, this.model.imageMode());
 
         // when the camera updates, render
-        this.cameraController.on("change", this.update);
+        this.cameraController.on('change', this.update);
 
         if (!this.model.meshMode()) {
             // for images, default to orthographic camera
@@ -170,16 +170,16 @@ export default Backbone.View.extend({
         // ----- SCENE: GENERAL LIGHTING ----- //
         // TODO make lighting customizable
         // TODO no spot light for images
-        this.s_lights = new THREE.Object3D();
+        this.sLights = new THREE.Object3D();
         var pointLightLeft = new THREE.PointLight(0x404040, 1, 0);
         pointLightLeft.position.set(-100, 0, 100);
-        this.s_lights.add(pointLightLeft);
+        this.sLights.add(pointLightLeft);
         var pointLightRight = new THREE.PointLight(0x404040, 1, 0);
         pointLightRight.position.set(100, 0, 100);
-        this.s_lights.add(pointLightRight);
-        this.scene.add(this.s_lights);
+        this.sLights.add(pointLightRight);
+        this.scene.add(this.sLights);
         // add a soft white ambient light
-        this.s_lights.add(new THREE.AmbientLight(0x404040));
+        this.sLights.add(new THREE.AmbientLight(0x404040));
 
         this.renderer = new THREE.WebGLRenderer(
             { antialias: false, alpha: false });
@@ -194,18 +194,18 @@ export default Backbone.View.extend({
         // shows through)
         this.sceneHelpers = new THREE.Scene();
 
-        // s_lmsconnectivity is used to store the connectivity representation
+        // sLmsConnectivity is used to store the connectivity representation
         // of the mesh. Note that we want
-        this.s_lmsconnectivity = new THREE.Object3D();
+        this.sLmsConnectivity = new THREE.Object3D();
         // we want to replicate the mesh scene graph in the scene helpers, so we can
         // have show-though connectivity..
-        this.s_h_scaleRotate = new THREE.Object3D();
-        this.s_h_translate = new THREE.Object3D();
-        this.s_h_meshAndLms = new THREE.Object3D();
-        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
-        this.s_h_translate.add(this.s_h_meshAndLms);
-        this.s_h_scaleRotate.add(this.s_h_translate);
-        this.sceneHelpers.add(this.s_h_scaleRotate);
+        this.shScaleRotate = new THREE.Object3D();
+        this.sHTranslate = new THREE.Object3D();
+        this.shMeshAndLms = new THREE.Object3D();
+        this.shMeshAndLms.add(this.sLmsConnectivity);
+        this.sHTranslate.add(this.shMeshAndLms);
+        this.shScaleRotate.add(this.sHTranslate);
+        this.sceneHelpers.add(this.shScaleRotate);
 
         // add mesh if there already is one present (we could have missed a
         // backbone callback).
@@ -228,19 +228,19 @@ export default Backbone.View.extend({
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
-        this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
+        this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
 
         this.showConnectivity = true;
         this.listenTo(
             this.model,
-            "change:connectivityOn",
+            'change:connectivityOn',
             this.updateConnectivityDisplay
         );
         this.updateConnectivityDisplay();
 
         this.listenTo(
-            this.model, "change:editingOn", this.updateEditingDisplay);
+            this.model, 'change:editingOn', this.updateEditingDisplay);
         this.updateEditingDisplay();
 
         // Reset helper views on wheel to keep scale
@@ -309,28 +309,28 @@ export default Backbone.View.extend({
             this.octree = octree.octreeForBufferGeometry(mesh.geometry);
         }
 
-        this.s_mesh.add(mesh);
-        // Now we need to rescale the s_meshAndLms to fit in the unit sphere
+        this.sMesh.add(mesh);
+        // Now we need to rescale the sMeshAndLms to fit in the unit sphere
         // First, the scale
         this.meshScale = mesh.geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
-        this.s_scaleRotate.scale.set(s, s, s);
-        this.s_h_scaleRotate.scale.set(s, s, s);
-        this.s_scaleRotate.up.copy(up);
-        this.s_h_scaleRotate.up.copy(up);
-        this.s_scaleRotate.lookAt(front.clone());
-        this.s_h_scaleRotate.lookAt(front.clone());
+        this.sScaleRotate.scale.set(s, s, s);
+        this.shScaleRotate.scale.set(s, s, s);
+        this.sScaleRotate.up.copy(up);
+        this.shScaleRotate.up.copy(up);
+        this.sScaleRotate.lookAt(front.clone());
+        this.shScaleRotate.lookAt(front.clone());
         // translation
         var t = mesh.geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
-        this.s_translate.position.copy(t);
-        this.s_h_translate.position.copy(t);
+        this.sTranslate.position.copy(t);
+        this.sHTranslate.position.copy(t);
         this.update();
     },
 
     removeMeshIfPresent: function () {
         if (this.mesh !== null) {
-            this.s_mesh.remove(this.mesh);
+            this.sMesh.remove(this.mesh);
             this.mesh = null;
             this.octree = null;
         }
@@ -360,16 +360,16 @@ export default Backbone.View.extend({
         this.renderer.setScissor(0, 0, w, h);
         this.renderer.enableScissorTest(true);
         this.renderer.clear();
-        this.renderer.render(this.scene, this.s_camera);
+        this.renderer.render(this.scene, this.sCamera);
 
         if (this.showConnectivity) {
             this.renderer.clearDepth(); // clear depth buffer
             // and render the connectivity
-            this.renderer.render(this.sceneHelpers, this.s_camera);
+            this.renderer.render(this.sceneHelpers, this.sCamera);
         }
 
         // 2. Render the PIP image if in orthographic mode
-        if (this.s_camera === this.s_oCam) {
+        if (this.sCamera === this.sOCam) {
             var b = this.pipBounds();
             this.renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
             this.renderer.setViewport(b.x, b.y, b.width, b.height);
@@ -377,11 +377,11 @@ export default Backbone.View.extend({
             this.renderer.enableScissorTest(true);
             this.renderer.clear();
             // render the PIP image
-            this.renderer.render(this.scene, this.s_oCamZoom);
+            this.renderer.render(this.scene, this.sOCamZoom);
             if (this.showConnectivity) {
                 this.renderer.clearDepth(); // clear depth buffer
                 // and render the connectivity
-                this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
+                this.renderer.render(this.sceneHelpers, this.sOCamZoom);
             }
             this.renderer.setClearColor(CLEAR_COLOUR, 1);
         }
@@ -389,17 +389,17 @@ export default Backbone.View.extend({
 
     toggleCamera: function () {
         // check what the current setting is
-        var currentlyPerspective = (this.s_camera === this.s_pCam);
+        var currentlyPerspective = (this.sCamera === this.sPCam);
         if (currentlyPerspective) {
             // going to orthographic - start listening for pip updates
             this.listenTo(this.cameraController, "changePip", this.update);
-            this.s_camera = this.s_oCam;
+            this.sCamera = this.sOCam;
             // hide the pip decoration
             this.pipCanvas.style.display = null;
         } else {
             // leaving orthographic - stop listening to pip calls.
             this.stopListening(this.cameraController, "changePip");
-            this.s_camera = this.s_pCam;
+            this.sCamera = this.sPCam;
             // show the pip decoration
             this.pipCanvas.style.display = 'none';
         }
@@ -624,17 +624,17 @@ export default Backbone.View.extend({
         var vector = new THREE.Vector3((x / this.width()) * 2 - 1,
                                         -(y / this.height()) * 2 + 1, 0.5);
 
-        if (this.s_camera === this.s_pCam) {
+        if (this.sCamera === this.sPCam) {
             // perspective selection
             vector.setZ(0.5);
-            vector.unproject(this.s_camera);
-            this.ray.set(this.s_camera.position, vector.sub(this.s_camera.position).normalize());
+            vector.unproject(this.sCamera);
+            this.ray.set(this.sCamera.position, vector.sub(this.sCamera.position).normalize());
         } else {
             // orthographic selection
             vector.setZ(-1);
-            vector.unproject(this.s_camera);
+            vector.unproject(this.sCamera);
             var dir = new THREE.Vector3(0, 0, -1)
-                .transformDirection(this.s_camera.matrixWorld);
+                .transformDirection(this.sCamera.matrixWorld);
             this.ray.set(vector, dir);
         }
 
@@ -655,7 +655,7 @@ export default Backbone.View.extend({
     worldToScreen: function (vector) {
         var widthHalf = this.width() / 2;
         var heightHalf = this.height() / 2;
-        var result = vector.project(this.s_camera);
+        var result = vector.project(this.sCamera);
         result.x = (result.x * widthHalf) + widthHalf;
         result.y = -(result.y * heightHalf) + heightHalf;
         return result;
@@ -663,17 +663,17 @@ export default Backbone.View.extend({
 
     localToScreen: function (vector) {
         return this.worldToScreen(
-            this.s_meshAndLms.localToWorld(vector.clone()));
+            this.sMeshAndLms.localToWorld(vector.clone()));
     },
 
     worldToLocal: function (vector, inPlace=false) {
-        return inPlace ? this.s_meshAndLms.worldToLocal(vector) :
-                         this.s_meshAndLms.worldToLocal(vector.clone());
+        return inPlace ? this.sMeshAndLms.worldToLocal(vector) :
+                         this.sMeshAndLms.worldToLocal(vector.clone());
     },
 
     lmToScreen: function (lmSymbol) {
         var pos = lmSymbol.position.clone();
-        this.s_meshAndLms.localToWorld(pos);
+        this.sMeshAndLms.localToWorld(pos);
         return this.worldToScreen(pos);
     },
 
