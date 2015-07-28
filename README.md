@@ -6,7 +6,9 @@
 
 3D mesh and image annotation in the browser, the app is live at [https://www.landmarker.io](https://www.landmarker.io).
 
-Check out [the wiki](https://github.com/menpo/landmarker.io/wiki) for usage instructions and landmarks specifications.
+Check out [the wiki](https://github.com/menpo/landmarker.io/wiki) for [usage instructions](https://github.com/menpo/landmarker.io/wiki/User-guide) and specifications. Read on if you want to contribute.
+
+Found an issue, want to suggest an improvement: head over to the [issue tracker](https://github.com/menpo/landmarker.io/issues). You can reach out to us through [@teammenpo](https://twitter.com/@teammenpo), or if you have a more involved question and you don't know where to take it, try posting to our [mailing list](menpo-users@googlegroups.com):  [menpo-users@googlegroups.com](mailt:menpo-users@googlegroups.com).
 
 See [landmarkerio-server](https://github.com/menpo/landmarkerio-server) for
 installation instructions for the server.
@@ -54,6 +56,8 @@ will perform a one-off build ready for deployment.
 All javascript files are passed through [the babel compiler](https://babeljs.io/) so you can write valid ES2015 code. All code is bundled with [browserify](http://browserify.org/).
 
 You can run `npm run lint` to run the [eslint](http://eslint.org/) tool on the code with our settings. The rules listed on the left hand side of the output are explained [here](http://eslint.org/docs/rules/). Errors should be fixed otherwise the travis build will fail.
+
+Testing is not there yet. We have some tests and coverage with istanbul and mocha, but nothing extensive project-wide.
 
 ### CSS considerations
 
