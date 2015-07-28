@@ -8,6 +8,7 @@ install:
 script:
 - npm run lint:errors
 - npm run build
+after_success:
 - ./deploy.sh
 cache:
   directories:
