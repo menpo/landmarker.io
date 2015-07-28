@@ -1,7 +1,5 @@
 'use strict';
 
-import $ from 'jquery';
-
 import { getJSON, putJSON, getArrayBuffer } from '../lib/requests';
 import { capitalize } from '../lib/utils';
 import support from '../lib/support';
