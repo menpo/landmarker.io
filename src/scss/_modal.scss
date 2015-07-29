@@ -17,7 +17,7 @@
 .ModalWindow {
 
     @extend %transitionAll;
-    margin-top: 64px;
+    margin: 64px 1em 0 1em;
 
     &, & * {
       box-sizing: border-box;
