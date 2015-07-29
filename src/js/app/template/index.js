@@ -154,6 +154,23 @@ Template.prototype.emptyLJSON = function (dims=2) {
     return _.clone(this._emptyLmGroup[dims]);
 };
 
+Template.prototype.validate = function (json, dims=2) {
+
+    if (typeof json === 'string') {
+        json = JSON.parse(json);
+    }
+
+    const ljson = this.emptyLJSON(dims);
+    let ok;
+
+    ok = json.version === ljson.version;
+    ok = ok && _.isEqual(json.labels, ljson.labels);
+    ok = ok && json.landmarks && _.isEqual(json.landmarks.connectivity,
+                                           ljson.landmarks.connectivity);
+    ok = ok && ljson.landmarks.points.every(p => p.length === dims);
+    return [ok, ok ? json : ljson];
+};
+
 let _defaultTemplates;
 
 Template.loadDefaultTemplates = function () {
