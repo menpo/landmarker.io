@@ -463,7 +463,9 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         touch.set(touches[0].pageX, touches[0].pageY, 0);
         switch (touches.length) {
             case 1:
-                rotate(touch.sub(prevTouch).multiplyScalar(-0.005));
+                const delta = touch.sub(prevTouch).multiplyScalar(0.005);
+                delta.setY(-1 * delta.y);
+                rotate(delta);
                 break;
             case 2:
                 var dx = touches[0].pageX - touches[1].pageX;
