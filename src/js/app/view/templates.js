@@ -85,7 +85,7 @@ export const TemplatePicker = Backbone.View.extend({
         if (typeof this.model.server().pickTemplate === 'function') {
             this.model.server().pickTemplate((name) => {
                 this.model.set('_activeTemplate', name);
-                this.model._initTemplates(true);
+                this.model._initTemplates();
             }, function (err) {
                 Notification.notify({
                     type: 'error',
