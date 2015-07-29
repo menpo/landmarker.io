@@ -61373,6 +61373,7 @@ exports.pad = pad;
 exports.capitalize = capitalize;
 exports.maskedArray = maskedArray;
 exports.restart = restart;
+exports.truncate = truncate;
 
 function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : { 'default': obj };
@@ -61452,6 +61453,22 @@ function restart(serverUrl) {
     (0, _modelConfig2['default'])().clear();
     var restartUrl = baseUrl() + (serverUrl ? '?server=' + serverUrl : '');
     window.location.replace(restartUrl);
+}
+
+function truncate(str, max) {
+    var right = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
+    var ellipsis = arguments.length <= 3 || arguments[3] === undefined ? true : arguments[3];
+
+    if (str.length > max) {
+        var _str = !right ? str.slice(0, max - str.length) : // Keep left
+        str.slice(str.length - max); // Keep right
+        if (ellipsis) {
+            _str = !right ? _str.slice(0, -3) + '...' : '...' + _str.slice(3);
+        }
+        return _str;
+    } else {
+        return str;
+    }
 }
 
 },{"../model/config":62}],58:[function(require,module,exports){
@@ -62271,7 +62288,9 @@ var Mesh = Image.extend({
 
         // mirror the arrayPromise xhr() API
         this._geometryPromise.xhr = function () {
-            return arrayPromise.xhr();
+            return arrayPromise.xhr ? arrayPromise.xhr() : { abort: function abort() {
+                    return null;
+                } };
         };
         // return a promise that this Meshes Geometry will be correctly
         // configured. Can access the raw underlying xhr request at xhr().
@@ -64010,7 +64029,7 @@ var AssetNameView = _backbone2['default'].View.extend({
     },
 
     render: function render() {
-        this.$el.find('.content').html(this.model.asset().id);
+        this.$el.find('.content').html((0, _libUtils.truncate)(this.model.asset().id, 64, true, true));
         this.$el.toggleClass('Disabled', this.model.assetSource().nAssets() <= 1);
         return this;
     },
@@ -66251,7 +66270,7 @@ var TemplatePicker = _backbone2['default'].View.extend({
         if (typeof this.model.server().pickTemplate === 'function') {
             this.model.server().pickTemplate(function (name) {
                 _this2.model.set('_activeTemplate', name);
-                _this2.model._initTemplates(true);
+                _this2.model._initTemplates();
             }, function (err) {
                 Notification.notify({
                     type: 'error',
@@ -68523,4 +68542,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-8d80ea95.js.map
+//# sourceMappingURL=bundle-bde37fc2.js.map
