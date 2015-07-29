@@ -67056,7 +67056,9 @@ function CameraController(pCam, oCam, oCamZoom, domElement) {
         touch.set(touches[0].pageX, touches[0].pageY, 0);
         switch (touches.length) {
             case 1:
-                rotate(touch.sub(prevTouch).multiplyScalar(-0.005));
+                var delta = touch.sub(prevTouch).multiplyScalar(-0.005);
+                delta.setY(-1 * delta.y);
+                rotate(delta);
                 break;
             case 2:
                 var dx = touches[0].pageX - touches[1].pageX;
@@ -68585,4 +68587,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-c32671dc.js.map
+//# sourceMappingURL=bundle-efe6858d.js.map
