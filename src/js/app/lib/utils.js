@@ -72,3 +72,16 @@ export function restart (serverUrl) {
     );
     window.location.replace(restartUrl);
 }
+
+export function truncate (str, max, right=false, ellipsis=true) {
+    if (str.length > max) {
+        let _str = !right ? str.slice(0, max - str.length) : // Keep left
+                            str.slice(str.length - max);     // Keep right
+        if (ellipsis) {
+            _str = !right ? _str.slice(0, -3) + '...' : '...' + _str.slice(3);
+        }
+        return _str;
+    } else {
+        return str;
+    }
+}
