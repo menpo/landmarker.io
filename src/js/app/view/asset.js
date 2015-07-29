@@ -6,7 +6,7 @@ import $ from 'jquery';
 
 import * as Notification from './notification';
 import Intro from './intro';
-import { pad, randomString } from '../lib/utils';
+import { pad, randomString, truncate } from '../lib/utils';
 import { Dropbox, Server } from '../backend';
 
 import Modal from './modal';
@@ -101,7 +101,8 @@ export const AssetNameView = Backbone.View.extend({
     },
 
     render: function () {
-        this.$el.find('.content').html(this.model.asset().id);
+        this.$el.find('.content').html(
+            truncate(this.model.asset().id, 64, true, true));
         this.$el.toggleClass(
             'Disabled', this.model.assetSource().nAssets() <= 1);
         return this;
