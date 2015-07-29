@@ -63803,6 +63803,25 @@ Template.prototype.emptyLJSON = function () {
     return _underscore2['default'].clone(this._emptyLmGroup[dims]);
 };
 
+Template.prototype.validate = function (json) {
+    var dims = arguments.length <= 1 || arguments[1] === undefined ? 2 : arguments[1];
+
+    if (typeof json === 'string') {
+        json = JSON.parse(json);
+    }
+
+    var ljson = this.emptyLJSON(dims);
+    var ok = undefined;
+
+    ok = json.version === ljson.version;
+    ok = ok && _underscore2['default'].isEqual(json.labels, ljson.labels);
+    ok = ok && json.landmarks && _underscore2['default'].isEqual(json.landmarks.connectivity, ljson.landmarks.connectivity);
+    ok = ok && ljson.landmarks.points.every(function (p) {
+        return p.length === dims;
+    });
+    return [ok, ok ? json : ljson];
+};
+
 var _defaultTemplates = undefined;
 
 Template.loadDefaultTemplates = function () {
@@ -68504,4 +68523,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-32585e43.js.map
+//# sourceMappingURL=bundle-8d80ea95.js.map
