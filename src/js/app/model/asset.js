@@ -342,7 +342,9 @@ export const Mesh = Image.extend({
         }
 
         // mirror the arrayPromise xhr() API
-        this._geometryPromise.xhr = () => arrayPromise.xhr();
+        this._geometryPromise.xhr = () => {
+            return arrayPromise.xhr ? arrayPromise.xhr() : {abort: () => null};
+        };
         // return a promise that this Meshes Geometry will be correctly
         // configured. Can access the raw underlying xhr request at xhr().
         // Aborting this will cause the promise to fail.
