@@ -199,7 +199,8 @@ export const Image = Backbone.Model.extend({
                 delete this._texturePromise;
                 console.log('Asset: loaded texture for ' + this.id);
                 this.texture = material;
-                var img = material.map.image;
+                const img = material.map.image;
+                this.sourceImage = img;
                 this.textureGeometry = mappedPlane(img.width, img.height);
                 this.trigger('change:texture');
                 return material;

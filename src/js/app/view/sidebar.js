@@ -242,6 +242,7 @@ export const ActionsView = Backbone.View.extend({
         this.model.save().then(() => {
             Notification.notify({type: 'success', msg: 'Save Completed'});
             this.$el.find('#save').removeClass('Button--Disabled');
+            this.app.afterSave();
         }, () => {
             Notification.notify({type: 'error', msg: 'Save Failed'});
             this.$el.find('#save').removeClass('Button--Disabled');
@@ -337,6 +338,37 @@ export const LmLoadView = Backbone.View.extend({
     }
 });
 
+export const FitView = Backbone.View.extend({
+    el: '#fitPanel',
+
+    events: {
+        'click #fit': 'load'
+    },
+
+    initialize: function ({app}) {
+        _.bindAll(this, 'render', 'load');
+        this.app = app;
+        this.render();
+    },
+
+    available: function () {
+        const fitter = this.app.fitter();
+        return fitter && fitter.hasType(this.app.activeTemplate());
+    },
+
+    render: function () {
+        this.$el.toggleClass('Hide', !this.available());
+        this.$el.find('button').toggleClass('Button-Danger',
+                                            !this.model.isEmpty());
+    },
+
+    load: function () {
+        if (this.available()) {
+            this.app.fitCurrent();
+        }
+    }
+});
+
 export default Backbone.View.extend({
 
     initialize: function () {
@@ -344,6 +376,7 @@ export default Backbone.View.extend({
         this.listenTo(this.model, "change:landmarks", this.landmarksChange);
         this.actionsView = null;
         this.lmLoadView = null;
+        this.fitView = null;
         this.lmView = null;
         this.undoRedoView = null;
         this.templatePanel = new TemplatePanel({model: this.model});
@@ -357,6 +390,10 @@ export default Backbone.View.extend({
 
         if (this.lmLoadView) {
             this.lmLoadView.undelegateEvents();
+        }
+
+        if (this.fitView) {
+            this.fitView.undelegateEvents();
         }
 
         if (this.undoRedoView) {
@@ -375,6 +412,7 @@ export default Backbone.View.extend({
 
         this.actionsView = new ActionsView({model: lms, app: this.model});
         this.lmLoadView = new LmLoadView({model: lms, app: this.model});
+        this.fitView = new FitView({model: lms, app: this.model});
         this.undoRedoView = new UndoRedoView({model: lms});
         this.lmView = new LandmarkGroupListView({collection: lms.labels});
         $('#landmarksPanel').html(this.lmView.render().$el);

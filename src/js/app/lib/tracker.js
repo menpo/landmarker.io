@@ -90,7 +90,7 @@ Tracker.prototype.recordState = function (data, saved=false, override=false) {
         op = _.last(this._operations);
     let rev;
 
-    if (!op && state && _.isEqual(data, state.data)) {
+    if (state && _.isEqual(data, state.data)) {
         // No op and we have the same data than before, don't fill twice
         rev = state.rev;
     } else { // There are changes, store the state

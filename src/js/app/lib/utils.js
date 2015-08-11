@@ -127,3 +127,21 @@ export function truncate (str, max, right=false, ellipsis=true) {
         return str;
     }
 }
+
+export function imgToDataUrl (img) {
+    const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+    const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+    const dataURL = canvas.toDataURL("image/png");
+    return dataURL;
+}
+
+export function prependHttp (url) {
+    if (!/^(?:f|ht)tps?\:\/\//.test(url)) {
+        return 'http://' + url;
+    } else {
+        return url;
+    }
+}

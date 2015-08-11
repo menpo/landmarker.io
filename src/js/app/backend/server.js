@@ -1,7 +1,7 @@
 'use strict';
 
 import { getJSON, putJSON, getArrayBuffer } from '../lib/requests';
-import { capitalize } from '../lib/utils';
+import { capitalize, prependHttp } from '../lib/utils';
 import support from '../lib/support';
 import ImagePromise from '../lib/imagepromise';
 
@@ -17,8 +17,8 @@ const Server = Base.extend('LANDMARKER SERVER', function (url) {
     if (this.url === 'demo') {
         this.url = '';
         this.demoMode = true;
-    } else if (!/^(?:f|ht)tps?\:\/\//.test(url)) {
-        this.url = 'http://' + this.url;
+    } else {
+        this.url = prependHttp(this.url);
     }
 
     this.httpAuth = url.indexOf('https://') === 0;

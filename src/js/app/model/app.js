@@ -5,10 +5,12 @@ import $ from 'jquery';
 import Promise from 'promise-polyfill';
 import Backbone from 'backbone';
 
+import Fitter from '../fit';
 import Tracker from '../lib/tracker';
 import * as AssetSource from './assetsource';
 import LandmarkGroup from './landmark_group';
 import Modal from '../view/modal';
+import { loading, notify } from '../view/notification';
 
 export default Backbone.Model.extend({
 
@@ -22,7 +24,8 @@ export default Backbone.Model.extend({
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
-            tracker: {}
+            tracker: {},
+            fitter: undefined
         };
     },
 
@@ -76,6 +79,10 @@ export default Backbone.Model.extend({
 
     server: function () {
         return this.get('server');
+    },
+
+    fitter: function () {
+        return this.get('fitter');
     },
 
     templates: function () {
@@ -141,6 +148,21 @@ export default Backbone.Model.extend({
 
         this._initTemplates();
         this._initCollections();
+        this._initFitter();
+    },
+
+    _initFitter: function () {
+        if (this.get('_fitterUrl')) {
+            const fitter = new Fitter(this.get('_fitterUrl'));
+            fitter.initialize().then(() => {
+                this.set('fitter', fitter);
+            }, (err) => {
+                console.error(err);
+                this.set('_fitterUrl', undefined);
+            });
+        } else {
+            this.set('fitter', undefined);
+        }
     },
 
     _initTemplates: function (override=false) {
@@ -186,7 +208,6 @@ export default Backbone.Model.extend({
         // updated every time the active collection is updated.
         if (!this.get('activeCollection')) {
             // can only proceed with an activeCollection...
-            console.log('App:reloadAssetSource with no activeCollection - doing nothing');
             return;
         }
 
@@ -225,8 +246,6 @@ export default Backbone.Model.extend({
 
         assetSource.fetch().then(() => {
             let i;
-
-            console.log('assetSource retrieved - setting');
 
             if (oldIndex >= 0 && !this.hasChanged('activeCollection')) {
                 i = oldIndex;
@@ -297,12 +316,10 @@ export default Backbone.Model.extend({
 
     // Mirror the state of the asset source onto the app
     assetChanged: function () {
-        console.log('App.assetChanged');
         this.set('asset', this.assetSource().asset());
     },
 
     meshChanged: function () {
-        console.log('App.meshChanged');
         this.trigger('newMeshAvailable');
     },
 
@@ -319,7 +336,7 @@ export default Backbone.Model.extend({
                 this.getTracker(this.asset().id, this.activeTemplate())
             );
         }, () => {
-            console.log('Error in fetching landmark JSON file');
+            console.error('Error in fetching landmark JSON file');
         });
     },
 
@@ -331,8 +348,6 @@ export default Backbone.Model.extend({
         return Promise.all([this.loadLandmarksPromise(),
                             loadAssetPromise]).then((args) => {
             const landmarks = args[0];
-            console.log('landmarks are loaded and the asset is at a suitable ' +
-                'state to display');
             // now we know that this is resolved we set the landmarks on the
             // app. This way we know the landmarks will always be set with a
             // valid asset.
@@ -386,10 +401,65 @@ export default Backbone.Model.extend({
                     lms.restore(json);
                     lms.tracker.recordState(lms.toJSON(), false, true);
                 }, () => {
-                    console.log('Error in fetching landmark JSON file');
+                    console.error('Error in fetching landmark JSON file');
                 });
             }
         }
+    },
+
+    afterSave: function () {
+        const fitter = this.fitter();
+        if (!fitter) {
+            return null;
+        }
+
+        const lms = this.landmarks();
+        if (lms && !lms.hasEmpty()) {
+            fitter.update(
+                this.activeTemplate(), this.asset().id, lms.toJSON()
+            );
+        }
+    },
+
+    fitCurrent: function () {
+        const fitter = this.fitter();
+        const lms = this.landmarks();
+        const asset = this.asset();
+        const tmplType = this.activeTemplate();
+        let q;
+
+        if (!fitter || !lms) {
+            console.warn('Cannot fit without a fitter or landmarks');
+            return null;
+        }
+
+        const async = loading.start();
+        const lmsJSON = lms.isEmpty() ? null : lms.toJSON();
+        if (fitter.hasAsset(tmplType, asset.id)) {
+            q = fitter.fit(tmplType, asset.id, lmsJSON);
+        } else {
+            q = fitter.init(tmplType, asset.id, asset.sourceImage, lmsJSON);
+        }
+
+        q.then((res) => {
+            if (res.result) {
+                lms.tracker.recordState(lms.toJSON());
+                const json = lms.toJSON();
+                json.landmarks.points = res.result.landmarks.points;
+                lms.restore(json);
+                lms.tracker.recordState(lms.toJSON(), false, true);
+            } else {
+                if (res.error) {
+                    notify({msg: res.error});
+                }
+                notify({msg: `Could not fit images to model, you'll have to do it by yourself (or try adding a few more points)`});
+            }
+
+            loading.stop(async);
+        }, (err) => {
+            console.error(err);
+            loading.stop(async);
+        });
     },
 
     incrementLandmarkSize: function () {

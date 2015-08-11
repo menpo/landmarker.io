@@ -101,6 +101,21 @@ export function getJSON (url, {headers={}, data={}, auth=false}={}) {
         _url(url, data), {responseType: 'json', headers, auth});
 }
 
+export function post (url, {headers={}, data={}, auth=false}={}) {
+    data = querystring.stringify(data);
+    // headers = { ...headers, 'Content-Length': data.length };
+
+    return XMLHttpRequestPromise(
+        url, {
+            method: 'POST',
+            responseType: 'json',
+            contentType: 'application/x-www-form-urlencoded',
+            data,
+            headers,
+            auth
+    });
+}
+
 export function putJSON (url, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(url, {
         headers,

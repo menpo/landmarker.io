@@ -31,10 +31,6 @@ You can visit <a href='http://insecure.landmarker.io${window.location.search}'>i
 `;
 
 function resolveBackend (u) {
-    console.log(
-        'Resolving which backend to use for url:', window.location.href, u,
-        'and config:', cfg.get());
-
     // Found a server parameter >> override to traditionnal mode
     if (u.query.server) {
         const serverUrl = utils.stripTrailingSlash(u.query.server);
@@ -82,7 +78,7 @@ function resolveBackend (u) {
     }
 }
 
-var goToDemo = utils.restart.bind(undefined, 'demo');
+const goToDemo = utils.restart.bind(undefined, 'demo');
 
 function retry (msg) {
     Notification.notify({
@@ -200,7 +196,7 @@ function resolveMode (server, u) {
             retry('Received invalid mode', mode);
         }
     }, function (err) {
-        console.log(err);
+        console.warn(err);
         retry(`Couldn't reach server, are you sure the url was correct`);
     });
 }
@@ -213,7 +209,7 @@ function initLandmarker(server, mode, u) {
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = '';
 
-    var appInit = {server: server, mode: mode};
+    const appInit = {server: server, mode: mode};
 
     if (u.query.hasOwnProperty('t')) {
         appInit._activeTemplate = u.query.t;
@@ -229,7 +225,12 @@ function initLandmarker(server, mode, u) {
         appInit._assetIndex = idx > 0 ? idx - 1 : 0;
     }
 
-    var app = new App(appInit);
+    if (u.query.hasOwnProperty('fit')) {
+        appInit._fitterUrl = u.query.fit;
+    }
+
+    const app = new App(appInit);
+    window.app = app;
 
     new Notification.AssetLoadingNotification({model: app});
     new SidebarView({model: app});
@@ -237,9 +238,9 @@ function initLandmarker(server, mode, u) {
     new ToolbarView({model: app});
     new HelpOverlay({model: app});
 
-    var viewport = new ViewportView({model: app});
+    const viewport = new ViewportView({model: app});
 
-    var prevAsset = null;
+    let prevAsset = null;
 
     app.on('change:asset', function () {
        console.log('Index: the asset has changed');
@@ -304,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     cfg.load();
     Intro.init({cfg});
-    var u = url.parse(
+    const u = url.parse(
         utils.stripTrailingSlash(window.location.href.replace('#', '?')), true);
 
     $(window).on('keydown', function (evt) {
