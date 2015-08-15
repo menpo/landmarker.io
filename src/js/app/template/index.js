@@ -92,12 +92,14 @@ Template.parseLJSON = function (ljson) {
     const template = [];
     ljson.labels.forEach(function ({label, mask}) {
         const group = {label, points: mask.length, connectivity: []};
-        ljson.landmarks.connectivity.forEach(function ([x1, x2]) {
-            if (mask.indexOf(x1) > -1) {
-                const offset = mask[0];
-                group.connectivity.push(`${x1 - offset} ${x2 - offset}`);
-            }
-        });
+        if (ljson.landmarks.connectivity) {
+            ljson.landmarks.connectivity.forEach(function ([x1, x2]) {
+                if (mask.indexOf(x1) > -1) {
+                    const offset = mask[0];
+                    group.connectivity.push(`${x1 - offset} ${x2 - offset}`);
+                }
+            });
+        }
         template.push(group);
     });
 

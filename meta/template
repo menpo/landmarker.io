@@ -1,9 +1,15 @@
 #!./node_modules/.bin/babel-node
 
-/* Convert between template formats for landmarker.oi and menpo
+/*
+
+Convert between template formats for landmarker.oi and menpo
+================================================================================
 
 See: https://github.com/menpo/landmarker.io/wiki/Templates-specification
 for the specification of the template files.
+
+convert
+-------
 
 The script exposes the convert command which can take a file or a directory as
 input. From the project's root, basic usage is:
@@ -33,6 +39,15 @@ The js target will wrap the json content in an ES6 importable module.
 The scripts excepts the files to be of the correct format, so an ljson file
 saved as .json, while technically valid will fail to convert as it will be
 assumed to be correct json.
+
+validate
+--------
+
+The validate command takes cli arguments `-t` for the template location and `-l`
+for the landmarks (file or directory). It will only validate ljson files.
+
+> ./meta/template validate -t tmpl -l landmarks
+
  */
 
 'use strict';
@@ -44,8 +59,10 @@ import { argv } from 'yargs';
 
 import Template from '../src/js/app/template';
 
+/* Parse action --------------------------------------------------------------*/
+
 const action = argv._[0];
-const ACTIONS = ['convert'];
+const ACTIONS = ['convert', 'validate'];
 const SOURCES = ['ljson', 'json', 'yaml', 'yml'];
 const TARGETS = ['json', 'yaml', 'js'];
 
@@ -58,9 +75,14 @@ switch (action) {
     case 'convert':
         convert();
         break;
+    case 'validate':
+      validate();
+      break;
     default:
-        _exit(`Unrecognized action "${action}", available actions are "${ACTIONS}"`);
+        _exit(`Unknown action "${action}", available actions are "${ACTIONS}"`, 'validate');
 }
+
+/* Convert -------------------------------------------------------------------*/
 
 function convert () {
     const force = argv.f || argv.force;
@@ -134,13 +156,13 @@ function convertDirectory (input, files, output, ext, target, force, recurse) {
                         output, ext, target, force, recurse);
                 });
             } else if (isDir) {
-                console.log(`Ignored subdirectory "${filepath}", use "-r" to convert recursively`);
+                console.log(`Ignored subdirectory "${filepath}", use "-r" to convert recursively`.yellow);
             } else if (!isDir) {
                 const fileExtension = path.extname(filepath).slice(1);
                 if (!ext && SOURCES.indexOf(fileExtension) === -1) {
-                    console.log(`Ignored file "${filepath}" with extension "${fileExtension}" (authorised extensions are "${SOURCES}")`);
+                    console.log(`Ignored file "${filepath}" with extension "${fileExtension}" (authorised extensions are "${SOURCES}")`.yellow);
                 } else if (ext && fileExtension !== ext) {
-                    console.log(`Ignored file "${filepath}" with extension "${fileExtension}" (specified extension is "${ext}")`);
+                    console.log(`Ignored file "${filepath}" with extension "${fileExtension}" (specified extension is "${ext}")`.yellow);
                 } else {
                     convertFile(
                         filepath,
@@ -198,7 +220,7 @@ function convertFile (input, output, ext, target, force, single) {
     }
 
     fs.readFile(input, {
-        encoding: argv.encoding | 'utf8'
+        encoding: argv.encoding || 'utf8'
     }, function (err, data) {
         if (err) {
             if (err.code === 'ENOENT') {
@@ -223,7 +245,7 @@ function convertFile (input, output, ext, target, force, single) {
                         }
                     } else {
                         fs.writeFile(output, parsed, {
-                            encoding: argv.encoding | 'utf8'
+                            encoding: argv.encoding || 'utf8'
                         }, function (e) {
                             if (e) {
                                 _exit(`Failed to write ${output} (${err})`);
@@ -236,4 +258,85 @@ function convertFile (input, output, ext, target, force, single) {
             }
         }
     });
+}
+
+/* Validate ------------------------------------------------------------------*/
+
+function validate () {
+  const tmplPath = argv.t || argv.template;
+  const landmarksPath = argv.l || argv.landmarks;
+
+  if (!tmplPath) {
+    _exit('Missing template path');
+  }
+
+  if (!landmarksPath) {
+    _exit('Missing landmarks path');
+  }
+
+  const ext = path.extname(tmplPath).slice(1);
+  const parser = Template.Parsers[ext];
+
+  if (!parser) {
+    _exit(`Extension ${ext} for ${tmplPath} is invalid (valid extensions: ${Object.keys(Template.Parsers)})`);
+  }
+
+  fs.readFile(tmplPath, {
+      encoding: argv.encoding || 'utf8'
+  }, function (err, data) {
+
+    if (err) {
+      return _exit(err);
+    }
+
+    const tmpl = parser(data.toString());
+
+    const isDir = fs.statSync(landmarksPath).isDirectory();
+
+    if (isDir) {
+      validateDirectory(landmarksPath, tmpl);
+    } else {
+      if (path.extname(landmarksPath).slice(1) === 'ljson') {
+        validateFile(landmarksPath, tmpl);
+      } else {
+        console.log(`Ignoring ${landmarksPath}`.yellow);
+      }
+    }
+
+  });
+}
+
+function validateDirectory (dir, template) {
+  fs.readdir(dir, function (err, files) {
+    if (err) {
+      return _exit(err);
+    }
+
+    files.forEach(function (filename) {
+      if (path.extname(filename).slice(1) === 'ljson') {
+        validateFile(path.join(dir, filename), template, true);
+      } else {
+        console.log(`Ignoring ${filename}`.yellow);
+      }
+    });
+  });
+}
+
+function validateFile (filePath, template, group) {
+  fs.readFile(filePath, {
+    encoding: argv.encoding || 'utf8'
+  }, function (err, data) {
+    if (group && err) {
+      console.error(`Failed to parse ${filePath}`.yellow, err);
+    }
+
+    const isValid = template.validate(data.toString())[0];
+
+    if (isValid) {
+      console.log(`VALID: ${filePath}`.green);
+    } else {
+      console.log(`INVALID: ${filePath}`.red);
+    }
+
+  });
 }
