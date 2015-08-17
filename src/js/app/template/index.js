@@ -3,7 +3,7 @@
 import yaml from 'js-yaml';
 import _ from 'underscore';
 
-import defaults from './defaults';
+import * as defaults from './defaults';
 
 const CYCLE_CONNECTIVITY_LABEL = 'cycle';
 const NULL_POINT = {2: [null, null], 3: [null, null, null]};
@@ -173,14 +173,14 @@ Template.prototype.validate = function (json, dims=2) {
     return [ok, ok ? json : ljson];
 };
 
-let _defaultTemplates;
+let _defaults;
 
 Template.loadDefaultTemplates = function () {
-    if (!_defaultTemplates) {
-        _defaultTemplates = {};
-        defaults.forEach(function ([json, key]) {
-            _defaultTemplates[key] = new Template(json);
+    if (!_defaults) {
+        _defaults = {};
+        Object.keys(defaults).forEach(key => {
+            _defaults[key] = new Template(defaults[key]);
         });
     }
-    return _defaultTemplates;
+    return _defaults;
 };
