@@ -24,6 +24,13 @@ function _key () {
  *
  * Only the init, content and afterRender methods should be overridden
  * in subclasses.
+ * closable, disposeOnClose should be passed to the subclass or set in their
+ * init method.
+ * disposeOnClose will remove the DOM element and handle after close,
+ * otherwise call dispose manually.
+ * Subclasses can implement an _onClose method which will be called after the
+ * modal has been closed (can be called multiple times if disposeOnClose is
+ * false)
  *
  */
 export const Modal = Backbone.View.extend({
@@ -145,10 +152,14 @@ export const Modal = Backbone.View.extend({
     afterRender: function () {}
 });
 
+// Return a handle to the active modal window
 Modal.active = function () {
     return _modals[_activeModal];
 };
 
+// Simple 2 options confirmation window
+// Takes an accept callback and a reject callback which are called without
+// arguments and can be undefined (nothing will happen)
 const ConfirmDialog = Modal.extend({
     modifiers: ['Small'],
 
@@ -186,6 +197,20 @@ const ConfirmDialog = Modal.extend({
 
 });
 
+// Shortcut for confirm modal
+Modal.confirm = function (text, accept, reject, closable=true) {
+    (new ConfirmDialog({
+        text,
+        accept,
+        reject,
+        disposeOnClose: true,
+        closable
+    })).open();
+};
+
+// Custom prompt to replace the traditionnal window.prompt
+// Takes a submit argument as callback which will be called with the entered
+// string.
 const Prompt = Modal.extend({
     modifiers: ['Small'],
 
@@ -222,16 +247,7 @@ const Prompt = Modal.extend({
     }
 });
 
-Modal.confirm = function (text, accept, reject, closable=true) {
-    (new ConfirmDialog({
-        text,
-        accept,
-        reject,
-        disposeOnClose: true,
-        closable
-    })).open();
-};
-
+// Shortcut for prompt modal
 Modal.prompt = function (msg, submit, cancel, closable=true) {
     (new Prompt({
         msg,

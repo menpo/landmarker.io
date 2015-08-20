@@ -5,6 +5,17 @@ import $ from 'jquery';
 
 import Modal from './modal';
 
+/**
+ * List picker modal, takes the following parameters:
+ *
+ *  +   list : an array of tuples [content (string), key]
+ *  +   useFilter : wether or not to display the search bar
+ *  +   submit: the callback
+ *
+ * All tags will have the data attributes value, key and index
+ * The callback is called with the key (which is the content if key is
+ * undefined)
+ */
 export default Modal.extend({
 
     events: {
@@ -13,7 +24,7 @@ export default Modal.extend({
     },
 
     init: function ({list, submit, useFilter}) {
-        this.list = list.map(([c, k], i) => [c, k, i]);
+        this.list = list.map(([c, k], i) => [c, k || c, i]);
         this._list = this.list;
         this.submit = submit;
         this.useFilter = !!useFilter;

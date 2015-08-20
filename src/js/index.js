@@ -86,8 +86,13 @@ var goToDemo = utils.restart.bind(undefined, 'demo');
 
 function retry (msg) {
     Notification.notify({
-        msg, type: 'error', persist: true,
-        actions: [['Restart', utils.restart], ['Go to Demo', goToDemo]]
+        msg,
+        type: 'error',
+        persist: true,
+        actions: [
+          ['Restart', utils.restart],
+          ['Go to Demo', goToDemo]
+        ]
     });
 }
 
@@ -278,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Test for IE
     if (support.ie) {
         // Found IE, do user agent detection for now
-        // https://github.com/menpo/landmarker.io/issues/75 for progess
+        // https://github.com/menpo/landmarker.io/issues/75 for progress
         return Notification.notify({
             msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
             persist: true,

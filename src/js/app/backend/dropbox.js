@@ -61,6 +61,10 @@ const Dropbox = Base.extend('DROPBOX', function (token, cfg) {
 
 export default Dropbox;
 
+// ============================================================================
+// Dropbox specific code and setup functions
+// ============================================================================
+
 /**
  * Builds an authentication URL for Dropbox OAuth2 flow and
  * redirects the user
@@ -83,6 +87,11 @@ Dropbox.authorize = function () {
     return [u, oAuthState];
 };
 
+/**
+ * Return the base headers object to be passed to request,
+ * only contains authorization -> extend from there
+ * @return {Object}
+ */
 Dropbox.prototype.headers = function () {
     if (!this._token) {
         throw new Error(`Can't proceed without an access token`);
@@ -104,6 +113,15 @@ Dropbox.prototype.setMode = function (mode) {
 };
 
 // Template management
+// ---------------------------
+
+/**
+ * Open a dropbox picker to change the templates
+ * @param  {function} success        called after successful call to addTemplate
+ * @param  {function} error          called after failed call to addTemplate
+ * @param  {bool}     closable=false should this modal be closable
+ * @return {Modal}                   reference to the picker modal
+ */
 Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
     const picker = new Picker({
         dropbox: this,
@@ -123,6 +141,12 @@ Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
     return picker;
 };
 
+/**
+ * Downloads the file at path and adds tries to generate a template from it.
+ * Rejects on download error or parsing error
+ * @param {String} path
+ * @return {Promise}
+ */
 Dropbox.prototype.addTemplate = function (path) {
 
     if (!path) {
@@ -158,6 +182,9 @@ Dropbox.prototype.addTemplate = function (path) {
     });
 };
 
+/**
+ * Starts a local download of the givem template as YAML
+ */
 Dropbox.prototype.downloadTemplate = function (name) {
     if (this._templates[name]) {
         download(this._templates[name].toYAML(), `${name}.yaml`, 'yaml');
@@ -165,6 +192,8 @@ Dropbox.prototype.downloadTemplate = function (name) {
 };
 
 // Assets management
+// ---------------------------
+
 Dropbox.prototype.pickAssets = function (success, error, closable=false) {
     const picker = new Picker({
         dropbox: this,
@@ -172,7 +201,10 @@ Dropbox.prototype.pickAssets = function (success, error, closable=false) {
         title: 'Select a directory from which to load assets',
         radios: [{
             name: 'mode',
-            options: [['Image Mode', 'image'], ['Mesh Mode', 'mesh']]
+            options: [
+                ['Image Mode', 'image'],
+                ['Mesh Mode', 'mesh']
+            ]
         }],
         closable,
         submit: (path, isFolder, {mode}) => {
@@ -219,7 +251,7 @@ Dropbox.prototype.setAssets = function (path, mode) {
 Dropbox.prototype._setMeshAssets = function (items) {
     const paths = items.map((item) => item.path);
 
-    // Find only OBJ files
+    // Find only OBJ and STL files
     this._assets = paths.filter((p) => ['obj', 'stl'].indexOf(extname(p)) > -1);
 
     // Initialize texture map
@@ -243,6 +275,20 @@ Dropbox.prototype._setImageAssets = function (items) {
     this._assets = items.map((item) => item.path);
 };
 
+/**
+ * List files at the given path, returns a promise resolving with a list of
+ * strings
+ *
+ * options are: - foldersOnly (boolean)
+ * 				- filesOnly (boolean)
+ * 				- showHidden (boolean)
+ * 				- extensions (string[])
+ * 				- noCache (boolean)
+ *
+ * The requests are cached and busted with `noCache=true`, the filtering takes
+ * place locally. `foldersOnly` and `filesOnly` will conflict -> nothing
+ * returned.
+ */
 Dropbox.prototype.list = function (path='/', {
     foldersOnly=false,
     filesOnly=false,
@@ -252,6 +298,7 @@ Dropbox.prototype.list = function (path='/', {
 }={}) {
     let q;
 
+    // Perform request or load from cache
     if (this._listCache[path] && !noCache) {
         q = Promise.resolve(this._listCache[path]);
     } else {
@@ -265,9 +312,10 @@ Dropbox.prototype.list = function (path='/', {
         });
     }
 
+    // Filter
     return q.then((data) => {
 
-        if (!data.is_dir) {
+        if (!data.is_dir) { // Can only list directories
             throw new Error(`${path} is not a directory`);
         }
 
@@ -282,16 +330,16 @@ Dropbox.prototype.list = function (path='/', {
                     return false;
                 }
 
+                if (filesOnly && item.is_dir) {
+                    return false;
+                }
+
                 if (
+                    !item.is_dir &&
                     extensions.length > 0 && extensions.indexOf(extname(item.path)) === -1
                 ) {
                     return false;
                 }
-
-            }
-
-            if (filesOnly && item.is_dir) {
-                return false;
             }
 
             return true;
@@ -299,6 +347,8 @@ Dropbox.prototype.list = function (path='/', {
     });
 };
 
+// Download the content of a file, default response type is text
+// as it is the default from the Dropbox API
 Dropbox.prototype.download = function (path, responseType='text') {
     return get(
         `${CONTENTS_URL}/files/auto${path}`, {
@@ -335,6 +385,10 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
     this._mediaCache[path] = q;
     return q;
 };
+
+// ============================================================================
+// Actual Backend related functions
+// ============================================================================
 
 Dropbox.prototype.fetchMode = function () {
     return Promise.resolve(this.mode);
