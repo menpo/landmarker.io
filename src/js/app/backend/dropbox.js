@@ -325,21 +325,20 @@ Dropbox.prototype.list = function (path='/', {
                 return false;
             }
 
-            if (!item.is_dir) {
-                if (foldersOnly) {
-                    return false;
-                }
+            if (foldersOnly && !item.is_dir) {
+                return false;
+            }
 
-                if (filesOnly && item.is_dir) {
-                    return false;
-                }
+            if (filesOnly && item.is_dir) {
+                return false;
+            }
 
-                if (
-                    !item.is_dir &&
-                    extensions.length > 0 && extensions.indexOf(extname(item.path)) === -1
-                ) {
-                    return false;
-                }
+            if (
+                !item.is_dir &&
+                extensions.length > 0 &&
+                extensions.indexOf(extname(item.path)) === -1
+            ) {
+                return false;
             }
 
             return true;
