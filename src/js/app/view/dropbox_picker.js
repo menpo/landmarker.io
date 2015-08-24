@@ -43,15 +43,16 @@ function Icon (item) {
     return $(`<span class='octicon octicon-${icon}'></span>`);
 }
 
-function DropboxRadio (opts, index) {
+function DropboxRadio (opts, index, preset) {
 
     const id = `dropboxRadios_${index}`;
     const $radio = $(`<div class='DropboxRadio' id='${id}'></div>`);
+    preset = preset || opts[0][1];
 
     opts.forEach(function ([text, key], j) {
         $radio.append($(`\
             <label class='radio'>\
-                <input id='${id}_${j}' value='${key}' type="radio" name="${id}" ${j === 0 ? 'checked' : ''}/>\
+                <input id='${id}_${j}' value='${key}' type="radio" name="${id}" ${key === preset ? 'checked' : ''}/>\
                 <span>${text}</span>\
             </label>\
         `));
@@ -73,8 +74,8 @@ export default Modal.extend({
     init: function ({
         dropbox, submit,
         showFoldersOnly=false, showHidden=false, selectFoldersOnly=false,
-        extensions=[], selectFilesOnly=false, root=undefined,
-        radios=[]
+        extensions=[], selectFilesOnly=false,
+        radios=[], presets={}
     }) {
 
         this.disposeOnClose = true;
@@ -85,6 +86,7 @@ export default Modal.extend({
         this.selectFilesOnly = !selectFoldersOnly && selectFilesOnly;
         this.extensions = extensions;
         this.radios = radios;
+        this.presets = presets;
 
         this._cache = {};
 
@@ -93,14 +95,10 @@ export default Modal.extend({
         this.state = {
             selected: undefined,
             selectedIsFolder: false,
-            root: '/',
+            root: presets.root || '/',
             currentList: [],
             history: []
         };
-
-        if (root) {
-            this.state.root = root;
-        }
 
         _.bindAll(this, 'fetch', 'makeList', 'update', 'select',
             'dive', 'handleSubmit', 'reload', 'handleClick');
@@ -307,8 +305,11 @@ export default Modal.extend({
 
         if (this.radios && this.radios.length > 0) {
             const $radios = $("<div class='DropboxRadios'></div>");
-            this.radios.forEach(({name, options}, index) => {
-                $radios.prepend(DropboxRadio(options, index));
+            this.radios.forEach(({name, options}, i) => {
+                $radios.prepend(DropboxRadio(
+                    options,
+                    i,
+                    this.presets.radios ? this.presets.radios[i] : null));
             });
             $content.prepend($radios);
         }

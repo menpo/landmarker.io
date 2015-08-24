@@ -206,6 +206,10 @@ Dropbox.prototype.pickAssets = function (success, error, closable=false) {
                 ['Mesh Mode', 'mesh']
             ]
         }],
+        presets: {
+            radios: [this.mode],
+            root: this._assetsPath
+        },
         closable,
         submit: (path, isFolder, {mode}) => {
             this.setAssets(path, mode).then(() => {
