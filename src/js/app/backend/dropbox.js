@@ -208,9 +208,9 @@ Dropbox.prototype.pickAssets = function (success, error, closable=false) {
         }],
         closable,
         submit: (path, isFolder, {mode}) => {
-            this.setAssets(path, mode).then((name) => {
+            this.setAssets(path, mode).then(() => {
                 picker.dispose();
-                success(name);
+                success(path);
             }, error);
         }
     });
