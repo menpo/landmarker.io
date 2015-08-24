@@ -3,7 +3,7 @@
 import yaml from 'js-yaml';
 import _ from 'underscore';
 
-import * as defaults from './defaults';
+import defaults from './defaults';
 
 const CYCLE_CONNECTIVITY_LABEL = 'cycle';
 const NULL_POINT = {2: [null, null], 3: [null, null, null]};
