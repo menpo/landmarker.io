@@ -102,7 +102,6 @@ export const MeshSource = AssetSource.extend({
     },
 
     setAsset: function (newMesh) {
-        var that = this;
         var oldAsset = this.get('asset');
         // stop listening to the old asset
         if (oldAsset) {
@@ -112,10 +111,11 @@ export const MeshSource = AssetSource.extend({
             this.pending = {};
         }
         // kill any current fetches
+        console.log("Starting abort");
         abortAllObj(this.pending);
         this.set('assetIsLoading', true);
         // set the asset immediately (triggering change in UI)
-        that.set('asset', newMesh);
+        this.set('asset', newMesh);
 
         this.listenTo(newMesh, 'newMeshAvailable', this.updateMesh);
 
@@ -134,7 +134,7 @@ export const MeshSource = AssetSource.extend({
 
         // after the geometry is ready, we want to clear up our tracking of
         // loading requests.
-        geometry.then(function () {
+        geometry.then(() => {
             console.log('grabbed new mesh geometry');
             // now everyone has moved onto the new mesh, clean up the old
             // one.
@@ -142,8 +142,8 @@ export const MeshSource = AssetSource.extend({
                 //oldAsset.dispose();
                 oldAsset = null;
             }
-            delete that.pending[newMesh.id];
-            that.set('assetIsLoading', false);
+            delete this.pending[newMesh.id];
+            this.set('assetIsLoading', false);
         }, function (err) {
             console.log('geometry.then something went wrong ' + err.stack);
         });

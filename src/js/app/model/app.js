@@ -138,7 +138,6 @@ export default Backbone.Model.extend({
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
         this.listenTo(this, 'change:activeTemplate', this.reloadLandmarks);
-        this.listenTo(this, 'change:mode', this.reloadAssetSource);
 
         this._initTemplates();
         this._initCollections();
