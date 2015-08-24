@@ -235,12 +235,13 @@ export const CollectionName = Backbone.View.extend({
     },
 
     render: function () {
+        const server = this.model.server();
         this.$el.find('.content').html(
             `${this.model.activeCollection()} (${this.model.mode()})`);
         this.$el.toggleClass(
             'Disabled',
             ( this.model.collections().length <= 1 &&
-              !(this.model.server() instanceof Dropbox) )
+              !(typeof server.pickAssets === 'function') )
         );
         return this;
     },
@@ -248,7 +249,7 @@ export const CollectionName = Backbone.View.extend({
     chooseCollection: function () {
 
         const backend = this.model.server();
-        if (backend instanceof Dropbox) {
+        if (backend && typeof backend.pickAssets === 'function') {
             backend.pickAssets((path) => {
                 this.model.set('mode', backend.mode);
                 this.model.set('activeCollection', path);
@@ -258,7 +259,7 @@ export const CollectionName = Backbone.View.extend({
                     msg: 'Error switching assets ' + err
                 });
             }, true);
-        } else if (backend instanceof Server) {
+        } else { // Assume we have previous knowledge of all collections
 
             if (this.model.collections().length <= 1) {
                 return;
