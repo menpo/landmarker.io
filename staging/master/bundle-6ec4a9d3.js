@@ -148,7 +148,9 @@ var goToDemo = utils.restart.bind(undefined, 'demo');
 
 function retry(msg) {
     Notification.notify({
-        msg: msg, type: 'error', persist: true,
+        msg: msg,
+        type: 'error',
+        persist: true,
         actions: [['Restart', utils.restart], ['Go to Demo', goToDemo]]
     });
 }
@@ -340,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Test for IE
     if (support.ie) {
         // Found IE, do user agent detection for now
-        // https://github.com/menpo/landmarker.io/issues/75 for progess
+        // https://github.com/menpo/landmarker.io/issues/75 for progress
         return Notification.notify({
             msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
             persist: true,
@@ -59475,6 +59477,9 @@ module.exports={
     "mocha": "^2.2.5",
     "watchify": "^3.2.1",
     "yargs": "^3.15.0"
+  },
+  "babel": {
+    "stage": 0
   }
 }
 
@@ -59482,26 +59487,119 @@ module.exports={
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
-    value: true
+  value: true
 });
 exports['default'] = Base;
 
-function Base() {}
+function Base() {
+  throw new Error('Backend:Base class needs to be subclassed');
+}
 
-// Abstract prototype methods
-var abstractMethods = ['fetchMode', 'fetchTemplates', 'fetchCollections', 'fetchCollection', 'fetchLandmarkGroup', 'saveLandmarkGroup', 'fetchThumbnail', 'fetchTexture', 'fetchGeometry'];
+function thrower(name) {
+  return function () {
+    throw new Error(name + ' method not implemented');
+  };
+}
 
-abstractMethods.forEach(function (name) {
-    Base.prototype[name] = function () {
-        throw new Error(name + ' instance method not implemented');
-    };
-});
+/**
+ * Returns which mode the backend is currently working on to set the viewport
+ * accordingly
+ *
+ * @return {Promise}
+ * @resolve {String}
+ */
+Base.prototype.fetchMode = thrower('fetchMode');
 
+/**
+ * List of available collections
+ *
+ * @return {Promise}
+ * @resolve {String[]}
+ */
+Base.prototype.fetchCollections = thrower('fetchCollections');
+
+/**
+ * The list of assets ids in the collection with name collectionId,
+ * these ids will be passed back as is to other methods such as fetchGeometry
+ *
+ * @param {String} collectionId
+ * @return {Promise}
+ * @resolve {String[]}
+ */
+Base.prototype.fetchCollection = thrower('fetchCollection');
+
+/**
+ * List of available templates, will be passed as is in fetchLandmarkGroup
+ * and saveLandmarkGroup
+ *
+ * @return {Promise}
+ * @resolve {String[]}
+ */
+Base.prototype.fetchTemplates = thrower('fetchTemplates');
+
+/**
+ * Return a thumbnail for the required assetId, have it reject if not available
+ * for the current api
+ *
+ * @param {String} assetId
+ * @return {Promise}
+ * @resolve {THREE.Material}
+ */
+Base.prototype.fetchThumbnail = thrower('fetchThumbnail');
+
+/**
+ * Return the full texture for the required assetId
+ * For images, the texture is the main data
+ *
+ * @param {String} assetId
+ * @return {Promise}
+ * @resolve {THREE.Material}
+ */
+Base.prototype.fetchTexture = thrower('fetchTexture');
+
+/**
+ * Return the 3d geometry for the required assetId, should take care of the
+ * parsing and building the THREE object
+ *
+ * @param {String} assetId
+ * @return {Promise}
+ * @resolve {THREE.Geometry}
+ */
+Base.prototype.fetchGeometry = thrower('fetchGeometry');
+
+/**
+ * Return the remote data for landmarks for an asset/template combination
+ *
+ * @param {String} assetId
+ * @param {String} type [template name]
+ * @return {Promise}
+ * @resolve {Object} [Parsed JSON]
+ */
+Base.prototype.fetchLandmarkGroup = thrower('fetchLandmarkGroup');
+
+/**
+ * Saves the json data remotely for landmarks for an asset/template combination,
+ * resolving with any value marks success, rejection is an error
+ *
+ * @param {String} assetId
+ * @param {String} type [template name]
+ * @param {Object} json
+ * @return {Promise}
+ * @resolve {}
+ */
+Base.prototype.saveLandmarkGroup = thrower('saveLandmarkGroup');
+
+/**
+ * Inheritance helper
+ * @param  {String} type [Used to identify backends in local storage]
+ * @param  {Function} child
+ * @return {Function}
+ */
 Base.extend = function extend(type, child) {
-    child.prototype = Object.create(Base.prototype);
-    child.prototype.constructor = child;
-    child.Type = type;
-    return child;
+  child.prototype = Object.create(Base.prototype);
+  child.prototype.constructor = child;
+  child.Type = type;
+  return child;
 };
 module.exports = exports['default'];
 
@@ -59598,6 +59696,10 @@ var Dropbox = _base2['default'].extend('DROPBOX', function (token, cfg) {
 
 exports['default'] = Dropbox;
 
+// ============================================================================
+// Dropbox specific code and setup functions
+// ============================================================================
+
 /**
  * Builds an authentication URL for Dropbox OAuth2 flow and
  * redirects the user
@@ -59620,6 +59722,11 @@ Dropbox.authorize = function () {
     return [u, oAuthState];
 };
 
+/**
+ * Return the base headers object to be passed to request,
+ * only contains authorization -> extend from there
+ * @return {Object}
+ */
 Dropbox.prototype.headers = function () {
     if (!this._token) {
         throw new Error('Can\'t proceed without an access token');
@@ -59641,6 +59748,15 @@ Dropbox.prototype.setMode = function (mode) {
 };
 
 // Template management
+// ---------------------------
+
+/**
+ * Open a dropbox picker to change the templates
+ * @param  {function} success        called after successful call to addTemplate
+ * @param  {function} error          called after failed call to addTemplate
+ * @param  {bool}     closable=false should this modal be closable
+ * @return {Modal}                   reference to the picker modal
+ */
 Dropbox.prototype.pickTemplate = function (success, error) {
     var _this = this;
 
@@ -59664,6 +59780,12 @@ Dropbox.prototype.pickTemplate = function (success, error) {
     return picker;
 };
 
+/**
+ * Downloads the file at path and adds tries to generate a template from it.
+ * Rejects on download error or parsing error
+ * @param {String} path
+ * @return {Promise}
+ */
 Dropbox.prototype.addTemplate = function (path) {
     var _this2 = this;
 
@@ -59699,6 +59821,9 @@ Dropbox.prototype.addTemplate = function (path) {
     });
 };
 
+/**
+ * Starts a local download of the givem template as YAML
+ */
 Dropbox.prototype.downloadTemplate = function (name) {
     if (this._templates[name]) {
         (0, _libDownload2['default'])(this._templates[name].toYAML(), name + '.yaml', 'yaml');
@@ -59706,6 +59831,8 @@ Dropbox.prototype.downloadTemplate = function (name) {
 };
 
 // Assets management
+// ---------------------------
+
 Dropbox.prototype.pickAssets = function (success, error) {
     var _this3 = this;
 
@@ -59719,13 +59846,17 @@ Dropbox.prototype.pickAssets = function (success, error) {
             name: 'mode',
             options: [['Image Mode', 'image'], ['Mesh Mode', 'mesh']]
         }],
+        presets: {
+            radios: [this.mode],
+            root: this._assetsPath
+        },
         closable: closable,
         submit: function submit(path, isFolder, _ref) {
             var mode = _ref.mode;
 
-            _this3.setAssets(path, mode).then(function (name) {
+            _this3.setAssets(path, mode).then(function () {
                 picker.dispose();
-                success(name);
+                success(path);
             }, error);
         }
     });
@@ -59771,7 +59902,7 @@ Dropbox.prototype._setMeshAssets = function (items) {
         return item.path;
     });
 
-    // Find only OBJ files
+    // Find only OBJ and STL files
     this._assets = paths.filter(function (p) {
         return ['obj', 'stl'].indexOf((0, _libUtils.extname)(p)) > -1;
     });
@@ -59799,6 +59930,20 @@ Dropbox.prototype._setImageAssets = function (items) {
     });
 };
 
+/**
+ * List files at the given path, returns a promise resolving with a list of
+ * strings
+ *
+ * options are: - foldersOnly (boolean)
+ * 				- filesOnly (boolean)
+ * 				- showHidden (boolean)
+ * 				- extensions (string[])
+ * 				- noCache (boolean)
+ *
+ * The requests are cached and busted with `noCache=true`, the filtering takes
+ * place locally. `foldersOnly` and `filesOnly` will conflict -> nothing
+ * returned.
+ */
 Dropbox.prototype.list = function () {
     var _this6 = this;
 
@@ -59819,6 +59964,7 @@ Dropbox.prototype.list = function () {
 
     var q = undefined;
 
+    // Perform request or load from cache
     if (this._listCache[path] && !noCache) {
         q = _promisePolyfill2['default'].resolve(this._listCache[path]);
     } else {
@@ -59831,9 +59977,11 @@ Dropbox.prototype.list = function () {
         });
     }
 
+    // Filter
     return q.then(function (data) {
 
         if (!data.is_dir) {
+            // Can only list directories
             throw new Error(path + ' is not a directory');
         }
 
@@ -59843,17 +59991,15 @@ Dropbox.prototype.list = function () {
                 return false;
             }
 
-            if (!item.is_dir) {
-                if (foldersOnly) {
-                    return false;
-                }
-
-                if (extensions.length > 0 && extensions.indexOf((0, _libUtils.extname)(item.path)) === -1) {
-                    return false;
-                }
+            if (foldersOnly && !item.is_dir) {
+                return false;
             }
 
             if (filesOnly && item.is_dir) {
+                return false;
+            }
+
+            if (!item.is_dir && extensions.length > 0 && extensions.indexOf((0, _libUtils.extname)(item.path)) === -1) {
                 return false;
             }
 
@@ -59862,6 +60008,8 @@ Dropbox.prototype.list = function () {
     });
 };
 
+// Download the content of a file, default response type is text
+// as it is the default from the Dropbox API
 Dropbox.prototype.download = function (path) {
     var responseType = arguments.length <= 1 || arguments[1] === undefined ? 'text' : arguments[1];
 
@@ -59903,6 +60051,10 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
     this._mediaCache[path] = q;
     return q;
 };
+
+// ============================================================================
+// Actual Backend related functions
+// ============================================================================
 
 Dropbox.prototype.fetchMode = function () {
     return _promisePolyfill2['default'].resolve(this.mode);
@@ -61357,6 +61509,11 @@ Tracker.prototype.canUndo = function () {
 exports['default'] = Tracker;
 
 },{"backbone":2,"underscore":44}],57:[function(require,module,exports){
+/**
+ * @module utils
+ * Collection of utility functions not present in underscore and useful
+ * throughout the application
+ */
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61383,6 +61540,14 @@ var _modelConfig = require('../model/config');
 
 var _modelConfig2 = _interopRequireDefault(_modelConfig);
 
+/**
+ * Generate a random alphanumeric string
+ * useTime will **append** the current timestamp at the end
+ * @param  {Integer} length
+ * @param  {boolean} useTime=true
+ * @return {string}
+ */
+
 function randomString(length) {
     var useTime = arguments.length <= 1 || arguments[1] === undefined ? true : arguments[1];
 
@@ -61400,6 +61565,13 @@ function randomString(length) {
     return result;
 }
 
+/**
+ * Returns the last part of a path, with or without the extension
+ * @param  {string} path
+ * @param  {boolean} removeExt=false
+ * @return {string}
+ */
+
 function basename(path) {
     var removeExt = arguments.length <= 1 || arguments[1] === undefined ? false : arguments[1];
 
@@ -61407,10 +61579,21 @@ function basename(path) {
     return removeExt ? bn.split('.').slice(0, -1).join('.') : bn;
 }
 
+/**
+ * Return the lowercase extension for a path (null if no extension)
+ * @param  {string} path
+ * @return {string}
+ */
+
 function extname(path) {
     var parts = path.split('.');
     return parts.length > 1 ? parts.pop().toLowerCase() : undefined;
 }
+
+/**
+ * Return a path without its extension
+ * @return {string}
+ */
 
 function stripExtension(path) {
     var parts = path.split('.');
@@ -61424,6 +61607,10 @@ function stripTrailingSlash(str) {
 function addTrailingSlash(str) {
     return str.substr(-1) === '/' ? str : str + '/';
 }
+
+/**
+ * The base url of the current window with trailing slash addedd
+ */
 
 function baseUrl() {
     return addTrailingSlash(window.location.origin + window.location.pathname);
@@ -61439,6 +61626,14 @@ function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+/**
+ * Return the elements of array which index are in mask, technically works with
+ * objects and string keys as well
+ * @param {Array} array
+ * @para {Integer[]} mask
+ * @return {Array}
+ */
+
 function maskedArray(array, mask) {
     var masked = [];
     for (var i = 0; i < mask.length; i++) {
@@ -61448,6 +61643,12 @@ function maskedArray(array, mask) {
     }
     return masked;
 }
+
+/**
+ * Restart the applicatioon by clearing the config and reloading the current
+ * origin.
+ * @param  {String} serverUrl [Server URL to preset before reloading]
+ */
 
 function restart(serverUrl) {
     (0, _modelConfig2['default'])().clear();
@@ -61654,7 +61855,6 @@ exports['default'] = _backbone2['default'].Model.extend({
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource);
         this.listenTo(this, 'change:activeTemplate', this.reloadLandmarks);
-        this.listenTo(this, 'change:mode', this.reloadAssetSource);
 
         this._initTemplates();
         this._initCollections();
@@ -62450,7 +62650,8 @@ var MeshSource = AssetSource.extend({
     },
 
     setAsset: function setAsset(newMesh) {
-        var that = this;
+        var _this3 = this;
+
         var oldAsset = this.get('asset');
         // stop listening to the old asset
         if (oldAsset) {
@@ -62460,10 +62661,11 @@ var MeshSource = AssetSource.extend({
             this.pending = {};
         }
         // kill any current fetches
+        console.log('Starting abort');
         abortAllObj(this.pending);
         this.set('assetIsLoading', true);
         // set the asset immediately (triggering change in UI)
-        that.set('asset', newMesh);
+        this.set('asset', newMesh);
 
         this.listenTo(newMesh, 'newMeshAvailable', this.updateMesh);
 
@@ -62490,8 +62692,8 @@ var MeshSource = AssetSource.extend({
                 //oldAsset.dispose();
                 oldAsset = null;
             }
-            delete that.pending[newMesh.id];
-            that.set('assetIsLoading', false);
+            delete _this3.pending[newMesh.id];
+            _this3.set('assetIsLoading', false);
         }, function (err) {
             console.log('geometry.then something went wrong ' + err.stack);
         });
@@ -62507,12 +62709,12 @@ exports.MeshSource = MeshSource;
 var ImageSource = AssetSource.extend({
 
     parse: function parse(response) {
-        var _this3 = this;
+        var _this4 = this;
 
         var images = response.map(function (assetId) {
             return new Asset.Image({
                 id: assetId,
-                server: _this3.get('server')
+                server: _this4.get('server')
             });
         });
 
@@ -62520,7 +62722,7 @@ var ImageSource = AssetSource.extend({
     },
 
     setAsset: function setAsset(newAsset) {
-        var _this4 = this;
+        var _this5 = this;
 
         var oldAsset = this.get('asset');
         // stop listening to the old asset
@@ -62544,7 +62746,7 @@ var ImageSource = AssetSource.extend({
         // loading requests.
         texture.then(function () {
             console.log('grabbed new image texture');
-            _this4.set('assetIsLoading', false);
+            _this5.set('assetIsLoading', false);
         }, function (err) {
             console.log('texture.then something went wrong ' + err.stack);
         });
@@ -63499,11 +63701,11 @@ OctreeNode.prototype.subdivide = function () {
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
-    value: true
+                 value: true
 });
 
 function _interopRequireDefault(obj) {
-    return obj && obj.__esModule ? obj : { 'default': obj };
+                 return obj && obj.__esModule ? obj : { 'default': obj };
 }
 
 var _face = require('./face');
@@ -63522,7 +63724,10 @@ var _simple42 = require('./simple42');
 
 var _simple422 = _interopRequireDefault(_simple42);
 
-exports['default'] = [[_face2['default'], 'face'], [_ibug682['default'], 'ibug68'], [_simple102['default'], 'simple10'], [_simple422['default'], 'simple42']];
+exports['default'] = { face: _face2['default'],
+                 ibug68: _ibug682['default'],
+                 simple10: _simple102['default'],
+                 simple42: _simple422['default'] };
 module.exports = exports['default'];
 
 },{"./face":67,"./ibug68":68,"./simple10":70,"./simple42":71}],67:[function(require,module,exports){
@@ -63640,9 +63845,9 @@ var _underscore = require('underscore');
 
 var _underscore2 = _interopRequireDefault(_underscore);
 
-var _defaults = require('./defaults');
+var _defaults2 = require('./defaults');
 
-var _defaults2 = _interopRequireDefault(_defaults);
+var _defaults3 = _interopRequireDefault(_defaults2);
 
 var CYCLE_CONNECTIVITY_LABEL = 'cycle';
 var NULL_POINT = { 2: [null, null], 3: [null, null, null] };
@@ -63743,17 +63948,19 @@ Template.parseLJSON = function (ljson) {
         var mask = _ref.mask;
 
         var group = { label: label, points: mask.length, connectivity: [] };
-        ljson.landmarks.connectivity.forEach(function (_ref2) {
-            var _ref22 = _slicedToArray(_ref2, 2);
+        if (ljson.landmarks.connectivity) {
+            ljson.landmarks.connectivity.forEach(function (_ref2) {
+                var _ref22 = _slicedToArray(_ref2, 2);
 
-            var x1 = _ref22[0];
-            var x2 = _ref22[1];
+                var x1 = _ref22[0];
+                var x2 = _ref22[1];
 
-            if (mask.indexOf(x1) > -1) {
-                var offset = mask[0];
-                group.connectivity.push(x1 - offset + ' ' + (x2 - offset));
-            }
-        });
+                if (mask.indexOf(x1) > -1) {
+                    var offset = mask[0];
+                    group.connectivity.push(x1 - offset + ' ' + (x2 - offset));
+                }
+            });
+        }
         template.push(group);
     });
 
@@ -63841,21 +64048,16 @@ Template.prototype.validate = function (json) {
     return [ok, ok ? json : ljson];
 };
 
-var _defaultTemplates = undefined;
+var _defaults = undefined;
 
 Template.loadDefaultTemplates = function () {
-    if (!_defaultTemplates) {
-        _defaultTemplates = {};
-        _defaults2['default'].forEach(function (_ref5) {
-            var _ref52 = _slicedToArray(_ref5, 2);
-
-            var json = _ref52[0];
-            var key = _ref52[1];
-
-            _defaultTemplates[key] = new Template(json);
+    if (!_defaults) {
+        _defaults = {};
+        Object.keys(_defaults3['default']).forEach(function (key) {
+            _defaults[key] = new Template(_defaults3['default'][key]);
         });
     }
-    return _defaultTemplates;
+    return _defaults;
 };
 module.exports = exports['default'];
 
@@ -64160,8 +64362,9 @@ var CollectionName = _backbone2['default'].View.extend({
     },
 
     render: function render() {
+        var server = this.model.server();
         this.$el.find('.content').html(this.model.activeCollection() + ' (' + this.model.mode() + ')');
-        this.$el.toggleClass('Disabled', this.model.collections().length <= 1 && !(this.model.server() instanceof _backend.Dropbox));
+        this.$el.toggleClass('Disabled', this.model.collections().length <= 1 && !(typeof server.pickAssets === 'function'));
         return this;
     },
 
@@ -64169,7 +64372,7 @@ var CollectionName = _backbone2['default'].View.extend({
         var _this2 = this;
 
         var backend = this.model.server();
-        if (backend instanceof _backend.Dropbox) {
+        if (backend && typeof backend.pickAssets === 'function') {
             backend.pickAssets(function (path) {
                 _this2.model.set('mode', backend.mode);
                 _this2.model.set('activeCollection', path);
@@ -64179,7 +64382,8 @@ var CollectionName = _backbone2['default'].View.extend({
                     msg: 'Error switching assets ' + err
                 });
             }, true);
-        } else if (backend instanceof _backend.Server) {
+        } else {
+            // Assume we have previous knowledge of all collections
 
             if (this.model.collections().length <= 1) {
                 return;
@@ -64309,10 +64513,11 @@ function Icon(item) {
     return (0, _jquery2['default'])('<span class=\'octicon octicon-' + icon + '\'></span>');
 }
 
-function DropboxRadio(opts, index) {
+function DropboxRadio(opts, index, preset) {
 
     var id = 'dropboxRadios_' + index;
     var $radio = (0, _jquery2['default'])('<div class=\'DropboxRadio\' id=\'' + id + '\'></div>');
+    preset = preset || opts[0][1];
 
     opts.forEach(function (_ref, j) {
         var _ref2 = _slicedToArray(_ref, 2);
@@ -64320,7 +64525,7 @@ function DropboxRadio(opts, index) {
         var text = _ref2[0];
         var key = _ref2[1];
 
-        $radio.append((0, _jquery2['default'])('            <label class=\'radio\'>                <input id=\'' + id + '_' + j + '\' value=\'' + key + '\' type="radio" name="' + id + '" ' + (j === 0 ? 'checked' : '') + '/>                <span>' + text + '</span>            </label>        '));
+        $radio.append((0, _jquery2['default'])('            <label class=\'radio\'>                <input id=\'' + id + '_' + j + '\' value=\'' + key + '\' type="radio" name="' + id + '" ' + (key === preset ? 'checked' : '') + '/>                <span>' + text + '</span>            </label>        '));
     });
 
     return $radio;
@@ -64349,10 +64554,10 @@ exports['default'] = _modal2['default'].extend({
         var extensions = _ref3$extensions === undefined ? [] : _ref3$extensions;
         var _ref3$selectFilesOnly = _ref3.selectFilesOnly;
         var selectFilesOnly = _ref3$selectFilesOnly === undefined ? false : _ref3$selectFilesOnly;
-        var _ref3$root = _ref3.root;
-        var root = _ref3$root === undefined ? undefined : _ref3$root;
         var _ref3$radios = _ref3.radios;
         var radios = _ref3$radios === undefined ? [] : _ref3$radios;
+        var _ref3$presets = _ref3.presets;
+        var presets = _ref3$presets === undefined ? {} : _ref3$presets;
 
         this.disposeOnClose = true;
         this.dropbox = dropbox;
@@ -64362,6 +64567,7 @@ exports['default'] = _modal2['default'].extend({
         this.selectFilesOnly = !selectFoldersOnly && selectFilesOnly;
         this.extensions = extensions;
         this.radios = radios;
+        this.presets = presets;
 
         this._cache = {};
 
@@ -64370,14 +64576,10 @@ exports['default'] = _modal2['default'].extend({
         this.state = {
             selected: undefined,
             selectedIsFolder: false,
-            root: '/',
+            root: presets.root || '/',
             currentList: [],
             history: []
         };
-
-        if (root) {
-            this.state.root = root;
-        }
 
         _underscore2['default'].bindAll(this, 'fetch', 'makeList', 'update', 'select', 'dive', 'handleSubmit', 'reload', 'handleClick');
     },
@@ -64556,11 +64758,11 @@ exports['default'] = _modal2['default'].extend({
         if (this.radios && this.radios.length > 0) {
             (function () {
                 var $radios = (0, _jquery2['default'])('<div class=\'DropboxRadios\'></div>');
-                _this4.radios.forEach(function (_ref5, index) {
+                _this4.radios.forEach(function (_ref5, i) {
                     var name = _ref5.name;
                     var options = _ref5.options;
 
-                    $radios.prepend(DropboxRadio(options, index));
+                    $radios.prepend(DropboxRadio(options, i, _this4.presets.radios ? _this4.presets.radios[i] : null));
                 });
                 $content.prepend($radios);
             })();
@@ -65041,6 +65243,17 @@ var _modal = require('./modal');
 
 var _modal2 = _interopRequireDefault(_modal);
 
+/**
+ * List picker modal, takes the following parameters:
+ *
+ *  +   list : an array of tuples [content (string), key]
+ *  +   useFilter : wether or not to display the search bar
+ *  +   submit: the callback
+ *
+ * All tags will have the data attributes value, key and index
+ * The callback is called with the key (which is the content if key is
+ * undefined)
+ */
 exports['default'] = _modal2['default'].extend({
 
     events: {
@@ -65058,7 +65271,7 @@ exports['default'] = _modal2['default'].extend({
 
             var c = _ref22[0];
             var k = _ref22[1];
-            return [c, k, i];
+            return [c, k || c, i];
         });
         this._list = this.list;
         this.submit = submit;
@@ -65165,6 +65378,13 @@ function _key() {
  *
  * Only the init, content and afterRender methods should be overridden
  * in subclasses.
+ * closable, disposeOnClose should be passed to the subclass or set in their
+ * init method.
+ * disposeOnClose will remove the DOM element and handle after close,
+ * otherwise call dispose manually.
+ * Subclasses can implement an _onClose method which will be called after the
+ * modal has been closed (can be called multiple times if disposeOnClose is
+ * false)
  *
  */
 var Modal = _backbone2['default'].View.extend({
@@ -65282,10 +65502,14 @@ var Modal = _backbone2['default'].View.extend({
 });
 
 exports.Modal = Modal;
+// Return a handle to the active modal window
 Modal.active = function () {
     return _modals[_activeModal];
 };
 
+// Simple 2 options confirmation window
+// Takes an accept callback and a reject callback which are called without
+// arguments and can be undefined (nothing will happen)
 var ConfirmDialog = Modal.extend({
     modifiers: ['Small'],
 
@@ -65320,6 +65544,22 @@ var ConfirmDialog = Modal.extend({
 
 });
 
+// Shortcut for confirm modal
+Modal.confirm = function (text, accept, reject) {
+    var closable = arguments.length <= 3 || arguments[3] === undefined ? true : arguments[3];
+
+    new ConfirmDialog({
+        text: text,
+        accept: accept,
+        reject: reject,
+        disposeOnClose: true,
+        closable: closable
+    }).open();
+};
+
+// Custom prompt to replace the traditionnal window.prompt
+// Takes a submit argument as callback which will be called with the entered
+// string.
 var Prompt = Modal.extend({
     modifiers: ['Small'],
 
@@ -65357,18 +65597,7 @@ var Prompt = Modal.extend({
     }
 });
 
-Modal.confirm = function (text, accept, reject) {
-    var closable = arguments.length <= 3 || arguments[3] === undefined ? true : arguments[3];
-
-    new ConfirmDialog({
-        text: text,
-        accept: accept,
-        reject: reject,
-        disposeOnClose: true,
-        closable: closable
-    }).open();
-};
-
+// Shortcut for prompt modal
 Modal.prompt = function (msg, submit, cancel) {
     var closable = arguments.length <= 3 || arguments[3] === undefined ? true : arguments[3];
 
@@ -68542,4 +68771,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
 
 
-//# sourceMappingURL=bundle-bde37fc2.js.map
+//# sourceMappingURL=bundle-6ec4a9d3.js.map
