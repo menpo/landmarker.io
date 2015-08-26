@@ -224,7 +224,9 @@ function initLandmarker(server, mode, u) {
     }
 
     if (u.query.hasOwnProperty('i')) {
-        appInit._assetIndex = u.query.i - 1;
+        let idx = u.query.i;
+        idx = isNaN(idx) ? 0 : Number(idx);
+        appInit._assetIndex = idx > 0 ? idx - 1 : 0;
     }
 
     var app = new App(appInit);
