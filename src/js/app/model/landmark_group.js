@@ -19,6 +19,10 @@ LandmarkCollectionPrototype.isEmpty = function () {
     return this.landmarks.every(lm => lm.isEmpty());
 };
 
+LandmarkCollectionPrototype.hasEmpty = function () {
+    return this.landmarks.some(lm => lm.isEmpty());
+};
+
 LandmarkCollectionPrototype.deselectAll = atomicOperation(function () {
     this.landmarks.forEach(lm => lm.deselect());
 });
