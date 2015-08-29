@@ -61043,6 +61043,14 @@ function _interopRequireWildcard(obj) {
     }
 }
 
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : { 'default': obj };
+}
+
+var _promisePolyfill = require('promise-polyfill');
+
+var _promisePolyfill2 = _interopRequireDefault(_promisePolyfill);
+
 var _libRequests = require('../lib/requests');
 
 var request = _interopRequireWildcard(_libRequests);
@@ -61088,6 +61096,7 @@ Fitter.prototype.init = function (type, id, img) {
 
     var lms = arguments.length <= 3 || arguments[3] === undefined ? null : arguments[3];
 
+    console.time('FittingTime:' + id);
     var imgData = _u.imgToDataUrl(img);
     return request.post(this.url + '/' + type + '/new', {
         data: {
@@ -61095,33 +61104,34 @@ Fitter.prototype.init = function (type, id, img) {
             landmarks: JSON.stringify(lms)
         }
     }).then(function (res) {
+        console.timeEnd('FittingTime:' + id);
         _this2.uids[[type, id]] = res.uid;
         return res;
     });
 };
 
 Fitter.prototype.fit = function (type, id) {
-    var landmarks = arguments.length <= 2 || arguments[2] === undefined ? null : arguments[2];
+    var lms = arguments.length <= 2 || arguments[2] === undefined ? null : arguments[2];
+    var update = arguments.length <= 3 || arguments[3] === undefined ? false : arguments[3];
 
-    return request.post(this.url + '/' + type + '/' + this.uids[[type, id]], {
-        data: {
-            landmarks: JSON.stringify(landmarks),
-            update: false
-        }
-    });
+    var uid = this.uids[[type, id]];
+    if (uid) {
+        return request.post(this.url + '/' + type + '/' + uid, {
+            data: { landmarks: JSON.stringify(lms), update: update }
+        });
+    }
 };
 
-Fitter.prototype.update = function (type, id, landmarks) {
-    return request.post(this.url + '/' + type + '/' + this.uids[[type, id]], {
-        data: {
-            landmarks: JSON.stringify(landmarks),
-            update: true
-        }
-    });
+Fitter.prototype.update = function (type, id, lms) {
+    if (!lms) {
+        return _promisePolyfill2['default'].reject(null);
+    } else {
+        return this.fit(type, id, lms, true);
+    }
 };
 module.exports = exports['default'];
 
-},{"../lib/requests":58,"../lib/utils":62}],55:[function(require,module,exports){
+},{"../lib/requests":58,"../lib/utils":62,"promise-polyfill":45}],55:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62147,7 +62157,7 @@ Tracker.prototype.recordState = function (data) {
         op = _underscore2['default'].last(this._operations);
     var rev = undefined;
 
-    if (!op && state && _underscore2['default'].isEqual(data, state.data)) {
+    if (state && _underscore2['default'].isEqual(data, state.data)) {
         // No op and we have the same data than before, don't fill twice
         rev = state.rev;
     } else {
@@ -62724,15 +62734,11 @@ exports['default'] = _backbone2['default'].Model.extend({
     _initFitter: function _initFitter() {
         var _this = this;
 
-        console.log("INIT FITTER");
         if (this.get('_fitterUrl')) {
             (function () {
-                console.log("INIT FITTER: ", _this.get('_fitterUrl'));
                 var fitter = new _fit2['default'](_this.get('_fitterUrl'));
                 fitter.initialize().then(function () {
                     _this.set('fitter', fitter);
-                    console.log('INIT FITTER: Found fitter');
-                    window.fitter = fitter;
                 }, function (err) {
                     console.error(err);
                     _this.set('_fitterUrl', undefined);
@@ -62995,7 +63001,11 @@ exports['default'] = _backbone2['default'].Model.extend({
         if (!fitter) {
             return null;
         }
-        return fitter.update(this.activeTemplate(), this.asset().id, this.landmarks().toJSON());
+
+        var lms = this.landmarks();
+        if (lms && !lms.hasEmpty()) {
+            fitter.update(this.activeTemplate(), this.asset().id, lms.toJSON());
+        }
     },
 
     fitCurrent: function fitCurrent() {
@@ -63011,11 +63021,11 @@ exports['default'] = _backbone2['default'].Model.extend({
         }
 
         var async = _viewNotification.loading.start();
-
+        var lmsJSON = lms.isEmpty() ? null : lms.toJSON();
         if (fitter.hasAsset(tmplType, asset.id)) {
-            q = fitter.fit(tmplType, asset.id, lms);
+            q = fitter.fit(tmplType, asset.id, lmsJSON);
         } else {
-            q = fitter.init(tmplType, asset.id, asset.sourceImage, lms);
+            q = fitter.init(tmplType, asset.id, asset.sourceImage, lmsJSON);
         }
 
         q.then(function (res) {
@@ -63029,7 +63039,7 @@ exports['default'] = _backbone2['default'].Model.extend({
                 if (res.error) {
                     (0, _viewNotification.notify)({ msg: res.error });
                 }
-                (0, _viewNotification.notify)({ msg: 'Could not fit images to model, you\'ll have to do it by yourself' });
+                (0, _viewNotification.notify)({ msg: 'Could not fit images to model, you\'ll have to do it by yourself (or try adding a few more points)' });
             }
 
             _viewNotification.loading.stop(async);
@@ -69743,4 +69753,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":66,"../../model/octree":70,"./camera":89,"./elements":90,"./handler":91,"backbone":2,"jquery":13,"three":47,"underscore":48}]},{},[1])
 
 
-//# sourceMappingURL=bundle-cbd497f6.js.map
+//# sourceMappingURL=bundle-b6002186.js.map
