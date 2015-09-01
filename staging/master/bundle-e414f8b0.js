@@ -43,8 +43,6 @@ var support = _interopRequireWildcard(_appLibSupport);
 
 var _appViewNotification = require('./app/view/notification');
 
-var Notification = _interopRequireWildcard(_appViewNotification);
-
 var _appViewIntro = require('./app/view/intro');
 
 var _appViewIntro2 = _interopRequireDefault(_appViewIntro);
@@ -117,7 +115,7 @@ function resolveBackend(u) {
         } catch (e) {
             if (e.message === 'Mixed Content') {
                 _appViewIntro2['default'].close();
-                Notification.notify({
+                (0, _appViewNotification.notify)({
                     type: 'error',
                     persist: true,
                     msg: (0, _jquery2['default'])(mixedContentWarning),
@@ -147,7 +145,7 @@ function resolveBackend(u) {
 var goToDemo = utils.restart.bind(undefined, 'demo');
 
 function retry(msg) {
-    Notification.notify({
+    (0, _appViewNotification.notify)({
         msg: msg,
         type: 'error',
         persist: true,
@@ -186,7 +184,7 @@ function _loadDropbox(u) {
             u.search = null;
             history.replaceState(null, null, _url2['default'].format(u).replace('?', '#'));
         } else {
-            Notification.notify({
+            (0, _appViewNotification.notify)({
                 msg: 'Incorrect Dropbox redirect URL',
                 type: 'error'
             });
@@ -201,7 +199,7 @@ function _loadDropbox(u) {
         return dropbox.accountInfo().then(function () {
             _loadDropboxAssets(dropbox, u);
         }, function () {
-            Notification.notify({
+            (0, _appViewNotification.notify)({
                 msg: 'Could not reach Dropbox servers',
                 type: 'error'
             });
@@ -284,7 +282,9 @@ function initLandmarker(server, mode, u) {
     }
 
     if (u.query.hasOwnProperty('i')) {
-        appInit._assetIndex = u.query.i - 1;
+        var idx = u.query.i;
+        idx = isNaN(idx) ? 0 : Number(idx);
+        appInit._assetIndex = idx > 0 ? idx - 1 : 0;
     }
 
     var app = new _appModelApp2['default'](appInit);
@@ -343,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (support.ie) {
         // Found IE, do user agent detection for now
         // https://github.com/menpo/landmarker.io/issues/75 for progress
-        return Notification.notify({
+        return (0, _appViewNotification.notify)({
             msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
             persist: true,
             type: 'error'
@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Test for webgl
     if (!support.webgl) {
-        return Notification.notify({
+        return (0, _appViewNotification.notify)({
             msg: (0, _jquery2['default'])('<p>It seems your browser doesn\'t support WebGL, which is needed by landmarker.io.<br/>Please visit <a href="https://get.webgl.org/">https://get.webgl.org/</a> for more information<p>'),
             persist: true,
             type: 'error'
@@ -372,9 +372,9 @@ document.addEventListener('DOMContentLoaded', function () {
     resolveBackend(u);
 });
 
-},{"./app/backend":48,"./app/lib/support":55,"./app/lib/utils":57,"./app/model/app":58,"./app/model/config":62,"./app/view/asset":72,"./app/view/help":74,"./app/view/intro":75,"./app/view/keyboard":76,"./app/view/notification":79,"./app/view/sidebar":80,"./app/view/toolbar":82,"./app/view/url_state":83,"./app/view/viewport":87,"jquery":9,"promise-polyfill":41,"three":43,"url":8}],2:[function(require,module,exports){
+},{"./app/backend":52,"./app/lib/support":59,"./app/lib/utils":61,"./app/model/app":62,"./app/model/config":66,"./app/view/asset":76,"./app/view/help":78,"./app/view/intro":79,"./app/view/keyboard":80,"./app/view/notification":83,"./app/view/sidebar":84,"./app/view/toolbar":86,"./app/view/url_state":87,"./app/view/viewport":91,"jquery":13,"promise-polyfill":45,"three":47,"url":10}],2:[function(require,module,exports){
 (function (global){
-//     Backbone.js 1.2.1
+//     Backbone.js 1.2.2
 
 //     (c) 2010-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 //     Backbone may be freely distributed under the MIT license.
@@ -417,10 +417,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var previousBackbone = root.Backbone;
 
   // Create a local reference to a common array method we'll want to use later.
-  var slice = [].slice;
+  var slice = Array.prototype.slice;
 
   // Current version of the library. Keep in sync with `package.json`.
-  Backbone.VERSION = '1.2.1';
+  Backbone.VERSION = '1.2.2';
 
   // For Backbone's purposes, jQuery, Zepto, Ender, or My Library (kidding) owns
   // the `$` variable.
@@ -444,8 +444,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // form param named `model`.
   Backbone.emulateJSON = false;
 
-  // Proxy Underscore methods to a Backbone class' prototype using a
-  // particular attribute as the data argument
+  // Proxy Backbone class methods to Underscore functions, wrapping the model's
+  // `attributes` object or collection's `models` array behind the scenes.
+  //
+  // collection.filter(function(model) { return model.get('age') > 10 });
+  // collection.each(this.addView);
+  //
+  // `Function#apply` can be slow so we use the method's arg count, if we know it.
   var addMethod = function(length, method, attribute) {
     switch (length) {
       case 1: return function() {
@@ -455,10 +460,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return _[method](this[attribute], value);
       };
       case 3: return function(iteratee, context) {
-        return _[method](this[attribute], iteratee, context);
+        return _[method](this[attribute], cb(iteratee, this), context);
       };
       case 4: return function(iteratee, defaultVal, context) {
-        return _[method](this[attribute], iteratee, defaultVal, context);
+        return _[method](this[attribute], cb(iteratee, this), defaultVal, context);
       };
       default: return function() {
         var args = slice.call(arguments);
@@ -473,12 +478,26 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
+  // Support `collection.sortBy('attr')` and `collection.findWhere({id: 1})`.
+  var cb = function(iteratee, instance) {
+    if (_.isFunction(iteratee)) return iteratee;
+    if (_.isObject(iteratee) && !instance._isModel(iteratee)) return modelMatcher(iteratee);
+    if (_.isString(iteratee)) return function(model) { return model.get(iteratee); };
+    return iteratee;
+  };
+  var modelMatcher = function(attrs) {
+    var matcher = _.matches(attrs);
+    return function(model) {
+      return matcher(model.attributes);
+    };
+  };
+
   // Backbone.Events
   // ---------------
 
   // A module that can be mixed in to *any object* in order to provide it with
-  // custom events. You may bind with `on` or remove with `off` callback
-  // functions to an event; `trigger`-ing an event fires all callbacks in
+  // a custom event channel. You may bind a callback to an event with `on` or
+  // remove with `off`; `trigger`-ing an event fires all callbacks in
   // succession.
   //
   //     var object = {};
@@ -493,26 +512,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Iterates over the standard `event, callback` (as well as the fancy multiple
   // space-separated events `"change blur", callback` and jQuery-style event
-  // maps `{event: callback}`), reducing them by manipulating `memo`.
-  // Passes a normalized single event name and callback, as well as any
-  // optional `opts`.
-  var eventsApi = function(iteratee, memo, name, callback, opts) {
+  // maps `{event: callback}`).
+  var eventsApi = function(iteratee, events, name, callback, opts) {
     var i = 0, names;
     if (name && typeof name === 'object') {
       // Handle event maps.
       if (callback !== void 0 && 'context' in opts && opts.context === void 0) opts.context = callback;
       for (names = _.keys(name); i < names.length ; i++) {
-        memo = iteratee(memo, names[i], name[names[i]], opts);
+        events = eventsApi(iteratee, events, names[i], name[names[i]], opts);
       }
     } else if (name && eventSplitter.test(name)) {
-      // Handle space separated event names.
+      // Handle space separated event names by delegating them individually.
       for (names = name.split(eventSplitter); i < names.length; i++) {
-        memo = iteratee(memo, names[i], callback, opts);
+        events = iteratee(events, names[i], callback, opts);
       }
     } else {
-      memo = iteratee(memo, name, callback, opts);
+      // Finally, standard events.
+      events = iteratee(events, name, callback, opts);
     }
-    return memo;
+    return events;
   };
 
   // Bind an event to a `callback` function. Passing `"all"` will bind
@@ -521,8 +539,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return internalOn(this, name, callback, context);
   };
 
-  // An internal use `on` function, used to guard the `listening` argument from
-  // the public API.
+  // Guard the `listening` argument from the public API.
   var internalOn = function(obj, name, callback, context, listening) {
     obj._events = eventsApi(onApi, obj._events || {}, name, callback, {
         context: context,
@@ -539,7 +556,8 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   // Inversion-of-control versions of `on`. Tell *this* object to listen to
-  // an event in another object... keeping track of what it's listening to.
+  // an event in another object... keeping track of what it's listening to
+  // for easier unbinding later.
   Events.listenTo =  function(obj, name, callback) {
     if (!obj) return this;
     var id = obj._listenId || (obj._listenId = _.uniqueId('l'));
@@ -607,7 +625,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // The reducing API that removes a callback from the `events` object.
   var offApi = function(events, name, callback, options) {
-    // No events to consider.
     if (!events) return;
 
     var i = 0, listening;
@@ -662,9 +679,9 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   // Bind an event to only be triggered a single time. After the first time
-  // the callback is invoked, it will be removed. When multiple events are
-  // passed in using the space-separated syntax, the event will fire once for every
-  // event you passed in, not once for a combination of all events
+  // the callback is invoked, its listener will be removed. If multiple events
+  // are passed in using the space-separated syntax, the handler will fire
+  // once for each event, not once for a combination of all events.
   Events.once =  function(name, callback, context) {
     // Map the event into a `{event: once}` object.
     var events = eventsApi(onceMap, {}, name, callback, _.bind(this.off, this));
@@ -852,9 +869,6 @@ document.addEventListener('DOMContentLoaded', function () {
       var changed = this.changed;
       var prev    = this._previousAttributes;
 
-      // Check for changes of `id`.
-      if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
-
       // For each `set` attribute, update or delete the current value.
       for (var attr in attrs) {
         val = attrs[attr];
@@ -866,6 +880,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         unset ? delete current[attr] : current[attr] = val;
       }
+
+      // Update the `id`.
+      this.id = this.get(this.idAttribute);
 
       // Trigger all relevant attribute changes.
       if (!silent) {
@@ -1089,7 +1106,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   });
 
-  // Underscore methods that we want to implement on the Model.
+  // Underscore methods that we want to implement on the Model, mapped to the
+  // number of arguments they take.
   var modelMethods = { keys: 1, values: 1, pairs: 1, invert: 1, pick: 0,
       omit: 0, chain: 1, isEmpty: 1 };
 
@@ -1122,6 +1140,15 @@ document.addEventListener('DOMContentLoaded', function () {
   var setOptions = {add: true, remove: true, merge: true};
   var addOptions = {add: true, remove: false};
 
+  // Splices `insert` into `array` at index `at`.
+  var splice = function(array, insert, at) {
+    var tail = Array(array.length - at);
+    var length = insert.length;
+    for (var i = 0; i < tail.length; i++) tail[i] = array[i + at];
+    for (i = 0; i < length; i++) array[i + at] = insert[i];
+    for (i = 0; i < tail.length; i++) array[i + length + at] = tail[i];
+  };
+
   // Define the Collection's inheritable methods.
   _.extend(Collection.prototype, Events, {
 
@@ -1144,7 +1171,9 @@ document.addEventListener('DOMContentLoaded', function () {
       return Backbone.sync.apply(this, arguments);
     },
 
-    // Add a model, or list of models to the set.
+    // Add a model, or list of models to the set. `models` may be Backbone
+    // Models or raw JavaScript objects to be converted to Models, or any
+    // combination of the two.
     add: function(models, options) {
       return this.set(models, _.extend({merge: false}, options, addOptions));
     },
@@ -1164,83 +1193,88 @@ document.addEventListener('DOMContentLoaded', function () {
     // already exist in the collection, as necessary. Similar to **Model#set**,
     // the core operation for updating the data contained by the collection.
     set: function(models, options) {
+      if (models == null) return;
+
       options = _.defaults({}, options, setOptions);
       if (options.parse && !this._isModel(models)) models = this.parse(models, options);
+
       var singular = !_.isArray(models);
-      models = singular ? (models ? [models] : []) : models.slice();
-      var id, model, attrs, existing, sort;
+      models = singular ? [models] : models.slice();
+
       var at = options.at;
       if (at != null) at = +at;
       if (at < 0) at += this.length + 1;
+
+      var set = [];
+      var toAdd = [];
+      var toRemove = [];
+      var modelMap = {};
+
+      var add = options.add;
+      var merge = options.merge;
+      var remove = options.remove;
+
+      var sort = false;
       var sortable = this.comparator && (at == null) && options.sort !== false;
       var sortAttr = _.isString(this.comparator) ? this.comparator : null;
-      var toAdd = [], toRemove = [], modelMap = {};
-      var add = options.add, merge = options.merge, remove = options.remove;
-      var order = !sortable && add && remove ? [] : false;
-      var orderChanged = false;
 
       // Turn bare objects into model references, and prevent invalid models
       // from being added.
+      var model;
       for (var i = 0; i < models.length; i++) {
-        attrs = models[i];
+        model = models[i];
 
         // If a duplicate is found, prevent it from being added and
         // optionally merge it into the existing model.
-        if (existing = this.get(attrs)) {
-          if (remove) modelMap[existing.cid] = true;
-          if (merge && attrs !== existing) {
-            attrs = this._isModel(attrs) ? attrs.attributes : attrs;
+        var existing = this.get(model);
+        if (existing) {
+          if (merge && model !== existing) {
+            var attrs = this._isModel(model) ? model.attributes : model;
             if (options.parse) attrs = existing.parse(attrs, options);
             existing.set(attrs, options);
-            if (sortable && !sort && existing.hasChanged(sortAttr)) sort = true;
+            if (sortable && !sort) sort = existing.hasChanged(sortAttr);
+          }
+          if (!modelMap[existing.cid]) {
+            modelMap[existing.cid] = true;
+            set.push(existing);
           }
           models[i] = existing;
 
         // If this is a new, valid model, push it to the `toAdd` list.
         } else if (add) {
-          model = models[i] = this._prepareModel(attrs, options);
-          if (!model) continue;
-          toAdd.push(model);
-          this._addReference(model, options);
+          model = models[i] = this._prepareModel(model, options);
+          if (model) {
+            toAdd.push(model);
+            this._addReference(model, options);
+            modelMap[model.cid] = true;
+            set.push(model);
+          }
         }
-
-        // Do not add multiple models with the same `id`.
-        model = existing || model;
-        if (!model) continue;
-        id = this.modelId(model.attributes);
-        if (order && (model.isNew() || !modelMap[id])) {
-          order.push(model);
-
-          // Check to see if this is actually a new model at this index.
-          orderChanged = orderChanged || !this.models[i] || model.cid !== this.models[i].cid;
-        }
-
-        modelMap[id] = true;
       }
 
-      // Remove nonexistent models if appropriate.
+      // Remove stale models.
       if (remove) {
-        for (var i = 0; i < this.length; i++) {
-          if (!modelMap[(model = this.models[i]).cid]) toRemove.push(model);
+        for (i = 0; i < this.length; i++) {
+          model = this.models[i];
+          if (!modelMap[model.cid]) toRemove.push(model);
         }
         if (toRemove.length) this._removeModels(toRemove, options);
       }
 
       // See if sorting is needed, update `length` and splice in new models.
-      if (toAdd.length || orderChanged) {
+      var orderChanged = false;
+      var replace = !sortable && add && remove;
+      if (set.length && replace) {
+        orderChanged = this.length != set.length || _.some(this.models, function(model, index) {
+          return model !== set[index];
+        });
+        this.models.length = 0;
+        splice(this.models, set, 0);
+        this.length = this.models.length;
+      } else if (toAdd.length) {
         if (sortable) sort = true;
-        this.length += toAdd.length;
-        if (at != null) {
-          for (var i = 0; i < toAdd.length; i++) {
-            this.models.splice(at + i, 0, toAdd[i]);
-          }
-        } else {
-          if (order) this.models.length = 0;
-          var orderedModels = order || toAdd;
-          for (var i = 0; i < orderedModels.length; i++) {
-            this.models.push(orderedModels[i]);
-          }
-        }
+        splice(this.models, toAdd, at == null ? this.length : at);
+        this.length = this.models.length;
       }
 
       // Silently sort the collection if appropriate.
@@ -1248,10 +1282,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Unless silenced, it's time to fire all appropriate add/sort events.
       if (!options.silent) {
-        var addOpts = at != null ? _.clone(options) : options;
-        for (var i = 0; i < toAdd.length; i++) {
-          if (at != null) addOpts.index = at + i;
-          (model = toAdd[i]).trigger('add', model, this, addOpts);
+        for (i = 0; i < toAdd.length; i++) {
+          if (at != null) options.index = at + i;
+          model = toAdd[i];
+          model.trigger('add', model, this, options);
         }
         if (sort || orderChanged) this.trigger('sort', this, options);
         if (toAdd.length || toRemove.length) this.trigger('update', this, options);
@@ -1320,10 +1354,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Return models with matching attributes. Useful for simple cases of
     // `filter`.
     where: function(attrs, first) {
-      var matches = _.matches(attrs);
-      return this[first ? 'find' : 'filter'](function(model) {
-        return matches(model.attributes);
-      });
+      return this[first ? 'find' : 'filter'](attrs);
     },
 
     // Return the first model with matching attributes. Useful for simple cases
@@ -1336,16 +1367,19 @@ document.addEventListener('DOMContentLoaded', function () {
     // normal circumstances, as the set will maintain sort order as each item
     // is added.
     sort: function(options) {
-      if (!this.comparator) throw new Error('Cannot sort a set without a comparator');
+      var comparator = this.comparator;
+      if (!comparator) throw new Error('Cannot sort a set without a comparator');
       options || (options = {});
 
-      // Run sort based on type of `comparator`.
-      if (_.isString(this.comparator) || this.comparator.length === 1) {
-        this.models = this.sortBy(this.comparator, this);
-      } else {
-        this.models.sort(_.bind(this.comparator, this));
-      }
+      var length = comparator.length;
+      if (_.isFunction(comparator)) comparator = _.bind(comparator, this);
 
+      // Run sort based on type of `comparator`.
+      if (length === 1 || _.isString(comparator)) {
+        this.models = this.sortBy(comparator);
+      } else {
+        this.models.sort(comparator);
+      }
       if (!options.silent) this.trigger('sort', this, options);
       return this;
     },
@@ -1434,7 +1468,6 @@ document.addEventListener('DOMContentLoaded', function () {
     },
 
     // Internal method called by both remove and set.
-    // Returns removed models, or false if nothing is removed.
     _removeModels: function(models, options) {
       var removed = [];
       for (var i = 0; i < models.length; i++) {
@@ -1504,28 +1537,15 @@ document.addEventListener('DOMContentLoaded', function () {
   // right here:
   var collectionMethods = { forEach: 3, each: 3, map: 3, collect: 3, reduce: 4,
       foldl: 4, inject: 4, reduceRight: 4, foldr: 4, find: 3, detect: 3, filter: 3,
-      select: 3, reject: 3, every: 3, all: 3, some: 3, any: 3, include: 2,
-      contains: 2, invoke: 0, max: 3, min: 3, toArray: 1, size: 1, first: 3,
+      select: 3, reject: 3, every: 3, all: 3, some: 3, any: 3, include: 3, includes: 3,
+      contains: 3, invoke: 0, max: 3, min: 3, toArray: 1, size: 1, first: 3,
       head: 3, take: 3, initial: 3, rest: 3, tail: 3, drop: 3, last: 3,
       without: 0, difference: 0, indexOf: 3, shuffle: 1, lastIndexOf: 3,
-      isEmpty: 1, chain: 1, sample: 3, partition: 3 };
+      isEmpty: 1, chain: 1, sample: 3, partition: 3, groupBy: 3, countBy: 3,
+      sortBy: 3, indexBy: 3};
 
   // Mix in each Underscore method as a proxy to `Collection#models`.
   addUnderscoreMethods(Collection, collectionMethods, 'models');
-
-  // Underscore methods that take a property name as an argument.
-  var attributeMethods = ['groupBy', 'countBy', 'sortBy', 'indexBy'];
-
-  // Use attributes instead of properties.
-  _.each(attributeMethods, function(method) {
-    if (!_[method]) return;
-    Collection.prototype[method] = function(value, context) {
-      var iterator = _.isFunction(value) ? value : function(model) {
-        return model.get(value);
-      };
-      return _[method](this.models, iterator, context);
-    };
-  });
 
   // Backbone.View
   // -------------
@@ -1550,7 +1570,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Cached regex to split keys for `delegate`.
   var delegateEventSplitter = /^(\S+)\s*(.*)$/;
 
-  // List of view options to be merged as properties.
+  // List of view options to be set as properties.
   var viewOptions = ['model', 'collection', 'el', 'id', 'attributes', 'className', 'tagName', 'events'];
 
   // Set up all inheritable **Backbone.View** properties and methods.
@@ -1894,7 +1914,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // falls back to polling.
   var History = Backbone.History = function() {
     this.handlers = [];
-    _.bindAll(this, 'checkUrl');
+    this.checkUrl = _.bind(this.checkUrl, this);
 
     // Ensure that `History` can be used outside of the browser.
     if (typeof window !== 'undefined') {
@@ -1987,7 +2007,7 @@ document.addEventListener('DOMContentLoaded', function () {
       this.options          = _.extend({root: '/'}, this.options, options);
       this.root             = this.options.root;
       this._wantsHashChange = this.options.hashChange !== false;
-      this._hasHashChange   = 'onhashchange' in window;
+      this._hasHashChange   = 'onhashchange' in window && (document.documentMode === void 0 || document.documentMode > 7);
       this._useHashChange   = this._wantsHashChange && this._hasHashChange;
       this._wantsPushState  = !!this.options.pushState;
       this._hasPushState    = !!(this.history && this.history.pushState);
@@ -2106,7 +2126,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // If the root doesn't match, no routes can match either.
       if (!this.matchRoot()) return false;
       fragment = this.fragment = this.getFragment(fragment);
-      return _.any(this.handlers, function(handler) {
+      return _.some(this.handlers, function(handler) {
         if (handler.route.test(fragment)) {
           handler.callback(fragment);
           return true;
@@ -2250,9 +2270,94 @@ document.addEventListener('DOMContentLoaded', function () {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"jquery":9,"underscore":44}],3:[function(require,module,exports){
+},{"jquery":13,"underscore":48}],3:[function(require,module,exports){
 
 },{}],4:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}],5:[function(require,module,exports){
+// shim for using process in browser
+
+var process = module.exports = {};
+var queue = [];
+var draining = false;
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    draining = true;
+    var currentQueue;
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        var i = -1;
+        while (++i < len) {
+            currentQueue[i]();
+        }
+        len = queue.length;
+    }
+    draining = false;
+}
+process.nextTick = function (fun) {
+    queue.push(fun);
+    if (!draining) {
+        setTimeout(drainQueue, 0);
+    }
+};
+
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+// TODO(shtylman)
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],6:[function(require,module,exports){
 (function (global){
 /*! http://mths.be/punycode v1.2.4 by @mathias */
 ;(function(root) {
@@ -2764,7 +2869,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],5:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -2850,7 +2955,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],6:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -2937,13 +3042,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":5,"./encode":6}],8:[function(require,module,exports){
+},{"./decode":7,"./encode":8}],10:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -3652,7 +3757,605 @@ function isNullOrUndefined(arg) {
   return  arg == null;
 }
 
-},{"punycode":4,"querystring":7}],9:[function(require,module,exports){
+},{"punycode":6,"querystring":9}],11:[function(require,module,exports){
+module.exports = function isBuffer(arg) {
+  return arg && typeof arg === 'object'
+    && typeof arg.copy === 'function'
+    && typeof arg.fill === 'function'
+    && typeof arg.readUInt8 === 'function';
+}
+},{}],12:[function(require,module,exports){
+(function (process,global){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+var formatRegExp = /%[sdj%]/g;
+exports.format = function(f) {
+  if (!isString(f)) {
+    var objects = [];
+    for (var i = 0; i < arguments.length; i++) {
+      objects.push(inspect(arguments[i]));
+    }
+    return objects.join(' ');
+  }
+
+  var i = 1;
+  var args = arguments;
+  var len = args.length;
+  var str = String(f).replace(formatRegExp, function(x) {
+    if (x === '%%') return '%';
+    if (i >= len) return x;
+    switch (x) {
+      case '%s': return String(args[i++]);
+      case '%d': return Number(args[i++]);
+      case '%j':
+        try {
+          return JSON.stringify(args[i++]);
+        } catch (_) {
+          return '[Circular]';
+        }
+      default:
+        return x;
+    }
+  });
+  for (var x = args[i]; i < len; x = args[++i]) {
+    if (isNull(x) || !isObject(x)) {
+      str += ' ' + x;
+    } else {
+      str += ' ' + inspect(x);
+    }
+  }
+  return str;
+};
+
+
+// Mark that a method should not be used.
+// Returns a modified function which warns once by default.
+// If --no-deprecation is set, then it is a no-op.
+exports.deprecate = function(fn, msg) {
+  // Allow for deprecating things in the process of starting up.
+  if (isUndefined(global.process)) {
+    return function() {
+      return exports.deprecate(fn, msg).apply(this, arguments);
+    };
+  }
+
+  if (process.noDeprecation === true) {
+    return fn;
+  }
+
+  var warned = false;
+  function deprecated() {
+    if (!warned) {
+      if (process.throwDeprecation) {
+        throw new Error(msg);
+      } else if (process.traceDeprecation) {
+        console.trace(msg);
+      } else {
+        console.error(msg);
+      }
+      warned = true;
+    }
+    return fn.apply(this, arguments);
+  }
+
+  return deprecated;
+};
+
+
+var debugs = {};
+var debugEnviron;
+exports.debuglog = function(set) {
+  if (isUndefined(debugEnviron))
+    debugEnviron = process.env.NODE_DEBUG || '';
+  set = set.toUpperCase();
+  if (!debugs[set]) {
+    if (new RegExp('\\b' + set + '\\b', 'i').test(debugEnviron)) {
+      var pid = process.pid;
+      debugs[set] = function() {
+        var msg = exports.format.apply(exports, arguments);
+        console.error('%s %d: %s', set, pid, msg);
+      };
+    } else {
+      debugs[set] = function() {};
+    }
+  }
+  return debugs[set];
+};
+
+
+/**
+ * Echos the value of a value. Trys to print the value out
+ * in the best way possible given the different types.
+ *
+ * @param {Object} obj The object to print out.
+ * @param {Object} opts Optional options object that alters the output.
+ */
+/* legacy: obj, showHidden, depth, colors*/
+function inspect(obj, opts) {
+  // default options
+  var ctx = {
+    seen: [],
+    stylize: stylizeNoColor
+  };
+  // legacy...
+  if (arguments.length >= 3) ctx.depth = arguments[2];
+  if (arguments.length >= 4) ctx.colors = arguments[3];
+  if (isBoolean(opts)) {
+    // legacy...
+    ctx.showHidden = opts;
+  } else if (opts) {
+    // got an "options" object
+    exports._extend(ctx, opts);
+  }
+  // set default options
+  if (isUndefined(ctx.showHidden)) ctx.showHidden = false;
+  if (isUndefined(ctx.depth)) ctx.depth = 2;
+  if (isUndefined(ctx.colors)) ctx.colors = false;
+  if (isUndefined(ctx.customInspect)) ctx.customInspect = true;
+  if (ctx.colors) ctx.stylize = stylizeWithColor;
+  return formatValue(ctx, obj, ctx.depth);
+}
+exports.inspect = inspect;
+
+
+// http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
+inspect.colors = {
+  'bold' : [1, 22],
+  'italic' : [3, 23],
+  'underline' : [4, 24],
+  'inverse' : [7, 27],
+  'white' : [37, 39],
+  'grey' : [90, 39],
+  'black' : [30, 39],
+  'blue' : [34, 39],
+  'cyan' : [36, 39],
+  'green' : [32, 39],
+  'magenta' : [35, 39],
+  'red' : [31, 39],
+  'yellow' : [33, 39]
+};
+
+// Don't use 'blue' not visible on cmd.exe
+inspect.styles = {
+  'special': 'cyan',
+  'number': 'yellow',
+  'boolean': 'yellow',
+  'undefined': 'grey',
+  'null': 'bold',
+  'string': 'green',
+  'date': 'magenta',
+  // "name": intentionally not styling
+  'regexp': 'red'
+};
+
+
+function stylizeWithColor(str, styleType) {
+  var style = inspect.styles[styleType];
+
+  if (style) {
+    return '\u001b[' + inspect.colors[style][0] + 'm' + str +
+           '\u001b[' + inspect.colors[style][1] + 'm';
+  } else {
+    return str;
+  }
+}
+
+
+function stylizeNoColor(str, styleType) {
+  return str;
+}
+
+
+function arrayToHash(array) {
+  var hash = {};
+
+  array.forEach(function(val, idx) {
+    hash[val] = true;
+  });
+
+  return hash;
+}
+
+
+function formatValue(ctx, value, recurseTimes) {
+  // Provide a hook for user-specified inspect functions.
+  // Check that value is an object with an inspect function on it
+  if (ctx.customInspect &&
+      value &&
+      isFunction(value.inspect) &&
+      // Filter out the util module, it's inspect function is special
+      value.inspect !== exports.inspect &&
+      // Also filter out any prototype objects using the circular check.
+      !(value.constructor && value.constructor.prototype === value)) {
+    var ret = value.inspect(recurseTimes, ctx);
+    if (!isString(ret)) {
+      ret = formatValue(ctx, ret, recurseTimes);
+    }
+    return ret;
+  }
+
+  // Primitive types cannot have properties
+  var primitive = formatPrimitive(ctx, value);
+  if (primitive) {
+    return primitive;
+  }
+
+  // Look up the keys of the object.
+  var keys = Object.keys(value);
+  var visibleKeys = arrayToHash(keys);
+
+  if (ctx.showHidden) {
+    keys = Object.getOwnPropertyNames(value);
+  }
+
+  // IE doesn't make error fields non-enumerable
+  // http://msdn.microsoft.com/en-us/library/ie/dww52sbt(v=vs.94).aspx
+  if (isError(value)
+      && (keys.indexOf('message') >= 0 || keys.indexOf('description') >= 0)) {
+    return formatError(value);
+  }
+
+  // Some type of object without properties can be shortcutted.
+  if (keys.length === 0) {
+    if (isFunction(value)) {
+      var name = value.name ? ': ' + value.name : '';
+      return ctx.stylize('[Function' + name + ']', 'special');
+    }
+    if (isRegExp(value)) {
+      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
+    }
+    if (isDate(value)) {
+      return ctx.stylize(Date.prototype.toString.call(value), 'date');
+    }
+    if (isError(value)) {
+      return formatError(value);
+    }
+  }
+
+  var base = '', array = false, braces = ['{', '}'];
+
+  // Make Array say that they are Array
+  if (isArray(value)) {
+    array = true;
+    braces = ['[', ']'];
+  }
+
+  // Make functions say that they are functions
+  if (isFunction(value)) {
+    var n = value.name ? ': ' + value.name : '';
+    base = ' [Function' + n + ']';
+  }
+
+  // Make RegExps say that they are RegExps
+  if (isRegExp(value)) {
+    base = ' ' + RegExp.prototype.toString.call(value);
+  }
+
+  // Make dates with properties first say the date
+  if (isDate(value)) {
+    base = ' ' + Date.prototype.toUTCString.call(value);
+  }
+
+  // Make error with message first say the error
+  if (isError(value)) {
+    base = ' ' + formatError(value);
+  }
+
+  if (keys.length === 0 && (!array || value.length == 0)) {
+    return braces[0] + base + braces[1];
+  }
+
+  if (recurseTimes < 0) {
+    if (isRegExp(value)) {
+      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
+    } else {
+      return ctx.stylize('[Object]', 'special');
+    }
+  }
+
+  ctx.seen.push(value);
+
+  var output;
+  if (array) {
+    output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
+  } else {
+    output = keys.map(function(key) {
+      return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
+    });
+  }
+
+  ctx.seen.pop();
+
+  return reduceToSingleString(output, base, braces);
+}
+
+
+function formatPrimitive(ctx, value) {
+  if (isUndefined(value))
+    return ctx.stylize('undefined', 'undefined');
+  if (isString(value)) {
+    var simple = '\'' + JSON.stringify(value).replace(/^"|"$/g, '')
+                                             .replace(/'/g, "\\'")
+                                             .replace(/\\"/g, '"') + '\'';
+    return ctx.stylize(simple, 'string');
+  }
+  if (isNumber(value))
+    return ctx.stylize('' + value, 'number');
+  if (isBoolean(value))
+    return ctx.stylize('' + value, 'boolean');
+  // For some reason typeof null is "object", so special case here.
+  if (isNull(value))
+    return ctx.stylize('null', 'null');
+}
+
+
+function formatError(value) {
+  return '[' + Error.prototype.toString.call(value) + ']';
+}
+
+
+function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
+  var output = [];
+  for (var i = 0, l = value.length; i < l; ++i) {
+    if (hasOwnProperty(value, String(i))) {
+      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
+          String(i), true));
+    } else {
+      output.push('');
+    }
+  }
+  keys.forEach(function(key) {
+    if (!key.match(/^\d+$/)) {
+      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
+          key, true));
+    }
+  });
+  return output;
+}
+
+
+function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
+  var name, str, desc;
+  desc = Object.getOwnPropertyDescriptor(value, key) || { value: value[key] };
+  if (desc.get) {
+    if (desc.set) {
+      str = ctx.stylize('[Getter/Setter]', 'special');
+    } else {
+      str = ctx.stylize('[Getter]', 'special');
+    }
+  } else {
+    if (desc.set) {
+      str = ctx.stylize('[Setter]', 'special');
+    }
+  }
+  if (!hasOwnProperty(visibleKeys, key)) {
+    name = '[' + key + ']';
+  }
+  if (!str) {
+    if (ctx.seen.indexOf(desc.value) < 0) {
+      if (isNull(recurseTimes)) {
+        str = formatValue(ctx, desc.value, null);
+      } else {
+        str = formatValue(ctx, desc.value, recurseTimes - 1);
+      }
+      if (str.indexOf('\n') > -1) {
+        if (array) {
+          str = str.split('\n').map(function(line) {
+            return '  ' + line;
+          }).join('\n').substr(2);
+        } else {
+          str = '\n' + str.split('\n').map(function(line) {
+            return '   ' + line;
+          }).join('\n');
+        }
+      }
+    } else {
+      str = ctx.stylize('[Circular]', 'special');
+    }
+  }
+  if (isUndefined(name)) {
+    if (array && key.match(/^\d+$/)) {
+      return str;
+    }
+    name = JSON.stringify('' + key);
+    if (name.match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)) {
+      name = name.substr(1, name.length - 2);
+      name = ctx.stylize(name, 'name');
+    } else {
+      name = name.replace(/'/g, "\\'")
+                 .replace(/\\"/g, '"')
+                 .replace(/(^"|"$)/g, "'");
+      name = ctx.stylize(name, 'string');
+    }
+  }
+
+  return name + ': ' + str;
+}
+
+
+function reduceToSingleString(output, base, braces) {
+  var numLinesEst = 0;
+  var length = output.reduce(function(prev, cur) {
+    numLinesEst++;
+    if (cur.indexOf('\n') >= 0) numLinesEst++;
+    return prev + cur.replace(/\u001b\[\d\d?m/g, '').length + 1;
+  }, 0);
+
+  if (length > 60) {
+    return braces[0] +
+           (base === '' ? '' : base + '\n ') +
+           ' ' +
+           output.join(',\n  ') +
+           ' ' +
+           braces[1];
+  }
+
+  return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
+}
+
+
+// NOTE: These type checking functions intentionally don't use `instanceof`
+// because it is fragile and can be easily faked with `Object.create()`.
+function isArray(ar) {
+  return Array.isArray(ar);
+}
+exports.isArray = isArray;
+
+function isBoolean(arg) {
+  return typeof arg === 'boolean';
+}
+exports.isBoolean = isBoolean;
+
+function isNull(arg) {
+  return arg === null;
+}
+exports.isNull = isNull;
+
+function isNullOrUndefined(arg) {
+  return arg == null;
+}
+exports.isNullOrUndefined = isNullOrUndefined;
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+exports.isNumber = isNumber;
+
+function isString(arg) {
+  return typeof arg === 'string';
+}
+exports.isString = isString;
+
+function isSymbol(arg) {
+  return typeof arg === 'symbol';
+}
+exports.isSymbol = isSymbol;
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+exports.isUndefined = isUndefined;
+
+function isRegExp(re) {
+  return isObject(re) && objectToString(re) === '[object RegExp]';
+}
+exports.isRegExp = isRegExp;
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+exports.isObject = isObject;
+
+function isDate(d) {
+  return isObject(d) && objectToString(d) === '[object Date]';
+}
+exports.isDate = isDate;
+
+function isError(e) {
+  return isObject(e) &&
+      (objectToString(e) === '[object Error]' || e instanceof Error);
+}
+exports.isError = isError;
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+exports.isFunction = isFunction;
+
+function isPrimitive(arg) {
+  return arg === null ||
+         typeof arg === 'boolean' ||
+         typeof arg === 'number' ||
+         typeof arg === 'string' ||
+         typeof arg === 'symbol' ||  // ES6 symbol
+         typeof arg === 'undefined';
+}
+exports.isPrimitive = isPrimitive;
+
+exports.isBuffer = require('./support/isBuffer');
+
+function objectToString(o) {
+  return Object.prototype.toString.call(o);
+}
+
+
+function pad(n) {
+  return n < 10 ? '0' + n.toString(10) : n.toString(10);
+}
+
+
+var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
+              'Oct', 'Nov', 'Dec'];
+
+// 26 Feb 16:19:34
+function timestamp() {
+  var d = new Date();
+  var time = [pad(d.getHours()),
+              pad(d.getMinutes()),
+              pad(d.getSeconds())].join(':');
+  return [d.getDate(), months[d.getMonth()], time].join(' ');
+}
+
+
+// log is just a thin wrapper to console.log that prepends a timestamp
+exports.log = function() {
+  console.log('%s - %s', timestamp(), exports.format.apply(exports, arguments));
+};
+
+
+/**
+ * Inherit the prototype methods from one constructor into another.
+ *
+ * The Function.prototype.inherits from lang.js rewritten as a standalone
+ * function (not on Function.prototype). NOTE: If this file is to be loaded
+ * during bootstrapping this function needs to be rewritten using some native
+ * functions as prototype setup using normal JavaScript does not work as
+ * expected during bootstrapping (see mirror.js in r114903).
+ *
+ * @param {function} ctor Constructor function which needs to inherit the
+ *     prototype.
+ * @param {function} superCtor Constructor function to inherit prototype from.
+ */
+exports.inherits = require('inherits');
+
+exports._extend = function(origin, add) {
+  // Don't do anything if add isn't an object
+  if (!add || !isObject(add)) return origin;
+
+  var keys = Object.keys(add);
+  var i = keys.length;
+  while (i--) {
+    origin[keys[i]] = add[keys[i]];
+  }
+  return origin;
+};
+
+function hasOwnProperty(obj, prop) {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
+}).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+
+},{"./support/isBuffer":11,"_process":5,"inherits":4}],13:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.4
  * http://jquery.com/
@@ -12864,7 +13567,7 @@ return jQuery;
 
 }));
 
-},{}],10:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 'use strict';
 
 
@@ -12873,7 +13576,7 @@ var yaml = require('./lib/js-yaml.js');
 
 module.exports = yaml;
 
-},{"./lib/js-yaml.js":11}],11:[function(require,module,exports){
+},{"./lib/js-yaml.js":15}],15:[function(require,module,exports){
 'use strict';
 
 
@@ -12914,7 +13617,7 @@ module.exports.parse          = deprecated('parse');
 module.exports.compose        = deprecated('compose');
 module.exports.addConstructor = deprecated('addConstructor');
 
-},{"./js-yaml/dumper":13,"./js-yaml/exception":14,"./js-yaml/loader":15,"./js-yaml/schema":17,"./js-yaml/schema/core":18,"./js-yaml/schema/default_full":19,"./js-yaml/schema/default_safe":20,"./js-yaml/schema/failsafe":21,"./js-yaml/schema/json":22,"./js-yaml/type":23}],12:[function(require,module,exports){
+},{"./js-yaml/dumper":17,"./js-yaml/exception":18,"./js-yaml/loader":19,"./js-yaml/schema":21,"./js-yaml/schema/core":22,"./js-yaml/schema/default_full":23,"./js-yaml/schema/default_safe":24,"./js-yaml/schema/failsafe":25,"./js-yaml/schema/json":26,"./js-yaml/type":27}],16:[function(require,module,exports){
 'use strict';
 
 
@@ -12977,7 +13680,7 @@ module.exports.repeat         = repeat;
 module.exports.isNegativeZero = isNegativeZero;
 module.exports.extend         = extend;
 
-},{}],13:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable no-use-before-define*/
@@ -13188,7 +13891,7 @@ StringBuilder.prototype.finish = function () {
   }
 };
 
-function writeScalar(state, object, level) {
+function writeScalar(state, object, level, iskey) {
   var simple, first, spaceWrap, folded, literal, single, double,
       sawLineFeed, linePosition, longestLine, indent, max, character,
       position, escapeSeq, hexEsc, previous, lineLength, modifier,
@@ -13218,14 +13921,14 @@ function writeScalar(state, object, level) {
     simple = false;
   }
 
-  // can only use > and | if not wrapped in spaces.
+  // can only use > and | if not wrapped in spaces or is not a key.
   if (spaceWrap) {
     simple = false;
     folded = false;
     literal = false;
   } else {
-    folded = true;
-    literal = true;
+    folded = !iskey;
+    literal = !iskey;
   }
 
   single = true;
@@ -13602,7 +14305,7 @@ function writeBlockMapping(state, level, object, compact) {
     objectKey = objectKeyList[index];
     objectValue = object[objectKey];
 
-    if (!writeNode(state, level + 1, objectKey, true, true)) {
+    if (!writeNode(state, level + 1, objectKey, true, true, true)) {
       continue; // Skip this pair because of invalid key.
     }
 
@@ -13681,7 +14384,7 @@ function detectType(state, object, explicit) {
 // Serializes `object` and writes it to global `result`.
 // Returns true on success, or false on invalid object.
 //
-function writeNode(state, level, object, block, compact) {
+function writeNode(state, level, object, block, compact, iskey) {
   state.tag = null;
   state.dump = object;
 
@@ -13740,7 +14443,7 @@ function writeNode(state, level, object, block, compact) {
       }
     } else if ('[object String]' === type) {
       if ('?' !== state.tag) {
-        writeScalar(state, state.dump, level);
+        writeScalar(state, state.dump, level, iskey);
       }
     } else {
       if (state.skipInvalid) {
@@ -13772,8 +14475,7 @@ function getDuplicateReferences(object, state) {
 }
 
 function inspectNode(object, objects, duplicatesIndexes) {
-  var type = _toString.call(object),
-      objectKeyList,
+  var objectKeyList,
       index,
       length;
 
@@ -13821,22 +14523,37 @@ function safeDump(input, options) {
 module.exports.dump     = dump;
 module.exports.safeDump = safeDump;
 
-},{"./common":12,"./exception":14,"./schema/default_full":19,"./schema/default_safe":20}],14:[function(require,module,exports){
+},{"./common":16,"./exception":18,"./schema/default_full":23,"./schema/default_safe":24}],18:[function(require,module,exports){
+// YAML error class. http://stackoverflow.com/questions/8458984
+//
 'use strict';
 
 
+var inherits = require('util').inherits;
+
+
 function YAMLException(reason, mark) {
-  this.name    = 'YAMLException';
-  this.reason  = reason;
-  this.mark    = mark;
-  this.message = this.toString(false);
+  // Super constructor
+  Error.call(this);
+
+  // Super helper method to include stack trace in error object
+  Error.captureStackTrace(this, this.constructor);
+
+  this.name = 'YAMLException';
+  this.reason = reason;
+  this.mark = mark;
+  this.message = (this.reason || '(unknown reason)') + (this.mark ? ' ' + this.mark.toString() : '');
 }
 
 
-YAMLException.prototype.toString = function toString(compact) {
-  var result;
+// Inherit from Error
+inherits(YAMLException, Error);
 
-  result = 'JS-YAML: ' + (this.reason || '(unknown reason)');
+
+YAMLException.prototype.toString = function toString(compact) {
+  var result = this.name + ': ';
+
+  result += this.reason || '(unknown reason)';
 
   if (!compact && this.mark) {
     result += ' ' + this.mark.toString();
@@ -13848,7 +14565,7 @@ YAMLException.prototype.toString = function toString(compact) {
 
 module.exports = YAMLException;
 
-},{}],15:[function(require,module,exports){
+},{"util":12}],19:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable max-len,no-use-before-define*/
@@ -14018,12 +14735,8 @@ function throwError(state, message) {
 }
 
 function throwWarning(state, message) {
-  var error = generateError(state, message);
-
   if (state.onWarning) {
-    state.onWarning.call(null, error);
-  } else {
-    throw error;
+    state.onWarning.call(null, generateError(state, message));
   }
 }
 
@@ -14404,7 +15117,7 @@ function readDoubleQuotedScalar(state, nodeIndent) {
       captureEnd,
       hexLength,
       hexResult,
-      tmp, tmpEsc,
+      tmp,
       ch;
 
   ch = state.input.charCodeAt(state.position);
@@ -14708,6 +15421,7 @@ function readBlockScalar(state, nodeIndent) {
       state.result += common.repeat('\n', emptyLines + 1);
     } else {
       // In case of the first content line - count only empty lines.
+      state.result += common.repeat('\n', emptyLines);
     }
 
     detectedIndent = true;
@@ -15065,8 +15779,6 @@ function readAnchorProperty(state) {
 
 function readAlias(state) {
   var _position, alias,
-      len = state.length,
-      input = state.input,
       ch;
 
   ch = state.input.charCodeAt(state.position);
@@ -15108,8 +15820,7 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
       typeQuantity,
       type,
       flowIndent,
-      blockIndent,
-      _result;
+      blockIndent;
 
   state.tag    = null;
   state.anchor = null;
@@ -15240,7 +15951,7 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
         }
       }
     } else {
-      throwWarning(state, 'unknown tag !<' + state.tag + '>');
+      throwError(state, 'unknown tag !<' + state.tag + '>');
     }
   }
 
@@ -15409,7 +16120,7 @@ function loadAll(input, iterator, options) {
 
 
 function load(input, options) {
-  var documents = loadDocuments(input, options), index, length;
+  var documents = loadDocuments(input, options);
 
   if (0 === documents.length) {
     /*eslint-disable no-undefined*/
@@ -15436,7 +16147,7 @@ module.exports.load        = load;
 module.exports.safeLoadAll = safeLoadAll;
 module.exports.safeLoad    = safeLoad;
 
-},{"./common":12,"./exception":14,"./mark":16,"./schema/default_full":19,"./schema/default_safe":20}],16:[function(require,module,exports){
+},{"./common":16,"./exception":18,"./mark":20,"./schema/default_full":23,"./schema/default_safe":24}],20:[function(require,module,exports){
 'use strict';
 
 
@@ -15516,7 +16227,7 @@ Mark.prototype.toString = function toString(compact) {
 
 module.exports = Mark;
 
-},{"./common":12}],17:[function(require,module,exports){
+},{"./common":16}],21:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable max-len*/
@@ -15622,7 +16333,7 @@ Schema.create = function createSchema() {
 
 module.exports = Schema;
 
-},{"./common":12,"./exception":14,"./type":23}],18:[function(require,module,exports){
+},{"./common":16,"./exception":18,"./type":27}],22:[function(require,module,exports){
 // Standard YAML's Core schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2804923
 //
@@ -15642,7 +16353,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":17,"./json":22}],19:[function(require,module,exports){
+},{"../schema":21,"./json":26}],23:[function(require,module,exports){
 // JS-YAML's default schema for `load` function.
 // It is not described in the YAML specification.
 //
@@ -15669,7 +16380,7 @@ module.exports = Schema.DEFAULT = new Schema({
   ]
 });
 
-},{"../schema":17,"../type/js/function":28,"../type/js/regexp":29,"../type/js/undefined":30,"./default_safe":20}],20:[function(require,module,exports){
+},{"../schema":21,"../type/js/function":32,"../type/js/regexp":33,"../type/js/undefined":34,"./default_safe":24}],24:[function(require,module,exports){
 // JS-YAML's default schema for `safeLoad` function.
 // It is not described in the YAML specification.
 //
@@ -15699,7 +16410,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":17,"../type/binary":24,"../type/merge":32,"../type/omap":34,"../type/pairs":35,"../type/set":37,"../type/timestamp":39,"./core":18}],21:[function(require,module,exports){
+},{"../schema":21,"../type/binary":28,"../type/merge":36,"../type/omap":38,"../type/pairs":39,"../type/set":41,"../type/timestamp":43,"./core":22}],25:[function(require,module,exports){
 // Standard YAML's Failsafe schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2802346
 
@@ -15718,7 +16429,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":17,"../type/map":31,"../type/seq":36,"../type/str":38}],22:[function(require,module,exports){
+},{"../schema":21,"../type/map":35,"../type/seq":40,"../type/str":42}],26:[function(require,module,exports){
 // Standard YAML's JSON schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2803231
 //
@@ -15745,7 +16456,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":17,"../type/bool":25,"../type/float":26,"../type/int":27,"../type/null":33,"./failsafe":21}],23:[function(require,module,exports){
+},{"../schema":21,"../type/bool":29,"../type/float":30,"../type/int":31,"../type/null":37,"./failsafe":25}],27:[function(require,module,exports){
 'use strict';
 
 var YAMLException = require('./exception');
@@ -15808,7 +16519,7 @@ function Type(tag, options) {
 
 module.exports = Type;
 
-},{"./exception":14}],24:[function(require,module,exports){
+},{"./exception":18}],28:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable no-bitwise*/
@@ -15828,7 +16539,7 @@ function resolveYamlBinary(data) {
     return false;
   }
 
-  var code, idx, bitlen = 0, len = 0, max = data.length, map = BASE64_MAP;
+  var code, idx, bitlen = 0, max = data.length, map = BASE64_MAP;
 
   // Convert one by one.
   for (idx = 0; idx < max; idx++) {
@@ -15848,7 +16559,7 @@ function resolveYamlBinary(data) {
 }
 
 function constructYamlBinary(data) {
-  var code, idx, tailbits,
+  var idx, tailbits,
       input = data.replace(/[\r\n=]/g, ''), // remove CR/LF & padding to simplify scan
       max = input.length,
       map = BASE64_MAP,
@@ -15944,7 +16655,7 @@ module.exports = new Type('tag:yaml.org,2002:binary', {
   represent: representYamlBinary
 });
 
-},{"../type":23,"buffer":3}],25:[function(require,module,exports){
+},{"../type":27,"buffer":3}],29:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -15983,7 +16694,7 @@ module.exports = new Type('tag:yaml.org,2002:bool', {
   defaultStyle: 'lowercase'
 });
 
-},{"../type":23}],26:[function(require,module,exports){
+},{"../type":27}],30:[function(require,module,exports){
 'use strict';
 
 var common = require('../common');
@@ -16000,8 +16711,6 @@ function resolveYamlFloat(data) {
   if (null === data) {
     return false;
   }
-
-  var value, sign, base, digits;
 
   if (!YAML_FLOAT_PATTERN.test(data)) {
     return false;
@@ -16093,7 +16802,7 @@ module.exports = new Type('tag:yaml.org,2002:float', {
   defaultStyle: 'lowercase'
 });
 
-},{"../common":12,"../type":23}],27:[function(require,module,exports){
+},{"../common":16,"../type":27}],31:[function(require,module,exports){
 'use strict';
 
 var common = require('../common');
@@ -16278,7 +16987,7 @@ module.exports = new Type('tag:yaml.org,2002:int', {
   }
 });
 
-},{"../common":12,"../type":23}],28:[function(require,module,exports){
+},{"../common":16,"../type":27}],32:[function(require,module,exports){
 'use strict';
 
 var esprima;
@@ -16306,9 +17015,7 @@ function resolveJavascriptFunction(data) {
 
   try {
     var source = '(' + data + ')',
-        ast    = esprima.parse(source, { range: true }),
-        params = [],
-        body;
+        ast    = esprima.parse(source, { range: true });
 
     if ('Program'             !== ast.type         ||
         1                     !== ast.body.length  ||
@@ -16366,7 +17073,7 @@ module.exports = new Type('tag:yaml.org,2002:js/function', {
   represent: representJavascriptFunction
 });
 
-},{"../../type":23,"esprima":40}],29:[function(require,module,exports){
+},{"../../type":27,"esprima":44}],33:[function(require,module,exports){
 'use strict';
 
 var Type = require('../../type');
@@ -16399,7 +17106,6 @@ function resolveJavascriptRegExp(data) {
   }
 
   try {
-    var dummy = new RegExp(regexp, modifiers);
     return true;
   } catch (error) {
     return false;
@@ -16452,7 +17158,7 @@ module.exports = new Type('tag:yaml.org,2002:js/regexp', {
   represent: representJavascriptRegExp
 });
 
-},{"../../type":23}],30:[function(require,module,exports){
+},{"../../type":27}],34:[function(require,module,exports){
 'use strict';
 
 var Type = require('../../type');
@@ -16482,7 +17188,7 @@ module.exports = new Type('tag:yaml.org,2002:js/undefined', {
   represent: representJavascriptUndefined
 });
 
-},{"../../type":23}],31:[function(require,module,exports){
+},{"../../type":27}],35:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -16492,7 +17198,7 @@ module.exports = new Type('tag:yaml.org,2002:map', {
   construct: function (data) { return null !== data ? data : {}; }
 });
 
-},{"../type":23}],32:[function(require,module,exports){
+},{"../type":27}],36:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -16506,7 +17212,7 @@ module.exports = new Type('tag:yaml.org,2002:merge', {
   resolve: resolveYamlMerge
 });
 
-},{"../type":23}],33:[function(require,module,exports){
+},{"../type":27}],37:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -16544,7 +17250,7 @@ module.exports = new Type('tag:yaml.org,2002:null', {
   defaultStyle: 'lowercase'
 });
 
-},{"../type":23}],34:[function(require,module,exports){
+},{"../type":27}],38:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -16602,7 +17308,7 @@ module.exports = new Type('tag:yaml.org,2002:omap', {
   construct: constructYamlOmap
 });
 
-},{"../type":23}],35:[function(require,module,exports){
+},{"../type":27}],39:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -16665,7 +17371,7 @@ module.exports = new Type('tag:yaml.org,2002:pairs', {
   construct: constructYamlPairs
 });
 
-},{"../type":23}],36:[function(require,module,exports){
+},{"../type":27}],40:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -16675,7 +17381,7 @@ module.exports = new Type('tag:yaml.org,2002:seq', {
   construct: function (data) { return null !== data ? data : []; }
 });
 
-},{"../type":23}],37:[function(require,module,exports){
+},{"../type":27}],41:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -16710,7 +17416,7 @@ module.exports = new Type('tag:yaml.org,2002:set', {
   construct: constructYamlSet
 });
 
-},{"../type":23}],38:[function(require,module,exports){
+},{"../type":27}],42:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -16720,7 +17426,7 @@ module.exports = new Type('tag:yaml.org,2002:str', {
   construct: function (data) { return null !== data ? data : ''; }
 });
 
-},{"../type":23}],39:[function(require,module,exports){
+},{"../type":27}],43:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -16742,12 +17448,7 @@ function resolveYamlTimestamp(data) {
     return false;
   }
 
-  var match, year, month, day, hour, minute, second, fraction = 0,
-      delta = null, tz_hour, tz_minute, date;
-
-  match = YAML_TIMESTAMP_REGEXP.exec(data);
-
-  if (null === match) {
+  if (YAML_TIMESTAMP_REGEXP.exec(data) === null) {
     return false;
   }
 
@@ -16820,7 +17521,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
   represent: representYamlTimestamp
 });
 
-},{"../type":23}],40:[function(require,module,exports){
+},{"../type":27}],44:[function(require,module,exports){
 /*
   Copyright (C) 2013 Ariya Hidayat <ariya.hidayat@gmail.com>
   Copyright (C) 2013 Thaddee Tyl <thaddee.tyl@gmail.com>
@@ -22143,7 +22844,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 }));
 /* vim: set sw=4 ts=4 et tw=80 : */
 
-},{}],41:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 (function (global){
 (function() {
     var root;
@@ -22333,7 +23034,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 })();
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],42:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 /**
  * Copyright (c) 2011-2014 Felix Gnass
  * Licensed under the MIT license
@@ -22368,7 +23069,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 ;(function (root, factory) {
 
   /* CommonJS */
-  if (typeof exports == 'object') module.exports = factory()
+  if (typeof module == 'object' && module.exports) module.exports = factory()
 
   /* AMD module */
   else if (typeof define == 'function' && define.amd) define(factory)
@@ -22712,7 +23413,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
 }));
 
-},{}],43:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 var self = self || {};// File:src/Three.js
 
 /**
@@ -57860,7 +58561,7 @@ if (typeof exports !== 'undefined') {
   this['THREE'] = THREE;
 }
 
-},{}],44:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
 //     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -59410,7 +60111,7 @@ if (typeof exports !== 'undefined') {
   }
 }.call(this));
 
-},{}],45:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 module.exports={
   "name": "landmarker-io",
   "version": "2.0.3",
@@ -59483,7 +60184,7 @@ module.exports={
   }
 }
 
-},{}],46:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -59603,7 +60304,7 @@ Base.extend = function extend(type, child) {
 };
 module.exports = exports['default'];
 
-},{}],47:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 /**
  * Dropbox backend interface
  *
@@ -60178,7 +60879,7 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
 };
 module.exports = exports['default'];
 
-},{"../lib/download":50,"../lib/imagepromise":51,"../lib/obj_loader":52,"../lib/requests":53,"../lib/stl_loader":54,"../lib/utils":57,"../template":69,"../view/dropbox_picker.js":73,"../view/notification":79,"./base":46,"promise-polyfill":41,"url":8}],48:[function(require,module,exports){
+},{"../lib/download":54,"../lib/imagepromise":55,"../lib/obj_loader":56,"../lib/requests":57,"../lib/stl_loader":58,"../lib/utils":61,"../template":73,"../view/dropbox_picker.js":77,"../view/notification":83,"./base":50,"promise-polyfill":45,"url":10}],52:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60200,7 +60901,7 @@ var _server2 = _interopRequireDefault(_server);
 exports['default'] = { Dropbox: _dropbox2['default'], Server: _server2['default'] };
 module.exports = exports['default'];
 
-},{"./dropbox":47,"./server":49}],49:[function(require,module,exports){
+},{"./dropbox":51,"./server":53}],53:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60317,7 +61018,7 @@ Server.prototype.fetchGeometry = function (assetId) {
 };
 module.exports = exports['default'];
 
-},{"../lib/imagepromise":51,"../lib/requests":53,"../lib/support":55,"../lib/utils":57,"./base":46}],50:[function(require,module,exports){
+},{"../lib/imagepromise":55,"../lib/requests":57,"../lib/support":59,"../lib/utils":61,"./base":50}],54:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60358,7 +61059,7 @@ function download(str, filename) {
 
 module.exports = exports['default'];
 
-},{"../view/notification":79}],51:[function(require,module,exports){
+},{"../view/notification":83}],55:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60447,7 +61148,7 @@ function MaterialPromise(url, auth) {
 
 exports['default'] = MaterialPromise;
 
-},{"../view/notification":79,"promise-polyfill":41,"three":43}],52:[function(require,module,exports){
+},{"../view/notification":83,"promise-polyfill":45,"three":47}],56:[function(require,module,exports){
 /**
  * Adapted from
  * https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/OBJLoader.js
@@ -60657,15 +61358,15 @@ function OBJLoader(text) {
             // } else if (/^g /.test(line)) {
             //     // group
         } else if (/^usemtl /.test(line)) {
-            // material
-            material.name = line.substring(7).trim();
-            // } else if (/^mtllib /.test(line)) {
-            //     // mtl file
-            // } else if (/^s /.test(line)) {
-            //     // smooth shading
-            // } else {
-            //     // console.log( "THREE.OBJLoader: Unhandled line " + line );
-        }
+                // material
+                material.name = line.substring(7).trim();
+                // } else if (/^mtllib /.test(line)) {
+                //     // mtl file
+                // } else if (/^s /.test(line)) {
+                //     // smooth shading
+                // } else {
+                //     // console.log( "THREE.OBJLoader: Unhandled line " + line );
+            }
     }
 
     for (var i = 0, l = objects.length; i < l; i++) {
@@ -60698,7 +61399,7 @@ function OBJLoader(text) {
 
 module.exports = exports['default'];
 
-},{"three":43}],53:[function(require,module,exports){
+},{"three":47}],57:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60866,7 +61567,7 @@ function putJSON(url) {
     });
 }
 
-},{"../view/notification":79,"promise-polyfill":41,"querystring":7}],54:[function(require,module,exports){
+},{"../view/notification":83,"promise-polyfill":45,"querystring":9}],58:[function(require,module,exports){
 /**
  *
  * Adapted from https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/STLLoader.js
@@ -60945,14 +61646,14 @@ function parseBinary(data) {
     for (var index = 0; index < 80 - 10; index++) {
         if (reader.getUint32(index, false) === 0x434F4C4F /*COLO*/ && reader.getUint8(index + 4) === 0x52 /*'R'*/ && reader.getUint8(index + 5) === 0x3D /*'='*/) {
 
-            hasColors = true;
-            colors = new Float32Array(faces * 3 * 3);
+                hasColors = true;
+                colors = new Float32Array(faces * 3 * 3);
 
-            defaultR = reader.getUint8(index + 6) / 255;
-            defaultG = reader.getUint8(index + 7) / 255;
-            defaultB = reader.getUint8(index + 8) / 255;
-            alpha = reader.getUint8(index + 9) / 255;
-        }
+                defaultR = reader.getUint8(index + 6) / 255;
+                defaultG = reader.getUint8(index + 7) / 255;
+                defaultB = reader.getUint8(index + 8) / 255;
+                alpha = reader.getUint8(index + 9) / 255;
+            }
     }
 
     var dataOffset = 84;
@@ -61056,7 +61757,7 @@ function isBinary(binData) {
 }
 
 function ensureBinary(buf) {
-    if (typeof buf === 'string') {
+    if (typeof buf === "string") {
         var arrayBuffer = new Uint8Array(buf.length);
         for (var i = 0; i < buf.length; i++) {
             arrayBuffer[i] = buf.charCodeAt(i) & 0xff; // implicitly assumes little-endian
@@ -61094,7 +61795,7 @@ function isStringInUnit8ArrayAtPosition(a, i, str) {
 }
 
 function extractStringUntilSentinelFromUnit8ArrayAtPosition(a, i, sentinal) {
-    var str = '',
+    var str = "",
         c = undefined;
     var len = a.length;
     while (i < len) {
@@ -61106,7 +61807,7 @@ function extractStringUntilSentinelFromUnit8ArrayAtPosition(a, i, sentinal) {
     }
     // we ran out of the array, and the last character wasn't the sentinel.
     // Return an empty string.
-    return '';
+    return "";
 }
 
 function parseASCII(arrayBuffer) {
@@ -61124,7 +61825,7 @@ function parseASCII(arrayBuffer) {
     var vertices = new Float32Array(nVertices * 3);
     while (i < len) {
         if (isStringInUnit8ArrayAtPosition(a, i, VERTEX_STRING)) {
-            line = extractStringUntilSentinelFromUnit8ArrayAtPosition(a, i, '\n');
+            line = extractStringUntilSentinelFromUnit8ArrayAtPosition(a, i, "\n");
             if ((result = PATTERN_VERTEX.exec(line)) !== null) {
                 var _result$slice$map = result.slice(1, 4).map(parseFloat);
 
@@ -61162,14 +61863,15 @@ function parseASCII(arrayBuffer) {
 }
 module.exports = exports['default'];
 
-},{"three":43}],55:[function(require,module,exports){
+},{"three":47}],59:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
     value: true
 });
 var ie = (function () {
-    return /MSIE (\d+\.\d+);/.test(navigator.userAgent) || !!navigator.userAgent.match(/Trident.*rv[ :]*11\./);
+    return (/MSIE (\d+\.\d+);/.test(navigator.userAgent) || !!navigator.userAgent.match(/Trident.*rv[ :]*11\./)
+    );
 })();
 
 exports.ie = ie;
@@ -61207,7 +61909,7 @@ exports['default'] = {
     https: https
 };
 
-},{}],56:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61326,8 +62028,8 @@ Tracker.prototype.recordState = function (data) {
         if (op && !override && (!state || state.rev !== op.rev)) {
             rev = op.rev; // Track the lastest operation
         } else {
-            rev = this.rev();
-        }
+                rev = this.rev();
+            }
         this._states.push({ rev: rev, data: data });
     }
 
@@ -61508,7 +62210,7 @@ Tracker.prototype.canUndo = function () {
 
 exports['default'] = Tracker;
 
-},{"backbone":2,"underscore":44}],57:[function(require,module,exports){
+},{"backbone":2,"underscore":48}],61:[function(require,module,exports){
 /**
  * @module utils
  * Collection of utility functions not present in underscore and useful
@@ -61672,7 +62374,7 @@ function truncate(str, max) {
     }
 }
 
-},{"../model/config":62}],58:[function(require,module,exports){
+},{"../model/config":66}],62:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61735,7 +62437,7 @@ exports['default'] = _backbone2['default'].Model.extend({
             mode: 'mesh',
             connectivityOn: true,
             editingOn: true,
-            autoSaveOn: true,
+            autoSaveOn: false,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
@@ -62001,7 +62703,7 @@ exports['default'] = _backbone2['default'].Model.extend({
         var lms = this.landmarks();
         if (lms && !lms.tracker.isUpToDate()) {
             if (!this.isAutoSaveOn()) {
-                _viewModal2['default'].confirm('You have unsaved changes, are you sure you want to proceed ? (Your changes will be lost)', fn);
+                _viewModal2['default'].confirm('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn);
             } else {
                 lms.save().then(fn);
             }
@@ -62128,7 +62830,7 @@ exports['default'] = _backbone2['default'].Model.extend({
 });
 module.exports = exports['default'];
 
-},{"../lib/tracker":56,"../view/modal":78,"./assetsource":60,"./landmark_group":64,"backbone":2,"jquery":9,"promise-polyfill":41,"underscore":44}],59:[function(require,module,exports){
+},{"../lib/tracker":60,"../view/modal":82,"./assetsource":64,"./landmark_group":68,"backbone":2,"jquery":13,"promise-polyfill":45,"underscore":48}],63:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62516,7 +63218,7 @@ var Mesh = Image.extend({
 });
 exports.Mesh = Mesh;
 
-},{"backbone":2,"three":43}],60:[function(require,module,exports){
+},{"backbone":2,"three":47}],64:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62661,7 +63363,7 @@ var MeshSource = AssetSource.extend({
             this.pending = {};
         }
         // kill any current fetches
-        console.log('Starting abort');
+        console.log("Starting abort");
         abortAllObj(this.pending);
         this.set('assetIsLoading', true);
         // set the asset immediately (triggering change in UI)
@@ -62757,7 +63459,7 @@ var ImageSource = AssetSource.extend({
 });
 exports.ImageSource = ImageSource;
 
-},{"./asset":59,"backbone":2,"underscore":44}],61:[function(require,module,exports){
+},{"./asset":63,"backbone":2,"underscore":48}],65:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62822,7 +63524,7 @@ var AtomicOperationTracker = _backbone2['default'].Model.extend({
 exports['default'] = atomicTracker = new AtomicOperationTracker();
 module.exports = exports['default'];
 
-},{"backbone":2}],62:[function(require,module,exports){
+},{"backbone":2}],66:[function(require,module,exports){
 /**
  * Persistable config object with get and set logic
  * Requires localstorage to work properly (throws Error otherwise),
@@ -62939,7 +63641,7 @@ exports['default'] = function () {
     return _configInstance;
 };
 
-},{"../lib/support":55,"underscore":44}],63:[function(require,module,exports){
+},{"../lib/support":59,"underscore":48}],67:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63056,7 +63758,7 @@ exports['default'] = _backbone2['default'].Model.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"underscore":44}],64:[function(require,module,exports){
+},{"backbone":2,"underscore":48}],68:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63126,6 +63828,12 @@ LandmarkCollectionPrototype.isEmpty = function () {
     });
 };
 
+LandmarkCollectionPrototype.hasEmpty = function () {
+    return this.landmarks.some(function (lm) {
+        return lm.isEmpty();
+    });
+};
+
 LandmarkCollectionPrototype.deselectAll = (0, _atomic.atomicOperation)(function () {
     this.landmarks.forEach(function (lm) {
         return lm.deselect();
@@ -63154,7 +63862,7 @@ function _validateConnectivity(nLandmarks, connectivity) {
 
         if (a < 0 || a >= nLandmarks || b < 0 || b >= nLandmarks) {
             // we have bad connectivity!
-            throw new Error('Illegal connectivity encountered - [' + a + ', ' + b + '] not permitted in group of ' + nLandmarks + ' landmarks');
+            throw new Error("Illegal connectivity encountered - [" + a + ", " + b + "] not permitted in group of " + nLandmarks + " landmarks");
         }
     }
 
@@ -63437,7 +64145,7 @@ LandmarkGroup.parse = function (json, id, type, server, tracker) {
 };
 module.exports = exports['default'];
 
-},{"../lib/tracker":56,"../lib/utils":57,"./atomic":61,"./landmark":63,"three":43}],65:[function(require,module,exports){
+},{"../lib/tracker":60,"../lib/utils":61,"./atomic":65,"./landmark":67,"three":47}],69:[function(require,module,exports){
 
 'use strict';
 
@@ -63697,7 +64405,7 @@ OctreeNode.prototype.subdivide = function () {
     }
 };
 
-},{"three":43}],66:[function(require,module,exports){
+},{"three":47}],70:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63730,7 +64438,7 @@ exports['default'] = { face: _face2['default'],
                  simple42: _simple422['default'] };
 module.exports = exports['default'];
 
-},{"./face":67,"./ibug68":68,"./simple10":70,"./simple42":71}],67:[function(require,module,exports){
+},{"./face":71,"./ibug68":72,"./simple10":74,"./simple42":75}],71:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63759,7 +64467,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],68:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63798,7 +64506,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],69:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64061,7 +64769,7 @@ Template.loadDefaultTemplates = function () {
 };
 module.exports = exports['default'];
 
-},{"./defaults":66,"js-yaml":10,"underscore":44}],70:[function(require,module,exports){
+},{"./defaults":70,"js-yaml":14,"underscore":48}],74:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64075,7 +64783,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],71:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64089,7 +64797,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],72:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64155,7 +64863,7 @@ var AssetPagerView = _backbone2['default'].View.extend({
 
     initialize: function initialize() {
         _underscore2['default'].bindAll(this, 'render');
-        this.listenTo(this.model, 'change:asset', this.render);
+        this.listenTo(this.model, "change:asset", this.render);
     },
 
     render: function render() {
@@ -64180,13 +64888,13 @@ var BackendNameView = _backbone2['default'].View.extend({
     el: '#backendName',
 
     events: {
-        click: 'handleClick'
+        click: "handleClick"
     },
 
     initialize: function initialize() {
         _underscore2['default'].bindAll(this, 'render');
         this.render();
-        this.listenTo(this.model, 'change:server', this.render);
+        this.listenTo(this.model, "change:server", this.render);
     },
 
     render: function render() {
@@ -64222,12 +64930,12 @@ var AssetNameView = _backbone2['default'].View.extend({
     el: '#assetName',
 
     events: {
-        click: 'chooseAssetName'
+        click: "chooseAssetName"
     },
 
     initialize: function initialize() {
         _underscore2['default'].bindAll(this, 'render');
-        this.listenTo(this.model, 'change:asset', this.render);
+        this.listenTo(this.model, "change:asset", this.render);
     },
 
     render: function render() {
@@ -64264,18 +64972,18 @@ var AssetIndexView = _backbone2['default'].View.extend({
     el: '#assetIndex',
 
     events: {
-        click: 'handleClick'
+        click: "handleClick"
     },
 
     initialize: function initialize() {
         _underscore2['default'].bindAll(this, 'render');
-        this.listenTo(this.model, 'change:asset', this.render);
+        this.listenTo(this.model, "change:asset", this.render);
     },
 
     render: function render() {
         var nStr = (0, _libUtils.pad)(this.model.assetSource().nAssets(), 2);
         var iStr = (0, _libUtils.pad)(this.model.assetIndex() + 1, 2);
-        this.$el.find('.content').html(iStr + '/' + nStr);
+        this.$el.find('.content').html(iStr + "/" + nStr);
         this.$el.toggleClass('Disabled', this.model.assetSource().nAssets() <= 1);
         return this;
     },
@@ -64353,12 +65061,12 @@ var CollectionName = _backbone2['default'].View.extend({
     el: '#collectionName',
 
     events: {
-        click: 'chooseCollection'
+        click: "chooseCollection"
     },
 
     initialize: function initialize() {
         _underscore2['default'].bindAll(this, 'render');
-        this.listenTo(this.model, 'change:activeCollection', this.render);
+        this.listenTo(this.model, "change:activeCollection", this.render);
     },
 
     render: function render() {
@@ -64422,7 +65130,7 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../backend":48,"../lib/utils":57,"./intro":75,"./list_picker":77,"./modal":78,"./notification":79,"backbone":2,"jquery":9,"underscore":44}],73:[function(require,module,exports){
+},{"../backend":52,"../lib/utils":61,"./intro":79,"./list_picker":81,"./modal":82,"./notification":83,"backbone":2,"jquery":13,"underscore":48}],77:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64757,7 +65465,7 @@ exports['default'] = _modal2['default'].extend({
 
         if (this.radios && this.radios.length > 0) {
             (function () {
-                var $radios = (0, _jquery2['default'])('<div class=\'DropboxRadios\'></div>');
+                var $radios = (0, _jquery2['default'])("<div class='DropboxRadios'></div>");
                 _this4.radios.forEach(function (_ref5, i) {
                     var name = _ref5.name;
                     var options = _ref5.options;
@@ -64789,7 +65497,7 @@ exports['default'] = _modal2['default'].extend({
 });
 module.exports = exports['default'];
 
-},{"../lib/utils":57,"./modal":78,"jquery":9,"promise-polyfill":41,"underscore":44}],74:[function(require,module,exports){
+},{"../lib/utils":61,"./modal":82,"jquery":13,"promise-polyfill":45,"underscore":48}],78:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64867,7 +65575,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"jquery":9}],75:[function(require,module,exports){
+},{"backbone":2,"jquery":13}],79:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64955,7 +65663,7 @@ var Intro = _modal2['default'].extend({
             $contents.find('.IntroItems').append((0, _jquery2['default'])(lsWarning));
         }
 
-        if (!_libSupport2['default'].https && window.location.origin !== 'http://localhost:4000') {
+        if (!_libSupport2['default'].https && window.location.origin !== "http://localhost:4000") {
             $contents.find('.IntroItem--Dropbox').remove();
             $contents.find('.IntroItems').append((0, _jquery2['default'])(httpsWarning));
         }
@@ -65016,7 +65724,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{"../../../../package.json":45,"../backend":48,"../lib/support":55,"../lib/utils":57,"./modal":78,"jquery":9}],76:[function(require,module,exports){
+},{"../../../../package.json":49,"../backend":52,"../lib/support":59,"../lib/utils":61,"./modal":82,"jquery":13}],80:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65042,7 +65750,7 @@ function KeyboardShortcutsHandler(app, viewport) {
     this._keypress = function (e) {
 
         // Don't fire on input fields
-        if ((0, _jquery2['default'])(e.target).closest('input[type=\'text\']')[0]) {
+        if ((0, _jquery2['default'])(e.target).closest("input[type='text']")[0]) {
             return null;
         }
 
@@ -65069,14 +65777,14 @@ function KeyboardShortcutsHandler(app, viewport) {
                 // d = [d]elete selected
                 if (lms) {
                     lms.deleteSelected();
-                    (0, _jquery2['default'])('#viewportContainer').trigger('groupDeselected');
+                    (0, _jquery2['default'])('#viewportContainer').trigger("groupDeselected");
                 }
                 break;
             case 113:
                 // q = deselect all
                 if (lms) {
                     app.landmarks().deselectAll();
-                    (0, _jquery2['default'])('#viewportContainer').trigger('groupDeselected');
+                    (0, _jquery2['default'])('#viewportContainer').trigger("groupDeselected");
                 }
                 break;
             case 114:
@@ -65094,12 +65802,12 @@ function KeyboardShortcutsHandler(app, viewport) {
                 // a = select [a]ll
                 if (lms) {
                     app.landmarks().selectAll();
-                    (0, _jquery2['default'])('#viewportContainer').trigger('groupSelected');
+                    (0, _jquery2['default'])('#viewportContainer').trigger("groupSelected");
                 }
                 break;
             case 103:
                 // g = complete [g]roup selection
-                (0, _jquery2['default'])('#viewportContainer').trigger('completeGroupSelection');
+                (0, _jquery2['default'])('#viewportContainer').trigger("completeGroupSelection");
                 break;
             case 99:
                 // c = toggle [c]amera mode
@@ -65176,7 +65884,7 @@ function KeyboardShortcutsHandler(app, viewport) {
         var lms = app.landmarks();
         if (lms) {
             app.landmarks().deselectAll();
-            (0, _jquery2['default'])('#viewportContainer').trigger('groupDeselected');
+            (0, _jquery2['default'])('#viewportContainer').trigger("groupDeselected");
             evt.stopPropagation();
             return;
         }
@@ -65194,7 +65902,7 @@ KeyboardShortcutsHandler.prototype.disable = function () {
 };
 module.exports = exports['default'];
 
-},{"./modal":78,"./notification":79,"jquery":9}],77:[function(require,module,exports){
+},{"./modal":82,"./notification":83,"jquery":13}],81:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65281,7 +65989,7 @@ exports['default'] = _modal2['default'].extend({
 
     filter: _underscore2['default'].throttle(function (evt) {
         var value = evt.currentTarget.value.toLowerCase();
-        if (!value || value === '') {
+        if (!value || value === "") {
             this._list = this.list;
         }
 
@@ -65335,7 +66043,7 @@ exports['default'] = _modal2['default'].extend({
 });
 module.exports = exports['default'];
 
-},{"./modal":78,"jquery":9,"underscore":44}],78:[function(require,module,exports){
+},{"./modal":82,"jquery":13,"underscore":48}],82:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65428,7 +66136,7 @@ var Modal = _backbone2['default'].View.extend({
         this.$el.attr('id', this.id);
 
         if (this.closable) {
-            this.$el.append((0, _jquery2['default'])('<div class=\'ModalWindow__Close\'>&times;</div>'));
+            this.$el.append((0, _jquery2['default'])("<div class='ModalWindow__Close'>&times;</div>"));
             this.$el.find('.ModalWindow__Close').on('click', this.close);
         }
 
@@ -65495,7 +66203,7 @@ var Modal = _backbone2['default'].View.extend({
     },
 
     // Is called before render and passed the object received by initialize
-    init: function init() {},
+    init: function init() /* opts */{},
 
     // Called after render with no arguments
     afterRender: function afterRender() {}
@@ -65611,9 +66319,8 @@ Modal.prompt = function (msg, submit, cancel) {
 };
 
 exports['default'] = Modal;
-/* opts */
 
-},{"backbone":2,"jquery":9,"underscore":44}],79:[function(require,module,exports){
+},{"backbone":2,"jquery":13,"underscore":48}],83:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65698,6 +66405,14 @@ var NOTIFICATION_BASE_CLASS = 'Notification',
     'error': 'Notification--Error',
     'warning': 'Notification--Warning' };
 
+/** Options:
++ `msg`: string to be displayed or jQuery element for more complex content
++ `type`: notifications can be one of three types (`error`, `warning` and `success`) which is denoted by the standard colors (`red`, `yellow`, `green`), defaults to `warning`
++ `actions`:  a list of call to actions in the form of tuples `[string, function, boolean]`, the function is called on click and the boolean value indicates wether or not click should close the notification as well
++ `onClose`: function to call when the notification is closed (automatically or manually)
++ `persist`: when true will prevent the notification from closing (default to false)
++ `closeTimeout`: time before the notification closes automatically, set to 0 or `undefined` to only allow manual closing. Will be forced to `undefined` if `actions` is not empty.
+ */
 var BaseNotification = _backbone2['default'].View.extend({
 
     tagName: 'div',
@@ -65825,14 +66540,14 @@ var BaseNotification = _backbone2['default'].View.extend({
 exports.BaseNotification = BaseNotification;
 
 function notify(opts) {
-    return new module.exports.BaseNotification(opts);
+    return new BaseNotification(opts);
 }
 
 var AssetLoadingNotification = _backbone2['default'].View.extend({
 
     initialize: function initialize() {
         _underscore2['default'].bindAll(this, 'render');
-        this.listenTo(this.model, 'change:assetSource', this._changeAssetSource);
+        this.listenTo(this.model, "change:assetSource", this._changeAssetSource);
         this.spinner = new _spinJs2['default']().spin();
         this.el = document.getElementById('loadingSpinner');
         this.spinner = new _spinJs2['default'](spinnerOpts);
@@ -65846,7 +66561,7 @@ var AssetLoadingNotification = _backbone2['default'].View.extend({
         }
         this.source = this.model.assetSource();
         if (this.source) {
-            this.listenTo(this.source, 'change:assetIsLoading', this.render);
+            this.listenTo(this.source, "change:assetIsLoading", this.render);
         }
     },
 
@@ -65948,7 +66663,7 @@ var loading = {
 };
 exports.loading = loading;
 
-},{"../lib/utils":57,"backbone":2,"jquery":9,"spin.js":42,"underscore":44}],80:[function(require,module,exports){
+},{"../lib/utils":61,"backbone":2,"jquery":13,"spin.js":46,"underscore":48}],84:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66003,10 +66718,10 @@ var _templates2 = _interopRequireDefault(_templates);
 // updates and that's it.
 var LandmarkView = _backbone2['default'].View.extend({
 
-    tagName: 'div',
+    tagName: "div",
 
     events: {
-        click: 'handleClick'
+        click: "handleClick"
     },
 
     initialize: function initialize(_ref) {
@@ -66019,13 +66734,13 @@ var LandmarkView = _backbone2['default'].View.extend({
     },
 
     render: function render() {
-        var html = (0, _jquery2['default'])('<div></div>');
-        html.addClass('Lm', this.model.isEmpty());
+        var html = (0, _jquery2['default'])("<div></div>");
+        html.addClass("Lm", this.model.isEmpty());
 
-        html.toggleClass('Lm-Empty', this.model.isEmpty());
-        html.toggleClass('Lm-Value', !this.model.isEmpty());
-        html.toggleClass('Lm-Selected', this.model.isSelected());
-        html.toggleClass('Lm-NextAvailable', this.model.isNextAvailable());
+        html.toggleClass("Lm-Empty", this.model.isEmpty());
+        html.toggleClass("Lm-Value", !this.model.isEmpty());
+        html.toggleClass("Lm-Selected", this.model.isSelected());
+        html.toggleClass("Lm-NextAvailable", this.model.isNextAvailable());
 
         // in case our element is already live replace the content
         this.$el.replaceWith(html);
@@ -66058,7 +66773,7 @@ var LandmarkView = _backbone2['default'].View.extend({
         } else if (event.ctrlKey || event.metaKey) {
             if (!this.model.isSelected()) {
                 this.model.select();
-                (0, _jquery2['default'])('#viewportContainer').trigger('groupSelected');
+                (0, _jquery2['default'])('#viewportContainer').trigger("groupSelected");
             }
         } else if (this.model.isEmpty()) {
             // user is clicking on an empty landmark - mark it as the next for
@@ -66072,12 +66787,12 @@ var LandmarkView = _backbone2['default'].View.extend({
     selectGroup: function selectGroup() {
         this.model.group().deselectAll();
         this.model.group().labels[this.labelIndex].selectAll();
-        (0, _jquery2['default'])('#viewportContainer').trigger('groupSelected');
+        (0, _jquery2['default'])('#viewportContainer').trigger("groupSelected");
     },
 
     selectAll: function selectAll() {
         this.model.group().selectAll();
-        (0, _jquery2['default'])('#viewportContainer').trigger('groupSelected');
+        (0, _jquery2['default'])('#viewportContainer').trigger("groupSelected");
     }
 });
 
@@ -66126,7 +66841,7 @@ var LandmarkListView = _backbone2['default'].View.extend({
 exports.LandmarkListView = LandmarkListView;
 var LandmarkGroupLabelView = _backbone2['default'].View.extend({
 
-    className: 'LmGroup-Label',
+    className: "LmGroup-Label",
 
     initialize: function initialize() {
         this.$el.html(this.model.label);
@@ -66226,15 +66941,15 @@ var ActionsView = _backbone2['default'].View.extend({
         var app = _ref4.app;
 
         _underscore2['default'].bindAll(this, 'save', 'help', 'render');
-        this.listenTo(this.model.tracker, 'change', this.render);
+        this.listenTo(this.model.tracker, "change", this.render);
         this.app = app;
         this.render();
     },
 
     events: {
-        'click #save': 'save',
-        'click #help': 'help',
-        'click #download': 'download'
+        'click #save': "save",
+        'click #help': "help",
+        'click #download': "download"
     },
 
     render: function render() {
@@ -66275,7 +66990,7 @@ var ActionsView = _backbone2['default'].View.extend({
 exports.ActionsView = ActionsView;
 var UndoRedoView = _backbone2['default'].View.extend({
 
-    el: '#undoRedo',
+    el: "#undoRedo",
 
     events: {
         'click .Undo': 'undo',
@@ -66287,7 +67002,7 @@ var UndoRedoView = _backbone2['default'].View.extend({
 
         this.tracker = this.model.tracker;
         this.app = app;
-        this.listenTo(this.tracker, 'change', this.render);
+        this.listenTo(this.tracker, "change", this.render);
         _underscore2['default'].bindAll(this, 'render', 'cleanup', 'undo', 'redo');
         this.render();
     },
@@ -66352,8 +67067,8 @@ exports.LmLoadView = LmLoadView;
 exports['default'] = _backbone2['default'].View.extend({
 
     initialize: function initialize() {
-        _underscore2['default'].bindAll(this, 'landmarksChange');
-        this.listenTo(this.model, 'change:landmarks', this.landmarksChange);
+        _underscore2['default'].bindAll(this, "landmarksChange");
+        this.listenTo(this.model, "change:landmarks", this.landmarksChange);
         this.actionsView = null;
         this.lmLoadView = null;
         this.lmView = null;
@@ -66393,7 +67108,7 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../lib/download":50,"../model/atomic":61,"./notification":79,"./templates":81,"backbone":2,"jquery":9,"underscore":44}],81:[function(require,module,exports){
+},{"../lib/download":54,"../model/atomic":65,"./notification":83,"./templates":85,"backbone":2,"jquery":13,"underscore":48}],85:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66511,7 +67226,7 @@ var TemplatePicker = _backbone2['default'].View.extend({
 
     filter: _underscore2['default'].throttle(function (evt) {
         var value = evt.currentTarget.value.toLowerCase();
-        if (!value || value === '') {
+        if (!value || value === "") {
             this.$el.find('li').fadeIn(200);
         }
 
@@ -66596,7 +67311,7 @@ var TemplatePanel = _backbone2['default'].View.extend({
 exports.TemplatePanel = TemplatePanel;
 exports['default'] = TemplatePanel;
 
-},{"../backend/server":49,"backbone":2,"jquery":9,"underscore":44}],82:[function(require,module,exports){
+},{"../backend/server":53,"backbone":2,"jquery":13,"underscore":48}],86:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66624,23 +67339,23 @@ var LandmarkSizeSlider = _backbone2['default'].View.extend({
     el: '#lmSizeSlider',
 
     events: {
-        input: 'changeLandmarkSize'
+        input: "changeLandmarkSize"
     },
 
     initialize: function initialize() {
         _underscore2['default'].bindAll(this, 'render', 'changeLandmarkSize');
-        this.listenTo(this.model, 'change:landmarkSize', this.render);
+        this.listenTo(this.model, "change:landmarkSize", this.render);
         // set the size immediately.
         this.render();
     },
 
     render: function render() {
-        this.$el[0].value = this.model.get('landmarkSize') * 100;
+        this.$el[0].value = this.model.get("landmarkSize") * 100;
         return this;
     },
 
     changeLandmarkSize: _modelAtomic2['default'].atomicOperation(function (event) {
-        this.model.set('landmarkSize', Math.max(Number(event.target.value) / 100, 0.05));
+        this.model.set("landmarkSize", Math.max(Number(event.target.value) / 100, 0.05));
     })
 });
 
@@ -66650,13 +67365,13 @@ var TextureToggle = _backbone2['default'].View.extend({
     el: '#textureRow',
 
     events: {
-        'click #textureToggle': 'textureToggle'
+        'click #textureToggle': "textureToggle"
     },
 
     initialize: function initialize() {
         this.$toggle = this.$el.find('#textureToggle')[0];
         _underscore2['default'].bindAll(this, 'changeMesh', 'render', 'textureToggle');
-        this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
+        this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
         // there could already be an asset we have missed
         if (this.model.asset()) {
             this.changeMesh();
@@ -66668,7 +67383,7 @@ var TextureToggle = _backbone2['default'].View.extend({
         if (this.mesh) {
             this.stopListening(this.mesh);
         }
-        this.listenTo(this.model.asset(), 'all', this.render);
+        this.listenTo(this.model.asset(), "all", this.render);
         this.mesh = this.model.asset();
     },
 
@@ -66696,7 +67411,7 @@ var ConnectivityToggle = _backbone2['default'].View.extend({
     el: '#connectivityRow',
 
     events: {
-        'click #connectivityToggle': 'connectivityToggle'
+        'click #connectivityToggle': "connectivityToggle"
     },
 
     initialize: function initialize() {
@@ -66722,7 +67437,7 @@ var EditingToggle = _backbone2['default'].View.extend({
     el: '#editingRow',
 
     events: {
-        'click #editingToggle': 'editingToggle'
+        'click #editingToggle': "editingToggle"
     },
 
     initialize: function initialize() {
@@ -66748,7 +67463,7 @@ var AutoSaveToggle = _backbone2['default'].View.extend({
     el: '#autosaveRow',
 
     events: {
-        'click #autosaveToggle': 'toggle'
+        'click #autosaveToggle': "toggle"
     },
 
     initialize: function initialize() {
@@ -66781,14 +67496,14 @@ exports['default'] = _backbone2['default'].View.extend({
             this.textureToggle = new TextureToggle({ model: this.model });
         } else {
             // in image mode, we shouldn't even have these controls.
-            this.$el.find('#textureRow').css('display', 'none');
+            this.$el.find('#textureRow').css("display", "none");
         }
         this.autosaveToggle = new AutoSaveToggle({ model: this.model });
     }
 
 });
 
-},{"../model/atomic":61,"backbone":2,"underscore":44}],83:[function(require,module,exports){
+},{"../model/atomic":65,"backbone":2,"underscore":48}],87:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66811,8 +67526,8 @@ exports['default'] = _backbone2['default'].View.extend({
 
     initialize: function initialize() {
         console.log('HistoryUpdate:initialize');
-        this.listenTo(this.model, 'change:asset', this.assetChanged);
-        this.listenTo(this.model, 'change:activeTemplate', this.assetChanged);
+        this.listenTo(this.model, "change:asset", this.assetChanged);
+        this.listenTo(this.model, "change:activeTemplate", this.assetChanged);
         // note that we don't listen for a change in the collection as
         // this could lead to an invalid URL (e.g. change the collection to
         // something else, URL immediately changes, user saves before asset
@@ -66840,7 +67555,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"url":8}],84:[function(require,module,exports){
+},{"backbone":2,"url":10}],88:[function(require,module,exports){
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -67276,7 +67991,7 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
 
 module.exports = exports['default'];
 
-},{"backbone":2,"jquery":9,"three":43,"underscore":44}],85:[function(require,module,exports){
+},{"backbone":2,"jquery":13,"three":47,"underscore":48}],89:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -67324,10 +68039,10 @@ var LandmarkTHREEView = _backbone2['default'].View.extend({
 
     initialize: function initialize(options) {
         _underscore2['default'].bindAll(this, 'render', 'changeLandmarkSize');
-        this.listenTo(this.model, 'change', this.render);
+        this.listenTo(this.model, "change", this.render);
         this.viewport = options.viewport;
         this.app = this.viewport.model;
-        this.listenTo(this.app, 'change:landmarkSize', this.changeLandmarkSize);
+        this.listenTo(this.app, "change:landmarkSize", this.changeLandmarkSize);
         this.symbol = null; // a THREE object that represents this landmark.
         // null if the landmark isEmpty
         this.render();
@@ -67396,8 +68111,8 @@ var LandmarkConnectionTHREEView = _backbone2['default'].View.extend({
 
     initialize: function initialize(options) {
         // Listen to both models for changes
-        this.listenTo(this.model[0], 'change', this.render);
-        this.listenTo(this.model[1], 'change', this.render);
+        this.listenTo(this.model[0], "change", this.render);
+        this.listenTo(this.model[1], "change", this.render);
         this.viewport = options.viewport;
         this.symbol = null; // a THREE object that represents this connection.
         // null if the landmark isEmpty
@@ -67452,7 +68167,7 @@ var LandmarkConnectionTHREEView = _backbone2['default'].View.extend({
 });
 exports.LandmarkConnectionTHREEView = LandmarkConnectionTHREEView;
 
-},{"backbone":2,"three":43,"underscore":44}],86:[function(require,module,exports){
+},{"backbone":2,"three":47,"underscore":48}],90:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -67605,8 +68320,8 @@ function Handler() {
         } else if (downEvent.button === 0 && downEvent.shiftKey) {
             shiftPressed(); // LMB + SHIFT
         } else {
-            (0, _jquery2['default'])(document).one('mouseup.viewportMesh', meshOnMouseUp);
-        }
+                (0, _jquery2['default'])(document).one('mouseup.viewportMesh', meshOnMouseUp);
+            }
     };
 
     var landmarkPressed = function landmarkPressed() {
@@ -67628,7 +68343,7 @@ function Handler() {
         if (!lmPressedWasSelected && !ctrl) {
             // this lm wasn't pressed before and we aren't holding
             // mutliselection down - deselect rest and select this
-            console.log('normal click on a unselected lm - deselecting rest and selecting me');
+            console.log("normal click on a unselected lm - deselecting rest and selecting me");
             lmPressed.selectAndDeselectRest();
         } else if (ctrl && !lmPressedWasSelected) {
             lmPressed.select();
@@ -67727,7 +68442,7 @@ function Handler() {
     // ------------------------------------------------------------------------
 
     landmarkOnDrag = _modelAtomic2['default'].atomicOperation(function (event) {
-        console.log('drag');
+        console.log("drag");
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
         var newPositionLmDrag = new _three2['default'].Vector2(event.clientX, event.clientY);
@@ -67755,13 +68470,13 @@ function Handler() {
                 lm.setPoint(_this.worldToLocal(intersectsWithMesh[0].point));
             } else {
                 // don't update point - it would fall off the surface.
-                console.log('fallen off mesh');
+                console.log("fallen off mesh");
             }
         }
     });
 
     shiftOnDrag = function (event) {
-        console.log('shift:drag');
+        console.log("shift:drag");
         // note - we use client as we don't want to jump back to zero
         // if user drags into sidebar!
         var newPosition = { x: event.clientX, y: event.clientY };
@@ -67775,7 +68490,7 @@ function Handler() {
 
     shiftOnMouseUp = _modelAtomic2['default'].atomicOperation(function (event) {
         _this.cameraController.enable();
-        console.log('shift:up');
+        console.log("shift:up");
         (0, _jquery2['default'])(document).off('mousemove.shiftDrag', shiftOnDrag);
         var x1 = onMouseDownPosition.x;
         var y1 = onMouseDownPosition.y;
@@ -67814,7 +68529,7 @@ function Handler() {
     });
 
     var meshOnMouseUp = function meshOnMouseUp(event) {
-        console.log('meshPress:up');
+        console.log("meshPress:up");
         var p;
         onMouseUpPosition.set(event.clientX, event.clientY);
         if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
@@ -67836,7 +68551,7 @@ function Handler() {
     };
 
     nothingOnMouseUp = function (event) {
-        console.log('nothingPress:up');
+        console.log("nothingPress:up");
         onMouseUpPosition.set(event.clientX, event.clientY);
         if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
             // a click on nothing - deselect all
@@ -67850,7 +68565,7 @@ function Handler() {
     landmarkOnMouseUp = _modelAtomic2['default'].atomicOperation(function (event) {
         var ctrl = downEvent.ctrlKey || downEvent.metaKey;
         _this.cameraController.enable();
-        console.log('landmarkPress:up');
+        console.log("landmarkPress:up");
         (0, _jquery2['default'])(document).off('mousemove.landmarkDrag');
         onMouseUpPosition.set(event.clientX, event.clientY);
         if (onMouseDownPosition.distanceTo(onMouseUpPosition) === 0) {
@@ -68029,7 +68744,7 @@ function Handler() {
 
 module.exports = exports['default'];
 
-},{"../../model/atomic":61,"jquery":9,"three":43,"underscore":44}],87:[function(require,module,exports){
+},{"../../model/atomic":65,"jquery":13,"three":47,"underscore":48}],91:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -68110,11 +68825,11 @@ exports['default'] = _backbone2['default'].View.extend({
         this.meshScale = MESH_SCALE; // The radius of the mesh's bounding sphere
 
         // Disable context menu on viewport related elements
-        (0, _jquery2['default'])('canvas').on('contextmenu', function (e) {
+        (0, _jquery2['default'])('canvas').on("contextmenu", function (e) {
             e.preventDefault();
         });
 
-        (0, _jquery2['default'])('#viewportContainer').on('contextmenu', function (e) {
+        (0, _jquery2['default'])('#viewportContainer').on("contextmenu", function (e) {
             e.preventDefault();
         });
 
@@ -68230,7 +68945,7 @@ exports['default'] = _backbone2['default'].View.extend({
         this.cameraController = (0, _camera2['default'])(this.s_pCam, this.s_oCam, this.s_oCamZoom, this.el, this.model.imageMode());
 
         // when the camera updates, render
-        this.cameraController.on('change', this.update);
+        this.cameraController.on("change", this.update);
 
         if (!this.model.meshMode()) {
             // for images, default to orthographic camera
@@ -68300,14 +69015,14 @@ exports['default'] = _backbone2['default'].View.extend({
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
-        this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
-        this.listenTo(this.model, 'change:landmarks', this.changeLandmarks);
+        this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
+        this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
 
         this.showConnectivity = true;
-        this.listenTo(this.model, 'change:connectivityOn', this.updateConnectivityDisplay);
+        this.listenTo(this.model, "change:connectivityOn", this.updateConnectivityDisplay);
         this.updateConnectivityDisplay();
 
-        this.listenTo(this.model, 'change:editingOn', this.updateEditingDisplay);
+        this.listenTo(this.model, "change:editingOn", this.updateEditingDisplay);
         this.updateEditingDisplay();
 
         // Reset helper views on wheel to keep scale
@@ -68315,7 +69030,7 @@ exports['default'] = _backbone2['default'].View.extend({
         //     this.clearCanvas();
         // });
 
-        this.listenTo(_modelAtomic2['default'], 'change:ATOMIC_OPERATION', this.batchHandler);
+        this.listenTo(_modelAtomic2['default'], "change:ATOMIC_OPERATION", this.batchHandler);
 
         // trigger resize to initially size the viewport
         // this will also clearCanvas (will draw context box if needed)
@@ -68457,13 +69172,13 @@ exports['default'] = _backbone2['default'].View.extend({
         var currentlyPerspective = this.s_camera === this.s_pCam;
         if (currentlyPerspective) {
             // going to orthographic - start listening for pip updates
-            this.listenTo(this.cameraController, 'changePip', this.update);
+            this.listenTo(this.cameraController, "changePip", this.update);
             this.s_camera = this.s_oCam;
             // hide the pip decoration
             this.pipCanvas.style.display = null;
         } else {
             // leaving orthographic - stop listening to pip calls.
-            this.stopListening(this.cameraController, 'changePip');
+            this.stopListening(this.cameraController, "changePip");
             this.s_camera = this.s_pCam;
             // show the pip decoration
             this.pipCanvas.style.display = 'none';
@@ -68497,7 +69212,7 @@ exports['default'] = _backbone2['default'].View.extend({
     // =========================================================================
 
     events: {
-        'mousedown': 'mousedownHandler'
+        'mousedown': "mousedownHandler"
     },
 
     mousedownHandler: function mousedownHandler(event) {
@@ -68628,7 +69343,7 @@ exports['default'] = _backbone2['default'].View.extend({
 
         // first, draw the secondary lines
         this.ctx.save();
-        this.ctx.strokeStyle = '#7ca5fe';
+        this.ctx.strokeStyle = "#7ca5fe";
         this.ctx.setLineDash([5, 15]);
 
         this.ctx.beginPath();
@@ -68642,7 +69357,7 @@ exports['default'] = _backbone2['default'].View.extend({
         this.ctx.restore();
 
         // now, draw the primary line
-        this.ctx.strokeStyle = '#01e6fb';
+        this.ctx.strokeStyle = "#01e6fb";
 
         this.ctx.beginPath();
         var targetPoint = this.localToScreen(targetLm.point());
@@ -68768,7 +69483,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"../../model/atomic":61,"../../model/octree":65,"./camera":84,"./elements":85,"./handler":86,"backbone":2,"jquery":9,"three":43,"underscore":44}]},{},[1])
+},{"../../model/atomic":65,"../../model/octree":69,"./camera":88,"./elements":89,"./handler":90,"backbone":2,"jquery":13,"three":47,"underscore":48}]},{},[1])
 
 
-//# sourceMappingURL=bundle-6ec4a9d3.js.map
+//# sourceMappingURL=bundle-e414f8b0.js.map
