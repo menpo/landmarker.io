@@ -35,6 +35,14 @@ const NOTIFICATION_BASE_CLASS = 'Notification',
                                   'error': 'Notification--Error',
                                   'warning': 'Notification--Warning' };
 
+/** Options:
++ `msg`: string to be displayed or jQuery element for more complex content
++ `type`: notifications can be one of three types (`error`, `warning` and `success`) which is denoted by the standard colors (`red`, `yellow`, `green`), defaults to `warning`
++ `actions`:  a list of call to actions in the form of tuples `[string, function, boolean]`, the function is called on click and the boolean value indicates wether or not click should close the notification as well
++ `onClose`: function to call when the notification is closed (automatically or manually)
++ `persist`: when true will prevent the notification from closing (default to false)
++ `closeTimeout`: time before the notification closes automatically, set to 0 or `undefined` to only allow manual closing. Will be forced to `undefined` if `actions` is not empty.
+ */
 export const BaseNotification = Backbone.View.extend({
 
     tagName: 'div',
@@ -147,7 +155,7 @@ export const BaseNotification = Backbone.View.extend({
 });
 
 export function notify (opts) {
-    return new module.exports.BaseNotification(opts);
+    return new BaseNotification(opts);
 }
 
 export const AssetLoadingNotification = Backbone.View.extend({

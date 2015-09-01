@@ -8,7 +8,7 @@ import Promise from 'promise-polyfill';
 import * as utils from './app/lib/utils';
 import * as support from './app/lib/support';
 
-import * as Notification from './app/view/notification';
+import {notify} from './app/view/notification';
 import Intro from './app/view/intro';
 import AssetView from './app/view/asset';
 import SidebarView from './app/view/sidebar';
@@ -55,7 +55,7 @@ function resolveBackend (u) {
         } catch (e) {
             if (e.message === 'Mixed Content') {
                 Intro.close();
-                Notification.notify({
+                notify({
                     type: 'error',
                     persist: true,
                     msg: $(mixedContentWarning),
@@ -85,7 +85,7 @@ function resolveBackend (u) {
 var goToDemo = utils.restart.bind(undefined, 'demo');
 
 function retry (msg) {
-    Notification.notify({
+    notify({
         msg,
         type: 'error',
         persist: true,
@@ -126,7 +126,7 @@ function _loadDropbox (u) {
             u.search = null;
             history.replaceState(null, null, url.format(u).replace('?', '#'));
         } else {
-            Notification.notify({
+            notify({
                 msg: 'Incorrect Dropbox redirect URL',
                 type: 'error'
             });
@@ -141,7 +141,7 @@ function _loadDropbox (u) {
         return dropbox.accountInfo().then(function () {
             _loadDropboxAssets(dropbox, u);
         }, function () {
-            Notification.notify({
+            notify({
                 msg: 'Could not reach Dropbox servers',
                 type: 'error'
             });
@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (support.ie) {
         // Found IE, do user agent detection for now
         // https://github.com/menpo/landmarker.io/issues/75 for progress
-        return Notification.notify({
+        return notify({
             msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
             persist: true,
             type: 'error'
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Test for webgl
     if (!support.webgl) {
-        return Notification.notify({
+        return notify({
             msg: $('<p>It seems your browser doesn\'t support WebGL, which is needed by landmarker.io.<br/>Please visit <a href="https://get.webgl.org/">https://get.webgl.org/</a> for more information<p>'),
             persist: true,
             type: 'error'
