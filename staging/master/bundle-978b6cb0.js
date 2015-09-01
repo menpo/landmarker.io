@@ -289,7 +289,6 @@ function initLandmarker(server, mode, u) {
 
     var app = new _appModelApp2['default'](appInit);
 
-    new Notification.AssetLoadingNotification({ model: app });
     new _appViewSidebar2['default']({ model: app });
     new _appViewAsset2['default']({ model: app });
     new _appViewToolbar2['default']({ model: app });
@@ -372,7 +371,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resolveBackend(u);
 });
 
-},{"./app/backend":52,"./app/lib/support":59,"./app/lib/utils":61,"./app/model/app":62,"./app/model/config":66,"./app/view/asset":76,"./app/view/help":78,"./app/view/intro":79,"./app/view/keyboard":80,"./app/view/notification":83,"./app/view/sidebar":84,"./app/view/toolbar":86,"./app/view/url_state":87,"./app/view/viewport":91,"jquery":13,"promise-polyfill":45,"three":47,"url":10}],2:[function(require,module,exports){
+},{"./app/backend":51,"./app/lib/support":58,"./app/lib/utils":60,"./app/model/app":61,"./app/model/config":65,"./app/view/asset":75,"./app/view/help":77,"./app/view/intro":78,"./app/view/keyboard":79,"./app/view/notification":82,"./app/view/sidebar":83,"./app/view/toolbar":85,"./app/view/url_state":86,"./app/view/viewport":90,"jquery":13,"promise-polyfill":45,"three":46,"url":10}],2:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.2.2
 
@@ -2270,7 +2269,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"jquery":13,"underscore":48}],3:[function(require,module,exports){
+},{"jquery":13,"underscore":47}],3:[function(require,module,exports){
 
 },{}],4:[function(require,module,exports){
 if (typeof Object.create === 'function') {
@@ -23035,385 +23034,6 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
 },{}],46:[function(require,module,exports){
-/**
- * Copyright (c) 2011-2014 Felix Gnass
- * Licensed under the MIT license
- * http://spin.js.org/
- *
- * Example:
-    var opts = {
-      lines: 12             // The number of lines to draw
-    , length: 7             // The length of each line
-    , width: 5              // The line thickness
-    , radius: 10            // The radius of the inner circle
-    , scale: 1.0            // Scales overall size of the spinner
-    , corners: 1            // Roundness (0..1)
-    , color: '#000'         // #rgb or #rrggbb
-    , opacity: 1/4          // Opacity of the lines
-    , rotate: 0             // Rotation offset
-    , direction: 1          // 1: clockwise, -1: counterclockwise
-    , speed: 1              // Rounds per second
-    , trail: 100            // Afterglow percentage
-    , fps: 20               // Frames per second when using setTimeout()
-    , zIndex: 2e9           // Use a high z-index by default
-    , className: 'spinner'  // CSS class to assign to the element
-    , top: '50%'            // center vertically
-    , left: '50%'           // center horizontally
-    , shadow: false         // Whether to render a shadow
-    , hwaccel: false        // Whether to use hardware acceleration (might be buggy)
-    , position: 'absolute'  // Element positioning
-    }
-    var target = document.getElementById('foo')
-    var spinner = new Spinner(opts).spin(target)
- */
-;(function (root, factory) {
-
-  /* CommonJS */
-  if (typeof module == 'object' && module.exports) module.exports = factory()
-
-  /* AMD module */
-  else if (typeof define == 'function' && define.amd) define(factory)
-
-  /* Browser global */
-  else root.Spinner = factory()
-}(this, function () {
-  "use strict"
-
-  var prefixes = ['webkit', 'Moz', 'ms', 'O'] /* Vendor prefixes */
-    , animations = {} /* Animation rules keyed by their name */
-    , useCssAnimations /* Whether to use CSS animations or setTimeout */
-    , sheet /* A stylesheet to hold the @keyframe or VML rules. */
-
-  /**
-   * Utility function to create elements. If no tag name is given,
-   * a DIV is created. Optionally properties can be passed.
-   */
-  function createEl (tag, prop) {
-    var el = document.createElement(tag || 'div')
-      , n
-
-    for (n in prop) el[n] = prop[n]
-    return el
-  }
-
-  /**
-   * Appends children and returns the parent.
-   */
-  function ins (parent /* child1, child2, ...*/) {
-    for (var i = 1, n = arguments.length; i < n; i++) {
-      parent.appendChild(arguments[i])
-    }
-
-    return parent
-  }
-
-  /**
-   * Creates an opacity keyframe animation rule and returns its name.
-   * Since most mobile Webkits have timing issues with animation-delay,
-   * we create separate rules for each line/segment.
-   */
-  function addAnimation (alpha, trail, i, lines) {
-    var name = ['opacity', trail, ~~(alpha * 100), i, lines].join('-')
-      , start = 0.01 + i/lines * 100
-      , z = Math.max(1 - (1-alpha) / trail * (100-start), alpha)
-      , prefix = useCssAnimations.substring(0, useCssAnimations.indexOf('Animation')).toLowerCase()
-      , pre = prefix && '-' + prefix + '-' || ''
-
-    if (!animations[name]) {
-      sheet.insertRule(
-        '@' + pre + 'keyframes ' + name + '{' +
-        '0%{opacity:' + z + '}' +
-        start + '%{opacity:' + alpha + '}' +
-        (start+0.01) + '%{opacity:1}' +
-        (start+trail) % 100 + '%{opacity:' + alpha + '}' +
-        '100%{opacity:' + z + '}' +
-        '}', sheet.cssRules.length)
-
-      animations[name] = 1
-    }
-
-    return name
-  }
-
-  /**
-   * Tries various vendor prefixes and returns the first supported property.
-   */
-  function vendor (el, prop) {
-    var s = el.style
-      , pp
-      , i
-
-    prop = prop.charAt(0).toUpperCase() + prop.slice(1)
-    if (s[prop] !== undefined) return prop
-    for (i = 0; i < prefixes.length; i++) {
-      pp = prefixes[i]+prop
-      if (s[pp] !== undefined) return pp
-    }
-  }
-
-  /**
-   * Sets multiple style properties at once.
-   */
-  function css (el, prop) {
-    for (var n in prop) {
-      el.style[vendor(el, n) || n] = prop[n]
-    }
-
-    return el
-  }
-
-  /**
-   * Fills in default values.
-   */
-  function merge (obj) {
-    for (var i = 1; i < arguments.length; i++) {
-      var def = arguments[i]
-      for (var n in def) {
-        if (obj[n] === undefined) obj[n] = def[n]
-      }
-    }
-    return obj
-  }
-
-  /**
-   * Returns the line color from the given string or array.
-   */
-  function getColor (color, idx) {
-    return typeof color == 'string' ? color : color[idx % color.length]
-  }
-
-  // Built-in defaults
-
-  var defaults = {
-    lines: 12             // The number of lines to draw
-  , length: 7             // The length of each line
-  , width: 5              // The line thickness
-  , radius: 10            // The radius of the inner circle
-  , scale: 1.0            // Scales overall size of the spinner
-  , corners: 1            // Roundness (0..1)
-  , color: '#000'         // #rgb or #rrggbb
-  , opacity: 1/4          // Opacity of the lines
-  , rotate: 0             // Rotation offset
-  , direction: 1          // 1: clockwise, -1: counterclockwise
-  , speed: 1              // Rounds per second
-  , trail: 100            // Afterglow percentage
-  , fps: 20               // Frames per second when using setTimeout()
-  , zIndex: 2e9           // Use a high z-index by default
-  , className: 'spinner'  // CSS class to assign to the element
-  , top: '50%'            // center vertically
-  , left: '50%'           // center horizontally
-  , shadow: false         // Whether to render a shadow
-  , hwaccel: false        // Whether to use hardware acceleration (might be buggy)
-  , position: 'absolute'  // Element positioning
-  }
-
-  /** The constructor */
-  function Spinner (o) {
-    this.opts = merge(o || {}, Spinner.defaults, defaults)
-  }
-
-  // Global defaults that override the built-ins:
-  Spinner.defaults = {}
-
-  merge(Spinner.prototype, {
-    /**
-     * Adds the spinner to the given target element. If this instance is already
-     * spinning, it is automatically removed from its previous target b calling
-     * stop() internally.
-     */
-    spin: function (target) {
-      this.stop()
-
-      var self = this
-        , o = self.opts
-        , el = self.el = createEl(null, {className: o.className})
-
-      css(el, {
-        position: o.position
-      , width: 0
-      , zIndex: o.zIndex
-      , left: o.left
-      , top: o.top
-      })
-
-      if (target) {
-        target.insertBefore(el, target.firstChild || null)
-      }
-
-      el.setAttribute('role', 'progressbar')
-      self.lines(el, self.opts)
-
-      if (!useCssAnimations) {
-        // No CSS animation support, use setTimeout() instead
-        var i = 0
-          , start = (o.lines - 1) * (1 - o.direction) / 2
-          , alpha
-          , fps = o.fps
-          , f = fps / o.speed
-          , ostep = (1 - o.opacity) / (f * o.trail / 100)
-          , astep = f / o.lines
-
-        ;(function anim () {
-          i++
-          for (var j = 0; j < o.lines; j++) {
-            alpha = Math.max(1 - (i + (o.lines - j) * astep) % f * ostep, o.opacity)
-
-            self.opacity(el, j * o.direction + start, alpha, o)
-          }
-          self.timeout = self.el && setTimeout(anim, ~~(1000 / fps))
-        })()
-      }
-      return self
-    }
-
-    /**
-     * Stops and removes the Spinner.
-     */
-  , stop: function () {
-      var el = this.el
-      if (el) {
-        clearTimeout(this.timeout)
-        if (el.parentNode) el.parentNode.removeChild(el)
-        this.el = undefined
-      }
-      return this
-    }
-
-    /**
-     * Internal method that draws the individual lines. Will be overwritten
-     * in VML fallback mode below.
-     */
-  , lines: function (el, o) {
-      var i = 0
-        , start = (o.lines - 1) * (1 - o.direction) / 2
-        , seg
-
-      function fill (color, shadow) {
-        return css(createEl(), {
-          position: 'absolute'
-        , width: o.scale * (o.length + o.width) + 'px'
-        , height: o.scale * o.width + 'px'
-        , background: color
-        , boxShadow: shadow
-        , transformOrigin: 'left'
-        , transform: 'rotate(' + ~~(360/o.lines*i + o.rotate) + 'deg) translate(' + o.scale*o.radius + 'px' + ',0)'
-        , borderRadius: (o.corners * o.scale * o.width >> 1) + 'px'
-        })
-      }
-
-      for (; i < o.lines; i++) {
-        seg = css(createEl(), {
-          position: 'absolute'
-        , top: 1 + ~(o.scale * o.width / 2) + 'px'
-        , transform: o.hwaccel ? 'translate3d(0,0,0)' : ''
-        , opacity: o.opacity
-        , animation: useCssAnimations && addAnimation(o.opacity, o.trail, start + i * o.direction, o.lines) + ' ' + 1 / o.speed + 's linear infinite'
-        })
-
-        if (o.shadow) ins(seg, css(fill('#000', '0 0 4px #000'), {top: '2px'}))
-        ins(el, ins(seg, fill(getColor(o.color, i), '0 0 1px rgba(0,0,0,.1)')))
-      }
-      return el
-    }
-
-    /**
-     * Internal method that adjusts the opacity of a single line.
-     * Will be overwritten in VML fallback mode below.
-     */
-  , opacity: function (el, i, val) {
-      if (i < el.childNodes.length) el.childNodes[i].style.opacity = val
-    }
-
-  })
-
-
-  function initVML () {
-
-    /* Utility function to create a VML tag */
-    function vml (tag, attr) {
-      return createEl('<' + tag + ' xmlns="urn:schemas-microsoft.com:vml" class="spin-vml">', attr)
-    }
-
-    // No CSS transforms but VML support, add a CSS rule for VML elements:
-    sheet.addRule('.spin-vml', 'behavior:url(#default#VML)')
-
-    Spinner.prototype.lines = function (el, o) {
-      var r = o.scale * (o.length + o.width)
-        , s = o.scale * 2 * r
-
-      function grp () {
-        return css(
-          vml('group', {
-            coordsize: s + ' ' + s
-          , coordorigin: -r + ' ' + -r
-          })
-        , { width: s, height: s }
-        )
-      }
-
-      var margin = -(o.width + o.length) * o.scale * 2 + 'px'
-        , g = css(grp(), {position: 'absolute', top: margin, left: margin})
-        , i
-
-      function seg (i, dx, filter) {
-        ins(
-          g
-        , ins(
-            css(grp(), {rotation: 360 / o.lines * i + 'deg', left: ~~dx})
-          , ins(
-              css(
-                vml('roundrect', {arcsize: o.corners})
-              , { width: r
-                , height: o.scale * o.width
-                , left: o.scale * o.radius
-                , top: -o.scale * o.width >> 1
-                , filter: filter
-                }
-              )
-            , vml('fill', {color: getColor(o.color, i), opacity: o.opacity})
-            , vml('stroke', {opacity: 0}) // transparent stroke to fix color bleeding upon opacity change
-            )
-          )
-        )
-      }
-
-      if (o.shadow)
-        for (i = 1; i <= o.lines; i++) {
-          seg(i, -2, 'progid:DXImageTransform.Microsoft.Blur(pixelradius=2,makeshadow=1,shadowopacity=.3)')
-        }
-
-      for (i = 1; i <= o.lines; i++) seg(i)
-      return ins(el, g)
-    }
-
-    Spinner.prototype.opacity = function (el, i, val, o) {
-      var c = el.firstChild
-      o = o.shadow && o.lines || 0
-      if (c && i + o < c.childNodes.length) {
-        c = c.childNodes[i + o]; c = c && c.firstChild; c = c && c.firstChild
-        if (c) c.opacity = val
-      }
-    }
-  }
-
-  if (typeof document !== 'undefined') {
-    sheet = (function () {
-      var el = createEl('style', {type : 'text/css'})
-      ins(document.getElementsByTagName('head')[0], el)
-      return el.sheet || el.styleSheet
-    }())
-
-    var probe = css(createEl('group'), {behavior: 'url(#default#VML)'})
-
-    if (!vendor(probe, 'transform') && probe.adj) initVML()
-    else useCssAnimations = vendor(probe, 'animation')
-  }
-
-  return Spinner
-
-}));
-
-},{}],47:[function(require,module,exports){
 var self = self || {};// File:src/Three.js
 
 /**
@@ -58561,7 +58181,7 @@ if (typeof exports !== 'undefined') {
   this['THREE'] = THREE;
 }
 
-},{}],48:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
 //     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -60111,7 +59731,7 @@ if (typeof exports !== 'undefined') {
   }
 }.call(this));
 
-},{}],49:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 module.exports={
   "name": "landmarker-io",
   "version": "2.0.3",
@@ -60159,7 +59779,6 @@ module.exports={
     "js-yaml": "^3.3.1",
     "promise-polyfill": "^1.1.6",
     "run-sequence": "^1.0.2",
-    "spin.js": "^2.0.2",
     "three": "~0.71.0",
     "underscore": "^1.6.0",
     "vinyl-source-stream": "^1.0.0"
@@ -60184,7 +59803,7 @@ module.exports={
   }
 }
 
-},{}],50:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60304,7 +59923,7 @@ Base.extend = function extend(type, child) {
 };
 module.exports = exports['default'];
 
-},{}],51:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 /**
  * Dropbox backend interface
  *
@@ -60879,7 +60498,7 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
 };
 module.exports = exports['default'];
 
-},{"../lib/download":54,"../lib/imagepromise":55,"../lib/obj_loader":56,"../lib/requests":57,"../lib/stl_loader":58,"../lib/utils":61,"../template":73,"../view/dropbox_picker.js":77,"../view/notification":83,"./base":50,"promise-polyfill":45,"url":10}],52:[function(require,module,exports){
+},{"../lib/download":53,"../lib/imagepromise":54,"../lib/obj_loader":55,"../lib/requests":56,"../lib/stl_loader":57,"../lib/utils":60,"../template":72,"../view/dropbox_picker.js":76,"../view/notification":82,"./base":49,"promise-polyfill":45,"url":10}],51:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -60901,7 +60520,7 @@ var _server2 = _interopRequireDefault(_server);
 exports['default'] = { Dropbox: _dropbox2['default'], Server: _server2['default'] };
 module.exports = exports['default'];
 
-},{"./dropbox":51,"./server":53}],53:[function(require,module,exports){
+},{"./dropbox":50,"./server":52}],52:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61018,7 +60637,7 @@ Server.prototype.fetchGeometry = function (assetId) {
 };
 module.exports = exports['default'];
 
-},{"../lib/imagepromise":55,"../lib/requests":57,"../lib/support":59,"../lib/utils":61,"./base":50}],54:[function(require,module,exports){
+},{"../lib/imagepromise":54,"../lib/requests":56,"../lib/support":58,"../lib/utils":60,"./base":49}],53:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61059,7 +60678,7 @@ function download(str, filename) {
 
 module.exports = exports['default'];
 
-},{"../view/notification":83}],55:[function(require,module,exports){
+},{"../view/notification":82}],54:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61148,7 +60767,7 @@ function MaterialPromise(url, auth) {
 
 exports['default'] = MaterialPromise;
 
-},{"../view/notification":83,"promise-polyfill":45,"three":47}],56:[function(require,module,exports){
+},{"../view/notification":82,"promise-polyfill":45,"three":46}],55:[function(require,module,exports){
 /**
  * Adapted from
  * https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/OBJLoader.js
@@ -61181,10 +60800,14 @@ function OBJLoader(text) {
 
     console.time('OBJLoader');
 
-    var object;
+    var object = undefined;
     var objects = [];
-    var geometry;
-    var material;
+    var geometry = undefined;
+    var material = undefined;
+    var vertices = [];
+    var normals = [];
+    var uvs = [];
+    var buffergeometry = undefined;
 
     function parseVertexIndex(value) {
         var index = parseInt(value);
@@ -61217,7 +60840,7 @@ function OBJLoader(text) {
         var ia = parseVertexIndex(a);
         var ib = parseVertexIndex(b);
         var ic = parseVertexIndex(c);
-        var id;
+        var id = undefined;
 
         if (d === undefined) {
             addVertex(ia, ib, ic);
@@ -61279,30 +60902,26 @@ function OBJLoader(text) {
         objects.push(object);
     }
 
-    var vertices = [];
-    var normals = [];
-    var uvs = [];
-
     // v float float float
-    var vertex_pattern = /v( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)/;
+    var vertexPattern = /v( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)/;
 
     // vn float float float
-    var normal_pattern = /vn( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)/;
+    var normalPattern = /vn( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)/;
 
     // vt float float
-    var uv_pattern = /vt( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)/;
+    var uvPattern = /vt( +[\d|\.|\+|\-|e|E]+)( +[\d|\.|\+|\-|e|E]+)/;
 
     // f vertex vertex vertex ...
-    var face_pattern1 = /f( +-?\d+)( +-?\d+)( +-?\d+)( +-?\d+)?/;
+    var facePattern1 = /f( +-?\d+)( +-?\d+)( +-?\d+)( +-?\d+)?/;
 
     // f vertex/uv vertex/uv vertex/uv ...
-    var face_pattern2 = /f( +(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+))?/;
+    var facePattern2 = /f( +(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+))?/;
 
     // f vertex/uv/normal vertex/uv/normal vertex/uv/normal ...
-    var face_pattern3 = /f( +(-?\d+)\/(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+)\/(-?\d+))?/;
+    var facePattern3 = /f( +(-?\d+)\/(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+)\/(-?\d+))( +(-?\d+)\/(-?\d+)\/(-?\d+))?/;
 
     // f vertex//normal vertex//normal vertex//normal ...
-    var face_pattern4 = /f( +(-?\d+)\/\/(-?\d+))( +(-?\d+)\/\/(-?\d+))( +(-?\d+)\/\/(-?\d+))( +(-?\d+)\/\/(-?\d+))?/;
+    var facePattern4 = /f( +(-?\d+)\/\/(-?\d+))( +(-?\d+)\/\/(-?\d+))( +(-?\d+)\/\/(-?\d+))( +(-?\d+)\/\/(-?\d+))?/;
 
     var lines = text.split('\n');
 
@@ -61310,29 +60929,29 @@ function OBJLoader(text) {
         var line = lines[i];
         line = line.trim();
 
-        var result;
+        var result = undefined;
 
         if (line.length === 0 || line.charAt(0) === '#') {
             continue;
-        } else if ((result = vertex_pattern.exec(line)) !== null) {
+        } else if ((result = vertexPattern.exec(line)) !== null) {
             // ["v 1.0 2.0 3.0", "1.0", "2.0", "3.0"]
             vertices.push(parseFloat(result[1]), parseFloat(result[2]), parseFloat(result[3]));
-        } else if ((result = normal_pattern.exec(line)) !== null) {
+        } else if ((result = normalPattern.exec(line)) !== null) {
             // ["vn 1.0 2.0 3.0", "1.0", "2.0", "3.0"]
             normals.push(parseFloat(result[1]), parseFloat(result[2]), parseFloat(result[3]));
-        } else if ((result = uv_pattern.exec(line)) !== null) {
+        } else if ((result = uvPattern.exec(line)) !== null) {
             // ["vt 0.1 0.2", "0.1", "0.2"]
             uvs.push(parseFloat(result[1]), parseFloat(result[2]));
-        } else if ((result = face_pattern1.exec(line)) !== null) {
+        } else if ((result = facePattern1.exec(line)) !== null) {
             // ["f 1 2 3", "1", "2", "3", undefined]
             addFace(result[1], result[2], result[3], result[4]);
-        } else if ((result = face_pattern2.exec(line)) !== null) {
+        } else if ((result = facePattern2.exec(line)) !== null) {
             // ["f 1/1 2/2 3/3", " 1/1", "1", "1", " 2/2", "2", "2", " 3/3", "3", "3", undefined, undefined, undefined]
             addFace(result[2], result[5], result[8], result[11], result[3], result[6], result[9], result[12]);
-        } else if ((result = face_pattern3.exec(line)) !== null) {
+        } else if ((result = facePattern3.exec(line)) !== null) {
             // ["f 1/1/1 2/2/2 3/3/3", " 1/1/1", "1", "1", "1", " 2/2/2", "2", "2", "2", " 3/3/3", "3", "3", "3", undefined, undefined, undefined, undefined]
             addFace(result[2], result[6], result[10], result[14], result[3], result[7], result[11], result[15], result[4], result[8], result[12], result[16]);
-        } else if ((result = face_pattern4.exec(line)) !== null) {
+        } else if ((result = facePattern4.exec(line)) !== null) {
             // ["f 1//1 2//2 3//3", " 1//1", "1", "1", " 2//2", "2", "2", " 3//3", "3", "3", undefined, undefined, undefined]
             addFace(result[2], result[5], result[8], result[11], undefined, undefined, undefined, undefined, result[3], result[6], result[9], result[12]);
         } else if (/^o /.test(line)) {
@@ -61374,7 +60993,7 @@ function OBJLoader(text) {
         object = objects[i];
         geometry = object.geometry;
 
-        var buffergeometry = new _three2['default'].BufferGeometry();
+        buffergeometry = new _three2['default'].BufferGeometry();
 
         buffergeometry.addAttribute('position', new _three2['default'].BufferAttribute(new Float32Array(geometry.vertices), 3));
 
@@ -61399,7 +61018,7 @@ function OBJLoader(text) {
 
 module.exports = exports['default'];
 
-},{"three":47}],57:[function(require,module,exports){
+},{"three":46}],56:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61567,7 +61186,7 @@ function putJSON(url) {
     });
 }
 
-},{"../view/notification":83,"promise-polyfill":45,"querystring":9}],58:[function(require,module,exports){
+},{"../view/notification":82,"promise-polyfill":45,"querystring":9}],57:[function(require,module,exports){
 /**
  *
  * Adapted from https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/STLLoader.js
@@ -61863,7 +61482,7 @@ function parseASCII(arrayBuffer) {
 }
 module.exports = exports['default'];
 
-},{"three":47}],59:[function(require,module,exports){
+},{"three":46}],58:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -61909,7 +61528,7 @@ exports['default'] = {
     https: https
 };
 
-},{}],60:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62210,7 +61829,7 @@ Tracker.prototype.canUndo = function () {
 
 exports['default'] = Tracker;
 
-},{"backbone":2,"underscore":48}],61:[function(require,module,exports){
+},{"backbone":2,"underscore":47}],60:[function(require,module,exports){
 /**
  * @module utils
  * Collection of utility functions not present in underscore and useful
@@ -62374,7 +61993,7 @@ function truncate(str, max) {
     }
 }
 
-},{"../model/config":66}],62:[function(require,module,exports){
+},{"../model/config":65}],61:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62830,7 +62449,7 @@ exports['default'] = _backbone2['default'].Model.extend({
 });
 module.exports = exports['default'];
 
-},{"../lib/tracker":60,"../view/modal":82,"./assetsource":64,"./landmark_group":68,"backbone":2,"jquery":13,"promise-polyfill":45,"underscore":48}],63:[function(require,module,exports){
+},{"../lib/tracker":59,"../view/modal":81,"./assetsource":63,"./landmark_group":67,"backbone":2,"jquery":13,"promise-polyfill":45,"underscore":47}],62:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63218,7 +62837,7 @@ var Mesh = Image.extend({
 });
 exports.Mesh = Mesh;
 
-},{"backbone":2,"three":47}],64:[function(require,module,exports){
+},{"backbone":2,"three":46}],63:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63252,6 +62871,8 @@ var _underscore2 = _interopRequireDefault(_underscore);
 var _asset = require('./asset');
 
 var Asset = _interopRequireWildcard(_asset);
+
+var _viewNotification = require('../view/notification');
 
 function abortAllObj(obj) {
     _underscore2['default'].values(obj).forEach(function (x) {
@@ -63366,6 +62987,7 @@ var MeshSource = AssetSource.extend({
         console.log("Starting abort");
         abortAllObj(this.pending);
         this.set('assetIsLoading', true);
+        var asyncId = _viewNotification.loading.start();
         // set the asset immediately (triggering change in UI)
         this.set('asset', newMesh);
 
@@ -63395,8 +63017,10 @@ var MeshSource = AssetSource.extend({
                 oldAsset = null;
             }
             delete _this3.pending[newMesh.id];
+            _viewNotification.loading.stop(asyncId);
             _this3.set('assetIsLoading', false);
         }, function (err) {
+            _viewNotification.loading.stop(asyncId);
             console.log('geometry.then something went wrong ' + err.stack);
         });
         // return the geometry promise
@@ -63432,6 +63056,7 @@ var ImageSource = AssetSource.extend({
             this.stopListening(oldAsset);
         }
         this.set('assetIsLoading', true);
+        var asyncId = _viewNotification.loading.start();
         // set the asset immediately (triggering change in UI)
         this.set('asset', newAsset);
 
@@ -63449,7 +63074,9 @@ var ImageSource = AssetSource.extend({
         texture.then(function () {
             console.log('grabbed new image texture');
             _this5.set('assetIsLoading', false);
+            _viewNotification.loading.stop(asyncId);
         }, function (err) {
+            _viewNotification.loading.stop(asyncId);
             console.log('texture.then something went wrong ' + err.stack);
         });
         // return the texture promise. Once the texture is ready, landmarks
@@ -63459,7 +63086,7 @@ var ImageSource = AssetSource.extend({
 });
 exports.ImageSource = ImageSource;
 
-},{"./asset":63,"backbone":2,"underscore":48}],65:[function(require,module,exports){
+},{"../view/notification":82,"./asset":62,"backbone":2,"underscore":47}],64:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63524,7 +63151,7 @@ var AtomicOperationTracker = _backbone2['default'].Model.extend({
 exports['default'] = atomicTracker = new AtomicOperationTracker();
 module.exports = exports['default'];
 
-},{"backbone":2}],66:[function(require,module,exports){
+},{"backbone":2}],65:[function(require,module,exports){
 /**
  * Persistable config object with get and set logic
  * Requires localstorage to work properly (throws Error otherwise),
@@ -63641,7 +63268,7 @@ exports['default'] = function () {
     return _configInstance;
 };
 
-},{"../lib/support":59,"underscore":48}],67:[function(require,module,exports){
+},{"../lib/support":58,"underscore":47}],66:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63758,7 +63385,7 @@ exports['default'] = _backbone2['default'].Model.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"underscore":48}],68:[function(require,module,exports){
+},{"backbone":2,"underscore":47}],67:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64145,7 +63772,7 @@ LandmarkGroup.parse = function (json, id, type, server, tracker) {
 };
 module.exports = exports['default'];
 
-},{"../lib/tracker":60,"../lib/utils":61,"./atomic":65,"./landmark":67,"three":47}],69:[function(require,module,exports){
+},{"../lib/tracker":59,"../lib/utils":60,"./atomic":64,"./landmark":66,"three":46}],68:[function(require,module,exports){
 
 'use strict';
 
@@ -64405,7 +64032,7 @@ OctreeNode.prototype.subdivide = function () {
     }
 };
 
-},{"three":47}],70:[function(require,module,exports){
+},{"three":46}],69:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64438,7 +64065,7 @@ exports['default'] = { face: _face2['default'],
                  simple42: _simple422['default'] };
 module.exports = exports['default'];
 
-},{"./face":71,"./ibug68":72,"./simple10":74,"./simple42":75}],71:[function(require,module,exports){
+},{"./face":70,"./ibug68":71,"./simple10":73,"./simple42":74}],70:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64467,7 +64094,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],72:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64506,7 +64133,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],73:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64769,7 +64396,7 @@ Template.loadDefaultTemplates = function () {
 };
 module.exports = exports['default'];
 
-},{"./defaults":70,"js-yaml":14,"underscore":48}],74:[function(require,module,exports){
+},{"./defaults":69,"js-yaml":14,"underscore":47}],73:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64783,7 +64410,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],75:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -64797,7 +64424,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{}],76:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65130,7 +64757,7 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../backend":52,"../lib/utils":61,"./intro":79,"./list_picker":81,"./modal":82,"./notification":83,"backbone":2,"jquery":13,"underscore":48}],77:[function(require,module,exports){
+},{"../backend":51,"../lib/utils":60,"./intro":78,"./list_picker":80,"./modal":81,"./notification":82,"backbone":2,"jquery":13,"underscore":47}],76:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65497,7 +65124,7 @@ exports['default'] = _modal2['default'].extend({
 });
 module.exports = exports['default'];
 
-},{"../lib/utils":61,"./modal":82,"jquery":13,"promise-polyfill":45,"underscore":48}],78:[function(require,module,exports){
+},{"../lib/utils":60,"./modal":81,"jquery":13,"promise-polyfill":45,"underscore":47}],77:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65575,7 +65202,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"jquery":13}],79:[function(require,module,exports){
+},{"backbone":2,"jquery":13}],78:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65724,7 +65351,7 @@ exports['default'] = {
 };
 module.exports = exports['default'];
 
-},{"../../../../package.json":49,"../backend":52,"../lib/support":59,"../lib/utils":61,"./modal":82,"jquery":13}],80:[function(require,module,exports){
+},{"../../../../package.json":48,"../backend":51,"../lib/support":58,"../lib/utils":60,"./modal":81,"jquery":13}],79:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -65902,7 +65529,7 @@ KeyboardShortcutsHandler.prototype.disable = function () {
 };
 module.exports = exports['default'];
 
-},{"./modal":82,"./notification":83,"jquery":13}],81:[function(require,module,exports){
+},{"./modal":81,"./notification":82,"jquery":13}],80:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66043,7 +65670,7 @@ exports['default'] = _modal2['default'].extend({
 });
 module.exports = exports['default'];
 
-},{"./modal":82,"jquery":13,"underscore":48}],82:[function(require,module,exports){
+},{"./modal":81,"jquery":13,"underscore":47}],81:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66320,7 +65947,7 @@ Modal.prompt = function (msg, submit, cancel) {
 
 exports['default'] = Modal;
 
-},{"backbone":2,"jquery":13,"underscore":48}],83:[function(require,module,exports){
+},{"backbone":2,"jquery":13,"underscore":47}],82:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66371,30 +65998,7 @@ var _jquery = require('jquery');
 
 var _jquery2 = _interopRequireDefault(_jquery);
 
-var _spinJs = require('spin.js');
-
-var _spinJs2 = _interopRequireDefault(_spinJs);
-
 var _libUtils = require('../lib/utils');
-
-var spinnerOpts = {
-    lines: 13, // The number of lines to draw
-    length: 20, // The length of each line
-    width: 10, // The line thickness
-    radius: 30, // The radius of the inner circle
-    corners: 1, // Corner roundness (0..1)
-    rotate: 0, // The rotation offset
-    direction: 1, // 1: clockwise, -1: counterclockwise
-    color: '#fff', // #rgb or #rrggbb or array of colors
-    speed: 1, // Rounds per second
-    trail: 60, // Afterglow percentage
-    shadow: false, // Whether to render a shadow
-    hwaccel: true, // Whether to use hardware acceleration
-    className: 'spinner', // The CSS class to assign to the spinner
-    zIndex: 2e9, // The z-index (defaults to 2000000000)
-    top: '50%', // Top position relative to parent
-    left: '50%' // Left position relative to parent
-};
 
 var NOTIFICATION_BASE_CLASS = 'Notification',
     NOTIFICATION_CLOSING_CLASS = 'Notification--Closing',
@@ -66543,71 +66147,6 @@ function notify(opts) {
     return new BaseNotification(opts);
 }
 
-var AssetLoadingNotification = _backbone2['default'].View.extend({
-
-    initialize: function initialize() {
-        _underscore2['default'].bindAll(this, 'render');
-        this.listenTo(this.model, "change:assetSource", this._changeAssetSource);
-        this.spinner = new _spinJs2['default']().spin();
-        this.el = document.getElementById('loadingSpinner');
-        this.spinner = new _spinJs2['default'](spinnerOpts);
-        this.isSpinning = false;
-        this._changeAssetSource();
-    },
-
-    _changeAssetSource: function _changeAssetSource() {
-        if (this.source) {
-            this.stopListening(this.source);
-        }
-        this.source = this.model.assetSource();
-        if (this.source) {
-            this.listenTo(this.source, "change:assetIsLoading", this.render);
-        }
-    },
-
-    render: function render() {
-        var isLoading = this.model.assetSource().assetIsLoading();
-        if (isLoading !== this.isSpinning) {
-            if (isLoading) {
-                // need to set the spinner going
-                this.spinner.spin(this.el);
-                this.isSpinning = true;
-            } else {
-                this.spinner.stop();
-                this.isSpinning = false;
-            }
-        }
-    }
-});
-
-exports.AssetLoadingNotification = AssetLoadingNotification;
-var LandmarkSavingNotification = _backbone2['default'].View.extend({
-
-    initialize: function initialize() {
-        _underscore2['default'].bindAll(this, 'start', 'stop');
-        this.spinner = new _spinJs2['default']().spin();
-
-        this.el = document.getElementById('loadingSpinner');
-        this.spinner = new _spinJs2['default'](spinnerOpts);
-        this.isSpinning = false;
-    },
-
-    start: function start() {
-        if (!this.isSpinning) {
-            this.spinner.spin(this.el);
-            this.isSpinning = true;
-        }
-    },
-
-    stop: function stop() {
-        if (this.isSpinning) {
-            this.spinner.stop();
-            this.isSpinning = true;
-        }
-    }
-});
-
-exports.LandmarkSavingNotification = LandmarkSavingNotification;
 var CornerSpinner = _backbone2['default'].View.extend({
 
     el: '#globalSpinner',
@@ -66645,6 +66184,11 @@ var CornerSpinner = _backbone2['default'].View.extend({
             delete this._operations[op];
             this.render();
         }
+    },
+
+    clear: function clear() {
+        this._operations = {};
+        this.render();
     }
 });
 
@@ -66659,11 +66203,14 @@ var loading = {
 
     stop: function stop(id) {
         return _gs.stop(id);
+    },
+    clear: function clear() {
+        return _gs.clear();
     }
 };
 exports.loading = loading;
 
-},{"../lib/utils":61,"backbone":2,"jquery":13,"spin.js":46,"underscore":48}],84:[function(require,module,exports){
+},{"../lib/utils":60,"backbone":2,"jquery":13,"underscore":47}],83:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -67108,7 +66655,7 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../lib/download":54,"../model/atomic":65,"./notification":83,"./templates":85,"backbone":2,"jquery":13,"underscore":48}],85:[function(require,module,exports){
+},{"../lib/download":53,"../model/atomic":64,"./notification":82,"./templates":84,"backbone":2,"jquery":13,"underscore":47}],84:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -67311,7 +66858,7 @@ var TemplatePanel = _backbone2['default'].View.extend({
 exports.TemplatePanel = TemplatePanel;
 exports['default'] = TemplatePanel;
 
-},{"../backend/server":53,"backbone":2,"jquery":13,"underscore":48}],86:[function(require,module,exports){
+},{"../backend/server":52,"backbone":2,"jquery":13,"underscore":47}],85:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -67503,7 +67050,7 @@ exports['default'] = _backbone2['default'].View.extend({
 
 });
 
-},{"../model/atomic":65,"backbone":2,"underscore":48}],87:[function(require,module,exports){
+},{"../model/atomic":64,"backbone":2,"underscore":47}],86:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -67555,7 +67102,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"backbone":2,"url":10}],88:[function(require,module,exports){
+},{"backbone":2,"url":10}],87:[function(require,module,exports){
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -67607,8 +67154,10 @@ var _backbone = require('backbone');
 var _backbone2 = _interopRequireDefault(_backbone);
 
 var MOUSE_WHEEL_SENSITIVITY = 0.5;
-var ROTATION_SENSITIVITY = 0.005;
+var ROTATION_SENSITIVITY = 3.5;
+var DAMPING_FACTOR = 0.2;
 var PIP_ZOOM_FACTOR = 12.0;
+// const EPS = 0.000001;
 
 // see https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent.deltaMode
 var UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
@@ -67617,20 +67166,112 @@ var UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
     2: 1.0 // The delta values are specified in pages.
 };
 
-function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
+function CameraController(pCam, oCam, oCamZoom, domElement) {
 
     var controller = {};
     _underscore2['default'].extend(controller, _backbone2['default'].Events);
-    var STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2 };
-    var state = STATE.NONE; // the current state of the Camera
-    var canRotate = !IMAGE_MODE;
 
-    // internals
+    var STATE = {
+        NONE: -1,
+        ROTATE: 0,
+        ZOOM: 1,
+        PAN: 2
+    };
+
+    var state = STATE.NONE; // the current state of the Camera
+    var canRotate = true;
     var enabled = false; // note that we will enable on creation below!
+
+    var target = new _three2['default'].Vector3(); // where the camera is looking
+
+    var origin = {
+        target: target.clone(),
+        pCamPosition: pCam.position.clone(),
+        pCamUp: pCam.up.clone(),
+        oCamPosition: oCam.position.clone(),
+        oCamUp: oCam.up.clone(),
+        oCamZoomPosition: oCamZoom.position.clone()
+    };
+
+    var height = 0,
+        width = 0;
+
+    function focus(newTarget) {
+        // focus all cameras at a new target.
+        target.copy(newTarget || origin.target);
+        pCam.lookAt(target);
+        oCam.lookAt(target);
+        oCamZoom.lookAt(target);
+    }
+
+    function reset(newPosition, newTarget, newCanRotate) {
+        state = STATE.NONE;
+        allowRotation(newCanRotate);
+        position(newPosition);
+        pCam.up.copy(origin.pCamUp);
+        oCam.up.copy(origin.oCamUp);
+        focus(newTarget);
+    }
+
+    function position(v) {
+        // position all cameras at a new location.
+        pCam.position.copy(v || origin.pCamPosition);
+        oCam.position.copy(v || origin.oCamPosition);
+        oCamZoom.position.copy(v || origin.oCamZoomPosition);
+    }
+
+    function allowRotation() {
+        var allowed = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
+
+        canRotate = allowed;
+    }
+
+    function disable() {
+        console.log('camera: disable');
+        enabled = false;
+        (0, _jquery2['default'])(domElement).off('mousedown.camera');
+        (0, _jquery2['default'])(domElement).off('wheel.camera');
+        (0, _jquery2['default'])(document).off('mousemove.camera');
+    }
+
+    function enable() {
+        if (!enabled) {
+            console.log('camera: enable');
+            enabled = true;
+            (0, _jquery2['default'])(domElement).on('mousedown.camera', onMouseDown);
+            (0, _jquery2['default'])(domElement).on('wheel.camera', onMouseWheel);
+        }
+    }
+
+    function resize(w, h) {
+        var aspect = w / h;
+        height = h;
+        width = w;
+
+        // 1. Update the orthographic camera
+        if (aspect > 1) {
+            // w > h
+            oCam.left = -aspect;
+            oCam.right = aspect;
+            oCam.top = 1;
+            oCam.bottom = -1;
+        } else {
+            // h > w
+            oCam.left = -1;
+            oCam.right = 1;
+            oCam.top = 1 / aspect;
+            oCam.bottom = -1 / aspect;
+        }
+        oCam.updateProjectionMatrix();
+
+        // 2. Update the perceptive camera
+        pCam.aspect = aspect;
+        pCam.updateProjectionMatrix();
+    }
+
     var tvec = new _three2['default'].Vector3(); // a temporary vector for efficient maths
     var tinput = new _three2['default'].Vector3(); // temp vec used for
 
-    var target = new _three2['default'].Vector3(); // where the camera is looking
     var normalMatrix = new _three2['default'].Matrix3();
 
     // mouse tracking variables
@@ -67642,23 +67283,7 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
 
     // Mouses position hovering over the surface
     var mouseHoverPosition = new _three2['default'].Vector2();
-    var mouseMouseDelta = new _three2['default'].Vector2();
-
-    function focus(newTarget) {
-        // focus all cameras at a new target.
-        target.copy(newTarget);
-        pCam.lookAt(target);
-        oCam.lookAt(target);
-        oCamZoom.lookAt(target);
-        //controller.trigger('change');
-    }
-
-    function position(v) {
-        // position all cameras at a new location.
-        pCam.position.copy(v);
-        oCam.position.copy(v);
-        oCamZoom.position.copy(v);
-    }
+    var mouseMoveDelta = new _three2['default'].Vector2();
 
     function pan(distance) {
         // first, handle the pCam...
@@ -67720,8 +67345,10 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
         oCam.updateProjectionMatrix();
         // call the mouse hover callback manually, he will trigger a change
         // for us. Little nasty, but we mock the event...
-        onMouseMoveHover({ pageX: mouseHoverPosition.x,
-            pageY: mouseHoverPosition.y });
+        onMouseMoveHover({
+            pageX: mouseHoverPosition.x,
+            pageY: mouseHoverPosition.y
+        });
         controller.trigger('change');
     }
 
@@ -67729,24 +67356,60 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
         return tvec.subVectors(target, pCam.position).length();
     }
 
+    var pVec = new _three2['default'].Vector3();
+    // const sVec = new THREE.Vector3();
+
+    function projectMouseOnSphere(px, py) {
+        pVec.set((px - width / 2) / (width / 2), (height - 2 * py) / screen.width, 0);
+
+        return pVec;
+    }
+
+    // function projectMouseOnScreen (px, py) {
+    //
+    // }
+
+    // Rotation specific values
+    var lastAngle = undefined,
+        angle = undefined;
+    var lastAxis = new _three2['default'].Vector3();
+    var quaternion = new _three2['default'].Quaternion();
+    var targetDirection = new _three2['default'].Vector3();
+    var axis = new _three2['default'].Vector3();
+    var upDirection = new _three2['default'].Vector3();
+    var sidewaysDirection = new _three2['default'].Vector3();
+    var moveDirection = new _three2['default'].Vector3();
+
     function rotateCamera(delta, camera) {
-        var theta, phi, radius;
-        var EPS = 0.000001;
 
-        // vector = position - target
+        angle = delta.length();
         tvec.copy(camera.position).sub(target);
-        radius = tvec.length();
 
-        theta = Math.atan2(tvec.x, tvec.z);
-        phi = Math.atan2(Math.sqrt(tvec.x * tvec.x + tvec.z * tvec.z), tvec.y);
-        theta += delta.x;
-        phi += delta.y;
-        phi = Math.max(EPS, Math.min(Math.PI - EPS, phi));
+        if (angle) {
 
-        // update the vector for the new theta/phi/radius
-        tvec.x = radius * Math.sin(phi) * Math.sin(theta);
-        tvec.y = radius * Math.cos(phi);
-        tvec.z = radius * Math.sin(phi) * Math.cos(theta);
+            targetDirection.copy(tvec).normalize();
+
+            upDirection.copy(camera.up).normalize();
+            sidewaysDirection.crossVectors(upDirection, targetDirection).normalize();
+
+            upDirection.setLength(delta.y);
+            sidewaysDirection.setLength(delta.x);
+
+            moveDirection.copy(upDirection.add(sidewaysDirection));
+            axis.crossVectors(moveDirection, tvec).normalize();
+
+            quaternion.setFromAxisAngle(axis, angle);
+            tvec.applyQuaternion(quaternion);
+            camera.up.applyQuaternion(quaternion);
+
+            lastAxis.copy(axis);
+            lastAngle = angle;
+        } else if (lastAngle) {
+            lastAngle *= Math.sqrt(1.0 - DAMPING_FACTOR);
+            quaternion.setFromAxisAngle(lastAxis, lastAngle);
+            tvec.applyQuaternion(quaternion);
+            camera.up.applyQuaternion(quaternion);
+        }
 
         camera.position.copy(target).add(tvec);
         camera.lookAt(target);
@@ -67765,10 +67428,8 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
         if (!enabled) {
             return;
         }
+
         event.preventDefault();
-        mouseDownPosition.set(event.pageX, event.pageY);
-        mousePrevPosition.copy(mouseDownPosition);
-        mouseCurrentPosition.copy(mousePrevPosition);
 
         switch (event.button) {
             case 0:
@@ -67785,34 +67446,50 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
                 state = STATE.PAN;
                 break;
         }
+
+        if (state === STATE.ROTATE) {
+            mouseDownPosition.copy(projectMouseOnSphere(event.pageX, event.pageY));
+        } else {
+            mouseDownPosition.set(event.pageX, event.pageY);
+        }
+
+        mousePrevPosition.copy(mouseDownPosition);
+        mouseCurrentPosition.copy(mousePrevPosition);
+
         (0, _jquery2['default'])(document).on('mousemove.camera', onMouseMove);
         // listen once for the mouse up
         (0, _jquery2['default'])(document).one('mouseup.camera', onMouseUp);
     }
 
     function onMouseMove(event) {
+
         event.preventDefault();
-        mouseCurrentPosition.set(event.pageX, event.pageY);
-        mouseMouseDelta.subVectors(mouseCurrentPosition, mousePrevPosition);
+
+        if (state === STATE.ROTATE) {
+            mouseCurrentPosition.copy(projectMouseOnSphere(event.pageX, event.pageY));
+        } else {
+            mouseCurrentPosition.set(event.pageX, event.pageY);
+        }
+
+        mouseMoveDelta.subVectors(mouseCurrentPosition, mousePrevPosition);
 
         switch (state) {
             case STATE.ROTATE:
-                tinput.copy(mouseMouseDelta);
+                tinput.copy(mouseMoveDelta);
                 tinput.z = 0;
-                tinput.multiplyScalar(-ROTATION_SENSITIVITY);
+                tinput.multiplyScalar(ROTATION_SENSITIVITY);
                 rotate(tinput);
                 break;
             case STATE.ZOOM:
-                tinput.set(0, 0, mouseMouseDelta.y);
+                tinput.set(0, 0, mouseMoveDelta.y);
                 zoom(tinput);
                 break;
             case STATE.PAN:
-                tinput.set(-mouseMouseDelta.x, mouseMouseDelta.y, 0);
+                tinput.set(-mouseMoveDelta.x, mouseMoveDelta.y, 0);
                 pan(tinput);
                 break;
         }
 
-        // now work has been done update the previous position
         mousePrevPosition.copy(mouseCurrentPosition);
     }
 
@@ -67878,23 +67555,6 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
         zoom(tinput);
     }
 
-    function disable() {
-        console.log('camera: disable');
-        enabled = false;
-        (0, _jquery2['default'])(domElement).off('mousedown.camera');
-        (0, _jquery2['default'])(domElement).off('wheel.camera');
-        (0, _jquery2['default'])(document).off('mousemove.camera');
-    }
-
-    function enable() {
-        if (!enabled) {
-            console.log('camera: enable');
-            enabled = true;
-            (0, _jquery2['default'])(domElement).on('mousedown.camera', onMouseDown);
-            (0, _jquery2['default'])(domElement).on('wheel.camera', onMouseWheel);
-        }
-    }
-
     // touch
     var touch = new _three2['default'].Vector3();
     var prevTouch = new _three2['default'].Vector3();
@@ -67925,7 +67585,9 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
         touch.set(touches[0].pageX, touches[0].pageY, 0);
         switch (touches.length) {
             case 1:
-                rotate(touch.sub(prevTouch).multiplyScalar(-0.005));
+                var delta = touch.sub(prevTouch).multiplyScalar(0.005);
+                delta.setY(-1 * delta.y);
+                rotate(delta);
                 break;
             case 2:
                 var dx = touches[0].pageX - touches[1].pageX;
@@ -67941,7 +67603,7 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
         prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
     }
 
-    // TODO should this always be enabled?
+    //TODO should this always be enabled?
     domElement.addEventListener('touchstart', touchStart, false);
     domElement.addEventListener('touchmove', touchMove, false);
 
@@ -67949,49 +67611,20 @@ function CameraController(pCam, oCam, oCamZoom, domElement, IMAGE_MODE) {
     enable();
     (0, _jquery2['default'])(domElement).on('mousemove.pip', onMouseMoveHover);
 
-    function resize(w, h) {
-        var aspect = w / h;
-
-        // 1. Update the orthographic camera
-        if (aspect > 1) {
-            // w > h
-            oCam.left = -aspect;
-            oCam.right = aspect;
-            oCam.top = 1;
-            oCam.bottom = -1;
-        } else {
-            // h > w
-            oCam.left = -1;
-            oCam.right = 1;
-            oCam.top = 1 / aspect;
-            oCam.bottom = -1 / aspect;
-        }
-        oCam.updateProjectionMatrix();
-
-        // 2. Update the perceptive camera
-        pCam.aspect = aspect;
-        pCam.updateProjectionMatrix();
-    }
-
-    function allowRotation() {
-        var allowed = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
-
-        canRotate = allowed;
-    }
-
     controller.allowRotation = allowRotation;
     controller.enable = enable;
     controller.disable = disable;
     controller.resize = resize;
     controller.focus = focus;
     controller.position = position;
+    controller.reset = reset;
 
     return controller;
 }
 
 module.exports = exports['default'];
 
-},{"backbone":2,"jquery":13,"three":47,"underscore":48}],89:[function(require,module,exports){
+},{"backbone":2,"jquery":13,"three":46,"underscore":47}],88:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -68067,7 +67700,7 @@ var LandmarkTHREEView = _backbone2['default'].View.extend({
                 // trigger changeLandmarkSize to make sure sizing is correct
                 this.changeLandmarkSize();
                 // and add it to the scene
-                this.viewport.s_lms.add(this.symbol);
+                this.viewport.sLms.add(this.symbol);
             }
         }
         // tell our viewport to update
@@ -68090,7 +67723,7 @@ var LandmarkTHREEView = _backbone2['default'].View.extend({
 
     dispose: function dispose() {
         if (this.symbol) {
-            this.viewport.s_lms.remove(this.symbol);
+            this.viewport.sLms.remove(this.symbol);
             this.symbol = null;
         }
     },
@@ -68136,7 +67769,7 @@ var LandmarkConnectionTHREEView = _backbone2['default'].View.extend({
                 this.symbol = this.createLine(this.model[0].get('point'), this.model[1].get('point'));
                 this.updateSymbol();
                 // and add it to the scene
-                this.viewport.s_lmsconnectivity.add(this.symbol);
+                this.viewport.sLmsConnectivity.add(this.symbol);
             }
         }
         // tell our viewport to update
@@ -68153,7 +67786,7 @@ var LandmarkConnectionTHREEView = _backbone2['default'].View.extend({
 
     dispose: function dispose() {
         if (this.symbol) {
-            this.viewport.s_lmsconnectivity.remove(this.symbol);
+            this.viewport.sLmsConnectivity.remove(this.symbol);
             this.symbol.geometry.dispose();
             this.symbol = null;
         }
@@ -68167,7 +67800,7 @@ var LandmarkConnectionTHREEView = _backbone2['default'].View.extend({
 });
 exports.LandmarkConnectionTHREEView = LandmarkConnectionTHREEView;
 
-},{"backbone":2,"three":47,"underscore":48}],90:[function(require,module,exports){
+},{"backbone":2,"three":46,"underscore":47}],89:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -68394,7 +68027,7 @@ function Handler() {
         onMouseDownPosition.set(event.clientX, event.clientY);
 
         // All interactions require intersections to distinguish
-        intersectsWithLms = _this.getIntersectsFromEvent(event, _this.s_lms);
+        intersectsWithLms = _this.getIntersectsFromEvent(event, _this.sLms);
         // note that we explicitly ask for intersects with the mesh
         // object as we know get intersects will use an octree if
         // present.
@@ -68744,7 +68377,7 @@ function Handler() {
 
 module.exports = exports['default'];
 
-},{"../../model/atomic":65,"jquery":13,"three":47,"underscore":48}],91:[function(require,module,exports){
+},{"../../model/atomic":64,"jquery":13,"three":46,"underscore":47}],90:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -68910,42 +68543,42 @@ exports['default'] = _backbone2['default'].View.extend({
 
         // we use an initial top level to handle the absolute positioning of
         // the mesh and landmarks. Rotation and scale are applied to the
-        // s_meshAndLms node directly.
-        this.s_scaleRotate = new _three2['default'].Object3D();
-        this.s_translate = new _three2['default'].Object3D();
+        // sMeshAndLms node directly.
+        this.sScaleRotate = new _three2['default'].Object3D();
+        this.sTranslate = new _three2['default'].Object3D();
 
         // ----- SCENE: MODEL AND LANDMARKS ----- //
-        // s_meshAndLms stores the mesh and landmarks in the meshes original
+        // sMeshAndLms stores the mesh and landmarks in the meshes original
         // coordinates. This is always transformed to the unit sphere for
         // consistency of camera.
-        this.s_meshAndLms = new _three2['default'].Object3D();
-        // s_lms stores the scene landmarks. This is a useful container to
-        // get at all landmarks in one go, and is a child of s_meshAndLms
-        this.s_lms = new _three2['default'].Object3D();
-        this.s_meshAndLms.add(this.s_lms);
-        // s_mesh is the parent of the mesh itself in the THREE scene.
+        this.sMeshAndLms = new _three2['default'].Object3D();
+        // sLms stores the scene landmarks. This is a useful container to
+        // get at all landmarks in one go, and is a child of sMeshAndLms
+        this.sLms = new _three2['default'].Object3D();
+        this.sMeshAndLms.add(this.sLms);
+        // sMesh is the parent of the mesh itself in the THREE scene.
         // This will only ever have one child (the mesh).
-        // Child of s_meshAndLms
-        this.s_mesh = new _three2['default'].Object3D();
-        this.s_meshAndLms.add(this.s_mesh);
-        this.s_translate.add(this.s_meshAndLms);
-        this.s_scaleRotate.add(this.s_translate);
-        this.scene.add(this.s_scaleRotate);
+        // Child of sMeshAndLms
+        this.sMesh = new _three2['default'].Object3D();
+        this.sMeshAndLms.add(this.sMesh);
+        this.sTranslate.add(this.sMeshAndLms);
+        this.sScaleRotate.add(this.sTranslate);
+        this.scene.add(this.sScaleRotate);
 
         // ----- SCENE: CAMERA AND DIRECTED LIGHTS ----- //
-        // s_camera holds the camera, and (optionally) any
+        // sCamera holds the camera, and (optionally) any
         // lights that track with the camera as children
-        this.s_oCam = new _three2['default'].OrthographicCamera(-1, 1, 1, -1, 0, 20);
-        this.s_oCamZoom = new _three2['default'].OrthographicCamera(-1, 1, 1, -1, 0, 20);
-        this.s_pCam = new _three2['default'].PerspectiveCamera(50, 1, 0.02, 20);
+        this.sOCam = new _three2['default'].OrthographicCamera(-1, 1, 1, -1, 0, 20);
+        this.sOCamZoom = new _three2['default'].OrthographicCamera(-1, 1, 1, -1, 0, 20);
+        this.sPCam = new _three2['default'].PerspectiveCamera(50, 1, 0.02, 20);
         // start with the perspective camera as the main one
-        this.s_camera = this.s_pCam;
+        this.sCamera = this.sPCam;
 
         // create the cameraController to look after all camera state.
-        this.cameraController = (0, _camera2['default'])(this.s_pCam, this.s_oCam, this.s_oCamZoom, this.el, this.model.imageMode());
+        this.cameraController = (0, _camera2['default'])(this.sPCam, this.sOCam, this.sOCamZoom, this.el, this.model.imageMode());
 
         // when the camera updates, render
-        this.cameraController.on("change", this.update);
+        this.cameraController.on('change', this.update);
 
         if (!this.model.meshMode()) {
             // for images, default to orthographic camera
@@ -68958,16 +68591,16 @@ exports['default'] = _backbone2['default'].View.extend({
         // ----- SCENE: GENERAL LIGHTING ----- //
         // TODO make lighting customizable
         // TODO no spot light for images
-        this.s_lights = new _three2['default'].Object3D();
+        this.sLights = new _three2['default'].Object3D();
         var pointLightLeft = new _three2['default'].PointLight(0x404040, 1, 0);
         pointLightLeft.position.set(-100, 0, 100);
-        this.s_lights.add(pointLightLeft);
+        this.sLights.add(pointLightLeft);
         var pointLightRight = new _three2['default'].PointLight(0x404040, 1, 0);
         pointLightRight.position.set(100, 0, 100);
-        this.s_lights.add(pointLightRight);
-        this.scene.add(this.s_lights);
+        this.sLights.add(pointLightRight);
+        this.scene.add(this.sLights);
         // add a soft white ambient light
-        this.s_lights.add(new _three2['default'].AmbientLight(0x404040));
+        this.sLights.add(new _three2['default'].AmbientLight(0x404040));
 
         this.renderer = new _three2['default'].WebGLRenderer({ antialias: false, alpha: false });
         this.renderer.setPixelRatio(window.devicePixelRatio || 1);
@@ -68981,18 +68614,18 @@ exports['default'] = _backbone2['default'].View.extend({
         // shows through)
         this.sceneHelpers = new _three2['default'].Scene();
 
-        // s_lmsconnectivity is used to store the connectivity representation
+        // sLmsConnectivity is used to store the connectivity representation
         // of the mesh. Note that we want
-        this.s_lmsconnectivity = new _three2['default'].Object3D();
+        this.sLmsConnectivity = new _three2['default'].Object3D();
         // we want to replicate the mesh scene graph in the scene helpers, so we can
         // have show-though connectivity..
-        this.s_h_scaleRotate = new _three2['default'].Object3D();
-        this.s_h_translate = new _three2['default'].Object3D();
-        this.s_h_meshAndLms = new _three2['default'].Object3D();
-        this.s_h_meshAndLms.add(this.s_lmsconnectivity);
-        this.s_h_translate.add(this.s_h_meshAndLms);
-        this.s_h_scaleRotate.add(this.s_h_translate);
-        this.sceneHelpers.add(this.s_h_scaleRotate);
+        this.shScaleRotate = new _three2['default'].Object3D();
+        this.sHTranslate = new _three2['default'].Object3D();
+        this.shMeshAndLms = new _three2['default'].Object3D();
+        this.shMeshAndLms.add(this.sLmsConnectivity);
+        this.sHTranslate.add(this.shMeshAndLms);
+        this.shScaleRotate.add(this.sHTranslate);
+        this.sceneHelpers.add(this.shScaleRotate);
 
         // add mesh if there already is one present (we could have missed a
         // backbone callback).
@@ -69015,14 +68648,14 @@ exports['default'] = _backbone2['default'].View.extend({
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
-        this.listenTo(this.model, "newMeshAvailable", this.changeMesh);
+        this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
 
         this.showConnectivity = true;
-        this.listenTo(this.model, "change:connectivityOn", this.updateConnectivityDisplay);
+        this.listenTo(this.model, 'change:connectivityOn', this.updateConnectivityDisplay);
         this.updateConnectivityDisplay();
 
-        this.listenTo(this.model, "change:editingOn", this.updateEditingDisplay);
+        this.listenTo(this.model, 'change:editingOn', this.updateEditingDisplay);
         this.updateEditingDisplay();
 
         // Reset helper views on wheel to keep scale
@@ -69091,28 +68724,28 @@ exports['default'] = _backbone2['default'].View.extend({
             this.octree = octree.octreeForBufferGeometry(mesh.geometry);
         }
 
-        this.s_mesh.add(mesh);
-        // Now we need to rescale the s_meshAndLms to fit in the unit sphere
+        this.sMesh.add(mesh);
+        // Now we need to rescale the sMeshAndLms to fit in the unit sphere
         // First, the scale
         this.meshScale = mesh.geometry.boundingSphere.radius;
         var s = 1.0 / this.meshScale;
-        this.s_scaleRotate.scale.set(s, s, s);
-        this.s_h_scaleRotate.scale.set(s, s, s);
-        this.s_scaleRotate.up.copy(up);
-        this.s_h_scaleRotate.up.copy(up);
-        this.s_scaleRotate.lookAt(front.clone());
-        this.s_h_scaleRotate.lookAt(front.clone());
+        this.sScaleRotate.scale.set(s, s, s);
+        this.shScaleRotate.scale.set(s, s, s);
+        this.sScaleRotate.up.copy(up);
+        this.shScaleRotate.up.copy(up);
+        this.sScaleRotate.lookAt(front.clone());
+        this.shScaleRotate.lookAt(front.clone());
         // translation
         var t = mesh.geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
-        this.s_translate.position.copy(t);
-        this.s_h_translate.position.copy(t);
+        this.sTranslate.position.copy(t);
+        this.sHTranslate.position.copy(t);
         this.update();
     },
 
     removeMeshIfPresent: function removeMeshIfPresent() {
         if (this.mesh !== null) {
-            this.s_mesh.remove(this.mesh);
+            this.sMesh.remove(this.mesh);
             this.mesh = null;
             this.octree = null;
         }
@@ -69140,16 +68773,16 @@ exports['default'] = _backbone2['default'].View.extend({
         this.renderer.setScissor(0, 0, w, h);
         this.renderer.enableScissorTest(true);
         this.renderer.clear();
-        this.renderer.render(this.scene, this.s_camera);
+        this.renderer.render(this.scene, this.sCamera);
 
         if (this.showConnectivity) {
             this.renderer.clearDepth(); // clear depth buffer
             // and render the connectivity
-            this.renderer.render(this.sceneHelpers, this.s_camera);
+            this.renderer.render(this.sceneHelpers, this.sCamera);
         }
 
         // 2. Render the PIP image if in orthographic mode
-        if (this.s_camera === this.s_oCam) {
+        if (this.sCamera === this.sOCam) {
             var b = this.pipBounds();
             this.renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
             this.renderer.setViewport(b.x, b.y, b.width, b.height);
@@ -69157,11 +68790,11 @@ exports['default'] = _backbone2['default'].View.extend({
             this.renderer.enableScissorTest(true);
             this.renderer.clear();
             // render the PIP image
-            this.renderer.render(this.scene, this.s_oCamZoom);
+            this.renderer.render(this.scene, this.sOCamZoom);
             if (this.showConnectivity) {
                 this.renderer.clearDepth(); // clear depth buffer
                 // and render the connectivity
-                this.renderer.render(this.sceneHelpers, this.s_oCamZoom);
+                this.renderer.render(this.sceneHelpers, this.sOCamZoom);
             }
             this.renderer.setClearColor(CLEAR_COLOUR, 1);
         }
@@ -69169,17 +68802,17 @@ exports['default'] = _backbone2['default'].View.extend({
 
     toggleCamera: function toggleCamera() {
         // check what the current setting is
-        var currentlyPerspective = this.s_camera === this.s_pCam;
+        var currentlyPerspective = this.sCamera === this.sPCam;
         if (currentlyPerspective) {
             // going to orthographic - start listening for pip updates
             this.listenTo(this.cameraController, "changePip", this.update);
-            this.s_camera = this.s_oCam;
+            this.sCamera = this.sOCam;
             // hide the pip decoration
             this.pipCanvas.style.display = null;
         } else {
             // leaving orthographic - stop listening to pip calls.
             this.stopListening(this.cameraController, "changePip");
-            this.s_camera = this.s_pCam;
+            this.sCamera = this.sPCam;
             // show the pip decoration
             this.pipCanvas.style.display = 'none';
         }
@@ -69201,10 +68834,7 @@ exports['default'] = _backbone2['default'].View.extend({
     resetCamera: function resetCamera() {
         // reposition the cameras and focus back to the starting point.
         var v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION : IMAGE_MODE_STARTING_POSITION;
-
-        this.cameraController.allowRotation(this.model.meshMode());
-        this.cameraController.position(v);
-        this.cameraController.focus(this.scene.position);
+        this.cameraController.reset(v, this.scene.position, this.model.meshMode());
         this.update();
     },
 
@@ -69399,16 +69029,16 @@ exports['default'] = _backbone2['default'].View.extend({
         }
         var vector = new _three2['default'].Vector3(x / this.width() * 2 - 1, -(y / this.height()) * 2 + 1, 0.5);
 
-        if (this.s_camera === this.s_pCam) {
+        if (this.sCamera === this.sPCam) {
             // perspective selection
             vector.setZ(0.5);
-            vector.unproject(this.s_camera);
-            this.ray.set(this.s_camera.position, vector.sub(this.s_camera.position).normalize());
+            vector.unproject(this.sCamera);
+            this.ray.set(this.sCamera.position, vector.sub(this.sCamera.position).normalize());
         } else {
             // orthographic selection
             vector.setZ(-1);
-            vector.unproject(this.s_camera);
-            var dir = new _three2['default'].Vector3(0, 0, -1).transformDirection(this.s_camera.matrixWorld);
+            vector.unproject(this.sCamera);
+            var dir = new _three2['default'].Vector3(0, 0, -1).transformDirection(this.sCamera.matrixWorld);
             this.ray.set(vector, dir);
         }
 
@@ -69429,25 +69059,25 @@ exports['default'] = _backbone2['default'].View.extend({
     worldToScreen: function worldToScreen(vector) {
         var widthHalf = this.width() / 2;
         var heightHalf = this.height() / 2;
-        var result = vector.project(this.s_camera);
+        var result = vector.project(this.sCamera);
         result.x = result.x * widthHalf + widthHalf;
         result.y = -(result.y * heightHalf) + heightHalf;
         return result;
     },
 
     localToScreen: function localToScreen(vector) {
-        return this.worldToScreen(this.s_meshAndLms.localToWorld(vector.clone()));
+        return this.worldToScreen(this.sMeshAndLms.localToWorld(vector.clone()));
     },
 
     worldToLocal: function worldToLocal(vector) {
         var inPlace = arguments.length <= 1 || arguments[1] === undefined ? false : arguments[1];
 
-        return inPlace ? this.s_meshAndLms.worldToLocal(vector) : this.s_meshAndLms.worldToLocal(vector.clone());
+        return inPlace ? this.sMeshAndLms.worldToLocal(vector) : this.sMeshAndLms.worldToLocal(vector.clone());
     },
 
     lmToScreen: function lmToScreen(lmSymbol) {
         var pos = lmSymbol.position.clone();
-        this.s_meshAndLms.localToWorld(pos);
+        this.sMeshAndLms.localToWorld(pos);
         return this.worldToScreen(pos);
     },
 
@@ -69483,7 +69113,7 @@ exports['default'] = _backbone2['default'].View.extend({
 });
 module.exports = exports['default'];
 
-},{"../../model/atomic":65,"../../model/octree":69,"./camera":88,"./elements":89,"./handler":90,"backbone":2,"jquery":13,"three":47,"underscore":48}]},{},[1])
+},{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-e414f8b0.js.map
+//# sourceMappingURL=bundle-978b6cb0.js.map
