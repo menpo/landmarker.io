@@ -231,7 +231,6 @@ function initLandmarker(server, mode, u) {
 
     var app = new App(appInit);
 
-    new Notification.AssetLoadingNotification({model: app});
     new SidebarView({model: app});
     new AssetView({model: app});
     new ToolbarView({model: app});

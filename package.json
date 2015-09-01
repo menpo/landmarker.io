@@ -45,7 +45,6 @@
     "js-yaml": "^3.3.1",
     "promise-polyfill": "^1.1.6",
     "run-sequence": "^1.0.2",
-    "spin.js": "^2.0.2",
     "three": "~0.71.0",
     "underscore": "^1.6.0",
     "vinyl-source-stream": "^1.0.0"

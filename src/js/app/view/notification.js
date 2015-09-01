@@ -3,28 +3,8 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
 import $ from 'jquery';
-import Spinner from 'spin.js';
 
 import {randomString} from '../lib/utils';
-
-const spinnerOpts = {
-    lines: 13, // The number of lines to draw
-    length: 20, // The length of each line
-    width: 10, // The line thickness
-    radius: 30, // The radius of the inner circle
-    corners: 1, // Corner roundness (0..1)
-    rotate: 0, // The rotation offset
-    direction: 1, // 1: clockwise, -1: counterclockwise
-    color: '#fff', // #rgb or #rrggbb or array of colors
-    speed: 1, // Rounds per second
-    trail: 60, // Afterglow percentage
-    shadow: false, // Whether to render a shadow
-    hwaccel: true, // Whether to use hardware acceleration
-    className: 'spinner', // The CSS class to assign to the spinner
-    zIndex: 2e9, // The z-index (defaults to 2000000000)
-    top: '50%', // Top position relative to parent
-    left: '50%' // Left position relative to parent
-};
 
 const NOTIFICATION_BASE_CLASS = 'Notification',
     NOTIFICATION_CLOSING_CLASS = 'Notification--Closing',
@@ -158,71 +138,6 @@ export function notify (opts) {
     return new BaseNotification(opts);
 }
 
-export const AssetLoadingNotification = Backbone.View.extend({
-
-    initialize: function() {
-        _.bindAll(this, 'render');
-        this.listenTo(this.model, "change:assetSource",
-            this._changeAssetSource);
-        this.spinner = new Spinner().spin();
-        this.el = document.getElementById('loadingSpinner');
-        this.spinner = new Spinner(spinnerOpts);
-        this.isSpinning = false;
-        this._changeAssetSource();
-    },
-
-    _changeAssetSource: function () {
-        if (this.source) {
-            this.stopListening(this.source);
-        }
-        this.source = this.model.assetSource();
-        if (this.source) {
-            this.listenTo(this.source, "change:assetIsLoading",
-                this.render);
-        }
-    },
-
-    render: function () {
-        var isLoading = this.model.assetSource().assetIsLoading();
-        if (isLoading !== this.isSpinning) {
-            if (isLoading) {
-                // need to set the spinner going
-                this.spinner.spin(this.el);
-                this.isSpinning = true;
-            } else {
-                this.spinner.stop();
-                this.isSpinning = false;
-            }
-        }
-    }
-});
-
-export const LandmarkSavingNotification = Backbone.View.extend({
-
-    initialize: function () {
-        _.bindAll(this, 'start', 'stop');
-        this.spinner = new Spinner().spin();
-
-        this.el = document.getElementById('loadingSpinner');
-        this.spinner = new Spinner(spinnerOpts);
-        this.isSpinning = false;
-    },
-
-    start: function () {
-        if (!this.isSpinning) {
-            this.spinner.spin(this.el);
-            this.isSpinning = true;
-        }
-    },
-
-    stop: function () {
-        if (this.isSpinning) {
-            this.spinner.stop();
-            this.isSpinning = true;
-        }
-    }
-});
-
 const CornerSpinner = Backbone.View.extend({
 
     el: '#globalSpinner',
@@ -261,6 +176,11 @@ const CornerSpinner = Backbone.View.extend({
             delete this._operations[op];
             this.render();
         }
+    },
+
+    clear: function () {
+        this._operations = {};
+        this.render();
     }
 });
 
@@ -273,7 +193,6 @@ export const loading = {
         return _gs.start();
     },
 
-    stop: function (id) {
-        return _gs.stop(id);
-    }
+    stop: (id) => _gs.stop(id),
+    clear: () => _gs.clear()
 };
