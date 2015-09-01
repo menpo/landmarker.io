@@ -66202,9 +66202,7 @@ var loading = {
         return _gs.clear();
     }
 };
-
 exports.loading = loading;
-window.CS = loading;
 
 },{"../lib/utils":60,"backbone":2,"jquery":13,"underscore":47}],83:[function(require,module,exports){
 'use strict';
@@ -69029,4 +69027,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-688280ab.js.map
+//# sourceMappingURL=bundle-cfeb1d44.js.map
