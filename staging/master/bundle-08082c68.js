@@ -67381,8 +67381,20 @@ function CameraController(pCam, oCam, oCamZoom, domElement) {
     var moveDirection = new _three2['default'].Vector3();
 
     function rotateCamera(delta, camera) {
+        var singleDir = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
 
-        angle = delta.length();
+        var _delta = undefined;
+        if (singleDir) {
+            if (Math.abs(delta.x) >= Math.abs(delta.y)) {
+                _delta = new _three2['default'].Vector3(delta.x, 0, 0);
+            } else {
+                _delta = new _three2['default'].Vector3(0, delta.y, 0);
+            }
+        } else {
+            _delta = delta;
+        }
+
+        angle = _delta.length();
         tvec.copy(camera.position).sub(target);
 
         if (angle) {
@@ -67392,8 +67404,8 @@ function CameraController(pCam, oCam, oCamZoom, domElement) {
             upDirection.copy(camera.up).normalize();
             sidewaysDirection.crossVectors(upDirection, targetDirection).normalize();
 
-            upDirection.setLength(delta.y);
-            sidewaysDirection.setLength(delta.x);
+            upDirection.setLength(_delta.y);
+            sidewaysDirection.setLength(_delta.x);
 
             moveDirection.copy(upDirection.add(sidewaysDirection));
             axis.crossVectors(moveDirection, tvec).normalize();
@@ -67416,9 +67428,11 @@ function CameraController(pCam, oCam, oCamZoom, domElement) {
     }
 
     function rotate(delta) {
-        rotateCamera(delta, pCam);
-        rotateCamera(delta, oCam);
-        rotateCamera(delta, oCamZoom);
+        var singleDir = arguments.length <= 1 || arguments[1] === undefined ? false : arguments[1];
+
+        rotateCamera(delta, pCam, singleDir);
+        rotateCamera(delta, oCam, singleDir);
+        rotateCamera(delta, oCamZoom, singleDir);
         controller.trigger('change');
     }
 
@@ -67478,7 +67492,7 @@ function CameraController(pCam, oCam, oCamZoom, domElement) {
                 tinput.copy(mouseMoveDelta);
                 tinput.z = 0;
                 tinput.multiplyScalar(ROTATION_SENSITIVITY);
-                rotate(tinput);
+                rotate(tinput, event.ctrlKey);
                 break;
             case STATE.ZOOM:
                 tinput.set(0, 0, mouseMoveDelta.y);
@@ -69116,4 +69130,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-978b6cb0.js.map
+//# sourceMappingURL=bundle-08082c68.js.map
