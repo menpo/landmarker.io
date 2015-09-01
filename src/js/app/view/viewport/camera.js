@@ -255,9 +255,20 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
     const sidewaysDirection = new THREE.Vector3();
     const moveDirection = new THREE.Vector3();
 
-    function rotateCamera (delta, camera) {
+    function rotateCamera (delta, camera, singleDir=false) {
 
-        angle = delta.length();
+        let _delta;
+        if (singleDir) {
+            if (Math.abs(delta.x) >= Math.abs(delta.y)) {
+                _delta = new THREE.Vector3(delta.x, 0, 0);
+            } else {
+                _delta = new THREE.Vector3(0, delta.y, 0);
+            }
+        } else {
+            _delta = delta;
+        }
+
+        angle = _delta.length();
         tvec.copy(camera.position).sub(target);
 
         if (angle) {
@@ -268,8 +279,8 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
             sidewaysDirection.crossVectors(upDirection, targetDirection)
                              .normalize();
 
-            upDirection.setLength(delta.y);
-            sidewaysDirection.setLength(delta.x);
+            upDirection.setLength(_delta.y);
+            sidewaysDirection.setLength(_delta.x);
 
             moveDirection.copy(upDirection.add(sidewaysDirection));
             axis.crossVectors(moveDirection, tvec).normalize();
@@ -291,10 +302,10 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         camera.lookAt(target);
     }
 
-    function rotate (delta) {
-        rotateCamera(delta, pCam);
-        rotateCamera(delta, oCam);
-        rotateCamera(delta, oCamZoom);
+    function rotate (delta, singleDir=false) {
+        rotateCamera(delta, pCam, singleDir);
+        rotateCamera(delta, oCam, singleDir);
+        rotateCamera(delta, oCamZoom, singleDir);
         controller.trigger('change');
     }
 
@@ -343,8 +354,8 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         event.preventDefault();
 
         if (state === STATE.ROTATE) {
-            mouseCurrentPosition.copy(projectMouseOnSphere(event.pageX,
-                                                        event.pageY));
+            mouseCurrentPosition.copy(
+                projectMouseOnSphere(event.pageX, event.pageY));
         } else {
             mouseCurrentPosition.set(event.pageX, event.pageY);
         }
@@ -356,7 +367,7 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
                 tinput.copy(mouseMoveDelta);
                 tinput.z = 0;
                 tinput.multiplyScalar(ROTATION_SENSITIVITY);
-                rotate(tinput);
+                rotate(tinput, event.ctrlKey);
                 break;
             case STATE.ZOOM:
                 tinput.set(0, 0, mouseMoveDelta.y);
