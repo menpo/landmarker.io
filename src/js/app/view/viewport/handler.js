@@ -168,7 +168,7 @@ export default function Handler () {
 
         // All interactions require intersections to distinguish
         intersectsWithLms = this.getIntersectsFromEvent(
-            event, this.s_lms);
+            event, this.sLms);
         // note that we explicitly ask for intersects with the mesh
         // object as we know get intersects will use an octree if
         // present.
