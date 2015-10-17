@@ -65929,8 +65929,10 @@ var _modal2 = _interopRequireDefault(_modal);
  * List picker modal, takes the following parameters:
  *
  *  +   list : an array of tuples [content (string), key]
- *  +   useFilter : wether or not to display the search bar
+ *  +   useFilter : whether or not to display the search bar
  *  +   submit: the callback
+ *  +   batchSize (50): the number of elements to be displayed. A 'Load More'
+ *      element will be placed at the bottom of the list to expand the content.
  *
  * All tags will have the data attributes value, key and index
  * The callback is called with the key (which is the content if key is
@@ -65947,6 +65949,8 @@ exports['default'] = _modal2['default'].extend({
         var list = _ref.list;
         var submit = _ref.submit;
         var useFilter = _ref.useFilter;
+        var _ref$batchSize = _ref.batchSize;
+        var batchSize = _ref$batchSize === undefined ? 50 : _ref$batchSize;
 
         this.list = list.map(function (_ref2, i) {
             var _ref22 = _slicedToArray(_ref2, 2);
@@ -65958,6 +65962,11 @@ exports['default'] = _modal2['default'].extend({
         this._list = this.list;
         this.submit = submit;
         this.useFilter = !!useFilter;
+        // only batchSize elements will be displayed at once.
+        this.batchSize = batchSize;
+        // we increment this every time the user wants to expand the number
+        // of visible elements
+        this.batchesVisible = 1;
         _underscore2['default'].bindAll(this, 'filter');
     },
 
@@ -65980,7 +65989,7 @@ exports['default'] = _modal2['default'].extend({
 
     makeList: function makeList() {
         var $ul = (0, _jquery2['default'])('<ul></ul>');
-        this._list.forEach(function (_ref4) {
+        this._list.slice(0, this.batchSize * this.batchesVisible).forEach(function (_ref4) {
             var _ref42 = _slicedToArray(_ref4, 3);
 
             var content = _ref42[0];
@@ -65989,6 +65998,9 @@ exports['default'] = _modal2['default'].extend({
 
             $ul.append((0, _jquery2['default'])('<li data-value=\'' + content + '\' data-key=\'' + key + '\' data-index=\'' + index + '\'>' + content + '</li>'));
         });
+        if (this._list.length > this.batchSize) {
+            $ul.append((0, _jquery2['default'])('<li data-value=\'Load more...\' data-key=\'-1\' data-index=\'-1\'>Load more...</li>'));
+        }
         return $ul;
     },
 
@@ -66010,9 +66022,13 @@ exports['default'] = _modal2['default'].extend({
     },
 
     click: function click(evt) {
-        var key = evt.currentTarget.dataset.key;
-        this.submit(key);
-        this.close();
+        if (evt.currentTarget.dataset.index === '-1') {
+            this.batchesVisible += 1; // load an extra batch
+            this.update();
+        } else {
+            this.submit(evt.currentTarget.dataset.key);
+            this.close();
+        }
     }
 });
 module.exports = exports['default'];
@@ -69477,4 +69493,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-35e073e2.js.map
+//# sourceMappingURL=bundle-61da89d4.js.map
