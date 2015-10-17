@@ -9,8 +9,10 @@ import Modal from './modal';
  * List picker modal, takes the following parameters:
  *
  *  +   list : an array of tuples [content (string), key]
- *  +   useFilter : wether or not to display the search bar
+ *  +   useFilter : whether or not to display the search bar
  *  +   submit: the callback
+ *  +   batchSize (50): the number of elements to be displayed. A 'Load More'
+ *      element will be placed at the bottom of the list to expand the content.
  *
  * All tags will have the data attributes value, key and index
  * The callback is called with the key (which is the content if key is
@@ -23,11 +25,16 @@ export default Modal.extend({
         'keyup input': 'filter'
     },
 
-    init: function ({list, submit, useFilter}) {
+    init: function ({list, submit, useFilter, batchSize = 50}) {
         this.list = list.map(([c, k], i) => [c, k !== undefined ? k : i]);
         this._list = this.list;
         this.submit = submit;
         this.useFilter = !!useFilter;
+        // only batchSize elements will be displayed at once.
+        this.batchSize = batchSize;
+        // we increment this every time the user wants to expand the number
+        // of visible elements
+        this.batchesVisible = 1;
         _.bindAll(this, 'filter');
     },
 
@@ -46,10 +53,14 @@ export default Modal.extend({
 
     makeList: function () {
         const $ul = $(`<ul></ul>`);
-        this._list.forEach(function ([content, key, index]) {
+        this._list.slice(0, this.batchSize * this.batchesVisible).forEach(function ([content, key, index]) {
             $ul.append($(
                 `<li data-value='${content}' data-key='${key}' data-index='${index}'>${content}</li>`));
         });
+        if (this._list.length > this.batchSize) {
+            $ul.append($(
+                `<li data-value='Load more...' data-key='-1' data-index='-1'>Load more...</li>`));
+        }
         return $ul;
     },
 
@@ -71,8 +82,12 @@ export default Modal.extend({
     },
 
     click: function (evt) {
-        const key = evt.currentTarget.dataset.key;
-        this.submit(key);
-        this.close();
+        if (evt.currentTarget.dataset.index === '-1') {
+            this.batchesVisible += 1;  // load an extra batch
+            this.update();
+        } else{
+            this.submit(evt.currentTarget.dataset.key);
+            this.close();
+        }
     }
 });

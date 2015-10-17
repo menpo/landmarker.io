@@ -82,7 +82,7 @@ gulp.task('js', function() {
     .pipe(notify('Landmarker.io: JS rebuilt'));
 });
 
-// Rebuild the SCSS and pass throuhg autoprefixer output
+// Rebuild the SCSS and pass through autoprefixer output
 // + issue a notification when done.
 gulp.task('sass', function () {
     return gulp.src(entry.scss)
