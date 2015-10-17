@@ -3,7 +3,6 @@
 import $ from 'jquery';
 
 import Modal from './modal';
-import { notify } from './notification';
 
 export default function KeyboardShortcutsHandler (app, viewport) {
     this._keypress = function (e) {
@@ -13,126 +12,122 @@ export default function KeyboardShortcutsHandler (app, viewport) {
             return null;
         }
 
-        const key = e.which;
+        const key = String.fromCharCode(e.which).toLowerCase();
 
-        if (app.isHelpOverlayOn() && key !== 63 || Modal.active()) {
+        if (app.isHelpOverlayOn() && key !== "?" || Modal.active()) {
             return null;
         }
 
         const lms = app.landmarks();
 
         switch (key) {
-            case 19:  // s = [s]ave (normally 115 but switches to 19 with ctrl)
-                if (lms && e.ctrlKey) {
-                    lms.save().then( function () {
-                        notify({type: 'success', msg: 'Save Completed'});
-                    }, function () {
-                        notify({type: 'error', msg: 'Save Failed'});
-                    });
-                }
-                break;
-            case 100:  // d = [d]elete selected
+            case "d":  // d = [d]elete selected
                 if (lms) {
                     lms.deleteSelected();
                     $('#viewportContainer').trigger("groupDeselected");
                 }
                 break;
-            case 113:  // q = deselect all
+            case "q":  // q = deselect all
                 if (lms) {
                     app.landmarks().deselectAll();
                     $('#viewportContainer').trigger("groupDeselected");
                 }
                 break;
-            case 114:  // r = [r]eset camera
+            case "r":  // r = [r]eset camera
                 // TODO fix for multiple cameras (should be in camera controller)
                 viewport.resetCamera();
                 break;
-            case 116:  // t = toggle [t]exture (mesh mode only)
+            case "t":  // t = toggle [t]exture (mesh mode only)
                 if (app.meshMode()) {
                     app.asset().textureToggle();
                 }
                 break;
-            case 97:  // a = select [a]ll
+            case "a":  // a = select [a]ll
                 if (lms) {
                     app.landmarks().selectAll();
                     $('#viewportContainer').trigger("groupSelected");
                 }
                 break;
-            case 103:  // g = complete [g]roup selection
+            case "g":  // g = complete [g]roup selection
                 $('#viewportContainer').trigger("completeGroupSelection");
                 break;
-            case 99:  // c = toggle [c]amera mode
+            case "c":  // c = toggle [c]amera mode
                 if (app.meshMode()) {
                     viewport.toggleCamera();
                 }
                 break;
-            case 106:  // j = down, next asset
+            case "j":  // j = down, next asset
                 app.nextAsset();
                 break;
-            case 107:  // k = up, previous asset
+            case "k":  // k = up, previous asset
                 app.previousAsset();
                 break;
-            case 108:  // l = toggle [l]inks
+            case "l":  // l = toggle [l]inks
                 app.toggleConnectivity();
                 break;
-            case 101:  // e = toggle [e]dit mode
+            case "e":  // e = toggle [e]dit mode
                 app.toggleEditing();
                 break;
-            case 122: // z = undo
+            case "z": // z = undo
                 if (lms && lms.tracker.canUndo()) {
                     lms.undo();
                 }
                 break;
-            case 121: // z = undo
+            case "y": // y = redo
                 if (lms && lms.tracker.canRedo()) {
                     lms.redo();
                 }
                 break;
-            case 63: // toggle help
+            case "?": // toggle help
                 app.toggleHelpOverlay();
                 break;
-            case 43:
+            case "+":
                 app.incrementLandmarkSize();
                 break;
-            case 45:
+            case "-":
                 app.decrementLandmarkSize();
                 break;
         }
     };
 
     this._keydown = function (evt) {
-        if (evt.which !== 27) {
-            return;
-        }
+        let lms;
 
-        if (app.isHelpOverlayOn()) {
-            app.toggleHelpOverlay();
-            evt.stopPropagation();
-            return;
-        }
-
-        const modal = Modal.active();
-        if (modal) {
-            if (modal.closable) {
-                modal.close();
+        if (evt.which === 27) {
+            if (app.isHelpOverlayOn()) {
+                app.toggleHelpOverlay();
+                evt.stopPropagation();
+                return null;
             }
-            evt.stopPropagation();
-            return;
-        }
 
-        if ($('#templatePicker').hasClass('Active')) {
-            $('#templatePicker').removeClass('Active');
-            return;
-        }
+            const modal = Modal.active();
+            if (modal) {
+                if (modal.closable) {
+                    modal.close();
+                }
+                evt.stopPropagation();
+                return null;
+            }
 
-        const lms = app.landmarks();
-        if (lms) {
-            app.landmarks().deselectAll();
-            $('#viewportContainer').trigger("groupDeselected");
-            evt.stopPropagation();
-            return;
-        }
+            if ($('#templatePicker').hasClass('Active')) {
+                $('#templatePicker').removeClass('Active');
+                return null;
+            }
 
+            lms = app.landmarks();
+            if (lms) {
+                app.landmarks().deselectAll();
+                $('#viewportContainer').trigger("groupDeselected");
+                evt.stopPropagation();
+                return null;
+            }
+        } else if (evt.which === 83 && (evt.metaKey || evt.ctrlKey)) {
+            evt.preventDefault();
+            lms = app.landmarks();
+            if (lms) {
+                lms.save();
+            }
+        }
     };
 }
 
