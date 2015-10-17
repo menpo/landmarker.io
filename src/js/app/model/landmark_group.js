@@ -241,8 +241,9 @@ LandmarkGroup.prototype.toJSON = function () {
 };
 
 LandmarkGroup.prototype.save = function () {
-    this.tracker.recordState(this.toJSON(), true);
-    return this.server.saveLandmarkGroup(this.id, this.type, this.toJSON());
+    return this.server
+        .saveLandmarkGroup(this.id, this.type, this.toJSON())
+        .then(() => this.tracker.recordState(this.toJSON(), true));
 };
 
 LandmarkGroup.prototype.undo = function () {
