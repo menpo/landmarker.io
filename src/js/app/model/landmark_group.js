@@ -3,6 +3,7 @@
 import THREE from 'three';
 
 import { maskedArray } from '../lib/utils';
+import { notify } from '../view/notification';
 import Tracker from '../lib/tracker';
 import { atomicOperation } from './atomic';
 
@@ -243,7 +244,12 @@ LandmarkGroup.prototype.toJSON = function () {
 LandmarkGroup.prototype.save = function () {
     return this.server
         .saveLandmarkGroup(this.id, this.type, this.toJSON())
-        .then(() => this.tracker.recordState(this.toJSON(), true));
+        .then(() => {
+            this.tracker.recordState(this.toJSON(), true);
+            notify({type: 'success', msg: 'Save Completed'});
+        }, () => {
+            notify({type: 'error', msg: 'Save Failed'});
+        });
 };
 
 LandmarkGroup.prototype.undo = function () {
