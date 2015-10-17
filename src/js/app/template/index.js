@@ -7,6 +7,7 @@ import defaults from './defaults';
 
 const CYCLE_CONNECTIVITY_LABEL = 'cycle';
 const NULL_POINT = {2: [null, null], 3: [null, null, null]};
+const CONNECTIVITY_REGEX = /^(\s*\d[\s:]{1}\d\,*)+$/;
 
 /**
  * @class Template
@@ -41,8 +42,16 @@ export default function Template (json) {
 
         if (CYCLE_CONNECTIVITY_LABEL === rawConnectivity) {
             rawConnectivity = [`0:${size - 1}`, `${size - 1} 0`];
-        } else if (!Array.isArray(connectivity)) {
-            rawConnectivity = [];
+        } else if (!Array.isArray(group.connectivity)) {
+            if (
+                typeof group.connectivity === 'string' &&
+                CONNECTIVITY_REGEX.test(group.connectivity)
+            ) {
+                rawConnectivity = group.connectivity.split(',')
+                                                    .map(s => s.trim());
+            } else {
+                rawConnectivity = [];
+            }
         }
 
         rawConnectivity.forEach(function (item) {
