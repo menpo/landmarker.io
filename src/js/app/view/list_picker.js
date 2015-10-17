@@ -24,7 +24,7 @@ export default Modal.extend({
     },
 
     init: function ({list, submit, useFilter}) {
-        this.list = list.map(([c, k], i) => [c, k || c, i]);
+        this.list = list.map(([c, k], i) => [c, k !== undefined ? k : i]);
         this._list = this.list;
         this.submit = submit;
         this.useFilter = !!useFilter;
