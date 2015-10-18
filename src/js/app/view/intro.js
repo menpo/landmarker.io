@@ -13,7 +13,7 @@ import { version } from '../../../../package.json';
 const contents = `\
 <div class='Intro'>\
     <h1>Landmarker.io</h1>\
-    <h3>v${version}</h3>\
+    <h3><a href="https://github.com/menpo/landmarker.io/releases" title="release notes">v${version}</a></h3>\
     <div class='IntroItems'>\
         <div class='IntroItem IntroItem--Dropbox'>\
             <div>Connect to Dropbox</div>\
