@@ -60081,7 +60081,7 @@ if (typeof exports !== 'undefined') {
 },{}],48:[function(require,module,exports){
 module.exports={
   "name": "landmarker-io",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "3D mesh annotation in your browser.",
   "main": "index.js",
   "repository": {
@@ -69493,4 +69493,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-be850902.js.map
+//# sourceMappingURL=bundle-000a260b.js.map
