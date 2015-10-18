@@ -76,3 +76,5 @@ A release is done through a tag, which will update the root directory and clean 
 > npm version minor
 > git push --tags
 ```
+
+A changelog should be drafted on the [Github releases page](https://github.com/menpo/landmarker.io/releases) for the newly released version. Note that users have a link to this page from the version number on the intro screen, so release notes should be written in a user-friendly way (think how App Store release notes are done).
