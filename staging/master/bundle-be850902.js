@@ -60081,7 +60081,7 @@ if (typeof exports !== 'undefined') {
 },{}],48:[function(require,module,exports){
 module.exports={
   "name": "landmarker-io",
-  "version": "2.0.3",
+  "version": "2.2.0",
   "description": "3D mesh annotation in your browser.",
   "main": "index.js",
   "repository": {
@@ -65606,7 +65606,7 @@ var _libSupport2 = _interopRequireDefault(_libSupport);
 
 var _packageJson = require('../../../../package.json');
 
-var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3>v' + _packageJson.version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect to a landmarker server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div>    <a href="https://github.com/menpo/landmarker.io" class=\'IntroFooter\'>        <span class="octicon octicon-mark-github"></span>        More info on Github    </a></div>';
+var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3><a href="https://github.com/menpo/landmarker.io/releases" title="release notes">v' + _packageJson.version + '</a></h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect to a landmarker server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div>    <a href="https://github.com/menpo/landmarker.io" class=\'IntroFooter\'>        <span class="octicon octicon-mark-github"></span>        More info on Github    </a></div>';
 
 var lsWarning = '<p class=\'IntroWarning\'>    Your browser doesn\'t support LocalStorage, so Dropbox login has been    disabled.</p>';
 
@@ -69493,4 +69493,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-61da89d4.js.map
+//# sourceMappingURL=bundle-be850902.js.map
