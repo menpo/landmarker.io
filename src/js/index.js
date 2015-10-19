@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function canScroll(overflowCSS) {
-        return overflowCSS === 'scroll' || overflowCSS === 'auto'
+        return overflowCSS === 'scroll' || overflowCSS === 'auto';
     }
 
     window.document.ontouchmove = function (event) {
