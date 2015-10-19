@@ -17,6 +17,7 @@ import ToolbarView from './app/view/toolbar';
 import URLState from './app/view/url_state';
 import ViewportView from './app/view/viewport';
 import KeyboardShortcutsHandler from './app/view/keyboard';
+import attachFastClick from 'fastclick';
 
 import Config from './app/model/config';
 import App from './app/model/app';
@@ -300,6 +301,11 @@ document.addEventListener('DOMContentLoaded', function () {
             type: 'error'
         });
     }
+
+    // Have nice fast clicks on iOS (should be removed once this makes it into
+    // iOS)
+    // https://trac.webkit.org/changeset/191072
+    attachFastClick(document.body);
 
     cfg.load();
     Intro.init({cfg});
