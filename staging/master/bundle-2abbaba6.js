@@ -368,6 +368,27 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    function canScroll(overflowCSS) {
+        return overflowCSS === 'scroll' || overflowCSS === 'auto';
+    }
+
+    window.document.ontouchmove = function (event) {
+        var isTouchMoveAllowed = false;
+        var p = event.target;
+        while (p !== null) {
+            var style = window.getComputedStyle(p);
+            if (style !== null && (canScroll(style.overflow) || canScroll(style.overflowX) || canScroll(style.overflowY))) {
+                isTouchMoveAllowed = true;
+                break;
+            }
+            p = p.parentNode;
+        }
+
+        if (!isTouchMoveAllowed) {
+            event.preventDefault();
+        }
+    };
+
     resolveBackend(u);
 });
 
@@ -69493,4 +69514,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-000a260b.js.map
+//# sourceMappingURL=bundle-2abbaba6.js.map
