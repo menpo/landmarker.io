@@ -67484,7 +67484,7 @@ var LandmarkView = _backbone2['default'].View.extend({
     tagName: "div",
 
     events: {
-        click: "handleClick"
+        click: "select"
     },
 
     initialize: function initialize(_ref) {
@@ -68174,7 +68174,7 @@ var ConnectivityToggle = _backbone2['default'].View.extend({
     el: '#connectivityRow',
 
     events: {
-        'click #connectivityToggle': "connectivityToggle"
+        click: "connectivityToggle"
     },
 
     initialize: function initialize() {
@@ -70346,4 +70346,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":65,"../../model/octree":69,"./camera":88,"./elements":89,"./handler":90,"backbone":2,"jquery":14,"three":47,"underscore":48}]},{},[1])
 
 
-//# sourceMappingURL=bundle-8771bf9e.js.map
+//# sourceMappingURL=bundle-823c96dc.js.map
