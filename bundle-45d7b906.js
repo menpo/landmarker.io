@@ -368,12 +368,33 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    function canScroll(overflowCSS) {
+        return overflowCSS === 'scroll' || overflowCSS === 'auto';
+    }
+
+    window.document.ontouchmove = function (event) {
+        var isTouchMoveAllowed = false;
+        var p = event.target;
+        while (p !== null) {
+            var style = window.getComputedStyle(p);
+            if (style !== null && (canScroll(style.overflow) || canScroll(style.overflowX) || canScroll(style.overflowY))) {
+                isTouchMoveAllowed = true;
+                break;
+            }
+            p = p.parentNode;
+        }
+
+        if (!isTouchMoveAllowed) {
+            event.preventDefault();
+        }
+    };
+
     resolveBackend(u);
 });
 
 },{"./app/backend":51,"./app/lib/support":58,"./app/lib/utils":60,"./app/model/app":61,"./app/model/config":65,"./app/view/asset":75,"./app/view/help":77,"./app/view/intro":78,"./app/view/keyboard":79,"./app/view/notification":82,"./app/view/sidebar":83,"./app/view/toolbar":85,"./app/view/url_state":86,"./app/view/viewport":90,"jquery":13,"promise-polyfill":45,"three":46,"url":10}],2:[function(require,module,exports){
 (function (global){
-//     Backbone.js 1.2.2
+//     Backbone.js 1.2.3
 
 //     (c) 2010-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 //     Backbone may be freely distributed under the MIT license.
@@ -419,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var slice = Array.prototype.slice;
 
   // Current version of the library. Keep in sync with `package.json`.
-  Backbone.VERSION = '1.2.2';
+  Backbone.VERSION = '1.2.3';
 
   // For Backbone's purposes, jQuery, Zepto, Ender, or My Library (kidding) owns
   // the `$` variable.
@@ -1141,6 +1162,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Splices `insert` into `array` at index `at`.
   var splice = function(array, insert, at) {
+    at = Math.min(Math.max(at, 0), array.length);
     var tail = Array(array.length - at);
     var length = insert.length;
     for (var i = 0; i < tail.length; i++) tail[i] = array[i + at];
@@ -13605,7 +13627,7 @@ module.exports.dump                = dumper.dump;
 module.exports.safeDump            = dumper.safeDump;
 module.exports.YAMLException       = require('./js-yaml/exception');
 
-// Deprecared schema names from JS-YAML 2.0.x
+// Deprecated schema names from JS-YAML 2.0.x
 module.exports.MINIMAL_SCHEMA = require('./js-yaml/schema/failsafe');
 module.exports.SAFE_SCHEMA    = require('./js-yaml/schema/default_safe');
 module.exports.DEFAULT_SCHEMA = require('./js-yaml/schema/default_full');
@@ -14397,10 +14419,6 @@ function writeNode(state, level, object, block, compact, iskey) {
     block = (0 > state.flowLevel || state.flowLevel > level);
   }
 
-  if ((null !== state.tag && '?' !== state.tag) || (2 !== state.indent && level > 0)) {
-    compact = false;
-  }
-
   var objectOrArray = '[object Object]' === type || '[object Array]' === type,
       duplicateIndex,
       duplicate;
@@ -14408,6 +14426,10 @@ function writeNode(state, level, object, block, compact, iskey) {
   if (objectOrArray) {
     duplicateIndex = state.duplicates.indexOf(object);
     duplicate = duplicateIndex !== -1;
+  }
+
+  if ((null !== state.tag && '?' !== state.tag) || duplicate || (2 !== state.indent && level > 0)) {
+    compact = false;
   }
 
   if (duplicate && state.usedDuplicates[duplicateIndex]) {
@@ -14420,7 +14442,7 @@ function writeNode(state, level, object, block, compact, iskey) {
       if (block && (0 !== Object.keys(state.dump).length)) {
         writeBlockMapping(state, level, state.dump, compact);
         if (duplicate) {
-          state.dump = '&ref_' + duplicateIndex + (0 === level ? '\n' : '') + state.dump;
+          state.dump = '&ref_' + duplicateIndex + state.dump;
         }
       } else {
         writeFlowMapping(state, level, state.dump);
@@ -14432,7 +14454,7 @@ function writeNode(state, level, object, block, compact, iskey) {
       if (block && (0 !== state.dump.length)) {
         writeBlockSequence(state, level, state.dump, compact);
         if (duplicate) {
-          state.dump = '&ref_' + duplicateIndex + (0 === level ? '\n' : '') + state.dump;
+          state.dump = '&ref_' + duplicateIndex + state.dump;
         }
       } else {
         writeFlowSequence(state, level, state.dump);
@@ -14535,8 +14557,14 @@ function YAMLException(reason, mark) {
   // Super constructor
   Error.call(this);
 
-  // Super helper method to include stack trace in error object
-  Error.captureStackTrace(this, this.constructor);
+  // Include stack trace in error object
+  if (Error.captureStackTrace) {
+    // Chrome and NodeJS
+    Error.captureStackTrace(this, this.constructor);
+  } else {
+    // FF, IE 10+ and Safari 6+. Fallback for others
+    this.stack = (new Error()).stack || '';
+  }
 
   this.name = 'YAMLException';
   this.reason = reason;
@@ -17522,16 +17550,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
 },{"../type":27}],44:[function(require,module,exports){
 /*
-  Copyright (C) 2013 Ariya Hidayat <ariya.hidayat@gmail.com>
-  Copyright (C) 2013 Thaddee Tyl <thaddee.tyl@gmail.com>
-  Copyright (C) 2013 Mathias Bynens <mathias@qiwi.be>
-  Copyright (C) 2012 Ariya Hidayat <ariya.hidayat@gmail.com>
-  Copyright (C) 2012 Mathias Bynens <mathias@qiwi.be>
-  Copyright (C) 2012 Joost-Wim Boekesteijn <joost-wim@boekesteijn.nl>
-  Copyright (C) 2012 Kris Kowal <kris.kowal@cixar.com>
-  Copyright (C) 2012 Yusuke Suzuki <utatane.tea@gmail.com>
-  Copyright (C) 2012 Arpad Borsos <arpad.borsos@googlemail.com>
-  Copyright (C) 2011 Ariya Hidayat <ariya.hidayat@gmail.com>
+  Copyright (c) jQuery Foundation, Inc. and Contributors, All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
@@ -17580,7 +17599,6 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         Regex,
         source,
         strict,
-        sourceType,
         index,
         lineNumber,
         lineStart,
@@ -17661,6 +17679,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         ExportSpecifier: 'ExportSpecifier',
         ExpressionStatement: 'ExpressionStatement',
         ForStatement: 'ForStatement',
+        ForOfStatement: 'ForOfStatement',
         ForInStatement: 'ForInStatement',
         FunctionDeclaration: 'FunctionDeclaration',
         FunctionExpression: 'FunctionExpression',
@@ -17674,6 +17693,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         LabeledStatement: 'LabeledStatement',
         LogicalExpression: 'LogicalExpression',
         MemberExpression: 'MemberExpression',
+        MetaProperty: 'MetaProperty',
         MethodDefinition: 'MethodDefinition',
         NewExpression: 'NewExpression',
         ObjectExpression: 'ObjectExpression',
@@ -17698,7 +17718,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         VariableDeclaration: 'VariableDeclaration',
         VariableDeclarator: 'VariableDeclarator',
         WhileStatement: 'WhileStatement',
-        WithStatement: 'WithStatement'
+        WithStatement: 'WithStatement',
+        YieldExpression: 'YieldExpression'
     };
 
     PlaceHolders = {
@@ -17719,6 +17740,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         UnterminatedRegExp: 'Invalid regular expression: missing /',
         InvalidLHSInAssignment: 'Invalid left-hand side in assignment',
         InvalidLHSInForIn: 'Invalid left-hand side in for-in',
+        InvalidLHSInForLoop: 'Invalid left-hand side in for-loop',
         MultipleDefaultsInSwitch: 'More than one default clause in switch statement',
         NoCatchOrFinally: 'Missing catch or finally after try',
         UnknownLabel: 'Undefined label \'%0\'',
@@ -17750,13 +17772,17 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         NoAsAfterImportNamespace: 'Unexpected token',
         InvalidModuleSpecifier: 'Unexpected token',
         IllegalImportDeclaration: 'Unexpected token',
-        IllegalExportDeclaration: 'Unexpected token'
+        IllegalExportDeclaration: 'Unexpected token',
+        DuplicateBinding: 'Duplicate binding %0'
     };
 
-    // See also tools/generate-unicode-regex.py.
+    // See also tools/generate-unicode-regex.js.
     Regex = {
-        NonAsciiIdentifierStart: new RegExp('[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u05D0-\u05EA\u05F0-\u05F2\u0620-\u064A\u066E\u066F\u0671-\u06D3\u06D5\u06E5\u06E6\u06EE\u06EF\u06FA-\u06FC\u06FF\u0710\u0712-\u072F\u074D-\u07A5\u07B1\u07CA-\u07EA\u07F4\u07F5\u07FA\u0800-\u0815\u081A\u0824\u0828\u0840-\u0858\u08A0-\u08B2\u0904-\u0939\u093D\u0950\u0958-\u0961\u0971-\u0980\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BD\u09CE\u09DC\u09DD\u09DF-\u09E1\u09F0\u09F1\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A59-\u0A5C\u0A5E\u0A72-\u0A74\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD\u0AD0\u0AE0\u0AE1\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3D\u0B5C\u0B5D\u0B5F-\u0B61\u0B71\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BD0\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D\u0C58\u0C59\u0C60\u0C61\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBD\u0CDE\u0CE0\u0CE1\u0CF1\u0CF2\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D\u0D4E\u0D60\u0D61\u0D7A-\u0D7F\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD\u0EC0-\u0EC4\u0EC6\u0EDC-\u0EDF\u0F00\u0F40-\u0F47\u0F49-\u0F6C\u0F88-\u0F8C\u1000-\u102A\u103F\u1050-\u1055\u105A-\u105D\u1061\u1065\u1066\u106E-\u1070\u1075-\u1081\u108E\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u1380-\u138F\u13A0-\u13F4\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1711\u1720-\u1731\u1740-\u1751\u1760-\u176C\u176E-\u1770\u1780-\u17B3\u17D7\u17DC\u1820-\u1877\u1880-\u18A8\u18AA\u18B0-\u18F5\u1900-\u191E\u1950-\u196D\u1970-\u1974\u1980-\u19AB\u19C1-\u19C7\u1A00-\u1A16\u1A20-\u1A54\u1AA7\u1B05-\u1B33\u1B45-\u1B4B\u1B83-\u1BA0\u1BAE\u1BAF\u1BBA-\u1BE5\u1C00-\u1C23\u1C4D-\u1C4F\u1C5A-\u1C7D\u1CE9-\u1CEC\u1CEE-\u1CF1\u1CF5\u1CF6\u1D00-\u1DBF\u1E00-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u2071\u207F\u2090-\u209C\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CEE\u2CF2\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D80-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2E2F\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303C\u3041-\u3096\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FCC\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA61F\uA62A\uA62B\uA640-\uA66E\uA67F-\uA69D\uA6A0-\uA6EF\uA717-\uA71F\uA722-\uA788\uA78B-\uA78E\uA790-\uA7AD\uA7B0\uA7B1\uA7F7-\uA801\uA803-\uA805\uA807-\uA80A\uA80C-\uA822\uA840-\uA873\uA882-\uA8B3\uA8F2-\uA8F7\uA8FB\uA90A-\uA925\uA930-\uA946\uA960-\uA97C\uA984-\uA9B2\uA9CF\uA9E0-\uA9E4\uA9E6-\uA9EF\uA9FA-\uA9FE\uAA00-\uAA28\uAA40-\uAA42\uAA44-\uAA4B\uAA60-\uAA76\uAA7A\uAA7E-\uAAAF\uAAB1\uAAB5\uAAB6\uAAB9-\uAABD\uAAC0\uAAC2\uAADB-\uAADD\uAAE0-\uAAEA\uAAF2-\uAAF4\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB5F\uAB64\uAB65\uABC0-\uABE2\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]'),
-        NonAsciiIdentifierPart: new RegExp('[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0300-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u0483-\u0487\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7\u05D0-\u05EA\u05F0-\u05F2\u0610-\u061A\u0620-\u0669\u066E-\u06D3\u06D5-\u06DC\u06DF-\u06E8\u06EA-\u06FC\u06FF\u0710-\u074A\u074D-\u07B1\u07C0-\u07F5\u07FA\u0800-\u082D\u0840-\u085B\u08A0-\u08B2\u08E4-\u0963\u0966-\u096F\u0971-\u0983\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BC-\u09C4\u09C7\u09C8\u09CB-\u09CE\u09D7\u09DC\u09DD\u09DF-\u09E3\u09E6-\u09F1\u0A01-\u0A03\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A3C\u0A3E-\u0A42\u0A47\u0A48\u0A4B-\u0A4D\u0A51\u0A59-\u0A5C\u0A5E\u0A66-\u0A75\u0A81-\u0A83\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABC-\u0AC5\u0AC7-\u0AC9\u0ACB-\u0ACD\u0AD0\u0AE0-\u0AE3\u0AE6-\u0AEF\u0B01-\u0B03\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3C-\u0B44\u0B47\u0B48\u0B4B-\u0B4D\u0B56\u0B57\u0B5C\u0B5D\u0B5F-\u0B63\u0B66-\u0B6F\u0B71\u0B82\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BBE-\u0BC2\u0BC6-\u0BC8\u0BCA-\u0BCD\u0BD0\u0BD7\u0BE6-\u0BEF\u0C00-\u0C03\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D-\u0C44\u0C46-\u0C48\u0C4A-\u0C4D\u0C55\u0C56\u0C58\u0C59\u0C60-\u0C63\u0C66-\u0C6F\u0C81-\u0C83\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBC-\u0CC4\u0CC6-\u0CC8\u0CCA-\u0CCD\u0CD5\u0CD6\u0CDE\u0CE0-\u0CE3\u0CE6-\u0CEF\u0CF1\u0CF2\u0D01-\u0D03\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D-\u0D44\u0D46-\u0D48\u0D4A-\u0D4E\u0D57\u0D60-\u0D63\u0D66-\u0D6F\u0D7A-\u0D7F\u0D82\u0D83\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0DCA\u0DCF-\u0DD4\u0DD6\u0DD8-\u0DDF\u0DE6-\u0DEF\u0DF2\u0DF3\u0E01-\u0E3A\u0E40-\u0E4E\u0E50-\u0E59\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB9\u0EBB-\u0EBD\u0EC0-\u0EC4\u0EC6\u0EC8-\u0ECD\u0ED0-\u0ED9\u0EDC-\u0EDF\u0F00\u0F18\u0F19\u0F20-\u0F29\u0F35\u0F37\u0F39\u0F3E-\u0F47\u0F49-\u0F6C\u0F71-\u0F84\u0F86-\u0F97\u0F99-\u0FBC\u0FC6\u1000-\u1049\u1050-\u109D\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u135D-\u135F\u1380-\u138F\u13A0-\u13F4\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1714\u1720-\u1734\u1740-\u1753\u1760-\u176C\u176E-\u1770\u1772\u1773\u1780-\u17D3\u17D7\u17DC\u17DD\u17E0-\u17E9\u180B-\u180D\u1810-\u1819\u1820-\u1877\u1880-\u18AA\u18B0-\u18F5\u1900-\u191E\u1920-\u192B\u1930-\u193B\u1946-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u19D0-\u19D9\u1A00-\u1A1B\u1A20-\u1A5E\u1A60-\u1A7C\u1A7F-\u1A89\u1A90-\u1A99\u1AA7\u1AB0-\u1ABD\u1B00-\u1B4B\u1B50-\u1B59\u1B6B-\u1B73\u1B80-\u1BF3\u1C00-\u1C37\u1C40-\u1C49\u1C4D-\u1C7D\u1CD0-\u1CD2\u1CD4-\u1CF6\u1CF8\u1CF9\u1D00-\u1DF5\u1DFC-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u200C\u200D\u203F\u2040\u2054\u2071\u207F\u2090-\u209C\u20D0-\u20DC\u20E1\u20E5-\u20F0\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D7F-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2DE0-\u2DFF\u2E2F\u3005-\u3007\u3021-\u302F\u3031-\u3035\u3038-\u303C\u3041-\u3096\u3099\u309A\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FCC\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA62B\uA640-\uA66F\uA674-\uA67D\uA67F-\uA69D\uA69F-\uA6F1\uA717-\uA71F\uA722-\uA788\uA78B-\uA78E\uA790-\uA7AD\uA7B0\uA7B1\uA7F7-\uA827\uA840-\uA873\uA880-\uA8C4\uA8D0-\uA8D9\uA8E0-\uA8F7\uA8FB\uA900-\uA92D\uA930-\uA953\uA960-\uA97C\uA980-\uA9C0\uA9CF-\uA9D9\uA9E0-\uA9FE\uAA00-\uAA36\uAA40-\uAA4D\uAA50-\uAA59\uAA60-\uAA76\uAA7A-\uAAC2\uAADB-\uAADD\uAAE0-\uAAEF\uAAF2-\uAAF6\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB5F\uAB64\uAB65\uABC0-\uABEA\uABEC\uABED\uABF0-\uABF9\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE00-\uFE0F\uFE20-\uFE2D\uFE33\uFE34\uFE4D-\uFE4F\uFE70-\uFE74\uFE76-\uFEFC\uFF10-\uFF19\uFF21-\uFF3A\uFF3F\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]')
+        // ECMAScript 6/Unicode v7.0.0 NonAsciiIdentifierStart:
+        NonAsciiIdentifierStart: /[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u05D0-\u05EA\u05F0-\u05F2\u0620-\u064A\u066E\u066F\u0671-\u06D3\u06D5\u06E5\u06E6\u06EE\u06EF\u06FA-\u06FC\u06FF\u0710\u0712-\u072F\u074D-\u07A5\u07B1\u07CA-\u07EA\u07F4\u07F5\u07FA\u0800-\u0815\u081A\u0824\u0828\u0840-\u0858\u08A0-\u08B2\u0904-\u0939\u093D\u0950\u0958-\u0961\u0971-\u0980\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BD\u09CE\u09DC\u09DD\u09DF-\u09E1\u09F0\u09F1\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A59-\u0A5C\u0A5E\u0A72-\u0A74\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD\u0AD0\u0AE0\u0AE1\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3D\u0B5C\u0B5D\u0B5F-\u0B61\u0B71\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BD0\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D\u0C58\u0C59\u0C60\u0C61\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBD\u0CDE\u0CE0\u0CE1\u0CF1\u0CF2\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D\u0D4E\u0D60\u0D61\u0D7A-\u0D7F\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD\u0EC0-\u0EC4\u0EC6\u0EDC-\u0EDF\u0F00\u0F40-\u0F47\u0F49-\u0F6C\u0F88-\u0F8C\u1000-\u102A\u103F\u1050-\u1055\u105A-\u105D\u1061\u1065\u1066\u106E-\u1070\u1075-\u1081\u108E\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u1380-\u138F\u13A0-\u13F4\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1711\u1720-\u1731\u1740-\u1751\u1760-\u176C\u176E-\u1770\u1780-\u17B3\u17D7\u17DC\u1820-\u1877\u1880-\u18A8\u18AA\u18B0-\u18F5\u1900-\u191E\u1950-\u196D\u1970-\u1974\u1980-\u19AB\u19C1-\u19C7\u1A00-\u1A16\u1A20-\u1A54\u1AA7\u1B05-\u1B33\u1B45-\u1B4B\u1B83-\u1BA0\u1BAE\u1BAF\u1BBA-\u1BE5\u1C00-\u1C23\u1C4D-\u1C4F\u1C5A-\u1C7D\u1CE9-\u1CEC\u1CEE-\u1CF1\u1CF5\u1CF6\u1D00-\u1DBF\u1E00-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u2071\u207F\u2090-\u209C\u2102\u2107\u210A-\u2113\u2115\u2118-\u211D\u2124\u2126\u2128\u212A-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CEE\u2CF2\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D80-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303C\u3041-\u3096\u309B-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FCC\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA61F\uA62A\uA62B\uA640-\uA66E\uA67F-\uA69D\uA6A0-\uA6EF\uA717-\uA71F\uA722-\uA788\uA78B-\uA78E\uA790-\uA7AD\uA7B0\uA7B1\uA7F7-\uA801\uA803-\uA805\uA807-\uA80A\uA80C-\uA822\uA840-\uA873\uA882-\uA8B3\uA8F2-\uA8F7\uA8FB\uA90A-\uA925\uA930-\uA946\uA960-\uA97C\uA984-\uA9B2\uA9CF\uA9E0-\uA9E4\uA9E6-\uA9EF\uA9FA-\uA9FE\uAA00-\uAA28\uAA40-\uAA42\uAA44-\uAA4B\uAA60-\uAA76\uAA7A\uAA7E-\uAAAF\uAAB1\uAAB5\uAAB6\uAAB9-\uAABD\uAAC0\uAAC2\uAADB-\uAADD\uAAE0-\uAAEA\uAAF2-\uAAF4\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB5F\uAB64\uAB65\uABC0-\uABE2\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D\uFB1F-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]|\uD800[\uDC00-\uDC0B\uDC0D-\uDC26\uDC28-\uDC3A\uDC3C\uDC3D\uDC3F-\uDC4D\uDC50-\uDC5D\uDC80-\uDCFA\uDD40-\uDD74\uDE80-\uDE9C\uDEA0-\uDED0\uDF00-\uDF1F\uDF30-\uDF4A\uDF50-\uDF75\uDF80-\uDF9D\uDFA0-\uDFC3\uDFC8-\uDFCF\uDFD1-\uDFD5]|\uD801[\uDC00-\uDC9D\uDD00-\uDD27\uDD30-\uDD63\uDE00-\uDF36\uDF40-\uDF55\uDF60-\uDF67]|\uD802[\uDC00-\uDC05\uDC08\uDC0A-\uDC35\uDC37\uDC38\uDC3C\uDC3F-\uDC55\uDC60-\uDC76\uDC80-\uDC9E\uDD00-\uDD15\uDD20-\uDD39\uDD80-\uDDB7\uDDBE\uDDBF\uDE00\uDE10-\uDE13\uDE15-\uDE17\uDE19-\uDE33\uDE60-\uDE7C\uDE80-\uDE9C\uDEC0-\uDEC7\uDEC9-\uDEE4\uDF00-\uDF35\uDF40-\uDF55\uDF60-\uDF72\uDF80-\uDF91]|\uD803[\uDC00-\uDC48]|\uD804[\uDC03-\uDC37\uDC83-\uDCAF\uDCD0-\uDCE8\uDD03-\uDD26\uDD50-\uDD72\uDD76\uDD83-\uDDB2\uDDC1-\uDDC4\uDDDA\uDE00-\uDE11\uDE13-\uDE2B\uDEB0-\uDEDE\uDF05-\uDF0C\uDF0F\uDF10\uDF13-\uDF28\uDF2A-\uDF30\uDF32\uDF33\uDF35-\uDF39\uDF3D\uDF5D-\uDF61]|\uD805[\uDC80-\uDCAF\uDCC4\uDCC5\uDCC7\uDD80-\uDDAE\uDE00-\uDE2F\uDE44\uDE80-\uDEAA]|\uD806[\uDCA0-\uDCDF\uDCFF\uDEC0-\uDEF8]|\uD808[\uDC00-\uDF98]|\uD809[\uDC00-\uDC6E]|[\uD80C\uD840-\uD868\uD86A-\uD86C][\uDC00-\uDFFF]|\uD80D[\uDC00-\uDC2E]|\uD81A[\uDC00-\uDE38\uDE40-\uDE5E\uDED0-\uDEED\uDF00-\uDF2F\uDF40-\uDF43\uDF63-\uDF77\uDF7D-\uDF8F]|\uD81B[\uDF00-\uDF44\uDF50\uDF93-\uDF9F]|\uD82C[\uDC00\uDC01]|\uD82F[\uDC00-\uDC6A\uDC70-\uDC7C\uDC80-\uDC88\uDC90-\uDC99]|\uD835[\uDC00-\uDC54\uDC56-\uDC9C\uDC9E\uDC9F\uDCA2\uDCA5\uDCA6\uDCA9-\uDCAC\uDCAE-\uDCB9\uDCBB\uDCBD-\uDCC3\uDCC5-\uDD05\uDD07-\uDD0A\uDD0D-\uDD14\uDD16-\uDD1C\uDD1E-\uDD39\uDD3B-\uDD3E\uDD40-\uDD44\uDD46\uDD4A-\uDD50\uDD52-\uDEA5\uDEA8-\uDEC0\uDEC2-\uDEDA\uDEDC-\uDEFA\uDEFC-\uDF14\uDF16-\uDF34\uDF36-\uDF4E\uDF50-\uDF6E\uDF70-\uDF88\uDF8A-\uDFA8\uDFAA-\uDFC2\uDFC4-\uDFCB]|\uD83A[\uDC00-\uDCC4]|\uD83B[\uDE00-\uDE03\uDE05-\uDE1F\uDE21\uDE22\uDE24\uDE27\uDE29-\uDE32\uDE34-\uDE37\uDE39\uDE3B\uDE42\uDE47\uDE49\uDE4B\uDE4D-\uDE4F\uDE51\uDE52\uDE54\uDE57\uDE59\uDE5B\uDE5D\uDE5F\uDE61\uDE62\uDE64\uDE67-\uDE6A\uDE6C-\uDE72\uDE74-\uDE77\uDE79-\uDE7C\uDE7E\uDE80-\uDE89\uDE8B-\uDE9B\uDEA1-\uDEA3\uDEA5-\uDEA9\uDEAB-\uDEBB]|\uD869[\uDC00-\uDED6\uDF00-\uDFFF]|\uD86D[\uDC00-\uDF34\uDF40-\uDFFF]|\uD86E[\uDC00-\uDC1D]|\uD87E[\uDC00-\uDE1D]/,
+
+        // ECMAScript 6/Unicode v7.0.0 NonAsciiIdentifierPart:
+        NonAsciiIdentifierPart: /[\xAA\xB5\xB7\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0300-\u0374\u0376\u0377\u037A-\u037D\u037F\u0386-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u0483-\u0487\u048A-\u052F\u0531-\u0556\u0559\u0561-\u0587\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7\u05D0-\u05EA\u05F0-\u05F2\u0610-\u061A\u0620-\u0669\u066E-\u06D3\u06D5-\u06DC\u06DF-\u06E8\u06EA-\u06FC\u06FF\u0710-\u074A\u074D-\u07B1\u07C0-\u07F5\u07FA\u0800-\u082D\u0840-\u085B\u08A0-\u08B2\u08E4-\u0963\u0966-\u096F\u0971-\u0983\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BC-\u09C4\u09C7\u09C8\u09CB-\u09CE\u09D7\u09DC\u09DD\u09DF-\u09E3\u09E6-\u09F1\u0A01-\u0A03\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A3C\u0A3E-\u0A42\u0A47\u0A48\u0A4B-\u0A4D\u0A51\u0A59-\u0A5C\u0A5E\u0A66-\u0A75\u0A81-\u0A83\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABC-\u0AC5\u0AC7-\u0AC9\u0ACB-\u0ACD\u0AD0\u0AE0-\u0AE3\u0AE6-\u0AEF\u0B01-\u0B03\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3C-\u0B44\u0B47\u0B48\u0B4B-\u0B4D\u0B56\u0B57\u0B5C\u0B5D\u0B5F-\u0B63\u0B66-\u0B6F\u0B71\u0B82\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BBE-\u0BC2\u0BC6-\u0BC8\u0BCA-\u0BCD\u0BD0\u0BD7\u0BE6-\u0BEF\u0C00-\u0C03\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C39\u0C3D-\u0C44\u0C46-\u0C48\u0C4A-\u0C4D\u0C55\u0C56\u0C58\u0C59\u0C60-\u0C63\u0C66-\u0C6F\u0C81-\u0C83\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBC-\u0CC4\u0CC6-\u0CC8\u0CCA-\u0CCD\u0CD5\u0CD6\u0CDE\u0CE0-\u0CE3\u0CE6-\u0CEF\u0CF1\u0CF2\u0D01-\u0D03\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D-\u0D44\u0D46-\u0D48\u0D4A-\u0D4E\u0D57\u0D60-\u0D63\u0D66-\u0D6F\u0D7A-\u0D7F\u0D82\u0D83\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0DCA\u0DCF-\u0DD4\u0DD6\u0DD8-\u0DDF\u0DE6-\u0DEF\u0DF2\u0DF3\u0E01-\u0E3A\u0E40-\u0E4E\u0E50-\u0E59\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB9\u0EBB-\u0EBD\u0EC0-\u0EC4\u0EC6\u0EC8-\u0ECD\u0ED0-\u0ED9\u0EDC-\u0EDF\u0F00\u0F18\u0F19\u0F20-\u0F29\u0F35\u0F37\u0F39\u0F3E-\u0F47\u0F49-\u0F6C\u0F71-\u0F84\u0F86-\u0F97\u0F99-\u0FBC\u0FC6\u1000-\u1049\u1050-\u109D\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u135D-\u135F\u1369-\u1371\u1380-\u138F\u13A0-\u13F4\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F8\u1700-\u170C\u170E-\u1714\u1720-\u1734\u1740-\u1753\u1760-\u176C\u176E-\u1770\u1772\u1773\u1780-\u17D3\u17D7\u17DC\u17DD\u17E0-\u17E9\u180B-\u180D\u1810-\u1819\u1820-\u1877\u1880-\u18AA\u18B0-\u18F5\u1900-\u191E\u1920-\u192B\u1930-\u193B\u1946-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u19D0-\u19DA\u1A00-\u1A1B\u1A20-\u1A5E\u1A60-\u1A7C\u1A7F-\u1A89\u1A90-\u1A99\u1AA7\u1AB0-\u1ABD\u1B00-\u1B4B\u1B50-\u1B59\u1B6B-\u1B73\u1B80-\u1BF3\u1C00-\u1C37\u1C40-\u1C49\u1C4D-\u1C7D\u1CD0-\u1CD2\u1CD4-\u1CF6\u1CF8\u1CF9\u1D00-\u1DF5\u1DFC-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u200C\u200D\u203F\u2040\u2054\u2071\u207F\u2090-\u209C\u20D0-\u20DC\u20E1\u20E5-\u20F0\u2102\u2107\u210A-\u2113\u2115\u2118-\u211D\u2124\u2126\u2128\u212A-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D7F-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2DE0-\u2DFF\u3005-\u3007\u3021-\u302F\u3031-\u3035\u3038-\u303C\u3041-\u3096\u3099-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FCC\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA62B\uA640-\uA66F\uA674-\uA67D\uA67F-\uA69D\uA69F-\uA6F1\uA717-\uA71F\uA722-\uA788\uA78B-\uA78E\uA790-\uA7AD\uA7B0\uA7B1\uA7F7-\uA827\uA840-\uA873\uA880-\uA8C4\uA8D0-\uA8D9\uA8E0-\uA8F7\uA8FB\uA900-\uA92D\uA930-\uA953\uA960-\uA97C\uA980-\uA9C0\uA9CF-\uA9D9\uA9E0-\uA9FE\uAA00-\uAA36\uAA40-\uAA4D\uAA50-\uAA59\uAA60-\uAA76\uAA7A-\uAAC2\uAADB-\uAADD\uAAE0-\uAAEF\uAAF2-\uAAF6\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uAB30-\uAB5A\uAB5C-\uAB5F\uAB64\uAB65\uABC0-\uABEA\uABEC\uABED\uABF0-\uABF9\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE00-\uFE0F\uFE20-\uFE2D\uFE33\uFE34\uFE4D-\uFE4F\uFE70-\uFE74\uFE76-\uFEFC\uFF10-\uFF19\uFF21-\uFF3A\uFF3F\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]|\uD800[\uDC00-\uDC0B\uDC0D-\uDC26\uDC28-\uDC3A\uDC3C\uDC3D\uDC3F-\uDC4D\uDC50-\uDC5D\uDC80-\uDCFA\uDD40-\uDD74\uDDFD\uDE80-\uDE9C\uDEA0-\uDED0\uDEE0\uDF00-\uDF1F\uDF30-\uDF4A\uDF50-\uDF7A\uDF80-\uDF9D\uDFA0-\uDFC3\uDFC8-\uDFCF\uDFD1-\uDFD5]|\uD801[\uDC00-\uDC9D\uDCA0-\uDCA9\uDD00-\uDD27\uDD30-\uDD63\uDE00-\uDF36\uDF40-\uDF55\uDF60-\uDF67]|\uD802[\uDC00-\uDC05\uDC08\uDC0A-\uDC35\uDC37\uDC38\uDC3C\uDC3F-\uDC55\uDC60-\uDC76\uDC80-\uDC9E\uDD00-\uDD15\uDD20-\uDD39\uDD80-\uDDB7\uDDBE\uDDBF\uDE00-\uDE03\uDE05\uDE06\uDE0C-\uDE13\uDE15-\uDE17\uDE19-\uDE33\uDE38-\uDE3A\uDE3F\uDE60-\uDE7C\uDE80-\uDE9C\uDEC0-\uDEC7\uDEC9-\uDEE6\uDF00-\uDF35\uDF40-\uDF55\uDF60-\uDF72\uDF80-\uDF91]|\uD803[\uDC00-\uDC48]|\uD804[\uDC00-\uDC46\uDC66-\uDC6F\uDC7F-\uDCBA\uDCD0-\uDCE8\uDCF0-\uDCF9\uDD00-\uDD34\uDD36-\uDD3F\uDD50-\uDD73\uDD76\uDD80-\uDDC4\uDDD0-\uDDDA\uDE00-\uDE11\uDE13-\uDE37\uDEB0-\uDEEA\uDEF0-\uDEF9\uDF01-\uDF03\uDF05-\uDF0C\uDF0F\uDF10\uDF13-\uDF28\uDF2A-\uDF30\uDF32\uDF33\uDF35-\uDF39\uDF3C-\uDF44\uDF47\uDF48\uDF4B-\uDF4D\uDF57\uDF5D-\uDF63\uDF66-\uDF6C\uDF70-\uDF74]|\uD805[\uDC80-\uDCC5\uDCC7\uDCD0-\uDCD9\uDD80-\uDDB5\uDDB8-\uDDC0\uDE00-\uDE40\uDE44\uDE50-\uDE59\uDE80-\uDEB7\uDEC0-\uDEC9]|\uD806[\uDCA0-\uDCE9\uDCFF\uDEC0-\uDEF8]|\uD808[\uDC00-\uDF98]|\uD809[\uDC00-\uDC6E]|[\uD80C\uD840-\uD868\uD86A-\uD86C][\uDC00-\uDFFF]|\uD80D[\uDC00-\uDC2E]|\uD81A[\uDC00-\uDE38\uDE40-\uDE5E\uDE60-\uDE69\uDED0-\uDEED\uDEF0-\uDEF4\uDF00-\uDF36\uDF40-\uDF43\uDF50-\uDF59\uDF63-\uDF77\uDF7D-\uDF8F]|\uD81B[\uDF00-\uDF44\uDF50-\uDF7E\uDF8F-\uDF9F]|\uD82C[\uDC00\uDC01]|\uD82F[\uDC00-\uDC6A\uDC70-\uDC7C\uDC80-\uDC88\uDC90-\uDC99\uDC9D\uDC9E]|\uD834[\uDD65-\uDD69\uDD6D-\uDD72\uDD7B-\uDD82\uDD85-\uDD8B\uDDAA-\uDDAD\uDE42-\uDE44]|\uD835[\uDC00-\uDC54\uDC56-\uDC9C\uDC9E\uDC9F\uDCA2\uDCA5\uDCA6\uDCA9-\uDCAC\uDCAE-\uDCB9\uDCBB\uDCBD-\uDCC3\uDCC5-\uDD05\uDD07-\uDD0A\uDD0D-\uDD14\uDD16-\uDD1C\uDD1E-\uDD39\uDD3B-\uDD3E\uDD40-\uDD44\uDD46\uDD4A-\uDD50\uDD52-\uDEA5\uDEA8-\uDEC0\uDEC2-\uDEDA\uDEDC-\uDEFA\uDEFC-\uDF14\uDF16-\uDF34\uDF36-\uDF4E\uDF50-\uDF6E\uDF70-\uDF88\uDF8A-\uDFA8\uDFAA-\uDFC2\uDFC4-\uDFCB\uDFCE-\uDFFF]|\uD83A[\uDC00-\uDCC4\uDCD0-\uDCD6]|\uD83B[\uDE00-\uDE03\uDE05-\uDE1F\uDE21\uDE22\uDE24\uDE27\uDE29-\uDE32\uDE34-\uDE37\uDE39\uDE3B\uDE42\uDE47\uDE49\uDE4B\uDE4D-\uDE4F\uDE51\uDE52\uDE54\uDE57\uDE59\uDE5B\uDE5D\uDE5F\uDE61\uDE62\uDE64\uDE67-\uDE6A\uDE6C-\uDE72\uDE74-\uDE77\uDE79-\uDE7C\uDE7E\uDE80-\uDE89\uDE8B-\uDE9B\uDEA1-\uDEA3\uDEA5-\uDEA9\uDEAB-\uDEBB]|\uD869[\uDC00-\uDED6\uDF00-\uDFFF]|\uD86D[\uDC00-\uDF34\uDF40-\uDFFF]|\uD86E[\uDC00-\uDC1D]|\uD87E[\uDC00-\uDE1D]|\uDB40[\uDD00-\uDDEF]/
     };
 
     // Ensure the condition is true, otherwise throw an error.
@@ -17806,27 +17832,33 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         };
     }
 
-    // 7.2 White Space
+    // ECMA-262 11.2 White Space
 
     function isWhiteSpace(ch) {
         return (ch === 0x20) || (ch === 0x09) || (ch === 0x0B) || (ch === 0x0C) || (ch === 0xA0) ||
             (ch >= 0x1680 && [0x1680, 0x180E, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200A, 0x202F, 0x205F, 0x3000, 0xFEFF].indexOf(ch) >= 0);
     }
 
-    // 7.3 Line Terminators
+    // ECMA-262 11.3 Line Terminators
 
     function isLineTerminator(ch) {
         return (ch === 0x0A) || (ch === 0x0D) || (ch === 0x2028) || (ch === 0x2029);
     }
 
-    // 7.6 Identifier Names and Identifiers
+    // ECMA-262 11.6 Identifier Names and Identifiers
+
+    function fromCodePoint(cp) {
+        return (cp < 0x10000) ? String.fromCharCode(cp) :
+            String.fromCharCode(0xD800 + ((cp - 0x10000) >> 10)) +
+            String.fromCharCode(0xDC00 + ((cp - 0x10000) & 1023));
+    }
 
     function isIdentifierStart(ch) {
         return (ch === 0x24) || (ch === 0x5F) ||  // $ (dollar) and _ (underscore)
             (ch >= 0x41 && ch <= 0x5A) ||         // A..Z
             (ch >= 0x61 && ch <= 0x7A) ||         // a..z
             (ch === 0x5C) ||                      // \ (backslash)
-            ((ch >= 0x80) && Regex.NonAsciiIdentifierStart.test(String.fromCharCode(ch)));
+            ((ch >= 0x80) && Regex.NonAsciiIdentifierStart.test(fromCodePoint(ch)));
     }
 
     function isIdentifierPart(ch) {
@@ -17835,10 +17867,10 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             (ch >= 0x61 && ch <= 0x7A) ||         // a..z
             (ch >= 0x30 && ch <= 0x39) ||         // 0..9
             (ch === 0x5C) ||                      // \ (backslash)
-            ((ch >= 0x80) && Regex.NonAsciiIdentifierPart.test(String.fromCharCode(ch)));
+            ((ch >= 0x80) && Regex.NonAsciiIdentifierPart.test(fromCodePoint(ch)));
     }
 
-    // 7.6.1.2 Future Reserved Words
+    // ECMA-262 11.6.2.2 Future Reserved Words
 
     function isFutureReservedWord(id) {
         switch (id) {
@@ -17851,8 +17883,6 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return false;
         }
     }
-
-    // 11.6.2.2 Future Reserved Words
 
     function isStrictModeReservedWord(id) {
         switch (id) {
@@ -17875,7 +17905,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return id === 'eval' || id === 'arguments';
     }
 
-    // 7.6.1.1 Keywords
+    // ECMA-262 11.6.2.1 Keywords
 
     function isKeyword(id) {
 
@@ -17910,7 +17940,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
     }
 
-    // 7.4 Comments
+    // ECMA-262 11.4 Comments
 
     function addComment(type, value, start, end, loc) {
         var comment;
@@ -18109,7 +18139,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function scanUnicodeCodePointEscape() {
-        var ch, code, cu1, cu2;
+        var ch, code;
 
         ch = source[index];
         code = 0;
@@ -18131,52 +18161,75 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             throwUnexpectedToken();
         }
 
-        // UTF-16 Encoding
-        if (code <= 0xFFFF) {
-            return String.fromCharCode(code);
-        }
-        cu1 = ((code - 0x10000) >> 10) + 0xD800;
-        cu2 = ((code - 0x10000) & 1023) + 0xDC00;
-        return String.fromCharCode(cu1, cu2);
+        return fromCodePoint(code);
     }
 
-    function getEscapedIdentifier() {
-        var ch, id;
+    function codePointAt(i) {
+        var cp, first, second;
 
-        ch = source.charCodeAt(index++);
-        id = String.fromCharCode(ch);
+        cp = source.charCodeAt(i);
+        if (cp >= 0xD800 && cp <= 0xDBFF) {
+            second = source.charCodeAt(i + 1);
+            if (second >= 0xDC00 && second <= 0xDFFF) {
+                first = cp;
+                cp = (first - 0xD800) * 0x400 + second - 0xDC00 + 0x10000;
+            }
+        }
+
+        return cp;
+    }
+
+    function getComplexIdentifier() {
+        var cp, ch, id;
+
+        cp = codePointAt(index);
+        id = fromCodePoint(cp);
+        index += id.length;
 
         // '\u' (U+005C, U+0075) denotes an escaped character.
-        if (ch === 0x5C) {
+        if (cp === 0x5C) {
             if (source.charCodeAt(index) !== 0x75) {
                 throwUnexpectedToken();
             }
             ++index;
-            ch = scanHexEscape('u');
-            if (!ch || ch === '\\' || !isIdentifierStart(ch.charCodeAt(0))) {
-                throwUnexpectedToken();
+            if (source[index] === '{') {
+                ++index;
+                ch = scanUnicodeCodePointEscape();
+            } else {
+                ch = scanHexEscape('u');
+                cp = ch.charCodeAt(0);
+                if (!ch || ch === '\\' || !isIdentifierStart(cp)) {
+                    throwUnexpectedToken();
+                }
             }
             id = ch;
         }
 
         while (index < length) {
-            ch = source.charCodeAt(index);
-            if (!isIdentifierPart(ch)) {
+            cp = codePointAt(index);
+            if (!isIdentifierPart(cp)) {
                 break;
             }
-            ++index;
-            id += String.fromCharCode(ch);
+            ch = fromCodePoint(cp);
+            id += ch;
+            index += ch.length;
 
             // '\u' (U+005C, U+0075) denotes an escaped character.
-            if (ch === 0x5C) {
+            if (cp === 0x5C) {
                 id = id.substr(0, id.length - 1);
                 if (source.charCodeAt(index) !== 0x75) {
                     throwUnexpectedToken();
                 }
                 ++index;
-                ch = scanHexEscape('u');
-                if (!ch || ch === '\\' || !isIdentifierPart(ch.charCodeAt(0))) {
-                    throwUnexpectedToken();
+                if (source[index] === '{') {
+                    ++index;
+                    ch = scanUnicodeCodePointEscape();
+                } else {
+                    ch = scanHexEscape('u');
+                    cp = ch.charCodeAt(0);
+                    if (!ch || ch === '\\' || !isIdentifierPart(cp)) {
+                        throwUnexpectedToken();
+                    }
                 }
                 id += ch;
             }
@@ -18194,7 +18247,11 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             if (ch === 0x5C) {
                 // Blackslash (U+005C) marks Unicode escape sequence.
                 index = start;
-                return getEscapedIdentifier();
+                return getComplexIdentifier();
+            } else if (ch >= 0xD800 && ch < 0xDFFF) {
+                // Need to handle surrogate pairs.
+                index = start;
+                return getComplexIdentifier();
             }
             if (isIdentifierPart(ch)) {
                 ++index;
@@ -18212,7 +18269,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         start = index;
 
         // Backslash (U+005C) starts an escaped character.
-        id = (source.charCodeAt(index) === 0x5C) ? getEscapedIdentifier() : getIdentifier();
+        id = (source.charCodeAt(index) === 0x5C) ? getComplexIdentifier() : getIdentifier();
 
         // There is no keyword or literal with only one character.
         // Thus, it must be an identifier.
@@ -18239,7 +18296,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
 
-    // 7.7 Punctuators
+    // ECMA-262 11.7 Punctuators
 
     function scanPunctuator() {
         var token, str;
@@ -18339,7 +18396,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return token;
     }
 
-    // 7.8.3 Numeric Literals
+    // ECMA-262 11.8.3 Numeric Literals
 
     function scanHexLiteral(start) {
         var number = '';
@@ -18543,7 +18600,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         };
     }
 
-    // 7.8.4 String Literals
+    // ECMA-262 11.8.4 String Literals
 
     function scanStringLiteral() {
         var str = '', quote, start, ch, unescaped, octToDec, octal = false;
@@ -18598,7 +18655,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                         break;
                     case '8':
                     case '9':
-                        throw throwUnexpectedToken();
+                        str += ch;
+                        tolerateUnexpectedToken();
+                        break;
 
                     default:
                         if (isOctalDigit(ch)) {
@@ -18639,6 +18698,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             end: index
         };
     }
+
+    // ECMA-262 11.8.6 Template Literal Lexical Components
 
     function scanTemplate() {
         var cooked = '', ch, start, rawOffset, terminated, head, tail, restore, unescaped;
@@ -18762,29 +18823,40 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         };
     }
 
+    // ECMA-262 11.8.5 Regular Expression Literals
+
     function testRegExp(pattern, flags) {
-        var tmp = pattern;
+        // The BMP character to use as a replacement for astral symbols when
+        // translating an ES6 "u"-flagged pattern to an ES5-compatible
+        // approximation.
+        // Note: replacing with '\uFFFF' enables false positives in unlikely
+        // scenarios. For example, `[\u{1044f}-\u{10440}]` is an invalid
+        // pattern that would not be detected by this substitution.
+        var astralSubstitute = '\uFFFF',
+            tmp = pattern;
 
         if (flags.indexOf('u') >= 0) {
-            // Replace each astral symbol and every Unicode escape sequence
-            // that possibly represents an astral symbol or a paired surrogate
-            // with a single ASCII symbol to avoid throwing on regular
-            // expressions that are only valid in combination with the `/u`
-            // flag.
-            // Note: replacing with the ASCII symbol `x` might cause false
-            // negatives in unlikely scenarios. For example, `[\u{61}-b]` is a
-            // perfectly valid pattern that is equivalent to `[a-b]`, but it
-            // would be replaced by `[x-b]` which throws an error.
             tmp = tmp
-                .replace(/\\u\{([0-9a-fA-F]+)\}/g, function ($0, $1) {
-                    if (parseInt($1, 16) <= 0x10FFFF) {
-                        return 'x';
+                // Replace every Unicode escape sequence with the equivalent
+                // BMP character or a constant ASCII code point in the case of
+                // astral symbols. (See the above note on `astralSubstitute`
+                // for more information.)
+                .replace(/\\u\{([0-9a-fA-F]+)\}|\\u([a-fA-F0-9]{4})/g, function ($0, $1, $2) {
+                    var codePoint = parseInt($1 || $2, 16);
+                    if (codePoint > 0x10FFFF) {
+                        throwUnexpectedToken(null, Messages.InvalidRegExp);
                     }
-                    throwUnexpectedToken(null, Messages.InvalidRegExp);
+                    if (codePoint <= 0xFFFF) {
+                        return String.fromCharCode(codePoint);
+                    }
+                    return astralSubstitute;
                 })
+                // Replace each paired surrogate with a single ASCII symbol to
+                // avoid throwing on regular expressions that are only valid in
+                // combination with the "u" flag.
                 .replace(
-                    /\\u([a-fA-F0-9]{4})|[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
-                    'x'
+                    /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
+                    astralSubstitute
                 );
         }
 
@@ -18898,8 +18970,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function scanRegExp() {
-        scanning = true;
         var start, body, flags, value;
+        scanning = true;
 
         lookahead = null;
         skipComment();
@@ -19051,7 +19123,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function advance() {
-        var ch, token;
+        var cp, token;
 
         if (index >= length) {
             return {
@@ -19063,9 +19135,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             };
         }
 
-        ch = source.charCodeAt(index);
+        cp = source.charCodeAt(index);
 
-        if (isIdentifierStart(ch)) {
+        if (isIdentifierStart(cp)) {
             token = scanIdentifier();
             if (strict && isStrictModeReservedWord(token.value)) {
                 token.type = Token.Keyword;
@@ -19074,37 +19146,45 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
 
         // Very common: ( and ) and ;
-        if (ch === 0x28 || ch === 0x29 || ch === 0x3B) {
+        if (cp === 0x28 || cp === 0x29 || cp === 0x3B) {
             return scanPunctuator();
         }
 
         // String literal starts with single quote (U+0027) or double quote (U+0022).
-        if (ch === 0x27 || ch === 0x22) {
+        if (cp === 0x27 || cp === 0x22) {
             return scanStringLiteral();
         }
 
         // Dot (.) U+002E can also start a floating-point number, hence the need
         // to check the next character.
-        if (ch === 0x2E) {
+        if (cp === 0x2E) {
             if (isDecimalDigit(source.charCodeAt(index + 1))) {
                 return scanNumericLiteral();
             }
             return scanPunctuator();
         }
 
-        if (isDecimalDigit(ch)) {
+        if (isDecimalDigit(cp)) {
             return scanNumericLiteral();
         }
 
         // Slash (/) U+002F can also start a regex.
-        if (extra.tokenize && ch === 0x2F) {
+        if (extra.tokenize && cp === 0x2F) {
             return advanceSlash();
         }
 
         // Template literals start with ` (U+0060) for template head
         // or } (U+007D) for template middle or template tail.
-        if (ch === 0x60 || (ch === 0x7D && state.curlyStack[state.curlyStack.length - 1] === '${')) {
+        if (cp === 0x60 || (cp === 0x7D && state.curlyStack[state.curlyStack.length - 1] === '${')) {
             return scanTemplate();
+        }
+
+        // Possible identifier start in a surrogate pair.
+        if (cp >= 0xD800 && cp < 0xDFFF) {
+            cp = codePointAt(index);
+            if (isIdentifierStart(cp)) {
+                return scanIdentifier();
+            }
         }
 
         return scanPunctuator();
@@ -19255,17 +19335,25 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             }
 
             // Eating the stack.
-            if (last) {
-                while (last && last.range[0] >= this.range[0]) {
-                    lastChild = last;
-                    last = bottomRight.pop();
-                }
+            while (last && last.range[0] >= this.range[0]) {
+                lastChild = bottomRight.pop();
+                last = bottomRight[bottomRight.length - 1];
             }
 
             if (lastChild) {
-                if (lastChild.leadingComments && lastChild.leadingComments[lastChild.leadingComments.length - 1].range[1] <= this.range[0]) {
-                    this.leadingComments = lastChild.leadingComments;
-                    lastChild.leadingComments = undefined;
+                if (lastChild.leadingComments) {
+                    leadingComments = [];
+                    for (i = lastChild.leadingComments.length - 1; i >= 0; --i) {
+                        comment = lastChild.leadingComments[i];
+                        if (comment.range[1] <= this.range[0]) {
+                            leadingComments.unshift(comment);
+                            lastChild.leadingComments.splice(i, 1);
+                        }
+                    }
+
+                    if (!lastChild.leadingComments.length) {
+                        lastChild.leadingComments = undefined;
+                    }
                 }
             } else if (extra.leadingComments.length > 0) {
                 leadingComments = [];
@@ -19468,6 +19556,15 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return this;
         },
 
+        finishForOfStatement: function (left, right, body) {
+            this.type = Syntax.ForOfStatement;
+            this.left = left;
+            this.right = right;
+            this.body = body;
+            this.finish();
+            return this;
+        },
+
         finishForInStatement: function (left, right, body) {
             this.type = Syntax.ForInStatement;
             this.left = left;
@@ -19478,25 +19575,25 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return this;
         },
 
-        finishFunctionDeclaration: function (id, params, defaults, body) {
+        finishFunctionDeclaration: function (id, params, defaults, body, generator) {
             this.type = Syntax.FunctionDeclaration;
             this.id = id;
             this.params = params;
             this.defaults = defaults;
             this.body = body;
-            this.generator = false;
+            this.generator = generator;
             this.expression = false;
             this.finish();
             return this;
         },
 
-        finishFunctionExpression: function (id, params, defaults, body) {
+        finishFunctionExpression: function (id, params, defaults, body, generator) {
             this.type = Syntax.FunctionExpression;
             this.id = id;
             this.params = params;
             this.defaults = defaults;
             this.body = body;
-            this.generator = false;
+            this.generator = generator;
             this.expression = false;
             this.finish();
             return this;
@@ -19546,6 +19643,14 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return this;
         },
 
+        finishMetaProperty: function (meta, property) {
+            this.type = Syntax.MetaProperty;
+            this.meta = meta;
+            this.property = property;
+            this.finish();
+            return this;
+        },
+
         finishNewExpression: function (callee, args) {
             this.type = Syntax.NewExpression;
             this.callee = callee;
@@ -19577,13 +19682,10 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             return this;
         },
 
-        finishProgram: function (body) {
+        finishProgram: function (body, sourceType) {
             this.type = Syntax.Program;
             this.body = body;
-            if (sourceType === 'module') {
-                // very restrictive for now
-                this.sourceType = sourceType;
-            }
+            this.sourceType = sourceType;
             this.finish();
             return this;
         },
@@ -19691,7 +19793,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             this.type = Syntax.TryStatement;
             this.block = block;
             this.guardedHandlers = [];
-            this.handlers = handler ? [ handler ] : [];
+            this.handlers = handler ? [handler] : [];
             this.handler = handler;
             this.finalizer = finalizer;
             this.finish();
@@ -19806,6 +19908,14 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             this.source = src;
             this.finish();
             return this;
+        },
+
+        finishYieldExpression: function (argument, delegate) {
+            this.type = Syntax.YieldExpression;
+            this.argument = argument;
+            this.delegate = delegate;
+            this.finish();
+            return this;
         }
     };
 
@@ -19825,12 +19935,30 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         extra.errors.push(error);
     }
 
+    function constructError(msg, column) {
+        var error = new Error(msg);
+        try {
+            throw error;
+        } catch (base) {
+            /* istanbul ignore else */
+            if (Object.create && Object.defineProperty) {
+                error = Object.create(base);
+                Object.defineProperty(error, 'column', { value: column });
+            }
+        } finally {
+            return error;
+        }
+    }
+
     function createError(line, pos, description) {
-        var error = new Error('Line ' + line + ': ' + description);
-        error.index = pos;
+        var msg, column, error;
+
+        msg = 'Line ' + line + ': ' + description;
+        column = pos - (scanning ? lineStart : lastLineStart) + 1;
+        error = constructError(msg, column);
         error.lineNumber = line;
-        error.column = pos - (scanning ? lineStart : lastLineStart) + 1;
         error.description = description;
+        error.index = pos;
         return error;
     }
 
@@ -20089,7 +20217,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return result;
     }
 
-    function parseArrayPattern() {
+    // ECMA-262 13.3.3 Destructuring Binding Patterns
+
+    function parseArrayPattern(params, kind) {
         var node = new Node(), elements = [], rest, restNode;
         expect('[');
 
@@ -20101,11 +20231,12 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 if (match('...')) {
                     restNode = new Node();
                     lex();
-                    rest = parseVariableIdentifier();
+                    params.push(lookahead);
+                    rest = parseVariableIdentifier(params, kind);
                     elements.push(restNode.finishRestElement(rest));
                     break;
                 } else {
-                    elements.push(parsePatternWithDefault());
+                    elements.push(parsePatternWithDefault(params, kind));
                 }
                 if (!match(']')) {
                     expect(',');
@@ -20119,34 +20250,38 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishArrayPattern(elements);
     }
 
-    function parsePropertyPattern() {
-        var node = new Node(), key, computed = match('['), init;
+    function parsePropertyPattern(params, kind) {
+        var node = new Node(), key, keyToken, computed = match('['), init;
         if (lookahead.type === Token.Identifier) {
+            keyToken = lookahead;
             key = parseVariableIdentifier();
             if (match('=')) {
+                params.push(keyToken);
                 lex();
                 init = parseAssignmentExpression();
+
                 return node.finishProperty(
                     'init', key, false,
-                    new WrappingNode(key).finishAssignmentPattern(key, init), false, false);
+                    new WrappingNode(keyToken).finishAssignmentPattern(key, init), false, false);
             } else if (!match(':')) {
+                params.push(keyToken);
                 return node.finishProperty('init', key, false, key, false, true);
             }
         } else {
-            key = parseObjectPropertyKey();
+            key = parseObjectPropertyKey(params, kind);
         }
         expect(':');
-        init = parsePatternWithDefault();
+        init = parsePatternWithDefault(params, kind);
         return node.finishProperty('init', key, computed, init, false, false);
     }
 
-    function parseObjectPattern() {
+    function parseObjectPattern(params, kind) {
         var node = new Node(), properties = [];
 
         expect('{');
 
         while (!match('}')) {
-            properties.push(parsePropertyPattern());
+            properties.push(parsePropertyPattern(params, kind));
             if (!match('}')) {
                 expect(',');
             }
@@ -20157,31 +20292,33 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishObjectPattern(properties);
     }
 
-    function parsePattern() {
-        if (lookahead.type === Token.Identifier) {
-            return parseVariableIdentifier();
-        } else if (match('[')) {
-            return parseArrayPattern();
+    function parsePattern(params, kind) {
+        if (match('[')) {
+            return parseArrayPattern(params, kind);
         } else if (match('{')) {
-            return parseObjectPattern();
+            return parseObjectPattern(params, kind);
         }
-        throwUnexpectedToken(lookahead);
+        params.push(lookahead);
+        return parseVariableIdentifier(kind);
     }
 
-    function parsePatternWithDefault() {
-        var startToken = lookahead, pattern, right;
-        pattern = parsePattern();
+    function parsePatternWithDefault(params, kind) {
+        var startToken = lookahead, pattern, previousAllowYield, right;
+        pattern = parsePattern(params, kind);
         if (match('=')) {
             lex();
+            previousAllowYield = state.allowYield;
+            state.allowYield = true;
             right = isolateCoverGrammar(parseAssignmentExpression);
+            state.allowYield = previousAllowYield;
             pattern = new WrappingNode(startToken).finishAssignmentPattern(pattern, right);
         }
         return pattern;
     }
 
-    // 11.1.4 Array Initialiser
+    // ECMA-262 12.2.5 Array Initializer
 
-    function parseArrayInitialiser() {
+    function parseArrayInitializer() {
         var elements = [], node = new Node(), restSpread;
 
         expect('[');
@@ -20214,9 +20351,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishArrayExpression(elements);
     }
 
-    // 11.1.5 Object Initialiser
+    // ECMA-262 12.2.6 Object Initializer
 
-    function parsePropertyFunction(node, paramInfo) {
+    function parsePropertyFunction(node, paramInfo, isGenerator) {
         var previousStrict, body;
 
         isAssignmentTarget = isBindingElement = false;
@@ -20232,14 +20369,20 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
 
         strict = previousStrict;
-        return node.finishFunctionExpression(null, paramInfo.params, paramInfo.defaults, body);
+        return node.finishFunctionExpression(null, paramInfo.params, paramInfo.defaults, body, isGenerator);
     }
 
     function parsePropertyMethodFunction() {
-        var params, method, node = new Node();
+        var params, method, node = new Node(),
+            previousAllowYield = state.allowYield;
 
+        state.allowYield = false;
         params = parseParams();
-        method = parsePropertyFunction(node, params);
+        state.allowYield = previousAllowYield;
+
+        state.allowYield = false;
+        method = parsePropertyFunction(node, params, false);
+        state.allowYield = previousAllowYield;
 
         return method;
     }
@@ -20297,7 +20440,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     // In order to avoid back tracking, it returns `null` if the position is not a MethodDefinition and the caller
     // is responsible to visit other options.
     function tryParseMethodDefinition(token, key, computed, node) {
-        var value, options, methodNode;
+        var value, options, methodNode, params,
+            previousAllowYield = state.allowYield;
 
         if (token.type === Token.Identifier) {
             // check for `get` and `set`;
@@ -20308,13 +20452,17 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 methodNode = new Node();
                 expect('(');
                 expect(')');
+
+                state.allowYield = false;
                 value = parsePropertyFunction(methodNode, {
                     params: [],
                     defaults: [],
                     stricted: null,
                     firstRestricted: null,
                     message: null
-                });
+                }, false);
+                state.allowYield = previousAllowYield;
+
                 return node.finishProperty('get', key, computed, value, false, false);
             } else if (token.value === 'set' && lookaheadPropertyName()) {
                 computed = match('[');
@@ -20332,19 +20480,38 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 if (match(')')) {
                     tolerateUnexpectedToken(lookahead);
                 } else {
+                    state.allowYield = false;
                     parseParam(options);
+                    state.allowYield = previousAllowYield;
                     if (options.defaultCount === 0) {
                         options.defaults = [];
                     }
                 }
                 expect(')');
 
-                value = parsePropertyFunction(methodNode, options);
+                state.allowYield = false;
+                value = parsePropertyFunction(methodNode, options, false);
+                state.allowYield = previousAllowYield;
+
                 return node.finishProperty('set', key, computed, value, false, false);
             }
+        } else if (token.type === Token.Punctuator && token.value === '*' && lookaheadPropertyName()) {
+            computed = match('[');
+            key = parseObjectPropertyKey();
+            methodNode = new Node();
+
+            state.allowYield = true;
+            params = parseParams();
+            state.allowYield = previousAllowYield;
+
+            state.allowYield = false;
+            value = parsePropertyFunction(methodNode, params, true);
+            state.allowYield = previousAllowYield;
+
+            return node.finishProperty('init', key, computed, value, true, false);
         }
 
-        if (match('(')) {
+        if (key && match('(')) {
             value = parsePropertyMethodFunction();
             return node.finishProperty('init', key, computed, value, true, false);
         }
@@ -20353,32 +20520,33 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return null;
     }
 
-    function checkProto(key, computed, hasProto) {
-        if (computed === false && (key.type === Syntax.Identifier && key.name === '__proto__' ||
-            key.type === Syntax.Literal && key.value === '__proto__')) {
-            if (hasProto.value) {
-                tolerateError(Messages.DuplicateProtoProperty);
-            } else {
-                hasProto.value = true;
-            }
-        }
-    }
-
     function parseObjectProperty(hasProto) {
-        var token = lookahead, node = new Node(), computed, key, maybeMethod, value;
+        var token = lookahead, node = new Node(), computed, key, maybeMethod, proto, value;
 
         computed = match('[');
-        key = parseObjectPropertyKey();
+        if (match('*')) {
+            lex();
+        } else {
+            key = parseObjectPropertyKey();
+        }
         maybeMethod = tryParseMethodDefinition(token, key, computed, node);
-
         if (maybeMethod) {
-            checkProto(maybeMethod.key, maybeMethod.computed, hasProto);
-            // finished
             return maybeMethod;
         }
 
-        // init property or short hand property.
-        checkProto(key, computed, hasProto);
+        if (!key) {
+            throwUnexpectedToken(lookahead);
+        }
+
+        // Check for duplicated __proto__
+        if (!computed) {
+            proto = (key.type === Syntax.Identifier && key.name === '__proto__') ||
+                (key.type === Syntax.Literal && key.value === '__proto__');
+            if (hasProto.value && proto) {
+                tolerateError(Messages.DuplicateProtoProperty);
+            }
+            hasProto.value |= proto;
+        }
 
         if (match(':')) {
             lex();
@@ -20400,7 +20568,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         throwUnexpectedToken(lookahead);
     }
 
-    function parseObjectInitialiser() {
+    function parseObjectInitializer() {
         var properties = [], hasProto = {value: false}, node = new Node();
 
         expect('{');
@@ -20454,6 +20622,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
     }
 
+    // ECMA-262 12.2.9 Template Literals
+
     function parseTemplateElement(option) {
         var node, token;
 
@@ -20471,7 +20641,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         var quasi, quasis, expressions, node = new Node();
 
         quasi = parseTemplateElement({ head: true });
-        quasis = [ quasi ];
+        quasis = [quasi];
         expressions = [];
 
         while (!quasi.tail) {
@@ -20483,10 +20653,10 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishTemplateLiteral(quasis, expressions);
     }
 
-    // 11.1.6 The Grouping Operator
+    // ECMA-262 12.2.10 The Grouping Operator
 
     function parseGroupExpression() {
-        var expr, expressions, startToken, i;
+        var expr, expressions, startToken, i, params = [];
 
         expect('(');
 
@@ -20497,13 +20667,14 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             }
             return {
                 type: PlaceHolders.ArrowParameterPlaceHolder,
-                params: []
+                params: [],
+                rawParams: []
             };
         }
 
         startToken = lookahead;
         if (match('...')) {
-            expr = parseRestElement();
+            expr = parseRestElement(params);
             expect(')');
             if (!match('=>')) {
                 expect('=>');
@@ -20531,7 +20702,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                     if (!isBindingElement) {
                         throwUnexpectedToken(lookahead);
                     }
-                    expressions.push(parseRestElement());
+                    expressions.push(parseRestElement(params));
                     expect(')');
                     if (!match('=>')) {
                         expect('=>');
@@ -20556,6 +20727,13 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         expect(')');
 
         if (match('=>')) {
+            if (expr.type === Syntax.Identifier && expr.name === 'yield') {
+                return {
+                    type: PlaceHolders.ArrowParameterPlaceHolder,
+                    params: [expr]
+                };
+            }
+
             if (!isBindingElement) {
                 throwUnexpectedToken(lookahead);
             }
@@ -20578,7 +20756,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
 
-    // 11.1 Primary Expressions
+    // ECMA-262 12.2 Primary Expressions
 
     function parsePrimaryExpression() {
         var type, token, expr, node;
@@ -20589,17 +20767,20 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
 
         if (match('[')) {
-            return inheritCoverGrammar(parseArrayInitialiser);
+            return inheritCoverGrammar(parseArrayInitializer);
         }
 
         if (match('{')) {
-            return inheritCoverGrammar(parseObjectInitialiser);
+            return inheritCoverGrammar(parseObjectInitializer);
         }
 
         type = lookahead.type;
         node = new Node();
 
         if (type === Token.Identifier) {
+            if (state.sourceType === 'module' && lookahead.value === 'await') {
+                tolerateUnexpectedToken(lookahead);
+            }
             expr = node.finishIdentifier(lex().value);
         } else if (type === Token.StringLiteral || type === Token.NumericLiteral) {
             isAssignmentTarget = isBindingElement = false;
@@ -20608,6 +20789,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             }
             expr = node.finishLiteral(lex());
         } else if (type === Token.Keyword) {
+            if (!strict && state.allowYield && matchKeyword('yield')) {
+                return parseNonComputedProperty();
+            }
             isAssignmentTarget = isBindingElement = false;
             if (matchKeyword('function')) {
                 return parseFunctionExpression();
@@ -20650,16 +20834,23 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return expr;
     }
 
-    // 11.2 Left-Hand-Side Expressions
+    // ECMA-262 12.3 Left-Hand-Side Expressions
 
     function parseArguments() {
-        var args = [];
+        var args = [], expr;
 
         expect('(');
 
         if (!match(')')) {
             while (startIndex < length) {
-                args.push(isolateCoverGrammar(parseAssignmentExpression));
+                if (match('...')) {
+                    expr = new Node();
+                    lex();
+                    expr.finishSpreadElement(isolateCoverGrammar(parseAssignmentExpression));
+                } else {
+                    expr = isolateCoverGrammar(parseAssignmentExpression);
+                }
+                args.push(expr);
                 if (match(')')) {
                     break;
                 }
@@ -20702,10 +20893,24 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return expr;
     }
 
+    // ECMA-262 12.3.3 The new Operator
+
     function parseNewExpression() {
         var callee, args, node = new Node();
 
         expectKeyword('new');
+
+        if (match('.')) {
+            lex();
+            if (lookahead.type === Token.Identifier && lookahead.value === 'target') {
+                if (state.inFunctionBody) {
+                    lex();
+                    return node.finishMetaProperty('new', 'target');
+                }
+            }
+            throwUnexpectedToken(lookahead);
+        }
+
         callee = isolateCoverGrammar(parseLeftHandSideExpression);
         args = match('(') ? parseArguments() : [];
 
@@ -20713,6 +20918,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         return node.finishNewExpression(callee, args);
     }
+
+    // ECMA-262 12.3.4 Function Calls
 
     function parseLeftHandSideExpressionAllowCall() {
         var quasi, expr, args, property, startToken, previousAllowIn = state.allowIn;
@@ -20759,6 +20966,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return expr;
     }
 
+    // ECMA-262 12.3 Left-Hand-Side Expressions
+
     function parseLeftHandSideExpression() {
         var quasi, expr, property, startToken;
         assert(state.allowIn, 'callee of new expression always allow in keyword.');
@@ -20797,7 +21006,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return expr;
     }
 
-    // 11.3 Postfix Expressions
+    // ECMA-262 12.4 Postfix Expressions
 
     function parsePostfixExpression() {
         var expr, token, startToken = lookahead;
@@ -20806,7 +21015,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         if (!hasLineTerminator && lookahead.type === Token.Punctuator) {
             if (match('++') || match('--')) {
-                // 11.3.1, 11.3.2
+                // ECMA-262 11.3.1, 11.3.2
                 if (strict && expr.type === Syntax.Identifier && isRestrictedWord(expr.name)) {
                     tolerateError(Messages.StrictLHSPostfix);
                 }
@@ -20825,7 +21034,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return expr;
     }
 
-    // 11.4 Unary Operators
+    // ECMA-262 12.5 Unary Operators
 
     function parseUnaryExpression() {
         var token, expr, startToken;
@@ -20836,7 +21045,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             startToken = lookahead;
             token = lex();
             expr = inheritCoverGrammar(parseUnaryExpression);
-            // 11.4.4, 11.4.5
+            // ECMA-262 11.4.4, 11.4.5
             if (strict && expr.type === Syntax.Identifier && isRestrictedWord(expr.name)) {
                 tolerateError(Messages.StrictLHSPrefix);
             }
@@ -20939,13 +21148,13 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return prec;
     }
 
-    // 11.5 Multiplicative Operators
-    // 11.6 Additive Operators
-    // 11.7 Bitwise Shift Operators
-    // 11.8 Relational Operators
-    // 11.9 Equality Operators
-    // 11.10 Binary Bitwise Operators
-    // 11.11 Binary Logical Operators
+    // ECMA-262 12.6 Multiplicative Operators
+    // ECMA-262 12.7 Additive Operators
+    // ECMA-262 12.8 Bitwise Shift Operators
+    // ECMA-262 12.9 Relational Operators
+    // ECMA-262 12.10 Equality Operators
+    // ECMA-262 12.11 Binary Bitwise Operators
+    // ECMA-262 12.12 Binary Logical Operators
 
     function parseBinaryExpression() {
         var marker, markers, expr, token, prec, stack, right, operator, left, i;
@@ -21001,7 +21210,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
 
-    // 11.12 Conditional Operator
+    // ECMA-262 12.13 Conditional Operator
 
     function parseConditionalExpression() {
         var expr, previousAllowIn, consequent, alternate, startToken;
@@ -21025,7 +21234,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return expr;
     }
 
-    // [ES6] 14.2 Arrow Function
+    // ECMA-262 14.2 Arrow Function Definitions
 
     function parseConciseBody() {
         if (match('{')) {
@@ -21052,6 +21261,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                     checkPatternParam(options, param.elements[i]);
                 }
             }
+            break;
+        case Syntax.YieldExpression:
             break;
         default:
             assert(param.type === Syntax.ObjectPattern, 'Invalid type');
@@ -21087,6 +21298,15 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             switch (param.type) {
             case Syntax.AssignmentPattern:
                 params[i] = param.left;
+                if (param.right.type === Syntax.YieldExpression) {
+                    if (param.right.argument) {
+                        throwUnexpectedToken(lookahead);
+                    }
+                    param.right.type = Syntax.Identifier;
+                    param.right.name = 'yield';
+                    delete param.right.argument;
+                    delete param.right.delegate;
+                }
                 defaults.push(param.right);
                 ++defaultCount;
                 checkPatternParam(options, param.left);
@@ -21096,6 +21316,15 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 params[i] = param;
                 defaults.push(null);
                 break;
+            }
+        }
+
+        if (strict || !state.allowYield) {
+            for (i = 0, len = params.length; i < len; i += 1) {
+                param = params[i];
+                if (param.type === Syntax.YieldExpression) {
+                    throwUnexpectedToken(lookahead);
+                }
             }
         }
 
@@ -21118,13 +21347,16 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function parseArrowFunctionExpression(options, node) {
-        var previousStrict, body;
+        var previousStrict, previousAllowYield, body;
 
         if (hasLineTerminator) {
             tolerateUnexpectedToken(lookahead);
         }
         expect('=>');
+
         previousStrict = strict;
+        previousAllowYield = state.allowYield;
+        state.allowYield = true;
 
         body = parseConciseBody();
 
@@ -21136,17 +21368,50 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
 
         strict = previousStrict;
+        state.allowYield = previousAllowYield;
 
         return node.finishArrowFunctionExpression(options.params, options.defaults, body, body.type !== Syntax.BlockStatement);
     }
 
-    // 11.13 Assignment Operators
+    // ECMA-262 14.4 Yield expression
+
+    function parseYieldExpression() {
+        var argument, expr, delegate, previousAllowYield;
+
+        argument = null;
+        expr = new Node();
+
+        expectKeyword('yield');
+
+        if (!hasLineTerminator) {
+            previousAllowYield = state.allowYield;
+            state.allowYield = false;
+            delegate = match('*');
+            if (delegate) {
+                lex();
+                argument = parseAssignmentExpression();
+            } else {
+                if (!match(';') && !match('}') && !match(')') && lookahead.type !== Token.EOF) {
+                    argument = parseAssignmentExpression();
+                }
+            }
+            state.allowYield = previousAllowYield;
+        }
+
+        return expr.finishYieldExpression(argument, delegate);
+    }
+
+    // ECMA-262 12.14 Assignment Operators
 
     function parseAssignmentExpression() {
         var token, expr, right, list, startToken;
 
         startToken = lookahead;
         token = lookahead;
+
+        if (!state.allowYield && matchKeyword('yield')) {
+            return parseYieldExpression();
+        }
 
         expr = parseConditionalExpression();
 
@@ -21167,9 +21432,14 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 tolerateError(Messages.InvalidLHSInAssignment);
             }
 
-            // 11.13.1
-            if (strict && expr.type === Syntax.Identifier && isRestrictedWord(expr.name)) {
-                tolerateUnexpectedToken(token, Messages.StrictLHSAssignment);
+            // ECMA-262 12.1.1
+            if (strict && expr.type === Syntax.Identifier) {
+                if (isRestrictedWord(expr.name)) {
+                    tolerateUnexpectedToken(token, Messages.StrictLHSAssignment);
+                }
+                if (isStrictModeReservedWord(expr.name)) {
+                    tolerateUnexpectedToken(token, Messages.StrictReservedWord);
+                }
             }
 
             if (!match('=')) {
@@ -21187,7 +21457,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return expr;
     }
 
-    // 11.14 Comma Operator
+    // ECMA-262 12.15 Comma Operator
 
     function parseExpression() {
         var expr, startToken = lookahead, expressions;
@@ -21211,18 +21481,18 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return expr;
     }
 
-    // 12.1 Block
+    // ECMA-262 13.2 Block
 
     function parseStatementListItem() {
         if (lookahead.type === Token.Keyword) {
             switch (lookahead.value) {
             case 'export':
-                if (sourceType !== 'module') {
+                if (state.sourceType !== 'module') {
                     tolerateUnexpectedToken(lookahead, Messages.IllegalExportDeclaration);
                 }
                 return parseExportDeclaration();
             case 'import':
-                if (sourceType !== 'module') {
+                if (state.sourceType !== 'module') {
                     tolerateUnexpectedToken(lookahead, Messages.IllegalImportDeclaration);
                 }
                 return parseImportDeclaration();
@@ -21263,30 +21533,40 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishBlockStatement(block);
     }
 
-    // 12.2 Variable Statement
+    // ECMA-262 13.3.2 Variable Statement
 
-    function parseVariableIdentifier() {
+    function parseVariableIdentifier(kind) {
         var token, node = new Node();
 
         token = lex();
 
-        if (token.type !== Token.Identifier) {
+        if (token.type === Token.Keyword && token.value === 'yield') {
+            if (strict) {
+                tolerateUnexpectedToken(token, Messages.StrictReservedWord);
+            } if (!state.allowYield) {
+                throwUnexpectedToken(token);
+            }
+        } else if (token.type !== Token.Identifier) {
             if (strict && token.type === Token.Keyword && isStrictModeReservedWord(token.value)) {
                 tolerateUnexpectedToken(token, Messages.StrictReservedWord);
             } else {
-                throwUnexpectedToken(token);
+                if (strict || token.value !== 'let' || kind !== 'var') {
+                    throwUnexpectedToken(token);
+                }
             }
+        } else if (state.sourceType === 'module' && token.type === Token.Identifier && token.value === 'await') {
+            tolerateUnexpectedToken(token);
         }
 
         return node.finishIdentifier(token.value);
     }
 
-    function parseVariableDeclaration() {
-        var init = null, id, node = new Node();
+    function parseVariableDeclaration(options) {
+        var init = null, id, node = new Node(), params = [];
 
-        id = parsePattern();
+        id = parsePattern(params, 'var');
 
-        // 12.2.1
+        // ECMA-262 12.2.1
         if (strict && isRestrictedWord(id.name)) {
             tolerateError(Messages.StrictVarName);
         }
@@ -21294,18 +21574,18 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         if (match('=')) {
             lex();
             init = isolateCoverGrammar(parseAssignmentExpression);
-        } else if (id.type !== Syntax.Identifier) {
+        } else if (id.type !== Syntax.Identifier && !options.inFor) {
             expect('=');
         }
 
         return node.finishVariableDeclarator(id, init);
     }
 
-    function parseVariableDeclarationList() {
+    function parseVariableDeclarationList(options) {
         var list = [];
 
         do {
-            list.push(parseVariableDeclaration());
+            list.push(parseVariableDeclaration({ inFor: options.inFor }));
             if (!match(',')) {
                 break;
             }
@@ -21320,25 +21600,27 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         expectKeyword('var');
 
-        declarations = parseVariableDeclarationList();
+        declarations = parseVariableDeclarationList({ inFor: false });
 
         consumeSemicolon();
 
         return node.finishVariableDeclaration(declarations);
     }
 
+    // ECMA-262 13.3.1 Let and Const Declarations
+
     function parseLexicalBinding(kind, options) {
-        var init = null, id, node = new Node();
+        var init = null, id, node = new Node(), params = [];
 
-        id = parsePattern();
+        id = parsePattern(params, kind);
 
-        // 12.2.1
+        // ECMA-262 12.2.1
         if (strict && id.type === Syntax.Identifier && isRestrictedWord(id.name)) {
             tolerateError(Messages.StrictVarName);
         }
 
         if (kind === 'const') {
-            if (!matchKeyword('in')) {
+            if (!matchKeyword('in') && !matchContextualKeyword('of')) {
                 expect('=');
                 init = isolateCoverGrammar(parseAssignmentExpression);
             }
@@ -21377,7 +21659,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishLexicalDeclaration(declarations, kind);
     }
 
-    function parseRestElement() {
+    function parseRestElement(params) {
         var param, node = new Node();
 
         lex();
@@ -21385,6 +21667,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         if (match('{')) {
             throwError(Messages.ObjectPatternAsRestParameter);
         }
+
+        params.push(lookahead);
 
         param = parseVariableIdentifier();
 
@@ -21399,14 +21683,14 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishRestElement(param);
     }
 
-    // 12.3 Empty Statement
+    // ECMA-262 13.4 Empty Statement
 
     function parseEmptyStatement(node) {
         expect(';');
         return node.finishEmptyStatement();
     }
 
-    // 12.4 Expression Statement
+    // ECMA-262 12.4 Expression Statement
 
     function parseExpressionStatement(node) {
         var expr = parseExpression();
@@ -21414,7 +21698,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishExpressionStatement(expr);
     }
 
-    // 12.5 If statement
+    // ECMA-262 13.6 If statement
 
     function parseIfStatement(node) {
         var test, consequent, alternate;
@@ -21439,7 +21723,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishIfStatement(test, consequent, alternate);
     }
 
-    // 12.6 Iteration Statements
+    // ECMA-262 13.7 Iteration Statements
 
     function parseDoWhileStatement(node) {
         var body, test, oldInIteration;
@@ -21490,10 +21774,11 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function parseForStatement(node) {
-        var init, initSeq, initStartToken, test, update, left, right, kind, declarations,
+        var init, forIn, initSeq, initStartToken, test, update, left, right, kind, declarations,
             body, oldInIteration, previousAllowIn = state.allowIn;
 
         init = test = update = null;
+        forIn = true;
 
         expectKeyword('for');
 
@@ -21507,15 +21792,24 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 lex();
 
                 state.allowIn = false;
-                init = init.finishVariableDeclaration(parseVariableDeclarationList());
+                declarations = parseVariableDeclarationList({ inFor: true });
                 state.allowIn = previousAllowIn;
 
-                if (init.declarations.length === 1 && matchKeyword('in')) {
+                if (declarations.length === 1 && matchKeyword('in')) {
+                    init = init.finishVariableDeclaration(declarations);
                     lex();
                     left = init;
                     right = parseExpression();
                     init = null;
+                } else if (declarations.length === 1 && declarations[0].init === null && matchContextualKeyword('of')) {
+                    init = init.finishVariableDeclaration(declarations);
+                    lex();
+                    left = init;
+                    right = parseAssignmentExpression();
+                    init = null;
+                    forIn = false;
                 } else {
+                    init = init.finishVariableDeclaration(declarations);
                     expect(';');
                 }
             } else if (matchKeyword('const') || matchKeyword('let')) {
@@ -21532,6 +21826,13 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                     left = init;
                     right = parseExpression();
                     init = null;
+                } else if (declarations.length === 1 && declarations[0].init === null && matchContextualKeyword('of')) {
+                    init = init.finishLexicalDeclaration(declarations, kind);
+                    lex();
+                    left = init;
+                    right = parseAssignmentExpression();
+                    init = null;
+                    forIn = false;
                 } else {
                     consumeSemicolon();
                     init = init.finishLexicalDeclaration(declarations, kind);
@@ -21552,6 +21853,17 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                     left = init;
                     right = parseExpression();
                     init = null;
+                } else if (matchContextualKeyword('of')) {
+                    if (!isAssignmentTarget) {
+                        tolerateError(Messages.InvalidLHSInForLoop);
+                    }
+
+                    lex();
+                    reinterpretExpressionAsPattern(init);
+                    left = init;
+                    right = parseAssignmentExpression();
+                    init = null;
+                    forIn = false;
                 } else {
                     if (match(',')) {
                         initSeq = [init];
@@ -21589,10 +21901,11 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         return (typeof left === 'undefined') ?
                 node.finishForStatement(init, test, update, body) :
-                node.finishForInStatement(left, right, body);
+                forIn ? node.finishForInStatement(left, right, body) :
+                    node.finishForOfStatement(left, right, body);
     }
 
-    // 12.7 The continue statement
+    // ECMA-262 13.8 The continue statement
 
     function parseContinueStatement(node) {
         var label = null, key;
@@ -21636,7 +21949,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishContinueStatement(label);
     }
 
-    // 12.8 The break statement
+    // ECMA-262 13.9 The break statement
 
     function parseBreakStatement(node) {
         var label = null, key;
@@ -21680,7 +21993,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishBreakStatement(label);
     }
 
-    // 12.9 The return statement
+    // ECMA-262 13.10 The return statement
 
     function parseReturnStatement(node) {
         var argument = null;
@@ -21716,7 +22029,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishReturnStatement(argument);
     }
 
-    // 12.10 The with statement
+    // ECMA-262 13.11 The with statement
 
     function parseWithStatement(node) {
         var object, body;
@@ -21738,7 +22051,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishWithStatement(object, body);
     }
 
-    // 12.10 The swith statement
+    // ECMA-262 13.12 The switch statement
 
     function parseSwitchCase() {
         var test, consequent = [], statement, node = new Node();
@@ -21808,7 +22121,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishSwitchStatement(discriminant, cases);
     }
 
-    // 12.13 The throw statement
+    // ECMA-262 13.14 The throw statement
 
     function parseThrowStatement(node) {
         var argument;
@@ -21826,10 +22139,10 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishThrowStatement(argument);
     }
 
-    // 12.14 The try statement
+    // ECMA-262 13.15 The try statement
 
     function parseCatchClause() {
-        var param, body, node = new Node();
+        var param, params = [], paramMap = {}, key, i, body, node = new Node();
 
         expectKeyword('catch');
 
@@ -21838,9 +22151,16 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             throwUnexpectedToken(lookahead);
         }
 
-        param = parsePattern();
+        param = parsePattern(params);
+        for (i = 0; i < params.length; i++) {
+            key = '$' + params[i].value;
+            if (Object.prototype.hasOwnProperty.call(paramMap, key)) {
+                tolerateError(Messages.DuplicateBinding, params[i].value);
+            }
+            paramMap[key] = true;
+        }
 
-        // 12.14.1
+        // ECMA-262 12.14.1
         if (strict && isRestrictedWord(param.name)) {
             tolerateError(Messages.StrictCatchVariable);
         }
@@ -21873,7 +22193,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishTryStatement(block, handler, finalizer);
     }
 
-    // 12.15 The debugger statement
+    // ECMA-262 13.16 The debugger statement
 
     function parseDebuggerStatement(node) {
         expectKeyword('debugger');
@@ -21883,7 +22203,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishDebuggerStatement();
     }
 
-    // 12 Statements
+    // 13 Statements
 
     function parseStatement() {
         var type = lookahead.type,
@@ -21948,7 +22268,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
 
         expr = parseExpression();
 
-        // 12.12 Labelled Statements
+        // ECMA-262 12.12 Labelled Statements
         if ((expr.type === Syntax.Identifier) && match(':')) {
             lex();
 
@@ -21968,7 +22288,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return node.finishExpressionStatement(expr);
     }
 
-    // 13 Function Definition
+    // ECMA-262 14.1 Function Definition
 
     function parseFunctionSourceElements() {
         var statement, body = [], token, directive, firstRestricted,
@@ -22051,7 +22371,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 options.firstRestricted = param;
                 options.message = Messages.StrictReservedWord;
             } else if (Object.prototype.hasOwnProperty.call(options.paramSet, key)) {
-                options.firstRestricted = param;
+                options.stricted = param;
                 options.message = Messages.StrictParamDupe;
             }
         }
@@ -22059,19 +22379,21 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function parseParam(options) {
-        var token, param, def;
+        var token, param, params = [], i, def;
 
         token = lookahead;
         if (token.value === '...') {
-            param = parseRestElement();
+            param = parseRestElement(params);
             validateParam(options, param.argument, param.argument.name);
             options.params.push(param);
             options.defaults.push(null);
             return false;
         }
 
-        param = parsePatternWithDefault();
-        validateParam(options, token, token.value);
+        param = parsePatternWithDefault(params);
+        for (i = 0; i < params.length; i++) {
+            validateParam(options, params[i], params[i].value);
+        }
 
         if (param.type === Syntax.AssignmentPattern) {
             def = param.right;
@@ -22123,9 +22445,18 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function parseFunctionDeclaration(node, identifierIsOptional) {
-        var id = null, params = [], defaults = [], body, token, stricted, tmp, firstRestricted, message, previousStrict;
+        var id = null, params = [], defaults = [], body, token, stricted, tmp, firstRestricted, message, previousStrict,
+            isGenerator, previousAllowYield;
+
+        previousAllowYield = state.allowYield;
 
         expectKeyword('function');
+
+        isGenerator = match('*');
+        if (isGenerator) {
+            lex();
+        }
+
         if (!identifierIsOptional || !match('(')) {
             token = lookahead;
             id = parseVariableIdentifier();
@@ -22144,6 +22475,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             }
         }
 
+        state.allowYield = !isGenerator;
         tmp = parseParams(firstRestricted);
         params = tmp.params;
         defaults = tmp.defaults;
@@ -22153,6 +22485,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             message = tmp.message;
         }
 
+
         previousStrict = strict;
         body = parseFunctionSourceElements();
         if (strict && firstRestricted) {
@@ -22161,20 +22494,31 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         if (strict && stricted) {
             tolerateUnexpectedToken(stricted, message);
         }
-        strict = previousStrict;
 
-        return node.finishFunctionDeclaration(id, params, defaults, body);
+        strict = previousStrict;
+        state.allowYield = previousAllowYield;
+
+        return node.finishFunctionDeclaration(id, params, defaults, body, isGenerator);
     }
 
     function parseFunctionExpression() {
         var token, id = null, stricted, firstRestricted, message, tmp,
-            params = [], defaults = [], body, previousStrict, node = new Node();
+            params = [], defaults = [], body, previousStrict, node = new Node(),
+            isGenerator, previousAllowYield;
+
+        previousAllowYield = state.allowYield;
 
         expectKeyword('function');
 
+        isGenerator = match('*');
+        if (isGenerator) {
+            lex();
+        }
+
+        state.allowYield = !isGenerator;
         if (!match('(')) {
             token = lookahead;
-            id = parseVariableIdentifier();
+            id = (!strict && !isGenerator && matchKeyword('yield')) ? parseNonComputedProperty() : parseVariableIdentifier();
             if (strict) {
                 if (isRestrictedWord(token.value)) {
                     tolerateUnexpectedToken(token, Messages.StrictFunctionName);
@@ -22208,10 +22552,12 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             tolerateUnexpectedToken(stricted, message);
         }
         strict = previousStrict;
+        state.allowYield = previousAllowYield;
 
-        return node.finishFunctionExpression(id, params, defaults, body);
+        return node.finishFunctionExpression(id, params, defaults, body, isGenerator);
     }
 
+    // ECMA-262 14.5 Class Definitions
 
     function parseClassBody() {
         var classBody, token, isStatic, hasConstructor = false, body, method, computed, key;
@@ -22228,16 +22574,24 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
                 token = lookahead;
                 isStatic = false;
                 computed = match('[');
-                key = parseObjectPropertyKey();
-                if (key.name === 'static' && lookaheadPropertyName()) {
-                    token = lookahead;
-                    isStatic = true;
-                    computed = match('[');
+                if (match('*')) {
+                    lex();
+                } else {
                     key = parseObjectPropertyKey();
+                    if (key.name === 'static' && (lookaheadPropertyName() || match('*'))) {
+                        token = lookahead;
+                        isStatic = true;
+                        computed = match('[');
+                        if (match('*')) {
+                            lex();
+                        } else {
+                            key = parseObjectPropertyKey();
+                        }
+                    }
                 }
                 method = tryParseMethodDefinition(token, key, computed, method);
                 if (method) {
-                    method['static'] = isStatic;
+                    method['static'] = isStatic; // jscs:ignore requireDotNotation
                     if (method.kind === 'init') {
                         method.kind = 'method';
                     }
@@ -22311,8 +22665,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return classNode.finishClassExpression(id, superClass, classBody);
     }
 
-    // Modules grammar from:
-    // people.mozilla.org/~jorendorff/es6-draft.html
+    // ECMA-262 15.2 Modules
 
     function parseModuleSpecifier() {
         var node = new Node();
@@ -22322,6 +22675,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
         return node.finishLiteral(lex());
     }
+
+    // ECMA-262 15.2.3 Exports
 
     function parseExportSpecifier() {
         var exported, local, node = new Node(), def;
@@ -22361,11 +22716,15 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         }
 
         expect('{');
-        if (!match('}')) {
-            do {
-                isExportFromIdentifier = isExportFromIdentifier || matchKeyword('default');
-                specifiers.push(parseExportSpecifier());
-            } while (match(',') && lex());
+        while (!match('}')) {
+            isExportFromIdentifier = isExportFromIdentifier || matchKeyword('default');
+            specifiers.push(parseExportSpecifier());
+            if (!match('}')) {
+                expect(',');
+                if (match('}')) {
+                    break;
+                }
+            }
         }
         expect('}');
 
@@ -22418,9 +22777,9 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         // export default [];
         // export default (1 + 2);
         if (match('{')) {
-            expression = parseObjectInitialiser();
+            expression = parseObjectInitializer();
         } else if (match('[')) {
-            expression = parseArrayInitialiser();
+            expression = parseArrayInitializer();
         } else {
             expression = parseAssignmentExpression();
         }
@@ -22462,6 +22821,8 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         return parseExportNamedDeclaration(node);
     }
 
+    // ECMA-262 15.2.2 Imports
+
     function parseImportSpecifier() {
         // import {<foo as bar>} ...;
         var local, imported, node = new Node();
@@ -22479,10 +22840,14 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         var specifiers = [];
         // {foo, bar as bas}
         expect('{');
-        if (!match('}')) {
-            do {
-                specifiers.push(parseImportSpecifier());
-            } while (match(',') && lex());
+        while (!match('}')) {
+            specifiers.push(parseImportSpecifier());
+            if (!match('}')) {
+                expect(',');
+                if (match('}')) {
+                    break;
+                }
+            }
         }
         expect('}');
         return specifiers;
@@ -22512,56 +22877,57 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     function parseImportDeclaration() {
-        var specifiers, src, node = new Node();
+        var specifiers = [], src, node = new Node();
 
         if (state.inFunctionBody) {
             throwError(Messages.IllegalImportDeclaration);
         }
 
         expectKeyword('import');
-        specifiers = [];
 
         if (lookahead.type === Token.StringLiteral) {
-            // covers:
             // import 'foo';
             src = parseModuleSpecifier();
-            consumeSemicolon();
-            return node.finishImportDeclaration(specifiers, src);
-        }
+        } else {
 
-        if (!matchKeyword('default') && isIdentifierName(lookahead)) {
-            // covers:
-            // import foo
-            // import foo, ...
-            specifiers.push(parseImportDefaultSpecifier());
-            if (match(',')) {
-                lex();
+            if (match('{')) {
+                // import {bar}
+                specifiers = specifiers.concat(parseNamedImports());
+            } else if (match('*')) {
+                // import * as foo
+                specifiers.push(parseImportNamespaceSpecifier());
+            } else if (isIdentifierName(lookahead) && !matchKeyword('default')) {
+                // import foo
+                specifiers.push(parseImportDefaultSpecifier());
+                if (match(',')) {
+                    lex();
+                    if (match('*')) {
+                        // import foo, * as foo
+                        specifiers.push(parseImportNamespaceSpecifier());
+                    } else if (match('{')) {
+                        // import foo, {bar}
+                        specifiers = specifiers.concat(parseNamedImports());
+                    } else {
+                        throwUnexpectedToken(lookahead);
+                    }
+                }
+            } else {
+                throwUnexpectedToken(lex());
             }
-        }
-        if (match('*')) {
-            // covers:
-            // import foo, * as foo
-            // import * as foo
-            specifiers.push(parseImportNamespaceSpecifier());
-        } else if (match('{')) {
-            // covers:
-            // import foo, {bar}
-            // import {bar}
-            specifiers = specifiers.concat(parseNamedImports());
+
+            if (!matchContextualKeyword('from')) {
+                throwError(lookahead.value ?
+                        Messages.UnexpectedToken : Messages.MissingFromClause, lookahead.value);
+            }
+            lex();
+            src = parseModuleSpecifier();
         }
 
-        if (!matchContextualKeyword('from')) {
-            throwError(lookahead.value ?
-                    Messages.UnexpectedToken : Messages.MissingFromClause, lookahead.value);
-        }
-        lex();
-        src = parseModuleSpecifier();
         consumeSemicolon();
-
         return node.finishImportDeclaration(specifiers, src);
     }
 
-    // 14 Program
+    // ECMA-262 15.1 Scripts
 
     function parseScriptBody() {
         var statement, body = [], token, directive, firstRestricted;
@@ -22609,7 +22975,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         node = new Node();
 
         body = parseScriptBody();
-        return node.finishProgram(body);
+        return node.finishProgram(body, state.sourceType);
     }
 
     function filterTokenLocation() {
@@ -22659,6 +23025,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         lookahead = null;
         state = {
             allowIn: true,
+            allowYield: true,
             labelSet: {},
             inFunctionBody: false,
             inIteration: false,
@@ -22747,14 +23114,15 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
         lookahead = null;
         state = {
             allowIn: true,
+            allowYield: true,
             labelSet: {},
             inFunctionBody: false,
             inIteration: false,
             inSwitch: false,
             lastCommentStart: -1,
-            curlyStack: []
+            curlyStack: [],
+            sourceType: 'script'
         };
-        sourceType = 'script';
         strict = false;
 
         extra = {};
@@ -22785,7 +23153,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
             }
             if (options.sourceType === 'module') {
                 // very restrictive condition for now
-                sourceType = options.sourceType;
+                state.sourceType = options.sourceType;
                 strict = true;
             }
         }
@@ -22812,7 +23180,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
     }
 
     // Sync with *.json manifests.
-    exports.version = '2.2.0';
+    exports.version = '2.6.0';
 
     exports.tokenize = tokenize;
 
@@ -59734,7 +60102,7 @@ if (typeof exports !== 'undefined') {
 },{}],48:[function(require,module,exports){
 module.exports={
   "name": "landmarker-io",
-  "version": "2.1.0",
+  "version": "2.3.1",
   "description": "3D mesh annotation in your browser.",
   "main": "index.js",
   "repository": {
@@ -65259,7 +65627,7 @@ var _libSupport2 = _interopRequireDefault(_libSupport);
 
 var _packageJson = require('../../../../package.json');
 
-var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3>v' + _packageJson.version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect to a landmarker server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div>    <a href="https://github.com/menpo/landmarker.io" class=\'IntroFooter\'>        <span class="octicon octicon-mark-github"></span>        More info on Github    </a></div>';
+var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3><a href="https://github.com/menpo/landmarker.io/releases" title="release notes">v' + _packageJson.version + '</a></h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect to a landmarker server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div>    <a href="https://github.com/menpo/landmarker.io" class=\'IntroFooter\'>        <span class="octicon octicon-mark-github"></span>        More info on Github    </a></div>';
 
 var lsWarning = '<p class=\'IntroWarning\'>    Your browser doesn\'t support LocalStorage, so Dropbox login has been    disabled.</p>';
 
@@ -65582,8 +65950,10 @@ var _modal2 = _interopRequireDefault(_modal);
  * List picker modal, takes the following parameters:
  *
  *  +   list : an array of tuples [content (string), key]
- *  +   useFilter : wether or not to display the search bar
+ *  +   useFilter : whether or not to display the search bar
  *  +   submit: the callback
+ *  +   batchSize (50): the number of elements to be displayed. A 'Load More'
+ *      element will be placed at the bottom of the list to expand the content.
  *
  * All tags will have the data attributes value, key and index
  * The callback is called with the key (which is the content if key is
@@ -65600,17 +65970,24 @@ exports['default'] = _modal2['default'].extend({
         var list = _ref.list;
         var submit = _ref.submit;
         var useFilter = _ref.useFilter;
+        var _ref$batchSize = _ref.batchSize;
+        var batchSize = _ref$batchSize === undefined ? 50 : _ref$batchSize;
 
         this.list = list.map(function (_ref2, i) {
             var _ref22 = _slicedToArray(_ref2, 2);
 
             var c = _ref22[0];
             var k = _ref22[1];
-            return [c, k || c, i];
+            return [c, k !== undefined ? k : i];
         });
         this._list = this.list;
         this.submit = submit;
         this.useFilter = !!useFilter;
+        // only batchSize elements will be displayed at once.
+        this.batchSize = batchSize;
+        // we increment this every time the user wants to expand the number
+        // of visible elements
+        this.batchesVisible = 1;
         _underscore2['default'].bindAll(this, 'filter');
     },
 
@@ -65633,7 +66010,7 @@ exports['default'] = _modal2['default'].extend({
 
     makeList: function makeList() {
         var $ul = (0, _jquery2['default'])('<ul></ul>');
-        this._list.forEach(function (_ref4) {
+        this._list.slice(0, this.batchSize * this.batchesVisible).forEach(function (_ref4) {
             var _ref42 = _slicedToArray(_ref4, 3);
 
             var content = _ref42[0];
@@ -65642,6 +66019,9 @@ exports['default'] = _modal2['default'].extend({
 
             $ul.append((0, _jquery2['default'])('<li data-value=\'' + content + '\' data-key=\'' + key + '\' data-index=\'' + index + '\'>' + content + '</li>'));
         });
+        if (this._list.length > this.batchSize) {
+            $ul.append((0, _jquery2['default'])('<li data-value=\'Load more...\' data-key=\'-1\' data-index=\'-1\'>Load more...</li>'));
+        }
         return $ul;
     },
 
@@ -65663,9 +66043,13 @@ exports['default'] = _modal2['default'].extend({
     },
 
     click: function click(evt) {
-        var key = evt.currentTarget.dataset.key;
-        this.submit(key);
-        this.close();
+        if (evt.currentTarget.dataset.index === '-1') {
+            this.batchesVisible += 1; // load an extra batch
+            this.update();
+        } else {
+            this.submit(evt.currentTarget.dataset.key);
+            this.close();
+        }
     }
 });
 module.exports = exports['default'];
@@ -69130,4 +69514,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-99488cc7.js.map
+//# sourceMappingURL=bundle-45d7b906.js.map
