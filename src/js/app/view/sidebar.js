@@ -16,7 +16,7 @@ export const LandmarkView = Backbone.View.extend({
     tagName: "div",
 
     events: {
-        click: "handleClick"
+        click: "select"
     },
 
     initialize: function ({labelIndex}) {
