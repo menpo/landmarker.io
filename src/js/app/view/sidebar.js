@@ -3,11 +3,121 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
 import $ from 'jquery';
+import React, { Component, PropTypes } from 'react';
+import ReactDOM from 'react-dom';
+import classNames from 'classnames';
 
 import * as Notification from './notification';
 import download from '../lib/download';
 import atomic from '../model/atomic';
 import TemplatePanel from './templates';
+
+export class Landmark extends Component {
+
+    render() {
+        const classes = classNames(['Lm', {
+            'Lm-Empty': this.props.isEmpty,
+            'Lm-Value': !this.props.isEmpty,
+            'Lm-Selected': this.props.isSelected,
+            'Lm-NextAvailable': this.props.isNextAvailable
+        }]);
+        return <div className={classes} onClick={this.props.onClick}></div>;
+    }
+}
+
+Landmark.propTypes = {
+    isEmpty: PropTypes.bool.isRequired,
+    isSelected: PropTypes.bool.isRequired,
+    isNextAvailable: PropTypes.bool.isRequired,
+    onClick: PropTypes.func.isRequired
+};
+
+export class LandmarkList extends Component {
+
+    render() {
+        return (
+            <div className="LmGroup-Flex">
+                {this.props.landmarks.map((lm, index) =>
+                        <Landmark {...lm}
+                            key={index}
+                            onClick={() => this.props.onLandmarkClick(index)} />
+                )}
+            </div>
+        );
+    }
+}
+
+const landmarksPropType = PropTypes.arrayOf(PropTypes.shape({
+    isEmpty: PropTypes.bool.isRequired,
+    isSelected: PropTypes.bool.isRequired,
+    isNextAvailable: PropTypes.bool.isRequired
+}).isRequired);
+
+LandmarkList.propTypes = {
+    onLandmarkClick: PropTypes.func.isRequired,
+    landmarks: landmarksPropType.isRequired
+};
+
+export class LandmarkGroup extends Component {
+
+    render() {
+        return (
+            <div className="LmGroup">
+            <div className="LmGroup-Label" >{this.props.label}</div>
+            <LandmarkList
+                landmarks={this.props.landmarks}
+                onLandmarkClick={this.props.onLandmarkClick} />
+            </div>
+        );
+    }
+}
+
+LandmarkGroup.propTypes = {
+    label: PropTypes.string.isRequired,
+    onLandmarkClick: PropTypes.func.isRequired,
+    landmarks: landmarksPropType.isRequired
+};
+
+
+export class LandmarkGroupList extends Component {
+
+    render() {
+        return (
+            <div>
+                {this.props.groups.map((group, index) =>
+                    <LandmarkGroup {...group}
+                        key={ index }
+                        onLandmarkClick={(i) =>
+                        this.props.onLandmarkClick(group.label, i)} />
+                )}
+            </div>
+        );
+    }
+}
+
+//LandmarkGroup.propTypes = {
+//    groups: PropTypes.text.isRequired,
+//    onLandmarkClick: PropTypes.func.isRequired,
+//    landmarks: landmarksPropType.isRequired
+//};
+
+/*
+render: function() {
+    this.collection.map(this.renderOne);
+    if (this.collection.length === 1) {
+        this.$el.find('.LmGroup-Flex').addClass('MultiLine');
+    }
+    return this;
+},
+
+renderOne: function(label, labelIndex) {
+    const group = new LandmarkGroupView({model: label, labelIndex});
+    // reset the view's element to it's template
+    this.$el.append(group.render().$el);
+    this.groups.push(group);
+    return this;
+
+*/
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -337,6 +447,14 @@ export const LmLoadView = Backbone.View.extend({
     }
 });
 
+function lmToReact(l) {
+    return {
+        isEmpty: l.isEmpty(),
+        isSelected: l.isSelected(),
+        isNextAvailable: l.isNextAvailable()
+    };
+}
+
 export default Backbone.View.extend({
 
     initialize: function () {
@@ -344,7 +462,6 @@ export default Backbone.View.extend({
         this.listenTo(this.model, "change:landmarks", this.landmarksChange);
         this.actionsView = null;
         this.lmLoadView = null;
-        this.lmView = null;
         this.undoRedoView = null;
         this.templatePanel = new TemplatePanel({model: this.model});
     },
@@ -363,20 +480,16 @@ export default Backbone.View.extend({
             this.undoRedoView.undelegateEvents();
         }
 
-        if (this.lmView) {
-            this.lmView.cleanup();
-        }
-
-        const lms = this.model.landmarks();
-
-        if (lms === null) {
-            return;
-        }
-
         this.actionsView = new ActionsView({model: lms, app: this.model});
         this.lmLoadView = new LmLoadView({model: lms, app: this.model});
         this.undoRedoView = new UndoRedoView({model: lms});
-        this.lmView = new LandmarkGroupListView({collection: lms.labels});
-        $('#landmarksPanel').html(this.lmView.render().$el);
+
+        const lms = this.model.landmarks();
+        if (lms === null) { return; }
+        const groups = lms.labels.map((l) => ({'label': l.label, 'landmarks': l.landmarks.map(lmToReact)}));
+        ReactDOM.render(<LandmarkGroupList
+            groups={groups}
+            onLandmarkClick={ (group, index) =>console.log(group, index) } />,
+            document.getElementById('landmarksPanel'));
     }
 });
