@@ -13,15 +13,40 @@ export const LandmarkSizeSlider = Backbone.View.extend({
     },
 
     initialize: function () {
-        _.bindAll(this, 'render', 'changeLandmarkSize');
+        _.bindAll(this, 'render', 'changeLandmarkSize', 'handleWheel');
         this.listenTo(this.model, "change:landmarkSize", this.render);
+
+        this._wheeled = 0;
+
         // set the size immediately.
         this.render();
     },
 
     render: function () {
         this.$el[0].value = this.model.get("landmarkSize") * 100;
+        this.$el.on('wheel', this.handleWheel);
         return this;
+    },
+
+    handleWheel: function (evt) {
+
+        this._wheeled += evt.originalEvent.deltaY;
+
+        const _update = () => {
+
+            const newSize = Math.min(Math.max(
+                this.model.get("landmarkSize") - this._wheeled / 1000,
+                0.05
+            ), 1);
+
+            this.model.set("landmarkSize", newSize);
+            if (Math.abs(this._wheeled) > 0) {
+                setTimeout(_update, 2);
+            }
+            this._wheeled = 0;
+        };
+
+        setTimeout(_update, 0);
     },
 
     changeLandmarkSize: atomic.atomicOperation(function (event) {
