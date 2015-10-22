@@ -36,7 +36,7 @@ function reducer(state = initialState, action) {
 }
 
 // store
-let store = createStore(reducer);
+const store = createStore(reducer);
 export { store };
 
 // conversion helpers

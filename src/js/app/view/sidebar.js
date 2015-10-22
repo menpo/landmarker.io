@@ -3,7 +3,7 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
 import $ from 'jquery';
-import React, { Component, PropTypes } from 'react';
+import React, { Component, PropTypes } from 'react'; // eslint-disable-line no-unused-vars
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
 import { store, loadLandmarks } from '../redux';
@@ -424,7 +424,7 @@ export const LmLoadView = Backbone.View.extend({
 
 // manually listen for changes to the store and redraw the landmarks react dom
 function redrawLandmarks() {
-    let landmarks = store.getState().landmarks;
+    const landmarks = store.getState().landmarks;
     ReactDOM.render(<LandmarkGroupList
         groups={ landmarks }
         onLandmarkClick={ (group, index) =>console.log(group, index) } />,

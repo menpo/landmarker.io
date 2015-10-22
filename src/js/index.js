@@ -13,8 +13,8 @@ import Intro from './app/view/intro';
 import AssetView from './app/view/asset';
 import SidebarView from './app/view/sidebar';
 import HelpOverlay from './app/view/help';
-import ToolbarView, { Toggle } from './app/view/toolbar';
-import React from 'react';
+import ToolbarView, { Toggle } from './app/view/toolbar'; // eslint-disable-line no-unused-vars
+import React from 'react'; // eslint-disable-line no-unused-vars
 import ReactDOM from 'react-dom';
 import URLState from './app/view/url_state';
 import ViewportView from './app/view/viewport';
