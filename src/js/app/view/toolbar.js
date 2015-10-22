@@ -2,7 +2,30 @@
 
 import _ from 'underscore';
 import Backbone from 'backbone';
+import React, { Component, PropTypes } from 'react';
 import atomic from '../model/atomic';
+
+// generic toggle class for the sidebar
+export class Toggle extends Component {
+
+    render() {
+        return (
+            <div className="Toolbar-Row">
+                <div className="Toolbar-Row-Item">{this.props.title}</div>
+                <div className="Toolbar-Row-Item">
+                    <p onClick={this.onClick}>{ this.props.checked ? 'ON' : 'OFF' }</p>
+                </div>
+            </div>
+        );
+    }
+}
+
+Toggle.propTypes = {
+    title: PropTypes.string.isRequired,
+    checked: PropTypes.bool.isRequired,
+    onClick: PropTypes.func.isRequired
+};
+
 
 export const LandmarkSizeSlider = Backbone.View.extend({
 

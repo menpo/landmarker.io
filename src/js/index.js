@@ -13,7 +13,9 @@ import Intro from './app/view/intro';
 import AssetView from './app/view/asset';
 import SidebarView from './app/view/sidebar';
 import HelpOverlay from './app/view/help';
-import ToolbarView from './app/view/toolbar';
+import ToolbarView, { Toggle } from './app/view/toolbar';
+import React from 'react';
+import ReactDOM from 'react-dom';
 import URLState from './app/view/url_state';
 import ViewportView from './app/view/viewport';
 import KeyboardShortcutsHandler from './app/view/keyboard';
@@ -335,6 +337,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
     };
+
+    // just to have a basic piece of react functionality easily available.
+    ReactDOM.render(<Toggle
+            title="hello"
+            checked={ false }
+            onClick={ () =>console.log('clicked!') } />,
+        document.getElementById('react'));
 
     resolveBackend(u);
 });

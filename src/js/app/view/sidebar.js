@@ -6,7 +6,7 @@ import $ from 'jquery';
 import React, { Component, PropTypes } from 'react';
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
-
+import { store, loadLandmarks } from '../redux';
 import * as Notification from './notification';
 import download from '../lib/download';
 import atomic from '../model/atomic';
@@ -78,7 +78,6 @@ LandmarkGroup.propTypes = {
     landmarks: landmarksPropType.isRequired
 };
 
-
 export class LandmarkGroupList extends Component {
 
     render() {
@@ -94,30 +93,6 @@ export class LandmarkGroupList extends Component {
         );
     }
 }
-
-//LandmarkGroup.propTypes = {
-//    groups: PropTypes.text.isRequired,
-//    onLandmarkClick: PropTypes.func.isRequired,
-//    landmarks: landmarksPropType.isRequired
-//};
-
-/*
-render: function() {
-    this.collection.map(this.renderOne);
-    if (this.collection.length === 1) {
-        this.$el.find('.LmGroup-Flex').addClass('MultiLine');
-    }
-    return this;
-},
-
-renderOne: function(label, labelIndex) {
-    const group = new LandmarkGroupView({model: label, labelIndex});
-    // reset the view's element to it's template
-    this.$el.append(group.render().$el);
-    this.groups.push(group);
-    return this;
-
-*/
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -447,13 +422,16 @@ export const LmLoadView = Backbone.View.extend({
     }
 });
 
-function lmToReact(l) {
-    return {
-        isEmpty: l.isEmpty(),
-        isSelected: l.isSelected(),
-        isNextAvailable: l.isNextAvailable()
-    };
+// manually listen for changes to the store and redraw the landmarks react dom
+function redrawLandmarks() {
+    let landmarks = store.getState().landmarks;
+    ReactDOM.render(<LandmarkGroupList
+        groups={ landmarks }
+        onLandmarkClick={ (group, index) =>console.log(group, index) } />,
+        document.getElementById('landmarksPanel'));
 }
+
+store.subscribe(redrawLandmarks);
 
 export default Backbone.View.extend({
 
@@ -479,17 +457,16 @@ export default Backbone.View.extend({
         if (this.undoRedoView) {
             this.undoRedoView.undelegateEvents();
         }
+        const lms = this.model.landmarks();
+        if (lms === null) { return; }
 
         this.actionsView = new ActionsView({model: lms, app: this.model});
         this.lmLoadView = new LmLoadView({model: lms, app: this.model});
         this.undoRedoView = new UndoRedoView({model: lms});
 
-        const lms = this.model.landmarks();
-        if (lms === null) { return; }
-        const groups = lms.labels.map((l) => ({'label': l.label, 'landmarks': l.landmarks.map(lmToReact)}));
-        ReactDOM.render(<LandmarkGroupList
-            groups={groups}
-            onLandmarkClick={ (group, index) =>console.log(group, index) } />,
-            document.getElementById('landmarksPanel'));
+        // let the store know that the landmarks have changed.
+        // We will invert this before long, and have the store notify
+        // a backbone shim about the changes.
+        store.dispatch(loadLandmarks(lms));
     }
 });
