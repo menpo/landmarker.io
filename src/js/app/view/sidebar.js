@@ -6,7 +6,7 @@ import $ from 'jquery';
 import React, { Component, PropTypes } from 'react';
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
-import { store, loadLandmarks } from '../redux';
+import { store, loadLandmarks, arraysToObjects } from '../reactredux';
 import * as Notification from './notification';
 import download from '../lib/download';
 import atomic from '../model/atomic';
@@ -21,11 +21,12 @@ export class Landmark extends Component {
             'Lm-Selected': this.props.isSelected,
             'Lm-NextAvailable': this.props.isNextAvailable
         }]);
-        return <div className={classes} onClick={this.props.onClick}></div>;
+        return <div className={classes} onClick={() => this.props.onClick(this.props.id)}></div>;
     }
 }
 
 Landmark.propTypes = {
+    id: PropTypes.number.isRequired,
     isEmpty: PropTypes.bool.isRequired,
     isSelected: PropTypes.bool.isRequired,
     isNextAvailable: PropTypes.bool.isRequired,
@@ -40,7 +41,7 @@ export class LandmarkList extends Component {
                 {this.props.landmarks.map((lm, index) =>
                         <Landmark {...lm}
                             key={index}
-                            onClick={() => this.props.onLandmarkClick(index)} />
+                            onClick={this.props.onClick} />
                 )}
             </div>
         );
@@ -48,13 +49,14 @@ export class LandmarkList extends Component {
 }
 
 const landmarksPropType = PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.number.isRequired,
     isEmpty: PropTypes.bool.isRequired,
     isSelected: PropTypes.bool.isRequired,
     isNextAvailable: PropTypes.bool.isRequired
 }).isRequired);
 
 LandmarkList.propTypes = {
-    onLandmarkClick: PropTypes.func.isRequired,
+    onClick: PropTypes.func.isRequired,
     landmarks: landmarksPropType.isRequired
 };
 
@@ -66,7 +68,7 @@ export class LandmarkGroup extends Component {
             <div className="LmGroup-Label" >{this.props.label}</div>
             <LandmarkList
                 landmarks={this.props.landmarks}
-                onLandmarkClick={this.props.onLandmarkClick} />
+                onClick={this.props.onClick} />
             </div>
         );
     }
@@ -74,7 +76,7 @@ export class LandmarkGroup extends Component {
 
 LandmarkGroup.propTypes = {
     label: PropTypes.string.isRequired,
-    onLandmarkClick: PropTypes.func.isRequired,
+    onClick: PropTypes.func.isRequired,
     landmarks: landmarksPropType.isRequired
 };
 
@@ -83,11 +85,10 @@ export class LandmarkGroupList extends Component {
     render() {
         return (
             <div>
-                {this.props.groups.map((group, index) =>
+                {this.props.groups.map((group, i) =>
                     <LandmarkGroup {...group}
-                        key={ index }
-                        onLandmarkClick={(i) =>
-                        this.props.onLandmarkClick(group.label, i)} />
+                        key={i}
+                        onClick={this.props.onClick} />
                 )}
             </div>
         );
@@ -424,10 +425,13 @@ export const LmLoadView = Backbone.View.extend({
 
 // manually listen for changes to the store and redraw the landmarks react dom
 function redrawLandmarks() {
-    let landmarks = store.getState().landmarks;
+    const state = store.getState();
+    const labels = state.landmarks2.labels;
+    const lms = arraysToObjects(state);
+    const groups = labels.map((g) => ({label: g.label, landmarks: g.mask.map((i) => lms[i])}));
     ReactDOM.render(<LandmarkGroupList
-        groups={ landmarks }
-        onLandmarkClick={ (group, index) =>console.log(group, index) } />,
+        groups={ groups }
+        onClick={ (index) =>console.log(index) } />,
         document.getElementById('landmarksPanel'));
 }
 
