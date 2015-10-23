@@ -2,7 +2,7 @@
 
 import _ from 'underscore';
 import Backbone from 'backbone';
-import React, { Component, PropTypes } from 'react';
+import React, { Component, PropTypes } from 'react'; // eslint-disable-line no-unused-vars
 import atomic from '../model/atomic';
 
 // generic toggle class for the sidebar
@@ -25,7 +25,6 @@ Toggle.propTypes = {
     checked: PropTypes.bool.isRequired,
     onClick: PropTypes.func.isRequired
 };
-
 
 export const LandmarkSizeSlider = Backbone.View.extend({
 

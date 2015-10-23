@@ -3,7 +3,7 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
 import $ from 'jquery';
-import React, { Component, PropTypes } from 'react';
+import React, { Component, PropTypes } from 'react'; // eslint-disable-line no-unused-vars
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
 import { store, loadLandmarks, arraysToObjects } from '../reactredux';
