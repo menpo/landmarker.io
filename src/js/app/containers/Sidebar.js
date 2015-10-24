@@ -28,7 +28,7 @@ function landmark(id) {
 }
 
 function arraysToObjects(state) {
-    let lms = state.landmarks2.landmarks.points.map((_, i) => landmark(i));
+    let lms = state.landmarks.landmarks.points.map((_, i) => landmark(i));
     applyMask(lms, state.empty, 'isEmpty', true);
     applyMask(lms, state.selected, 'isSelected', true);
     if (state.nextToInsert !== -1) {
@@ -38,12 +38,13 @@ function arraysToObjects(state) {
 }
 
 function select(state) {
-    const labels = state.landmarks2.labels;
+    const labels = state.landmarks.labels;
     const lms = arraysToObjects(state);
     return {
         groups: labels.map((g) => ({label: g.label, landmarks: g.mask.map((i) => lms[i])}))
     };
 }
+
 
 // Wrap the component to inject dispatch and state into it
 export default connect(select)(Sidebar);

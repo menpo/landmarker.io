@@ -5,6 +5,7 @@ var gutil = require('gulp-util');
 var prefix = require('gulp-autoprefixer');
 var browserify = require('browserify');
 var babelify = require('babelify');
+var watchify = require('watchify');
 var source = require('vinyl-source-stream');
 var notify = require("gulp-notify");
 var manifest = require('gulp-manifest');
@@ -17,8 +18,10 @@ var sourcemaps = require('gulp-sourcemaps');
 var rename = require('gulp-rename');
 var del = require('del');
 
+var PRODUCTION = process.env.NODE_ENV === 'production';
+console.log(PRODUCTION ? 'PRODUCTION: true' : 'PRODUCTION: false');
+
 var src = {
-    js: ['src/js/**/*.js'],
     scss: ['src/scss/**/*.scss'],
     html: ['src/index.html']
 };
@@ -41,55 +44,47 @@ var remoteCached = [
     '//cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css'
 ];
 
-gulp.task('manifest', function(){
-    return gulp.src(buildGlobs, { base: '.' })
-        .pipe(manifest({
-            hash: true,
-            cache: remoteCached,
-            filename: 'lmio.appcache',
-            exclude: 'lmio.appcache'
-        }))
+var browserifyOpts = {
+    entries: [entry.js],
+    transform: [babelify],
+    debug: true
+};
+
+var opts = Object.assign({}, watchify.args, browserifyOpts);
+var b = watchify(browserify(opts));
+
+function processJS() {
+    var buildJS = b.bundle()
+        .on('error', function (err) {
+            if (PRODUCTION) {
+                throw err;
+            } else {
+                gutil.log('Browserify Error', err.message || err);
+            }
+        })
+        .pipe(source('bundle.js'))
+        .pipe(buffer());
+    if (PRODUCTION) {
+        buildJS = buildJS.pipe(rev());
+    }
+    return buildJS
+        .pipe(sourcemaps.init({loadMaps: true}))
+        .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('.'))
-        .pipe(notify('Landmarker.io: Manifest updated'));
-});
+        .pipe(notify('Landmarker.io: JS rebuilt'));
+}
 
-gulp.task('clean-js', function (cb) {
-    del(['./bundle*.js*'], cb);
-});
+// on JS updates, rebundle.
+b.on('update', processJS);
 
-gulp.task('clean-css', function (cb) {
-    del(['./bundle*.css*'], cb);
-});
-
-// Rebuild the JS bundle + issue a notification when done.
-gulp.task('js', function() {
-    var b = browserify(entry.js, {debug: true, transform: [babelify]})
-        .bundle();
-
-    return b.on('error', function (err) {
-        if (process.env.NODE_ENV === 'production') {
-            throw err;
-        } else {
-            gutil.log('Browserify Error', err.message || err);
-        }
-    })
-    .pipe(source('bundle.js'))
-    .pipe(buffer())
-    .pipe(rev())
-    .pipe(sourcemaps.init({loadMaps: true}))
-    .pipe(sourcemaps.write('./'))
-    .pipe(gulp.dest('.'))
-    .pipe(notify('Landmarker.io: JS rebuilt'));
-});
-
-// Rebuild the SCSS and pass through autoprefixer output
+// Rebuild the SASS and pass through autoprefixer output
 // + issue a notification when done.
-gulp.task('sass', function () {
-    return gulp.src(entry.scss)
+function processSASS() {
+    var buildSASS = gulp.src(entry.scss)
         .pipe(sourcemaps.init())
         .pipe(sass()
         .on('error', function (err) {
-            if (process.env.NODE_ENV === 'production') {
+            if (PRODUCTION) {
                 throw err;
             } else {
                 gutil.log('Node-Sass Error', err.message || err);
@@ -99,18 +94,46 @@ gulp.task('sass', function () {
             { cascade: true }))
         .pipe(sourcemaps.write())
         .pipe(rename('bundle.css'))
-        .pipe(rev())
+        .pipe(buffer());
+    if (PRODUCTION) {
+        buildSASS = buildSASS.pipe(rev());
+    }
+    return buildSASS
         .pipe(gulp.dest('.'))
-        .pipe(notify('Landmarker.io: (S)CSS rebuilt'));
-});
+        .pipe(notify('Landmarker.io: SASS (CSS) rebuilt'));
+}
 
-gulp.task('html', function() {
+function processHTML() {
     var target = gulp.src(entry.html);
     var sources = gulp.src(buildGlobs, {read: false});
     return target.pipe(inject(sources, {addRootSlash: false}))
         .pipe(gulp.dest('.'))
         .pipe(notify('Landmarker.io: HTML rebuilt'));
+}
 
+function processManifest() {
+    return gulp.src(buildGlobs, { base: '.' })
+        .pipe(manifest({
+            hash: true,
+            cache: remoteCached,
+            filename: 'lmio.appcache',
+            exclude: 'lmio.appcache'
+        }))
+        .pipe(gulp.dest('.'))
+        .pipe(notify('Landmarker.io: Manifest updated'));
+}
+
+gulp.task('sass', processSASS);
+gulp.task('html', processHTML);
+gulp.task('js', processJS);
+gulp.task('manifest', processManifest);
+
+gulp.task('clean-js', function (cb) {
+    del(['./bundle*.js*'], cb);
+});
+
+gulp.task('clean-css', function (cb) {
+    del(['./bundle*.css*'], cb);
 });
 
 gulp.task('build-js', function() {
@@ -122,15 +145,13 @@ gulp.task('build-css', function() {
 });
 
 gulp.task('build-html', function() {
-    runSequence('html', 'manifest');
+    PRODUCTION ? runSequence('html', 'manifest') : runSequence('html');
 });
 
 // Rerun the task when a file changes
 gulp.task('watch', function() {
-    gulp.watch(src.js, ['build-js']);
     gulp.watch(src.scss, ['build-css']);
     gulp.watch(src.html, ['build-html']);
-    // whenever any built file changes, invalidate the manifest
 });
 
 gulp.task('build', ['build-js', 'build-css']);

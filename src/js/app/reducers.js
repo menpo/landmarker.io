@@ -1,16 +1,16 @@
 import { LOAD_LANDMARKS, SELECT_LANDMARKS } from './actions';
 
 const initialState = {
-    landmarks2: {
+    landmarks: {
         landmarks: {
             points: []
         },
         labels: []
 
     },
+    empty: [],
     selected: [],
-    nextToInsert: -1,
-    empty: []
+    nextToInsert: -1
 };
 
 // turn a set of boolean method calls into an index array
@@ -22,12 +22,12 @@ function lmioApp(state = initialState, action) {
             const lms = action.landmarks.landmarks;
             const next = booleanIndices(lms, 'isNextAvailable');
             const newState = {
-                landmarks2: action.landmarks.toJSON(),
+                landmarks: action.landmarks.toJSON(),
                 selected: booleanIndices(lms, 'isSelected'),
                 empty: booleanIndices(lms, 'isEmpty'),
                 nextToInsert: next.length === 0 ? -1 : next[0]
             };
-            delete newState.landmarks2.version;
+            delete newState.landmarks.version;
             return newState;
         case SELECT_LANDMARKS:
             return Object.assign({}, state, { selected: action.landmarks });
