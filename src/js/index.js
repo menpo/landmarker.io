@@ -14,11 +14,16 @@ import AssetView from './app/view/asset';
 import SidebarView from './app/view/sidebar';
 import HelpOverlay from './app/view/help';
 import ToolbarView, { Toggle } from './app/view/toolbar'; // eslint-disable-line no-unused-vars
-import React from 'react'; // eslint-disable-line no-unused-vars
-import ReactDOM from 'react-dom';
 import URLState from './app/view/url_state';
 import ViewportView from './app/view/viewport';
 import KeyboardShortcutsHandler from './app/view/keyboard';
+
+import React from 'react'; // eslint-disable-line no-unused-vars
+import { render } from 'react-dom';
+import { Provider } from 'react-redux';
+import store from './app/reduxindex';
+import Sidebar from './app/containers/Sidebar';
+import bindToRedux from './app/bridge';
 
 import Config from './app/model/config';
 import App from './app/model/app';
@@ -232,6 +237,8 @@ function initLandmarker(server, mode, u) {
     }
 
     var app = new App(appInit);
+    // wire up the app to redux so we can bridge the old and new APIs
+    bindToRedux(app);
 
     new SidebarView({model: app});
     new AssetView({model: app});
@@ -338,12 +345,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     };
 
-    // just to have a basic piece of react functionality easily available.
-    ReactDOM.render(<Toggle
-            title="hello"
-            checked={ false }
-            onClick={ () =>console.log('clicked!') } />,
-        document.getElementById('react'));
+    const rootElement = document.getElementById('landmarksPanel');
+    render(
+        <Provider store={store}>
+            <Sidebar />
+        </Provider>,
+        rootElement
+    );
 
     resolveBackend(u);
 });

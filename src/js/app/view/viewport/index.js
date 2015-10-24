@@ -83,8 +83,8 @@ export default Backbone.View.extend({
         this.pipCanvas.height = PIP_HEIGHT * this.pixelRatio;
         this.pipCanvas.style.left = this.pipBounds().x + 'px';
 
-        // To compensate for rentina displays we have to manually
-        // scale our contexts up by the pixel ration. To conteract this (so we
+        // To compensate for retina displays we have to manually
+        // scale our contexts up by the pixel ratio. To counteract this (so we
         // can work in 'normal' pixel units) add a global transform to the
         // canvas contexts we are holding on to.
         this.pipCtx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
@@ -157,6 +157,7 @@ export default Backbone.View.extend({
             this.el, this.model.imageMode());
 
         // when the camera updates, render
+        // REDUX callback
         this.cameraController.on('change', this.update);
 
         if (!this.model.meshMode()) {
@@ -228,10 +229,12 @@ export default Backbone.View.extend({
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
+        // REDUX subscribe events
         this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
 
         this.showConnectivity = true;
+        // REDUX subscribe events
         this.listenTo(
             this.model,
             'change:connectivityOn',
@@ -239,6 +242,7 @@ export default Backbone.View.extend({
         );
         this.updateConnectivityDisplay();
 
+        // REDUX subscribe events
         this.listenTo(
             this.model, 'change:editingOn', this.updateEditingDisplay);
         this.updateEditingDisplay();
@@ -248,6 +252,7 @@ export default Backbone.View.extend({
         //     this.clearCanvas();
         // });
 
+        // REDUX this probably goes away
         this.listenTo(atomic, "change:ATOMIC_OPERATION", this.batchHandler);
 
         // trigger resize to initially size the viewport
@@ -456,6 +461,7 @@ export default Backbone.View.extend({
         }
     }),
 
+    // REDUX dispatch DESELECT_ALL_LANDMARKS
     deselectAll: function () {
         const lms = this.model.get('landmarks');
         if (lms) {
@@ -497,6 +503,7 @@ export default Backbone.View.extend({
         }
     },
 
+    // REDUX subscribe LANDMARKS_CHANGED
     changeLandmarks: atomic.atomicOperation(function () {
         console.log('Viewport: landmarks have changed');
         var that = this;

@@ -3,97 +3,10 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
 import $ from 'jquery';
-import React, { Component, PropTypes } from 'react'; // eslint-disable-line no-unused-vars
-import ReactDOM from 'react-dom';
-import classNames from 'classnames';
-import { store, loadLandmarks, arraysToObjects } from '../reactredux';
 import * as Notification from './notification';
 import download from '../lib/download';
 import atomic from '../model/atomic';
 import TemplatePanel from './templates';
-
-export class Landmark extends Component {
-
-    render() {
-        const classes = classNames(['Lm', {
-            'Lm-Empty': this.props.isEmpty,
-            'Lm-Value': !this.props.isEmpty,
-            'Lm-Selected': this.props.isSelected,
-            'Lm-NextAvailable': this.props.isNextAvailable
-        }]);
-        return <div className={classes} onClick={() => this.props.onClick(this.props.id)}></div>;
-    }
-}
-
-Landmark.propTypes = {
-    id: PropTypes.number.isRequired,
-    isEmpty: PropTypes.bool.isRequired,
-    isSelected: PropTypes.bool.isRequired,
-    isNextAvailable: PropTypes.bool.isRequired,
-    onClick: PropTypes.func.isRequired
-};
-
-export class LandmarkList extends Component {
-
-    render() {
-        return (
-            <div className="LmGroup-Flex">
-                {this.props.landmarks.map((lm, index) =>
-                        <Landmark {...lm}
-                            key={index}
-                            onClick={this.props.onClick} />
-                )}
-            </div>
-        );
-    }
-}
-
-const landmarksPropType = PropTypes.arrayOf(PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    isEmpty: PropTypes.bool.isRequired,
-    isSelected: PropTypes.bool.isRequired,
-    isNextAvailable: PropTypes.bool.isRequired
-}).isRequired);
-
-LandmarkList.propTypes = {
-    onClick: PropTypes.func.isRequired,
-    landmarks: landmarksPropType.isRequired
-};
-
-export class LandmarkGroup extends Component {
-
-    render() {
-        return (
-            <div className="LmGroup">
-            <div className="LmGroup-Label" >{this.props.label}</div>
-            <LandmarkList
-                landmarks={this.props.landmarks}
-                onClick={this.props.onClick} />
-            </div>
-        );
-    }
-}
-
-LandmarkGroup.propTypes = {
-    label: PropTypes.string.isRequired,
-    onClick: PropTypes.func.isRequired,
-    landmarks: landmarksPropType.isRequired
-};
-
-export class LandmarkGroupList extends Component {
-
-    render() {
-        return (
-            <div>
-                {this.props.groups.map((group, i) =>
-                    <LandmarkGroup {...group}
-                        key={i}
-                        onClick={this.props.onClick} />
-                )}
-            </div>
-        );
-    }
-}
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -423,20 +336,6 @@ export const LmLoadView = Backbone.View.extend({
     }
 });
 
-// manually listen for changes to the store and redraw the landmarks react dom
-function redrawLandmarks() {
-    const state = store.getState();
-    const labels = state.landmarks2.labels;
-    const lms = arraysToObjects(state);
-    const groups = labels.map((g) => ({label: g.label, landmarks: g.mask.map((i) => lms[i])}));
-    ReactDOM.render(<LandmarkGroupList
-        groups={ groups }
-        onClick={ (index) =>console.log(index) } />,
-        document.getElementById('landmarksPanel'));
-}
-
-store.subscribe(redrawLandmarks);
-
 export default Backbone.View.extend({
 
     initialize: function () {
@@ -468,9 +367,5 @@ export default Backbone.View.extend({
         this.lmLoadView = new LmLoadView({model: lms, app: this.model});
         this.undoRedoView = new UndoRedoView({model: lms});
 
-        // let the store know that the landmarks have changed.
-        // We will invert this before long, and have the store notify
-        // a backbone shim about the changes.
-        store.dispatch(loadLandmarks(lms));
     }
 });

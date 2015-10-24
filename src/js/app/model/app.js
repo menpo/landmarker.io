@@ -9,6 +9,8 @@ import Tracker from '../lib/tracker';
 import * as AssetSource from './assetsource';
 import LandmarkGroup from './landmark_group';
 import Modal from '../view/modal';
+import store from '../reduxindex';
+import { loadLandmarks } from '../actions';
 
 export default Backbone.Model.extend({
 
@@ -266,6 +268,8 @@ export default Backbone.Model.extend({
                 this.set('landmarks', null);
                 this.loadLandmarksPromise().then((lms) => {
                     this.set('landmarks', lms);
+                    // let the store know that the landmarks have changed.
+                    store.dispatch(loadLandmarks(lms));
                 });
             });
         }
