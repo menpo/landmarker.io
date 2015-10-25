@@ -42,7 +42,7 @@ export const LandmarkSizeSlider = Backbone.View.extend({
     },
 
     render: function () {
-        this.$el[0].value = this.model.get("landmarkSize") * 100;
+        this.$el[0].value = this.model.landmarkSize() * 100;
         return this;
     },
 

@@ -1,40 +1,77 @@
-import { LOAD_LANDMARKS, SELECT_LANDMARKS } from './actions';
+import { combineReducers } from 'redux';
+import { LOAD_LANDMARKS, SET_SELECTED_LANDMARKS, AUGMENT_SELECTED_LANDMARKS, SET_NEXT_INSERTION, DELETE_LANDMARKS } from './actions';
 
-const initialState = {
-    landmarks: {
+const lmioApp = combineReducers({
+        landmarks: reduceLandmarks,
+        selected: reduceSelected,
+        nextToInsert: reduceNextToInsert,
+        lastAction: reduceLastAction
+});
+
+
+// this is just whilst we port over from backbone to react.
+function reduceLastAction(state=null, action) {
+    return action;
+}
+
+function reduceLandmarks(landmarks, action) {
+    return {
         landmarks: {
-            points: []
+            points: reducePoints(landmarks !== undefined ? landmarks.landmarks.points : undefined, action)
         },
-        labels: []
+        labels: reduceLabels(landmarks !== undefined ? landmarks.labels : undefined, action)
+    };
+}
 
-    },
-    empty: [],
-    selected: [],
-    nextToInsert: -1
-};
+const deepCopyArray = (l) => l.map((x) => [...x]);
+
+function reducePoints(points = [], action) {
+    switch (action.type) {
+        case LOAD_LANDMARKS:
+            return deepCopyArray(action.landmarks.toJSON().landmarks.points);
+        case DELETE_LANDMARKS:
+            // TODO this should probably be a single null just to make everything simpler.
+            const emptyPoint = points[0].length === 3 ? [null, null, null] : [null, null];
+            const newPoints = deepCopyArray(points);
+            action.indices.map((i) => newPoints[i] = [...emptyPoint]);
+            return newPoints;
+        default:
+            return points;
+    }
+}
+
+function reduceLabels(labels = [], action) {
+    switch (action.type) {
+        case LOAD_LANDMARKS:
+            // this is bad - not copying
+            return action.landmarks.toJSON().labels;
+        default:
+            return labels;
+    }
+}
+
+function reduceNextToInsert(nextToInsert = -1, action) {
+    switch (action.type) {
+        case SET_NEXT_INSERTION:
+            return action.index;
+        default:
+            return nextToInsert;
+    }
+}
+
+function reduceSelected(selected = [], action) {
+    switch (action.type) {
+        case SET_SELECTED_LANDMARKS:
+            return [...action.indices];
+        default:
+            return selected;
+    }
+}
+
 
 // turn a set of boolean method calls into an index array
 const booleanIndices = (xs, k) => xs.map((x, i) => x[k]() ? i : -1).filter((x) => x > -1);
 
-function lmioApp(state = initialState, action) {
-    switch (action.type) {
-        case LOAD_LANDMARKS:
-            const lms = action.landmarks.landmarks;
-            const next = booleanIndices(lms, 'isNextAvailable');
-            const newState = {
-                landmarks: action.landmarks.toJSON(),
-                selected: booleanIndices(lms, 'isSelected'),
-                empty: booleanIndices(lms, 'isEmpty'),
-                nextToInsert: next.length === 0 ? -1 : next[0]
-            };
-            delete newState.landmarks.version;
-            return newState;
-        case SELECT_LANDMARKS:
-            return Object.assign({}, state, { selected: action.landmarks });
-        default:
-            return state;
-    }
-}
 
 //// conversion helpers
 //function lmToReact(l) {

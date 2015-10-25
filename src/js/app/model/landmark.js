@@ -29,6 +29,10 @@ export default Backbone.Model.extend({
         return this.get('point');
     },
 
+    index: function () {
+        return this.get('index');
+    },
+
     setPoint: function (p) {
         this.set('point', p);
     },

@@ -134,6 +134,10 @@ export default Backbone.Model.extend({
         return this.get('landmarks');
     },
 
+    landmarkSize: function () {
+        return this.get('landmarkSize');
+    },
+
     initialize: function () {
         _.bindAll(this, 'assetChanged', 'mesh', 'assetSource', 'landmarks');
 

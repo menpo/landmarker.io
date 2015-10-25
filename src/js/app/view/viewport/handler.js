@@ -126,7 +126,7 @@ export default function Handler () {
         // record the position of where the drag started.
         positionLmDrag.copy(this.localToScreen(lmPressed.point()));
         dragStartPositions = this.model.landmarks().selected().map(
-            lm => [lm.get('index'), lm.point().clone()]);
+            lm => [lm.index(), lm.point().clone()]);
 
         // start listening for dragging landmarks
         $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
@@ -478,7 +478,7 @@ export default function Handler () {
 
             if (intersectsWithMesh.length > 0) {
                 const pt = this.worldToLocal(intersectsWithMesh[0].point);
-                ops.push([lm.get('index'), lm.point().clone(), pt.clone()]);
+                ops.push([lm.index(), lm.point().clone(), pt.clone()]);
                 lm.setPoint(pt);
             }
         });

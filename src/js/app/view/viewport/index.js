@@ -463,7 +463,7 @@ export default Backbone.View.extend({
 
     // REDUX dispatch DESELECT_ALL_LANDMARKS
     deselectAll: function () {
-        const lms = this.model.get('landmarks');
+        const lms = this.model.landmarks();
         if (lms) {
             lms.deselectAll();
         }
@@ -520,7 +520,7 @@ export default Backbone.View.extend({
         this.landmarkViews = [];
         this.connectivityViews = [];
 
-        var landmarks = this.model.get('landmarks');
+        var landmarks = this.model.landmarks();
         if (landmarks === null) {
             // no actual landmarks available - return
             // TODO when can this happen?!

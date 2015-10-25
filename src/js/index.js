@@ -30,6 +30,8 @@ import App from './app/model/app';
 
 import Backend from './app/backend';
 
+require('../scss/main.scss');
+
 const cfg = Config();
 
 const mixedContentWarning = `

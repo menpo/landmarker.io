@@ -55,7 +55,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
             // there is no symbol yet
             if (!this.model.isEmpty()) {
                 // and there should be! Make it and update it
-                this.symbol = this.createSphere(this.model.get('point'), true);
+                this.symbol = this.createSphere(this.model.point(), true);
                 this.updateSymbol();
                 // trigger changeLandmarkSize to make sure sizing is correct
                 this.changeLandmarkSize();
@@ -91,7 +91,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
     changeLandmarkSize: function () {
         if (this.symbol) {
             // have a symbol, and need to change it's size.
-            var r = this.app.get('landmarkSize') * this.viewport.meshScale;
+            var r = this.app.landmarkSize() * this.viewport.meshScale;
             this.symbol.scale.set(r, r, r);
             // tell our viewport to update
             this.viewport.update();
@@ -126,8 +126,8 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
             // there is no symbol yet
             if (!this.model[0].isEmpty() && !this.model[1].isEmpty()) {
                 // and there should be! Make it and update it
-                this.symbol = this.createLine(this.model[0].get('point'),
-                        this.model[1].get('point'));
+                this.symbol = this.createLine(this.model[0].point(),
+                        this.model[1].point());
                 this.updateSymbol();
                 // and add it to the scene
                 this.viewport.sLmsConnectivity.add(this.symbol);
