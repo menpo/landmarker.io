@@ -4,6 +4,87 @@ import $ from 'jquery';
 
 import Modal from './modal';
 
+const SHORTCUTS = {
+    // Structure is [fn, acceptShift?, needLms?]
+    // Shortcuts activated without SHIFT, but CAPS LOCK ok (letters)
+    "d": [function (lms) { // d = [d]elete selected
+        lms.deleteSelected();
+        $('#viewportContainer').trigger("groupDeselected");
+    }, false, true],
+
+    "q": [function (lms) { // q = deselect all
+        lms.deselectAll();
+        $('#viewportContainer').trigger("groupDeselected");
+    }, false, true],
+
+    "r": [function (lms, app, viewport) { // r = [r]eset camera
+        // TODO fix for multiple cameras (should be in camera controller)
+        viewport.resetCamera();
+    }, false, false],
+
+    "t": [function (lms, app) { // t = toggle [t]exture (mesh mode only)
+        if (app.meshMode()) {
+            app.asset().textureToggle();
+        }
+    }, false, false],
+
+    "a": [function (lms, app) { // a = select [a]ll
+        app.landmarks().selectAll();
+        $('#viewportContainer').trigger("groupSelected");
+    }, false, true],
+
+    "g": [function () { // g = complete [g]roup selection
+        $('#viewportContainer').trigger("completeGroupSelection");
+    }, false, true],
+
+    "c": [function (lms, app, viewport) { // c = toggle [c]amera mode
+        if (app.meshMode()) {
+            viewport.toggleCamera();
+        }
+    }, false, false],
+
+    "j": [function (lms, app) { // j = down, next asset
+        app.nextAsset();
+    }, false, false],
+
+    "k": [function (lms, app) { // k = up, previous asset
+        app.previousAsset();
+    }, false, false],
+
+    "l": [function (lms, app) { // l = toggle [l]inks
+        app.toggleConnectivity();
+    }, false, false],
+
+    "e": [function (lms, app) { // e = toggle [e]dit mode
+        app.toggleEditing();
+    }, false, false],
+
+    "z": [function (lms) { // z = undo
+        if (lms && lms.tracker.canUndo()) {
+            lms.undo();
+        }
+    }, false, true],
+
+    "y": [function (lms) { // y = redo
+        if (lms && lms.tracker.canRedo()) {
+            lms.redo();
+        }
+    }, false, true],
+
+    // Keys where shift key may be needed on certain keyboard layouts
+    "?": [function (lms, app) {
+        app.toggleHelpOverlay();
+    }, true, false],
+
+    "+": [function (lms, app) {
+        app.incrementLandmarkSize();
+    }, true, false],
+
+    "-": [function (lms, app) {
+        app.decrementLandmarkSize();
+    }, true, false]
+};
+
 export default function KeyboardShortcutsHandler (app, viewport) {
     this._keypress = function (e) {
 
@@ -20,73 +101,13 @@ export default function KeyboardShortcutsHandler (app, viewport) {
 
         const lms = app.landmarks();
 
-        switch (key) {
-            case "d":  // d = [d]elete selected
-                if (lms) {
-                    lms.deleteSelected();
-                    $('#viewportContainer').trigger("groupDeselected");
-                }
-                break;
-            case "q":  // q = deselect all
-                if (lms) {
-                    app.landmarks().deselectAll();
-                    $('#viewportContainer').trigger("groupDeselected");
-                }
-                break;
-            case "r":  // r = [r]eset camera
-                // TODO fix for multiple cameras (should be in camera controller)
-                viewport.resetCamera();
-                break;
-            case "t":  // t = toggle [t]exture (mesh mode only)
-                if (app.meshMode()) {
-                    app.asset().textureToggle();
-                }
-                break;
-            case "a":  // a = select [a]ll
-                if (lms) {
-                    app.landmarks().selectAll();
-                    $('#viewportContainer').trigger("groupSelected");
-                }
-                break;
-            case "g":  // g = complete [g]roup selection
-                $('#viewportContainer').trigger("completeGroupSelection");
-                break;
-            case "c":  // c = toggle [c]amera mode
-                if (app.meshMode()) {
-                    viewport.toggleCamera();
-                }
-                break;
-            case "j":  // j = down, next asset
-                app.nextAsset();
-                break;
-            case "k":  // k = up, previous asset
-                app.previousAsset();
-                break;
-            case "l":  // l = toggle [l]inks
-                app.toggleConnectivity();
-                break;
-            case "e":  // e = toggle [e]dit mode
-                app.toggleEditing();
-                break;
-            case "z": // z = undo
-                if (lms && lms.tracker.canUndo()) {
-                    lms.undo();
-                }
-                break;
-            case "y": // y = redo
-                if (lms && lms.tracker.canRedo()) {
-                    lms.redo();
-                }
-                break;
-            case "?": // toggle help
-                app.toggleHelpOverlay();
-                break;
-            case "+":
-                app.incrementLandmarkSize();
-                break;
-            case "-":
-                app.decrementLandmarkSize();
-                break;
+        const [fn, acceptShift, needLms] = SHORTCUTS[key] || [];
+        if (
+            fn &&
+            (e.shiftKey && acceptShift || !e.shiftKey) &&
+            (lms && needLms || !needLms)
+        ) {
+            fn(lms, app, viewport);
         }
     };
 
