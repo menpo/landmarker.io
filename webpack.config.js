@@ -4,6 +4,7 @@ module.exports = {
     entry: "./src/js/index.js",
     output: {
         path: path.join(__dirname, 'dist'),
+        publicPath: "/",
         filename: "bundle.js"
     },
     devtool: "source-map", // or "inline-source-map"
