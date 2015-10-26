@@ -65872,7 +65872,6 @@ function KeyboardShortcutsHandler(app, viewport) {
         var needLms = _ref2[2];
 
         if (fn && (e.shiftKey && acceptShift || !e.shiftKey) && (lms && needLms || !needLms)) {
-            console.log("FIRE");
             fn(lms, app, viewport);
         }
     };
@@ -69512,4 +69511,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-cdaa7ea9.js.map
+//# sourceMappingURL=bundle-0cfdaadb.js.map
