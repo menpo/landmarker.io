@@ -23,6 +23,7 @@ import { render } from 'react-dom';
 import { Provider } from 'react-redux';
 import store from './app/reduxindex';
 import Sidebar from './app/containers/Sidebar';
+import Toolbar from './app/containers/Toolbar';
 import bindToRedux from './app/bridge';
 
 import Config from './app/model/config';
@@ -347,12 +348,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     };
 
-    const rootElement = document.getElementById('landmarksPanel');
+    const sidebarRootElement = document.getElementById('landmarksPanel');
     render(
         <Provider store={store}>
             <Sidebar />
         </Provider>,
-        rootElement
+        sidebarRootElement
+    );
+
+    const toolbarRootElement = document.getElementById('react');
+    render(
+        <Provider store={store}>
+            <Toolbar />
+        </Provider>,
+        toolbarRootElement
     );
 
     resolveBackend(u);

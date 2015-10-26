@@ -7,6 +7,7 @@ import THREE from 'three';
 
 import atomic from '../../model/atomic';
 import * as octree from '../../model/octree';
+import store from '../../reduxindex';
 
 import CameraController from './camera';
 import Handler from './handler';
@@ -24,12 +25,20 @@ const PIP_HEIGHT = 300;
 
 const MESH_SCALE = 1.0;
 
+
+function updateViewport(viewport, state) {
+    viewport.state = state;
+    viewport.update();
+}
+
 export default Backbone.View.extend({
 
     el: '#canvas',
     id: 'canvas',
 
     initialize: function () {
+        updateViewport(this, store.getState());
+        store.subscribe(()=> updateViewport(this, store.getState()));
         // ----- CONFIGURATION ----- //
         this.meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
 
@@ -367,7 +376,7 @@ export default Backbone.View.extend({
         this.renderer.clear();
         this.renderer.render(this.scene, this.sCamera);
 
-        if (this.showConnectivity) {
+        if (this.state.connectivityOn) {
             this.renderer.clearDepth(); // clear depth buffer
             // and render the connectivity
             this.renderer.render(this.sceneHelpers, this.sCamera);
@@ -383,7 +392,7 @@ export default Backbone.View.extend({
             this.renderer.clear();
             // render the PIP image
             this.renderer.render(this.scene, this.sOCamZoom);
-            if (this.showConnectivity) {
+            if (this.state.connectivityOn) {
                 this.renderer.clearDepth(); // clear depth buffer
                 // and render the connectivity
                 this.renderer.render(this.sceneHelpers, this.sOCamZoom);

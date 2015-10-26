@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" manifest="lmio.appcache">
 <script>
-    // Temprary redirect to https
+    // Temporary redirect to https
     if (window.location.origin === "http://www.landmarker.io") {
         window.location.href = "https:" + window.location.href.substring(5);
     }

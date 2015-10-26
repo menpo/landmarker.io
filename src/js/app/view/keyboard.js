@@ -4,6 +4,8 @@ import $ from 'jquery';
 
 import Modal from './modal';
 import { notify } from './notification';
+import { deleteAllSelectedLandmarks } from '../actions'
+import store from '../reduxindex'
 
 export default function KeyboardShortcutsHandler (app, viewport) {
     this._keypress = function (e) {
@@ -33,6 +35,7 @@ export default function KeyboardShortcutsHandler (app, viewport) {
                 break;
             case 100:  // d = [d]elete selected
                 if (lms) {
+                    store.dispatch(deleteAllSelectedLandmarks());
                     lms.deleteSelected();
                     $('#viewportContainer').trigger("groupDeselected");
                 }

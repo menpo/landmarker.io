@@ -1,10 +1,13 @@
 import { combineReducers } from 'redux';
-import { LOAD_LANDMARKS, SET_SELECTED_LANDMARKS, AUGMENT_SELECTED_LANDMARKS, SET_NEXT_INSERTION, DELETE_LANDMARKS } from './actions';
+import { LOAD_LANDMARKS, SET_SELECTED_LANDMARKS, AUGMENT_SELECTED_LANDMARKS,
+         SET_NEXT_INSERTION, DELETE_LANDMARKS, CONNECTIVITY_DISPLAY, TEXTURE_DISPLAY } from './actions';
 
 const lmioApp = combineReducers({
         landmarks: reduceLandmarks,
         selected: reduceSelected,
         nextToInsert: reduceNextToInsert,
+        connectivityOn: reduceConnectivityOn,
+        textureOn: reduceTextureOn,
         lastAction: reduceLastAction
 });
 
@@ -13,6 +16,25 @@ const lmioApp = combineReducers({
 function reduceLastAction(state=null, action) {
     return action;
 }
+
+function reduceConnectivityOn(state=false, action) {
+    switch(action.type) {
+        case CONNECTIVITY_DISPLAY:
+            return action.flag;
+        default:
+            return state;
+    }
+}
+
+function reduceTextureOn(state=false, action) {
+    switch(action.type) {
+        case TEXTURE_DISPLAY:
+            return action.flag;
+        default:
+            return state;
+    }
+}
+
 
 function reduceLandmarks(landmarks, action) {
     return {
@@ -25,15 +47,30 @@ function reduceLandmarks(landmarks, action) {
 
 const deepCopyArray = (l) => l.map((x) => [...x]);
 
+
+// clones a nested structure of objects, arrays, strings, numbers, nulls, and undefined's safely.
+function clone(x) {
+    if (Array.isArray(x)) {
+        return x.map((y) => clone(y));
+    } else if (typeof(x) == "object" && x !== null && x !== undefined) {
+        const newX = {};
+        for (let k in x) {
+            newX[k] = clone(x[k]);
+        }
+        return newX;
+    } else {
+        return x;
+    }
+}
+
+
 function reducePoints(points = [], action) {
     switch (action.type) {
         case LOAD_LANDMARKS:
-            return deepCopyArray(action.landmarks.toJSON().landmarks.points);
+            return clone(action.landmarks.toJSON().landmarks.points);
         case DELETE_LANDMARKS:
-            // TODO this should probably be a single null just to make everything simpler.
-            const emptyPoint = points[0].length === 3 ? [null, null, null] : [null, null];
-            const newPoints = deepCopyArray(points);
-            action.indices.map((i) => newPoints[i] = [...emptyPoint]);
+            const newPoints = clone(points);
+            action.indices.map((i) => newPoints[i] = null);
             return newPoints;
         default:
             return points;
@@ -43,8 +80,7 @@ function reducePoints(points = [], action) {
 function reduceLabels(labels = [], action) {
     switch (action.type) {
         case LOAD_LANDMARKS:
-            // this is bad - not copying
-            return action.landmarks.toJSON().labels;
+            return clone(action.landmarks.toJSON().labels);
         default:
             return labels;
     }
@@ -63,6 +99,9 @@ function reduceSelected(selected = [], action) {
     switch (action.type) {
         case SET_SELECTED_LANDMARKS:
             return [...action.indices];
+        case DELETE_LANDMARKS:
+            // deleted landmarks cannot be selected.
+            return selected.filter(i => action.indices.indexOf(i) === -1);
         default:
             return selected;
     }
@@ -72,19 +111,5 @@ function reduceSelected(selected = [], action) {
 // turn a set of boolean method calls into an index array
 const booleanIndices = (xs, k) => xs.map((x, i) => x[k]() ? i : -1).filter((x) => x > -1);
 
-
-//// conversion helpers
-//function lmToReact(l) {
-//    return {
-//        id: 1,
-//        isEmpty: l.isEmpty(),
-//        isSelected: l.isSelected(),
-//        isNextAvailable: l.isNextAvailable()
-//    };
-//}
-//
-//export function backboneToReduxLms(lms) {
-//    return lms.labels.map((l) => ({'label': l.label, 'landmarks': l.landmarks.map(lmToReact)}));
-//}
 
 export default lmioApp;

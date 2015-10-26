@@ -22,7 +22,7 @@ const applyMask = (objs, indices, k, v) => (indices.map((i) => objs[i][k] = v));
 function landmark(points, id) {
     return {
         id: id,
-        isEmpty: points[0] === null,
+        isEmpty: points === null,
         isSelected: false,
         isNextAvailable: false
     };

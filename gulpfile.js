@@ -63,19 +63,13 @@ function processJS() {
             }
         })
         .pipe(source('bundle.js'))
-        .pipe(buffer());
-    if (PRODUCTION) {
-        buildJS = buildJS.pipe(rev());
-    }
-    return buildJS
+        .pipe(buffer())
+        .pipe(rev())
         .pipe(sourcemaps.init({loadMaps: true}))
         .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('.'))
         .pipe(notify('Landmarker.io: JS rebuilt'));
 }
-
-// on JS updates, rebundle.
-b.on('update', processJS);
 
 // Rebuild the SASS and pass through autoprefixer output
 // + issue a notification when done.
@@ -94,11 +88,8 @@ function processSASS() {
             { cascade: true }))
         .pipe(sourcemaps.write())
         .pipe(rename('bundle.css'))
-        .pipe(buffer());
-    if (PRODUCTION) {
-        buildSASS = buildSASS.pipe(rev());
-    }
-    return buildSASS
+        .pipe(buffer())
+        .pipe(rev())
         .pipe(gulp.dest('.'))
         .pipe(notify('Landmarker.io: SASS (CSS) rebuilt'));
 }
@@ -145,7 +136,8 @@ gulp.task('build-css', function() {
 });
 
 gulp.task('build-html', function() {
-    PRODUCTION ? runSequence('html', 'manifest') : runSequence('html');
+    console.log('starting to build HTML');
+    runSequence('html', 'manifest');
 });
 
 // Rerun the task when a file changes
@@ -153,6 +145,9 @@ gulp.task('watch', function() {
     gulp.watch(src.scss, ['build-css']);
     gulp.watch(src.html, ['build-html']);
 });
+
+// on JS updates, rebundle the JS/html/manifest.
+b.on('update', function() { console.log('update firing'); gulp.run('build-js') });
 
 gulp.task('build', ['build-js', 'build-css']);
 
