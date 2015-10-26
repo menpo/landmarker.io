@@ -17,6 +17,9 @@ var sourcemaps = require('gulp-sourcemaps');
 var rename = require('gulp-rename');
 var del = require('del');
 
+var PRODUCTION = process.env.NODE_ENV === 'production';
+console.log(PRODUCTION ? 'PRODUCTION: true' : 'PRODUCTION: false');
+
 var src = {
     js: ['src/js/**/*.js'],
     scss: ['src/scss/**/*.scss'],
@@ -67,7 +70,7 @@ gulp.task('js', function() {
         .bundle();
 
     return b.on('error', function (err) {
-        if (process.env.NODE_ENV === 'production') {
+        if (PRODUCTION) {
             throw err;
         } else {
             gutil.log('Browserify Error', err.message || err);
@@ -89,7 +92,7 @@ gulp.task('sass', function () {
         .pipe(sourcemaps.init())
         .pipe(sass()
         .on('error', function (err) {
-            if (process.env.NODE_ENV === 'production') {
+            if (PRODUCTION) {
                 throw err;
             } else {
                 gutil.log('Node-Sass Error', err.message || err);
