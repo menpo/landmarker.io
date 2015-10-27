@@ -37,7 +37,7 @@ if [ "$TRAVIS" == "true" ]; then
 
   echo "Decrypting key for label $ENCRYPTION_LABEL"
 
-  # Decrypt the key ecnrypted with travis encrypt-file and add to ssh-agent
+  # Decrypt the key encrypted with travis encrypt-file and add to ssh-agent
   openssl aes-256-cbc -K "$ENCRYPTED_KEY" -iv "$ENCRYPTED_IV" -in id_rsa.enc -out id_rsa -d
   chmod 600 id_rsa
   eval "$(ssh-agent -s)"

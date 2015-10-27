@@ -50,8 +50,8 @@ gulp.task("webpack-dev-server", ['copystatic'], function() {
 
 gulp.task("webpack", ['copystatic'], function(callback) {
     // modify some webpack config options
-    var myConfig = Object.create(webpackConfig);
-    myConfig.plugins = myConfig.plugins.concat(
+    var productionConfig = Object.create(webpackConfig);
+    productionConfig.plugins = productionConfig.plugins.concat(
         new webpack.DefinePlugin({
             "process.env": {
                 // This has effect on the react lib size
@@ -67,7 +67,7 @@ gulp.task("webpack", ['copystatic'], function(callback) {
     );
 
     // run webpack
-    webpack(myConfig, function(err, stats) {
+    webpack(productionConfig, function(err, stats) {
         if(err) throw new gutil.PluginError("webpack", err);
         gutil.log("[webpack:build]", stats.toString({
             colors: true
