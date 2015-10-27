@@ -3,7 +3,7 @@ var path = require('path');
 module.exports = {
     entry: "./src/js/index.js",
     output: {
-        path: path.join(__dirname, 'dist'),
+        path: path.join(__dirname, 'build'),
         publicPath: "/",
         filename: "bundle.js"
     },
@@ -28,5 +28,6 @@ module.exports = {
                 loader: 'file-loader'
             }
         ]
-    }
+    },
+    plugins: []
 };

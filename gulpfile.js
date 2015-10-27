@@ -6,23 +6,26 @@ var webpack = require("webpack");
 var WebpackDevServer = require("webpack-dev-server");
 var webpackConfig = require("./webpack.config.js");
 var del = require('del');
+var manifest = require('gulp-manifest');
+var replace = require('gulp-replace');
+var path = require('path');
 
-//var prefix = require('gulp-autoprefixer');
-//var notify = require("gulp-notify");
-//var manifest = require('gulp-manifest');
-//var rev = require('gulp-rev');
-//var buffer = require('gulp-buffer');
-//var inject = require('gulp-inject');
+var remoteCached = [
+    '//fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic',
+    '//cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css'
+];
+
+var BUILD_DIR = './build';
 
 // The default task (called when you run `gulp` from cli)
 gulp.task('default', ['webpack-dev-server']);
 
-gulp.task('clean-dist', function (cb) {
-    del(['./dist'], cb);
+gulp.task('clean', function (cb) {
+    del([BUILD_DIR], cb);
 });
 
-gulp.task('copystatic', ['clean-dist'], function(){
-    return gulp.src(['static/**/*']).pipe(gulp.dest('dist'));
+gulp.task('copystatic', ['clean'], function(){
+    return gulp.src(['static/**/*']).pipe(gulp.dest(BUILD_DIR));
 });
 
 gulp.task("webpack-dev-server", ['copystatic'], function() {
@@ -33,7 +36,7 @@ gulp.task("webpack-dev-server", ['copystatic'], function() {
 
     // Start a webpack-dev-server
     new WebpackDevServer(webpack(myConfig), {
-        contentBase: "dist/",
+        contentBase: BUILD_DIR,
         stats: {
             colors: true
         }
@@ -41,38 +44,55 @@ gulp.task("webpack-dev-server", ['copystatic'], function() {
             if(err) {
                 throw new gutil.PluginError("webpack-dev-server", err);
             }
-            gutil.log("[webpack-dev-server]", "http://localhost:8080/webpack-dev-server/index.html");
+            gutil.log("[webpack-dev-server]", "http://localhost:8080/webpack-dev-server/");
         });
 });
 
-/*
-var remoteCached = [
-    '//fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic',
-    '//cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css'
-];
+gulp.task("webpack", ['copystatic'], function(callback) {
+    // modify some webpack config options
+    var myConfig = Object.create(webpackConfig);
+    myConfig.plugins = myConfig.plugins.concat(
+        new webpack.DefinePlugin({
+            "process.env": {
+                // This has effect on the react lib size
+                "NODE_ENV": JSON.stringify("production")
+            }
+        }),
+        new webpack.optimize.DedupePlugin(),
+        new webpack.optimize.UglifyJsPlugin()
+    );
 
-gulp.task('manifest', function(){
-    return gulp.src(buildGlobs, { base: '.' })
+    // run webpack
+    webpack(myConfig, function(err, stats) {
+        if(err) throw new gutil.PluginError("webpack", err);
+        gutil.log("[webpack:build]", stats.toString({
+            colors: true
+        }));
+        callback();
+    });
+});
+
+
+gulp.task('create-manifest', ['webpack'], function(){
+    return gulp.src(['./build/bundle.js'], { base: BUILD_DIR })
         .pipe(manifest({
             hash: true,
             cache: remoteCached,
             filename: 'lmio.appcache',
             exclude: 'lmio.appcache'
         }))
-        .pipe(gulp.dest('.'))
-        .pipe(notify('Landmarker.io: Manifest updated'));
+        .pipe(gulp.dest(BUILD_DIR));
 });
 
-gulp.task('html', function() {
-    var target = gulp.src(entry.html);
-    var sources = gulp.src(buildGlobs, {read: false});
-    return target.pipe(inject(sources, {addRootSlash: false}))
-        .pipe(gulp.dest('.'))
-        .pipe(notify('Landmarker.io: HTML rebuilt'));
-
+gulp.task('manifest', ['create-manifest'], function() {
+    var index_path = path.join(BUILD_DIR, 'index.html');
+    return gulp.src([index_path])
+        .pipe(replace('<html lang="en">', '<html lang="en" manifest="lmio.appcache">'))
+        .pipe(gulp.dest(BUILD_DIR));
 });
+
 
 gulp.task('build-html', function() {
     runSequence('html', 'manifest');
 });
-*/
+
