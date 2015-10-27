@@ -6,11 +6,11 @@ var webpack = require("webpack");
 var WebpackDevServer = require("webpack-dev-server");
 var webpackConfig = require("./webpack.config.js");
 var del = require('del');
-var manifest = require('gulp-manifest');
+var AppCachePlugin = require('appcache-webpack-plugin');
 var replace = require('gulp-replace');
 var path = require('path');
 
-var remoteCached = [
+var REMOTE_CACHED = [
     '//fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic',
     '//cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css'
 ];
@@ -59,7 +59,11 @@ gulp.task("webpack", ['copystatic'], function(callback) {
             }
         }),
         new webpack.optimize.DedupePlugin(),
-        new webpack.optimize.UglifyJsPlugin()
+        new webpack.optimize.UglifyJsPlugin(),
+        new AppCachePlugin({
+            cache: REMOTE_CACHED.concat('index.html'),
+            output: 'lmio.appcache'
+        })
     );
 
     // run webpack
@@ -72,27 +76,10 @@ gulp.task("webpack", ['copystatic'], function(callback) {
     });
 });
 
-
-gulp.task('create-manifest', ['webpack'], function(){
-    return gulp.src(['./build/bundle.js'], { base: BUILD_DIR })
-        .pipe(manifest({
-            hash: true,
-            cache: remoteCached,
-            filename: 'lmio.appcache',
-            exclude: 'lmio.appcache'
-        }))
-        .pipe(gulp.dest(BUILD_DIR));
-});
-
-gulp.task('manifest', ['create-manifest'], function() {
+gulp.task('build', ['webpack'], function() {
     var index_path = path.join(BUILD_DIR, 'index.html');
     return gulp.src([index_path])
         .pipe(replace('<html lang="en">', '<html lang="en" manifest="lmio.appcache">'))
         .pipe(gulp.dest(BUILD_DIR));
-});
-
-
-gulp.task('build-html', function() {
-    runSequence('html', 'manifest');
 });
 
