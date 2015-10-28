@@ -1,5 +1,8 @@
 'use strict';
 
+// include all our style information
+require('../scss/main.scss');
+
 import $ from 'jquery';
 import THREE from 'three';
 import url from 'url';

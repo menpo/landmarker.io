@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="en" manifest="lmio.appcache">
+<html lang="en">
 <script>
-    // Temporary redirect to https
+    // Temporary redirect to HTTPS
     if (window.location.origin === "http://www.landmarker.io") {
         window.location.href = "https:" + window.location.href.substring(5);
     }
@@ -35,10 +35,7 @@
     <!-- End of http://realfavicongenerator.net content -->
     <link href='//fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css">
-    <!-- inject:css -->
-    <!-- endinject -->
-    <!-- inject:js -->
-    <!-- endinject -->
+    <script src="bundle.js"></script>
 </head>
 <!-- errorception  -->
 <script>

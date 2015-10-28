@@ -1,7 +1,10 @@
+var path = require('path');
+
 module.exports = {
     entry: "./src/js/index.js",
     output: {
-        path: __dirname,
+        path: path.join(__dirname, 'build'),
+        publicPath: "/",
         filename: "bundle.js"
     },
     devtool: "source-map", // or "inline-source-map"
@@ -18,12 +21,13 @@ module.exports = {
             },
             {
                 test: /\.scss$/,
-                loaders: ["style", "css?sourceMap", "resolve-url", "sass?sourceMap"]
+                loaders: ["style", "css?sourceMap", "resolve-url", "sass?sourceMap", "autoprefixer"]
             },
             {
                 test: /\.svg$/,
                 loader: 'file-loader'
             }
         ]
-    }
+    },
+    plugins: []
 };

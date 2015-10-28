@@ -12,7 +12,7 @@
 # http://docs.travis-ci.com/user/encrypting-files/ for more information
 #
 
-MANIFEST="lmio.appcache"     # Used to check if build has happened
+MANIFEST="./build/lmio.appcache"     # Used to check if build has happened
 
 if [ "$TRAVIS" == "true" ]; then
   # Set up for travis environment (branch, repo with push rights)
@@ -37,7 +37,7 @@ if [ "$TRAVIS" == "true" ]; then
 
   echo "Decrypting key for label $ENCRYPTION_LABEL"
 
-  # Decrypt the key ecnrypted with travis encrypt-file and add to ssh-agent
+  # Decrypt the key encrypted with travis encrypt-file and add to ssh-agent
   openssl aes-256-cbc -K "$ENCRYPTED_KEY" -iv "$ENCRYPTED_IV" -in id_rsa.enc -out id_rsa -d
   chmod 600 id_rsa
   eval "$(ssh-agent -s)"
@@ -75,7 +75,7 @@ echo "Building gh-pages branch for $BRANCH"
 if [[ ! -e "$MANIFEST" ]]; then  npm run build || exit 1; else echo "Already built"; fi
 
 TMP_DIR=$(mktemp -d "/tmp/landmarker-build-$BRANCH-XXXX")
-mv ./index.html ./bundle-*.* ./*.appcache ./img ./api ./*.png ./favicon.ico browserconfig.xml mainfest.json "$TMP_DIR"
+mv ./build/* "$TMP_DIR"
 
 # Switch to latests gh-pages branch and enforce correct content
 git checkout gh-pages || exit 1
@@ -99,7 +99,8 @@ ls "staging/$BRANCH"
 # tags are deployed at root
 if [[ ! -z "$TRAVIS_TAG" ]]; then
   echo "Deploying tag $TRAVIS_TAG"
-  rm -fr ./index.html ./bundle-*.* ./*.appcache ./img ./api
+  # clean out everything that's non gh-pages specific
+  ls  | grep -vw 'v1\|legacy\|staging\|CNAME' | xargs rm -r
   cp -r "staging/$BRANCH"/* .
 fi
 
