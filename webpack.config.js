@@ -21,7 +21,7 @@ module.exports = {
             },
             {
                 test: /\.scss$/,
-                loaders: ["style", "css?sourceMap", "resolve-url", "sass?sourceMap"]
+                loaders: ["style", "css?sourceMap", "resolve-url", "sass?sourceMap", "autoprefixer"]
             },
             {
                 test: /\.svg$/,
