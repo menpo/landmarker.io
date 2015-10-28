@@ -3,7 +3,7 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
 import $ from 'jquery';
-import * as Notification from './notification';
+
 import download from '../lib/download';
 import atomic from '../model/atomic';
 import TemplatePanel from './templates';
@@ -239,10 +239,8 @@ export const ActionsView = Backbone.View.extend({
         evt.stopPropagation();
         this.$el.find('#save').addClass('Button--Disabled');
         this.model.save().then(() => {
-            Notification.notify({type: 'success', msg: 'Save Completed'});
             this.$el.find('#save').removeClass('Button--Disabled');
         }, () => {
-            Notification.notify({type: 'error', msg: 'Save Failed'});
             this.$el.find('#save').removeClass('Button--Disabled');
         });
     },
