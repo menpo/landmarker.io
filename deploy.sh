@@ -99,7 +99,8 @@ ls "staging/$BRANCH"
 # tags are deployed at root
 if [[ ! -z "$TRAVIS_TAG" ]]; then
   echo "Deploying tag $TRAVIS_TAG"
-  rm -fr ./index.html ./bundle-*.* ./*.appcache ./img ./api
+  # clean out everything that's non gh-pages specific
+  ls  | grep -vw 'v1\|legacy\|staging\|CNAME' | xargs rm -r
   cp -r "staging/$BRANCH"/* .
 fi
 
