@@ -63798,6 +63798,8 @@ var _three2 = _interopRequireDefault(_three);
 
 var _libUtils = require('../lib/utils');
 
+var _viewNotification = require('../view/notification');
+
 var _libTracker = require('../lib/tracker');
 
 var _libTracker2 = _interopRequireDefault(_libTracker);
@@ -64076,12 +64078,18 @@ LandmarkGroup.prototype.toJSON = function () {
 };
 
 LandmarkGroup.prototype.save = function () {
-    this.tracker.recordState(this.toJSON(), true);
-    return this.server.saveLandmarkGroup(this.id, this.type, this.toJSON());
+    var _this3 = this;
+
+    return this.server.saveLandmarkGroup(this.id, this.type, this.toJSON()).then(function () {
+        _this3.tracker.recordState(_this3.toJSON(), true);
+        (0, _viewNotification.notify)({ type: 'success', msg: 'Save Completed' });
+    }, function () {
+        (0, _viewNotification.notify)({ type: 'error', msg: 'Save Failed' });
+    });
 };
 
 LandmarkGroup.prototype.undo = function () {
-    var _this3 = this;
+    var _this4 = this;
 
     this.tracker.undo(function (ops) {
         ops.forEach(function (_ref4) {
@@ -64091,19 +64099,19 @@ LandmarkGroup.prototype.undo = function () {
             var start = _ref42[1];
 
             if (!start) {
-                _this3.landmarks[index].clear();
+                _this4.landmarks[index].clear();
             } else {
-                _this3.landmarks[index].setPoint(start.clone());
+                _this4.landmarks[index].setPoint(start.clone());
             }
         });
-        _this3.resetNextAvailable();
+        _this4.resetNextAvailable();
     }, function (json) {
-        _this3.restore(json);
+        _this4.restore(json);
     });
 };
 
 LandmarkGroup.prototype.redo = function () {
-    var _this4 = this;
+    var _this5 = this;
 
     this.tracker.redo(function (ops) {
         ops.forEach(function (_ref5) {
@@ -64113,14 +64121,14 @@ LandmarkGroup.prototype.redo = function () {
             var end = _ref52[2];
 
             if (!end) {
-                _this4.landmarks[index].clear();
+                _this5.landmarks[index].clear();
             } else {
-                _this4.landmarks[index].setPoint(end.clone());
+                _this5.landmarks[index].setPoint(end.clone());
             }
         });
-        _this4.resetNextAvailable();
+        _this5.resetNextAvailable();
     }, function (json) {
-        _this4.restore(json);
+        _this5.restore(json);
     });
 };
 
@@ -64140,7 +64148,7 @@ LandmarkGroup.parse = function (json, id, type, server, tracker) {
 };
 module.exports = exports['default'];
 
-},{"../lib/tracker":59,"../lib/utils":60,"./atomic":64,"./landmark":66,"three":46}],68:[function(require,module,exports){
+},{"../lib/tracker":59,"../lib/utils":60,"../view/notification":82,"./atomic":64,"./landmark":66,"three":46}],68:[function(require,module,exports){
 
 'use strict';
 
@@ -65725,6 +65733,33 @@ module.exports = exports['default'];
 Object.defineProperty(exports, '__esModule', {
     value: true
 });
+
+var _slicedToArray = (function () {
+    function sliceIterator(arr, i) {
+        var _arr = [];var _n = true;var _d = false;var _e = undefined;try {
+            for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+                _arr.push(_s.value);if (i && _arr.length === i) break;
+            }
+        } catch (err) {
+            _d = true;_e = err;
+        } finally {
+            try {
+                if (!_n && _i['return']) _i['return']();
+            } finally {
+                if (_d) throw _e;
+            }
+        }return _arr;
+    }return function (arr, i) {
+        if (Array.isArray(arr)) {
+            return arr;
+        } else if (Symbol.iterator in Object(arr)) {
+            return sliceIterator(arr, i);
+        } else {
+            throw new TypeError('Invalid attempt to destructure non-iterable instance');
+        }
+    };
+})();
+
 exports['default'] = KeyboardShortcutsHandler;
 
 function _interopRequireDefault(obj) {
@@ -65739,7 +65774,99 @@ var _modal = require('./modal');
 
 var _modal2 = _interopRequireDefault(_modal);
 
-var _notification = require('./notification');
+var SHORTCUTS = {
+    // Structure is [fn, acceptShift?, needLms?]
+    // Shortcuts activated without SHIFT, but CAPS LOCK ok (letters)
+    "d": [function (lms) {
+        // d = [d]elete selected
+        lms.deleteSelected();
+        (0, _jquery2['default'])('#viewportContainer').trigger("groupDeselected");
+    }, false, true],
+
+    "q": [function (lms) {
+        // q = deselect all
+        lms.deselectAll();
+        (0, _jquery2['default'])('#viewportContainer').trigger("groupDeselected");
+    }, false, true],
+
+    "r": [function (lms, app, viewport) {
+        // r = [r]eset camera
+        // TODO fix for multiple cameras (should be in camera controller)
+        viewport.resetCamera();
+    }, false, false],
+
+    "t": [function (lms, app) {
+        // t = toggle [t]exture (mesh mode only)
+        if (app.meshMode()) {
+            app.asset().textureToggle();
+        }
+    }, false, false],
+
+    "a": [function (lms, app) {
+        // a = select [a]ll
+        app.landmarks().selectAll();
+        (0, _jquery2['default'])('#viewportContainer').trigger("groupSelected");
+    }, false, true],
+
+    "g": [function () {
+        // g = complete [g]roup selection
+        (0, _jquery2['default'])('#viewportContainer').trigger("completeGroupSelection");
+    }, false, true],
+
+    "c": [function (lms, app, viewport) {
+        // c = toggle [c]amera mode
+        if (app.meshMode()) {
+            viewport.toggleCamera();
+        }
+    }, false, false],
+
+    "j": [function (lms, app) {
+        // j = down, next asset
+        app.nextAsset();
+    }, false, false],
+
+    "k": [function (lms, app) {
+        // k = up, previous asset
+        app.previousAsset();
+    }, false, false],
+
+    "l": [function (lms, app) {
+        // l = toggle [l]inks
+        app.toggleConnectivity();
+    }, false, false],
+
+    "e": [function (lms, app) {
+        // e = toggle [e]dit mode
+        app.toggleEditing();
+    }, false, false],
+
+    "z": [function (lms) {
+        // z = undo
+        if (lms && lms.tracker.canUndo()) {
+            lms.undo();
+        }
+    }, false, true],
+
+    "y": [function (lms) {
+        // y = redo
+        if (lms && lms.tracker.canRedo()) {
+            lms.redo();
+        }
+    }, false, true],
+
+    // Keys where shift key may be needed on certain keyboard layouts
+    "?": [function (lms, app) {
+        app.toggleHelpOverlay();
+    }, true, false],
+
+    "+": [function (lms, app) {
+        app.incrementLandmarkSize();
+    }, true, false],
+
+    "-": [function (lms, app) {
+        app.decrementLandmarkSize();
+    }, true, false]
+};
 
 function KeyboardShortcutsHandler(app, viewport) {
     this._keypress = function (e) {
@@ -65749,139 +65876,64 @@ function KeyboardShortcutsHandler(app, viewport) {
             return null;
         }
 
-        var key = e.which;
+        var key = String.fromCharCode(e.which).toLowerCase();
 
-        if (app.isHelpOverlayOn() && key !== 63 || _modal2['default'].active()) {
+        if (app.isHelpOverlayOn() && key !== "?" || _modal2['default'].active()) {
             return null;
         }
 
         var lms = app.landmarks();
 
-        switch (key) {
-            case 19:
-                // s = [s]ave (normally 115 but switches to 19 with ctrl)
-                if (lms && e.ctrlKey) {
-                    lms.save().then(function () {
-                        (0, _notification.notify)({ type: 'success', msg: 'Save Completed' });
-                    }, function () {
-                        (0, _notification.notify)({ type: 'error', msg: 'Save Failed' });
-                    });
-                }
-                break;
-            case 100:
-                // d = [d]elete selected
-                if (lms) {
-                    lms.deleteSelected();
-                    (0, _jquery2['default'])('#viewportContainer').trigger("groupDeselected");
-                }
-                break;
-            case 113:
-                // q = deselect all
-                if (lms) {
-                    app.landmarks().deselectAll();
-                    (0, _jquery2['default'])('#viewportContainer').trigger("groupDeselected");
-                }
-                break;
-            case 114:
-                // r = [r]eset camera
-                // TODO fix for multiple cameras (should be in camera controller)
-                viewport.resetCamera();
-                break;
-            case 116:
-                // t = toggle [t]exture (mesh mode only)
-                if (app.meshMode()) {
-                    app.asset().textureToggle();
-                }
-                break;
-            case 97:
-                // a = select [a]ll
-                if (lms) {
-                    app.landmarks().selectAll();
-                    (0, _jquery2['default'])('#viewportContainer').trigger("groupSelected");
-                }
-                break;
-            case 103:
-                // g = complete [g]roup selection
-                (0, _jquery2['default'])('#viewportContainer').trigger("completeGroupSelection");
-                break;
-            case 99:
-                // c = toggle [c]amera mode
-                if (app.meshMode()) {
-                    viewport.toggleCamera();
-                }
-                break;
-            case 106:
-                // j = down, next asset
-                app.nextAsset();
-                break;
-            case 107:
-                // k = up, previous asset
-                app.previousAsset();
-                break;
-            case 108:
-                // l = toggle [l]inks
-                app.toggleConnectivity();
-                break;
-            case 101:
-                // e = toggle [e]dit mode
-                app.toggleEditing();
-                break;
-            case 122:
-                // z = undo
-                if (lms && lms.tracker.canUndo()) {
-                    lms.undo();
-                }
-                break;
-            case 121:
-                // z = undo
-                if (lms && lms.tracker.canRedo()) {
-                    lms.redo();
-                }
-                break;
-            case 63:
-                // toggle help
-                app.toggleHelpOverlay();
-                break;
-            case 43:
-                app.incrementLandmarkSize();
-                break;
-            case 45:
-                app.decrementLandmarkSize();
-                break;
+        var _ref = SHORTCUTS[key] || [];
+
+        var _ref2 = _slicedToArray(_ref, 3);
+
+        var fn = _ref2[0];
+        var acceptShift = _ref2[1];
+        var needLms = _ref2[2];
+
+        if (fn && (e.shiftKey && acceptShift || !e.shiftKey) && (lms && needLms || !needLms)) {
+            fn(lms, app, viewport);
         }
     };
 
     this._keydown = function (evt) {
-        if (evt.which !== 27) {
-            return;
-        }
+        var lms = undefined;
 
-        if (app.isHelpOverlayOn()) {
-            app.toggleHelpOverlay();
-            evt.stopPropagation();
-            return;
-        }
-
-        var modal = _modal2['default'].active();
-        if (modal) {
-            if (modal.closable) {
-                modal.close();
+        if (evt.which === 27) {
+            if (app.isHelpOverlayOn()) {
+                app.toggleHelpOverlay();
+                evt.stopPropagation();
+                return null;
             }
-            evt.stopPropagation();
-            return;
-        }
 
-        if ((0, _jquery2['default'])('#templatePicker').hasClass('Active')) {
-            (0, _jquery2['default'])('#templatePicker').removeClass('Active');
-            return;
-        }
+            var modal = _modal2['default'].active();
+            if (modal) {
+                if (modal.closable) {
+                    modal.close();
+                }
+                evt.stopPropagation();
+                return null;
+            }
 
-        var lms = app.landmarks();
-        if (lms) {
-            app.landmarks().deselectAll();
-            (0, _jquery2['default'])('#viewportContainer').trigger("groupDeselected");
-            evt.stopPropagation();
-            return;
+            if ((0, _jquery2['default'])('#templatePicker').hasClass('Active')) {
+                (0, _jquery2['default'])('#templatePicker').removeClass('Active');
+                return null;
+            }
+
+            lms = app.landmarks();
+            if (lms) {
+                app.landmarks().deselectAll();
+                (0, _jquery2['default'])('#viewportContainer').trigger("groupDeselected");
+                evt.stopPropagation();
+                return null;
+            }
+        } else if (evt.which === 83 && (evt.metaKey || evt.ctrlKey)) {
+            evt.preventDefault();
+            lms = app.landmarks();
+            if (lms) {
+                lms.save();
+            }
         }
     };
 }
@@ -65897,7 +65949,7 @@ KeyboardShortcutsHandler.prototype.disable = function () {
 };
 module.exports = exports['default'];
 
-},{"./modal":81,"./notification":82,"jquery":13}],80:[function(require,module,exports){
+},{"./modal":81,"jquery":13}],80:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -66601,18 +66653,6 @@ Object.defineProperty(exports, '__esModule', {
     value: true
 });
 
-function _interopRequireWildcard(obj) {
-    if (obj && obj.__esModule) {
-        return obj;
-    } else {
-        var newObj = {};if (obj != null) {
-            for (var key in obj) {
-                if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key];
-            }
-        }newObj['default'] = obj;return newObj;
-    }
-}
-
 function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : { 'default': obj };
 }
@@ -66628,10 +66668,6 @@ var _backbone2 = _interopRequireDefault(_backbone);
 var _jquery = require('jquery');
 
 var _jquery2 = _interopRequireDefault(_jquery);
-
-var _notification = require('./notification');
-
-var Notification = _interopRequireWildcard(_notification);
 
 var _libDownload = require('../lib/download');
 
@@ -66893,10 +66929,8 @@ var ActionsView = _backbone2['default'].View.extend({
         evt.stopPropagation();
         this.$el.find('#save').addClass('Button--Disabled');
         this.model.save().then(function () {
-            Notification.notify({ type: 'success', msg: 'Save Completed' });
             _this2.$el.find('#save').removeClass('Button--Disabled');
         }, function () {
-            Notification.notify({ type: 'error', msg: 'Save Failed' });
             _this2.$el.find('#save').removeClass('Button--Disabled');
         });
     },
@@ -67039,7 +67073,7 @@ exports['default'] = _backbone2['default'].View.extend({
     }
 });
 
-},{"../lib/download":53,"../model/atomic":64,"./notification":82,"./templates":84,"backbone":2,"jquery":13,"underscore":47}],84:[function(require,module,exports){
+},{"../lib/download":53,"../model/atomic":64,"./templates":84,"backbone":2,"jquery":13,"underscore":47}],84:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -69514,4 +69548,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-2abbaba6.js.map
+//# sourceMappingURL=bundle-aaec9c05.js.map
