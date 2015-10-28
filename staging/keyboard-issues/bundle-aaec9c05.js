@@ -368,6 +368,27 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    function canScroll(overflowCSS) {
+        return overflowCSS === 'scroll' || overflowCSS === 'auto';
+    }
+
+    window.document.ontouchmove = function (event) {
+        var isTouchMoveAllowed = false;
+        var p = event.target;
+        while (p !== null) {
+            var style = window.getComputedStyle(p);
+            if (style !== null && (canScroll(style.overflow) || canScroll(style.overflowX) || canScroll(style.overflowY))) {
+                isTouchMoveAllowed = true;
+                break;
+            }
+            p = p.parentNode;
+        }
+
+        if (!isTouchMoveAllowed) {
+            event.preventDefault();
+        }
+    };
+
     resolveBackend(u);
 });
 
@@ -60081,7 +60102,7 @@ if (typeof exports !== 'undefined') {
 },{}],48:[function(require,module,exports){
 module.exports={
   "name": "landmarker-io",
-  "version": "2.0.3",
+  "version": "2.3.0",
   "description": "3D mesh annotation in your browser.",
   "main": "index.js",
   "repository": {
@@ -65614,7 +65635,7 @@ var _libSupport2 = _interopRequireDefault(_libSupport);
 
 var _packageJson = require('../../../../package.json');
 
-var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3>v' + _packageJson.version + '</h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect to a landmarker server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div>    <a href="https://github.com/menpo/landmarker.io" class=\'IntroFooter\'>        <span class="octicon octicon-mark-github"></span>        More info on Github    </a></div>';
+var contents = '<div class=\'Intro\'>    <h1>Landmarker.io</h1>    <h3><a href="https://github.com/menpo/landmarker.io/releases" title="release notes">v' + _packageJson.version + '</a></h3>    <div class=\'IntroItems\'>        <div class=\'IntroItem IntroItem--Dropbox\'>            <div>Connect to Dropbox</div>        </div>        <div class=\'IntroItem IntroItem--Server\'>            <span class="octicon octicon-globe"></span>            <div>Connect to a landmarker server</div>        </div>        <div class=\'IntroItem IntroItem--Demo\'>            See a demo        </div>    </div>    <a href="https://github.com/menpo/landmarker.io" class=\'IntroFooter\'>        <span class="octicon octicon-mark-github"></span>        More info on Github    </a></div>';
 
 var lsWarning = '<p class=\'IntroWarning\'>    Your browser doesn\'t support LocalStorage, so Dropbox login has been    disabled.</p>';
 
@@ -65981,8 +66002,10 @@ var _modal2 = _interopRequireDefault(_modal);
  * List picker modal, takes the following parameters:
  *
  *  +   list : an array of tuples [content (string), key]
- *  +   useFilter : wether or not to display the search bar
+ *  +   useFilter : whether or not to display the search bar
  *  +   submit: the callback
+ *  +   batchSize (50): the number of elements to be displayed. A 'Load More'
+ *      element will be placed at the bottom of the list to expand the content.
  *
  * All tags will have the data attributes value, key and index
  * The callback is called with the key (which is the content if key is
@@ -65999,17 +66022,24 @@ exports['default'] = _modal2['default'].extend({
         var list = _ref.list;
         var submit = _ref.submit;
         var useFilter = _ref.useFilter;
+        var _ref$batchSize = _ref.batchSize;
+        var batchSize = _ref$batchSize === undefined ? 50 : _ref$batchSize;
 
         this.list = list.map(function (_ref2, i) {
             var _ref22 = _slicedToArray(_ref2, 2);
 
             var c = _ref22[0];
             var k = _ref22[1];
-            return [c, k || c, i];
+            return [c, k !== undefined ? k : i];
         });
         this._list = this.list;
         this.submit = submit;
         this.useFilter = !!useFilter;
+        // only batchSize elements will be displayed at once.
+        this.batchSize = batchSize;
+        // we increment this every time the user wants to expand the number
+        // of visible elements
+        this.batchesVisible = 1;
         _underscore2['default'].bindAll(this, 'filter');
     },
 
@@ -66032,7 +66062,7 @@ exports['default'] = _modal2['default'].extend({
 
     makeList: function makeList() {
         var $ul = (0, _jquery2['default'])('<ul></ul>');
-        this._list.forEach(function (_ref4) {
+        this._list.slice(0, this.batchSize * this.batchesVisible).forEach(function (_ref4) {
             var _ref42 = _slicedToArray(_ref4, 3);
 
             var content = _ref42[0];
@@ -66041,6 +66071,9 @@ exports['default'] = _modal2['default'].extend({
 
             $ul.append((0, _jquery2['default'])('<li data-value=\'' + content + '\' data-key=\'' + key + '\' data-index=\'' + index + '\'>' + content + '</li>'));
         });
+        if (this._list.length > this.batchSize) {
+            $ul.append((0, _jquery2['default'])('<li data-value=\'Load more...\' data-key=\'-1\' data-index=\'-1\'>Load more...</li>'));
+        }
         return $ul;
     },
 
@@ -66062,9 +66095,13 @@ exports['default'] = _modal2['default'].extend({
     },
 
     click: function click(evt) {
-        var key = evt.currentTarget.dataset.key;
-        this.submit(key);
-        this.close();
+        if (evt.currentTarget.dataset.index === '-1') {
+            this.batchesVisible += 1; // load an extra batch
+            this.update();
+        } else {
+            this.submit(evt.currentTarget.dataset.key);
+            this.close();
+        }
     }
 });
 module.exports = exports['default'];
@@ -69511,4 +69548,4 @@ module.exports = exports['default'];
 },{"../../model/atomic":64,"../../model/octree":68,"./camera":87,"./elements":88,"./handler":89,"backbone":2,"jquery":13,"three":46,"underscore":47}]},{},[1])
 
 
-//# sourceMappingURL=bundle-0cfdaadb.js.map
+//# sourceMappingURL=bundle-aaec9c05.js.map
