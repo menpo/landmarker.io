@@ -8,8 +8,8 @@
     "url": "git://github.com/menpo/landmarker.git"
   },
   "scripts": {
-    "build": "NODE_ENV=production ./node_modules/gulp/bin/gulp.js build",
-    "watch": "./node_modules/gulp/bin/gulp.js",
+    "build": "NODE_ENV=production gulp build",
+    "watch": "gulp",
     "test": "mocha --compilers js:babel/register -R spec --recursive ./test",
     "coverage": "istanbul cover _mocha -- --compilers js:babel/register -R dot --recursive ./test",
     "lint": "eslint -c .eslintrc src/js",
