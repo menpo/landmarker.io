@@ -12,7 +12,7 @@
 # http://docs.travis-ci.com/user/encrypting-files/ for more information
 #
 
-MANIFEST="lmio.appcache"     # Used to check if build has happened
+MANIFEST="./build/lmio.appcache"     # Used to check if build has happened
 
 if [ "$TRAVIS" == "true" ]; then
   # Set up for travis environment (branch, repo with push rights)
