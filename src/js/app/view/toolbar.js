@@ -82,7 +82,7 @@ export const ConnectivityToggle = Backbone.View.extend({
     el: '#connectivityRow',
 
     events: {
-        'click #connectivityToggle': "connectivityToggle"
+        click: "connectivityToggle"
     },
 
     initialize: function () {
