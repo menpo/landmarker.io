@@ -1,7 +1,7 @@
 import { combineReducers } from 'redux';
 import { TYPE } from './constants';
 
-const lmioApp = combineReducers({
+const rootReducer = combineReducers({
     landmarks: reduceLandmarks,
     selected: reduceSelected,
     nextToInsert: reduceNextToInsert,
@@ -131,4 +131,4 @@ function reduceSelected(selected = [], action) {
 const booleanIndices = (xs, k) => xs.map((x, i) => x[k]() ? i : -1).filter((x) => x > -1);
 
 
-export default lmioApp;
+export default rootReducer;

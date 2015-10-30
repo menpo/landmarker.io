@@ -1,7 +1,7 @@
 import { createStore } from 'redux';
-import lmioApp from './reducers';
+import rootReducer from './reducers';
 
-const store = createStore(lmioApp);
+const store = createStore(rootReducer);
 export default store;
 
 window.states = [];
