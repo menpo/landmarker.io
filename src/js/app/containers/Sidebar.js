@@ -1,7 +1,7 @@
-import React, { Component } from 'react'; // eslint-disable-line no-unused-vars
-import LandmarkGroupList from '../components/LandmarkGroupList';
-import { setSelectedLandmarks, setNextInsertion } from  '../actions';
-import { connect } from 'react-redux';
+import React, { Component } from 'react' // eslint-disable-line no-unused-vars
+import { connect } from 'react-redux'
+import * as ac from  '../actionCreators'
+import LandmarkGroupList from '../components/LandmarkGroupList'
 
 export default class Sidebar extends Component {
 
@@ -11,8 +11,8 @@ export default class Sidebar extends Component {
         return (
             <LandmarkGroupList
                 groups={ groups }
-                onClick={ (index) => landmarks[index].isEmpty ? dispatch(setNextInsertion(index)) :
-                dispatch(setSelectedLandmarks([index])) } />
+                onClick={ (index) => landmarks[index].isEmpty ? dispatch(ac.setNextInsertion(index)) :
+                dispatch(ac.setSelectedLandmarks([index])) } />
         );
     }
 }

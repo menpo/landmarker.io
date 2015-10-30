@@ -24,7 +24,7 @@ import KeyboardShortcutsHandler from './app/view/keyboard';
 import React from 'react'; // eslint-disable-line no-unused-vars
 import { render } from 'react-dom';
 import { Provider } from 'react-redux';
-import store from './app/reduxindex';
+import store from './app/store';
 import Sidebar from './app/containers/Sidebar';
 import Toolbar from './app/containers/Toolbar';
 import bindToRedux from './app/bridge';

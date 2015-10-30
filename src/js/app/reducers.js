@@ -1,14 +1,15 @@
 import { combineReducers } from 'redux';
-import { LOAD_LANDMARKS, SET_SELECTED_LANDMARKS, AUGMENT_SELECTED_LANDMARKS,
-         SET_NEXT_INSERTION, DELETE_LANDMARKS, CONNECTIVITY_DISPLAY, TEXTURE_DISPLAY } from './actions';
+import { TYPE } from './constants';
 
 const lmioApp = combineReducers({
-        landmarks: reduceLandmarks,
-        selected: reduceSelected,
-        nextToInsert: reduceNextToInsert,
-        connectivityOn: reduceConnectivityOn,
-        textureOn: reduceTextureOn,
-        lastAction: reduceLastAction
+    landmarks: reduceLandmarks,
+    selected: reduceSelected,
+    nextToInsert: reduceNextToInsert,
+    connectivityOn: reduceConnectivityOn,
+    textureOn: reduceTextureOn,
+    snapOn: reduceSnapOn,
+    autosaveOn: reduceAutosaveOn,
+    lastAction: reduceLastAction
 });
 
 
@@ -19,7 +20,7 @@ function reduceLastAction(state=null, action) {
 
 function reduceConnectivityOn(state=false, action) {
     switch(action.type) {
-        case CONNECTIVITY_DISPLAY:
+        case TYPE.CONNECTIVITY_DISPLAY:
             return action.flag;
         default:
             return state;
@@ -28,7 +29,25 @@ function reduceConnectivityOn(state=false, action) {
 
 function reduceTextureOn(state=false, action) {
     switch(action.type) {
-        case TEXTURE_DISPLAY:
+        case TYPE.TEXTURE_DISPLAY:
+            return action.flag;
+        default:
+            return state;
+    }
+}
+
+function reduceSnapOn(state=false, action) {
+    switch(action.type) {
+        case TYPE.SNAP_MODE:
+            return action.flag;
+        default:
+            return state;
+    }
+}
+
+function reduceAutosaveOn(state=false, action) {
+    switch(action.type) {
+        case TYPE.SET_AUTOSAVE:
             return action.flag;
         default:
             return state;
@@ -66,9 +85,9 @@ function clone(x) {
 
 function reducePoints(points = [], action) {
     switch (action.type) {
-        case LOAD_LANDMARKS:
+        case TYPE.LOAD_LANDMARKS:
             return clone(action.landmarks.toJSON().landmarks.points);
-        case DELETE_LANDMARKS:
+        case TYPE.DELETE_LANDMARKS:
             const newPoints = clone(points);
             action.indices.map((i) => newPoints[i] = null);
             return newPoints;
@@ -79,7 +98,7 @@ function reducePoints(points = [], action) {
 
 function reduceLabels(labels = [], action) {
     switch (action.type) {
-        case LOAD_LANDMARKS:
+        case TYPE.LOAD_LANDMARKS:
             return clone(action.landmarks.toJSON().labels);
         default:
             return labels;
@@ -88,7 +107,7 @@ function reduceLabels(labels = [], action) {
 
 function reduceNextToInsert(nextToInsert = -1, action) {
     switch (action.type) {
-        case SET_NEXT_INSERTION:
+        case TYPE.SET_NEXT_INSERTION:
             return action.index;
         default:
             return nextToInsert;
@@ -97,9 +116,9 @@ function reduceNextToInsert(nextToInsert = -1, action) {
 
 function reduceSelected(selected = [], action) {
     switch (action.type) {
-        case SET_SELECTED_LANDMARKS:
+        case TYPE.SET_SELECTED_LANDMARKS:
             return [...action.indices];
-        case DELETE_LANDMARKS:
+        case TYPE.DELETE_LANDMARKS:
             // deleted landmarks cannot be selected.
             return selected.filter(i => action.indices.indexOf(i) === -1);
         default:

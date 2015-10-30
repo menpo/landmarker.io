@@ -7,7 +7,7 @@ import THREE from 'three';
 
 import atomic from '../../model/atomic';
 import * as octree from '../../model/octree';
-import store from '../../reduxindex';
+import store from '../../store';
 
 import CameraController from './camera';
 import Handler from './handler';

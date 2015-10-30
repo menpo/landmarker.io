@@ -1,16 +1,16 @@
 'use strict';
 
-import $ from 'jquery';
+import store from '../store';
+import * as ac from '../actionCreators';
 
+import $ from 'jquery';
 import Modal from './modal';
-import { deleteAllSelectedLandmarks } from '../actions';
-import store from '../reduxindex';
 
 const SHORTCUTS = {
     // Structure is [fn, acceptShift?, needLms?]
     // Shortcuts activated without SHIFT, but CAPS LOCK ok (letters)
     "d": [function (lms) { // d = [d]elete selected
-        store.dispatch(deleteAllSelectedLandmarks());
+        store.dispatch(ac.deleteAllSelectedLandmarks());
         lms.deleteSelected();
         $('#viewportContainer').trigger("groupDeselected");
     }, false, true],
