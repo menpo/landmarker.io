@@ -1,14 +1,16 @@
 'use strict';
 
+var path = require('path');
+var del = require('del');
+
 var gulp = require('gulp');
+var replace = require('gulp-replace');
 var gutil = require('gulp-util');
+
 var webpack = require("webpack");
 var WebpackDevServer = require("webpack-dev-server");
-var webpackConfig = require("./webpack.config.js");
-var del = require('del');
 var AppCachePlugin = require('appcache-webpack-plugin');
-var replace = require('gulp-replace');
-var path = require('path');
+var webpackConfig = require("./webpack.config.js");
 
 var REMOTE_CACHED = [
     '//fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic',
@@ -17,11 +19,10 @@ var REMOTE_CACHED = [
 
 var BUILD_DIR = './build';
 
-// The default task (called when you run `gulp` from cli)
 gulp.task('default', ['webpack-dev-server']);
 
-gulp.task('clean', function (cb) {
-    del([BUILD_DIR], cb);
+gulp.task('clean', function (callback) {
+    del([BUILD_DIR], callback);
 });
 
 gulp.task('copystatic', ['clean'], function(){
@@ -29,13 +30,13 @@ gulp.task('copystatic', ['clean'], function(){
 });
 
 gulp.task("webpack-dev-server", ['copystatic'], function() {
-    // modify some webpack config options
-    var myConfig = Object.create(webpackConfig);
-    myConfig.devtool = "eval";
-    myConfig.debug = true;
+    // modify some webpack config options for development
+    var devConfig = Object.create(webpackConfig);
+    devConfig.devtool = "eval-source-map";
+    devConfig.debug = true;
 
     // Start a webpack-dev-server
-    new WebpackDevServer(webpack(myConfig), {
+    new WebpackDevServer(webpack(devConfig), {
         contentBase: BUILD_DIR,
         stats: {
             colors: true
@@ -48,9 +49,10 @@ gulp.task("webpack-dev-server", ['copystatic'], function() {
         });
 });
 
-gulp.task("webpack", ['copystatic'], function(callback) {
+gulp.task("webpack:build", ['copystatic'], function(callback) {
     // modify some webpack config options
     var productionConfig = Object.create(webpackConfig);
+    productionConfig.devtool = "source-map";  // full seperate source maps
     productionConfig.plugins = productionConfig.plugins.concat(
         new webpack.DefinePlugin({
             "process.env": {
@@ -76,7 +78,9 @@ gulp.task("webpack", ['copystatic'], function(callback) {
     });
 });
 
-gulp.task('build', ['webpack'], function() {
+gulp.task('build', ['webpack:build'], function() {
+    // after webpack has finished building, we just need to
+    // enable the appcache in the built index.html
     var index_path = path.join(BUILD_DIR, 'index.html');
     return gulp.src([index_path])
         .pipe(replace('<html lang="en">', '<html lang="en" manifest="lmio.appcache">'))
