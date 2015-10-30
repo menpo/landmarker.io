@@ -52,6 +52,7 @@ gulp.task("webpack-dev-server", ['copystatic'], function() {
 gulp.task("webpack:build", ['copystatic'], function(callback) {
     // modify some webpack config options
     var productionConfig = Object.create(webpackConfig);
+    productionConfig.devtool = "source-map";  // full seperate source maps
     productionConfig.plugins = productionConfig.plugins.concat(
         new webpack.DefinePlugin({
             "process.env": {
