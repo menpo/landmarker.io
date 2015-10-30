@@ -32,7 +32,7 @@ gulp.task('copystatic', ['clean'], function(){
 gulp.task("webpack-dev-server", ['copystatic'], function() {
     // modify some webpack config options for development
     var devConfig = Object.create(webpackConfig);
-    devConfig.devtool = "eval";
+    devConfig.devtool = "eval-source-map";
     devConfig.debug = true;
 
     // Start a webpack-dev-server
