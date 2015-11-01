@@ -67,7 +67,6 @@ export default class BackboneViewport {
         this.setSnapMode();
 
         this.model.on("change:landmarks", this.setLandmarks);
-        this.setMesh();
 
     }
 
@@ -292,7 +291,7 @@ class ViewportRedux {
         // We wrap all this complexity up in a closure so it can enjoy access
         // to the general viewport state without leaking it's state all over
         // the place.
-        this._handler = Handler.apply(this);
+        this._handler = new Handler(this, app);
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this._resize, false);

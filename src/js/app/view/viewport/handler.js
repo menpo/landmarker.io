@@ -7,249 +7,212 @@ import $ from 'jquery';
 import atomic from '../../model/atomic';
 
 /**
- * Create a closure for handling mouse events in viewport.
  * Holds state usable by all event handlers and should be bound to the
  * Viewport view instance.
  */
-export default function Handler () {
+export default class Handler {
 
-    // Helpers
+    constructor(viewport, model) {
+        this.viewport = viewport;
+        this.model = model;
+
+        // Setup handler state variables
+        // ------------------------------------------------------------------------
+        this.currentTargetLm = undefined;
+        this.downEvent = null;
+
+        this.lmPressed = false;
+        this.lmPressedWasSelected = false;
+        this.isPressed = false;
+        this.groupSelected = false;
+
+        // x, y position of mouse on click states
+        this.onMouseDownPosition = new THREE.Vector2();
+        this.onMouseUpPosition = new THREE.Vector2();
+
+        // current screen position when in drag state
+        this.positionLmDrag = new THREE.Vector2();
+
+        // vector difference in one time step
+        this.deltaLmDrag = new THREE.Vector2();
+
+
+        this.dragStartPositions = [];
+        this.dragged = false;
+
+        this.intersectsWithLms = [];
+        this.intersectsWithMesh = [];
+    }
+
+    // High level handlers
+    // these functions respond to changes in the mesh and landamrks state.
+    // lower level handlers below reponding to raw input (e.g. onMouseDown) will
+    // resolve what item is being interacted with and delegate to these methods
+    // as appropriate.
     // ------------------------------------------------------------------------
 
-    /**
-     * Find the 4 landmarks closest to a location (THREE vector)
-     * from a LandmarkGroup
-     *
-     * @param  {LandmarkGroup} lmGroup
-     * @param  {THREE.Vector} loc
-     *
-     * @return {Landmark[]}
-     */
-    var findClosestLandmarks = (lmGroup, loc, locked=false) => {
-        var dist, i, j, lm, lmLoc, minDist,
-            dists = new Array(4), lms = new Array(4);
-
-        for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
-            lm = lmGroup.landmarks[i];
-
-            if (lm.isEmpty()) {
-                continue;
-            }
-
-            lmLoc = lm.point();
-
-            if (lmLoc === null || locked && lm === currentTargetLm) {
-                continue;
-            }
-
-            dist = loc.distanceTo(lmLoc);
-
-            // Compare to stored lm in order, 0 being the closest
-            for (j = 0; j < 3; j++) {
-                minDist = dists[j];
-                if (!minDist) {
-                    [dists[j], lms[j]] = [dist, lm];
-                    break;
-                } else if (dist <= minDist) { // leq to ensure we always have 4
-                    dists.splice(j, 0, dist);
-                    lms.splice(j, 0, lm);
-                    break;
-                }
-            }
-        }
-
-        return lms;
-    };
-
-    // Setup handler state variables
-    // ------------------------------------------------------------------------
-    var downEvent,
-        lmPressed, lmPressedWasSelected,
-        isPressed, groupSelected,
-        currentTargetLm;
-
-    // x, y position of mouse on click states
-    var onMouseDownPosition = new THREE.Vector2(),
-        onMouseUpPosition = new THREE.Vector2();
-
-    // current screen position when in drag state
-    var positionLmDrag = new THREE.Vector2();
-    // vector difference in one time step
-    var deltaLmDrag = new THREE.Vector2();
-    var dragStartPositions, dragged = false;
-
-    var intersectsWithLms, intersectsWithMesh;
-
-    var landmarkOnDrag, shiftOnDrag,
-        landmarkOnMouseUp, nothingOnMouseUp, shiftOnMouseUp,
-        setGroupSelected;
-
-    // Press handling
-    // ------------------------------------------------------------------------
-
-    var meshPressed = () => {
+    meshPressed = () => {
         console.log('mesh pressed!');
-        if (groupSelected) {
-            nothingPressed();
-        } else if (downEvent.button === 0 && downEvent.shiftKey) {
-            shiftPressed();  // LMB + SHIFT
+        if (this.groupSelected) {
+            this.nothingPressed();
+        } else if (this.downEvent.button === 0 && this.downEvent.shiftKey) {
+            this.shiftPressed();  // LMB + SHIFT
         } else {
-            $(document).one('mouseup.viewportMesh', meshOnMouseUp);
+            $(document).one('mouseup.viewportMesh', this.meshOnMouseUp);
         }
     };
 
-    var landmarkPressed = () => {
-        var ctrl = downEvent.ctrlKey || downEvent.metaKey;
+    landmarkPressed = () => {
+        var ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey;
         console.log('Viewport: landmark pressed');
         // before anything else, disable the camera
-        this.cameraController.disable();
+        this.viewport.cameraController.disable();
         // the clicked on landmark
-        var landmarkSymbol = intersectsWithLms[0].object;
+        var landmarkSymbol = this.intersectsWithLms[0].object;
         // hunt through the landmarkViews for the right symbol
-        for (var i = 0; i < this._landmarkViews.length; i++) {
-            if (this._landmarkViews[i].symbol === landmarkSymbol) {
-                lmPressed = this._landmarkViews[i].model;
+        for (var i = 0; i < this.viewport._landmarkViews.length; i++) {
+            if (this.viewport._landmarkViews[i].symbol === landmarkSymbol) {
+                this.lmPressed = this.viewport._landmarkViews[i].model;
             }
         }
         console.log('Viewport: finding the selected points');
-        lmPressedWasSelected = lmPressed.isSelected();
+        this.lmPressedWasSelected = this.lmPressed.isSelected();
 
-        if (!lmPressedWasSelected && !ctrl) {
+        if (!this.lmPressedWasSelected && !ctrl) {
             // this lm wasn't pressed before and we aren't holding
             // mutliselection down - deselect rest and select this
             console.log("normal click on a unselected lm - deselecting rest and selecting me");
-            lmPressed.selectAndDeselectRest();
-        } else if (ctrl && !lmPressedWasSelected) {
-            lmPressed.select();
+            this.lmPressed.selectAndDeselectRest();
+        } else if (ctrl && !this.lmPressedWasSelected) {
+            this.lmPressed.select();
         }
 
         // record the position of where the drag started.
-        positionLmDrag.copy(this._localToScreen(lmPressed.point()));
-        dragStartPositions = this.model.landmarks().selected().map(
+        this.positionLmDrag.copy(this.viewport._localToScreen(this.lmPressed.point()));
+        this.dragStartPositions = this.model.landmarks().selected().map(
             lm => [lm.index(), lm.point().clone()]);
 
         // start listening for dragging landmarks
-        $(document).on('mousemove.landmarkDrag', landmarkOnDrag);
-        $(document).one('mouseup.viewportLandmark', landmarkOnMouseUp);
+        $(document).on('mousemove.landmarkDrag', this.landmarkOnDrag);
+        $(document).one('mouseup.viewportLandmark', this.landmarkOnMouseUp);
     };
 
-    var nothingPressed = () => {
+    nothingPressed = () => {
         console.log('nothing pressed!');
-        $(document).one('mouseup.viewportNothing', nothingOnMouseUp);
+        $(document).one('mouseup.viewportNothing', this.nothingOnMouseUp);
     };
 
-    var shiftPressed = () => {
+    shiftPressed = () => {
         console.log('shift pressed!');
         // before anything else, disable the camera
-        this.cameraController.disable();
+        this.viewport.cameraController.disable();
 
-        if (!(downEvent.ctrlKey || downEvent.metaKey)) {
-            this.deselectAll();
+        if (!(this.downEvent.ctrlKey || this.downEvent.metaKey)) {
+            this.viewport.deselectAll();
         }
 
-        $(document).on('mousemove.shiftDrag', shiftOnDrag);
-        $(document).one('mouseup.viewportShift', shiftOnMouseUp);
+        $(document).on('mousemove.shiftDrag', this.shiftOnDrag);
+        $(document).one('mouseup.viewportShift', this.shiftOnMouseUp);
     };
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
-    var onMouseDown = (event) => {
+    onMouseDown = atomic.atomicOperation((event) => {
         event.preventDefault();
-        this.$el.focus();
+        this.viewport.$el.focus();
 
         if (!this.model.landmarks()) {
             return;
         }
 
-        isPressed = true;
+        this.isPressed = true;
 
-        downEvent = event;
-        onMouseDownPosition.set(event.clientX, event.clientY);
+        this.downEvent = event;
+        this.onMouseDownPosition.set(event.clientX, event.clientY);
 
         // All interactions require intersections to distinguish
-        intersectsWithLms = this._getIntersectsFromEvent(
-            event, this._sLms);
+        this.intersectsWithLms = this.viewport._getIntersectsFromEvent(
+            event, this.viewport._sLms);
         // note that we explicitly ask for intersects with the mesh
         // object as we know get intersects will use an octree if
         // present.
-        intersectsWithMesh = this._getIntersectsFromEvent(event, this.mesh);
+        this.intersectsWithMesh = this.viewport._getIntersectsFromEvent(event, this.viewport.mesh);
 
         // Click type, we use MouseEvent.button which is the vanilla JS way
         // jQuery also exposes event.which which has different bindings
         if (event.button === 0) {  // left mouse button
-            if (intersectsWithLms.length > 0 &&
-                intersectsWithMesh.length > 0) {
+            if (this.intersectsWithLms.length > 0 &&
+                this.intersectsWithMesh.length > 0) {
                 // degenerate case - which is closer?
-                if (intersectsWithLms[0].distance <
-                    intersectsWithMesh[0].distance) {
-                    landmarkPressed(event);
+                if (this.intersectsWithLms[0].distance <
+                    this.intersectsWithMesh[0].distance) {
+                    this.landmarkPressed(event);
                 } else {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
-                        shiftPressed();
-                    } else if (this._editingOn && currentTargetLm) {
-                        meshPressed();
+                        this.shiftPressed();
+                    } else if (this.viewport._editingOn && this.currentTargetLm) {
+                        this.meshPressed();
                     } else {
-                        nothingPressed();
+                        this.nothingPressed();
                     }
                 }
-            } else if (intersectsWithLms.length > 0) {
-                landmarkPressed(event);
+            } else if (this.intersectsWithLms.length > 0) {
+                this.landmarkPressed(event);
             } else if (event.shiftKey) {
                 // shift trumps all!
-                shiftPressed();
+                this.shiftPressed();
             } else if (
-                intersectsWithMesh.length > 0 &&
-                this._editingOn
+                this.intersectsWithMesh.length > 0 &&
+                this.viewport._editingOn
             ) {
-                meshPressed();
+                this.meshPressed();
             } else {
-                nothingPressed();
+                this.nothingPressed();
             }
         } else if (event.button === 2) { // Right click
             if (
-                intersectsWithLms.length <= 0 &&
-                intersectsWithMesh.length > 0
+                this.intersectsWithLms.length <= 0 &&
+                this.intersectsWithMesh.length > 0
             ) {
-                this.deselectAll();
-                currentTargetLm = undefined;
-                meshPressed();
+                this.viewport.deselectAll();
+                this.currentTargetLm = undefined;
+                this.meshPressed();
             }
         }
-    };
+    });
 
     // Drag Handlers
     // ------------------------------------------------------------------------
-
     landmarkOnDrag = atomic.atomicOperation((event) => {
         console.log("drag");
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
         var newPositionLmDrag = new THREE.Vector2(
             event.clientX, event.clientY);
-        var prevPositionLmDrag = positionLmDrag.clone();
+        var prevPositionLmDrag = this.positionLmDrag.clone();
         // change in this step in screen space
-        deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
+        this.deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
         // update the position
-        positionLmDrag.copy(newPositionLmDrag);
+        this.positionLmDrag.copy(newPositionLmDrag);
         var selectedLandmarks = this.model.landmarks().selected();
         var lm, vScreen;
         for (var i = 0; i < selectedLandmarks.length; i++) {
             lm = selectedLandmarks[i];
             // convert to screen coordinates
-            vScreen = this._localToScreen(lm.point());
+            vScreen = this.viewport._localToScreen(lm.point());
 
             // budge the screen coordinate
-            vScreen.add(deltaLmDrag);
+            vScreen.add(this.deltaLmDrag);
 
             // use the standard machinery to find intersections
             // note that we intersect the mesh to use the octree
-            intersectsWithMesh = this._getIntersects(
-                vScreen.x, vScreen.y, this.mesh);
-            if (intersectsWithMesh.length > 0) {
+            this.intersectsWithMesh = this.viewport._getIntersects(
+                vScreen.x, vScreen.y, this.viewport.mesh);
+            if (this.intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
-                dragged = !!dragged || true;
-                lm.setPoint(this._worldToLocal(intersectsWithMesh[0].point));
+                this.dragged = !!this.dragged || true;
+                lm.setPoint(this.viewport._worldToLocal(this.intersectsWithMesh[0].point));
             } else {
                 // don't update point - it would fall off the surface.
                 console.log("fallen off mesh");
@@ -263,19 +226,19 @@ export default function Handler () {
         // if user drags into sidebar!
         var newPosition = { x: event.clientX, y: event.clientY };
         // clear the canvas and draw a selection rect.
-        this.clearCanvas();
-        this._drawSelectionBox(onMouseDownPosition, newPosition);
+        this.viewport.clearCanvas();
+        this.viewport._drawSelectionBox(this.onMouseDownPosition, newPosition);
     };
 
     // Up handlers
     // ------------------------------------------------------------------------
 
     shiftOnMouseUp = atomic.atomicOperation((event) => {
-        this.cameraController.enable();
+        this.viewport.cameraController.enable();
         console.log("shift:up");
-        $(document).off('mousemove.shiftDrag', shiftOnDrag);
-        var x1 = onMouseDownPosition.x;
-        var y1 = onMouseDownPosition.y;
+        $(document).off('mousemove.shiftDrag', this.shiftOnDrag);
+        var x1 = this.onMouseDownPosition.x;
+        var y1 = this.onMouseDownPosition.y;
         var x2 = event.clientX;
         var y2 = event.clientY;
         var minX, maxX, minY, maxY;
@@ -291,101 +254,100 @@ export default function Handler () {
         }
         // First, let's just find all the landmarks in screen space that
         // are within our selection.
-        var lms = this._lmViewsInSelectionBox(minX, minY, maxX, maxY);
+        var lms = this.viewport._lmViewsInSelectionBox(minX, minY, maxX, maxY);
 
         // Of these, filter out the ones which are visible (not
         // obscured) and select the rest
         _.each(lms, (lm) => {
-            if (this._lmViewVisible(lm)) {
+            if (this.viewport._lmViewVisible(lm)) {
                 lm.model.select();
             }
         });
 
-        this.clearCanvas();
-        isPressed = false;
-        setGroupSelected(true);
+        this.viewport.clearCanvas();
+        this.isPressed = false;
+        this.setGroupSelected(true);
     });
 
-    var meshOnMouseUp = (event) => {
+    meshOnMouseUp = (event) => {
         console.log("meshPress:up");
         var p;
-        onMouseUpPosition.set(event.clientX, event.clientY);
-        if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
+        this.onMouseUpPosition.set(event.clientX, event.clientY);
+        if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
             //  a click on the mesh
-            p = intersectsWithMesh[0].point.clone();
+            p = this.intersectsWithMesh[0].point.clone();
             // Convert the point back into the mesh space
-            this._worldToLocal(p, true);
+            this.viewport._worldToLocal(p, true);
 
             if (
-                this._editingOn &&
-                currentTargetLm &&
-                currentTargetLm.group() === this.model.landmarks() &&
-                !currentTargetLm.isEmpty()
+                this.viewport._editingOn &&
+                this.currentTargetLm &&
+                this.currentTargetLm.group() === this.model.landmarks() &&
+                !this.currentTargetLm.isEmpty()
             ) {
-                this.model.landmarks().setLmAt(currentTargetLm, p);
-            } else if (downEvent.button === 2) {
+                this.model.landmarks().setLmAt(this.currentTargetLm, p);
+            } else if (this.downEvent.button === 2) {
                 this.model.landmarks().insertNew(p);
             }
         }
 
-        this.clearCanvas();
-        isPressed = false;
-        setGroupSelected(false);
+        this.viewport.clearCanvas();
+        this.isPressed = false;
+        this.setGroupSelected(false);
     };
 
     nothingOnMouseUp = (event) => {
         console.log("nothingPress:up");
-        onMouseUpPosition.set(event.clientX, event.clientY);
-        if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
+        this.onMouseUpPosition.set(event.clientX, event.clientY);
+        if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
             // a click on nothing - deselect all
-            setGroupSelected(false);
+            this.setGroupSelected(false);
         }
 
-        this.clearCanvas();
-        isPressed = false;
+        this.viewport.clearCanvas();
+        this.isPressed = false;
     };
 
     landmarkOnMouseUp = atomic.atomicOperation((event) => {
-        var ctrl = downEvent.ctrlKey || downEvent.metaKey;
-        this.cameraController.enable();
+        var ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey;
+        this.viewport.cameraController.enable();
         console.log("landmarkPress:up");
         $(document).off('mousemove.landmarkDrag');
-        onMouseUpPosition.set(event.clientX, event.clientY);
-        if (onMouseDownPosition.distanceTo(onMouseUpPosition) === 0) {
+        this.onMouseUpPosition.set(event.clientX, event.clientY);
+        if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) === 0) {
             // landmark was pressed
-            if (lmPressedWasSelected && ctrl) {
-                lmPressed.deselect();
-            } else if (!ctrl && !lmPressedWasSelected) {
-                lmPressed.selectAndDeselectRest();
-            } else if (lmPressedWasSelected) {
-                var p = intersectsWithMesh[0].point.clone();
-                this._worldToLocal(p, true);
-                this.model.landmarks().setLmAt(lmPressed, p);
+            if (this.lmPressedWasSelected && ctrl) {
+                this.lmPressed.deselect();
+            } else if (!ctrl && !this.lmPressedWasSelected) {
+                this.lmPressed.selectAndDeselectRest();
+            } else if (this.lmPressedWasSelected) {
+                var p = this.intersectsWithMesh[0].point.clone();
+                this.viewport._worldToLocal(p, true);
+                this.model.landmarks().setLmAt(this.lmPressed, p);
             } else if (ctrl) {
-                setGroupSelected(true);
+                this.setGroupSelected(true);
             }
-        } else if (dragged) {
+        } else if (this.dragged) {
             this.model.landmarks().selected().forEach((lm, i) => {
-                dragStartPositions[i].push(lm.point().clone());
+                this.dragStartPositions[i].push(lm.point().clone());
             });
-            this.model.landmarks().tracker.record(dragStartPositions);
+            this.model.landmarks().tracker.record(this.dragStartPositions);
         }
 
-        this.clearCanvas();
-        dragged = false;
-        dragStartPositions = [];
-        isPressed = false;
+        this.viewport.clearCanvas();
+        this.dragged = false;
+        this.dragStartPositions = [];
+        this.isPressed = false;
     });
 
     // Move handlers
     // ------------------------------------------------------------------------
+    onMouseMove = atomic.atomicOperation((evt) => {
 
-    var onMouseMove = (evt) => {
+        this.viewport.clearCanvas();
 
-        this.clearCanvas();
-
-        if (isPressed ||
-            !this._editingOn ||
+        if (this.isPressed ||
+            !this.viewport._editingOn ||
             !this.model.landmarks() ||
             this.model.landmarks().isEmpty()
         ) {
@@ -393,18 +355,18 @@ export default function Handler () {
         }
 
         if (
-            currentTargetLm &&
-            (currentTargetLm.isEmpty() ||
-            this.model.landmarks() !== currentTargetLm.group())
+            this.currentTargetLm &&
+            (this.currentTargetLm.isEmpty() ||
+            this.model.landmarks() !== this.currentTargetLm.group())
         ) {
-            currentTargetLm = undefined;
+            this.currentTargetLm = undefined;
         }
 
-        intersectsWithMesh = this._getIntersectsFromEvent(evt, this.mesh);
+        this.intersectsWithMesh = this.viewport._getIntersectsFromEvent(evt, this.viewport.mesh);
 
         var lmGroup = this.model.landmarks();
 
-        var shouldUpdate = intersectsWithMesh.length > 0 &&
+        var shouldUpdate = this.intersectsWithMesh.length > 0 &&
                            lmGroup &&
                            lmGroup.landmarks;
 
@@ -412,37 +374,36 @@ export default function Handler () {
             return null;
         }
 
-        var mouseLoc = this._worldToLocal(intersectsWithMesh[0].point);
-        var previousTargetLm = currentTargetLm;
+        var mouseLoc = this.viewport._worldToLocal(this.intersectsWithMesh[0].point);
+        var previousTargetLm = this.currentTargetLm;
 
-        var lms = findClosestLandmarks(lmGroup, mouseLoc,
-                                       evt.ctrlKey || evt.metaKey);
+        var lms = this.findClosestLandmarks(lmGroup, mouseLoc, evt.ctrlKey || evt.metaKey);
 
         if (lms[0] && !evt.ctrlKey) {
-            currentTargetLm = lms[0];
+            this.currentTargetLm = lms[0];
             lms = lms.slice(1, 4);
         } else if (lms[0]) {
             lms = lms.slice(0, 3);
         }
 
-        if (currentTargetLm && !groupSelected && lms.length > 0) {
+        if (this.currentTargetLm && !this.groupSelected && lms.length > 0) {
 
-            if (currentTargetLm !== previousTargetLm) {
+            if (this.currentTargetLm !== previousTargetLm) {
                 // Linear operation hence protected
-                currentTargetLm.selectAndDeselectRest();
+                this.currentTargetLm.selectAndDeselectRest();
             }
 
-            this._drawTargetingLines({x: evt.clientX, y: evt.clientY},
-                currentTargetLm, lms);
+            this.viewport._drawTargetingLines({x: evt.clientX, y: evt.clientY},
+                this.currentTargetLm, lms);
         }
-    };
+    });
 
     // Keyboard handlers
     // ------------------------------------------------------------------------
-    var onKeypress = atomic.atomicOperation((evt) => {
+    onKeypress = atomic.atomicOperation((evt) => {
         // Only work in group selection mode
         if (
-            !groupSelected || !this.model.landmarks() ||
+            !this.groupSelected || !this.model.landmarks() ||
             evt.which < 37 || evt.which > 40
         ) {
             return;
@@ -470,14 +431,14 @@ export default function Handler () {
 
         const ops = [];
         this.model.landmarks().selected().forEach((lm) => {
-            const lmScreen = this._localToScreen(lm.point());
+            const lmScreen = this.viewport._localToScreen(lm.point());
             lmScreen.add(move);
 
-            intersectsWithMesh = this._getIntersects(
-                lmScreen.x, lmScreen.y, this.mesh);
+            this.intersectsWithMesh = this.viewport._getIntersects(
+                lmScreen.x, lmScreen.y, this.viewport.mesh);
 
-            if (intersectsWithMesh.length > 0) {
-                const pt = this._worldToLocal(intersectsWithMesh[0].point);
+            if (this.intersectsWithMesh.length > 0) {
+                const pt = this.viewport._worldToLocal(this.intersectsWithMesh[0].point);
                 ops.push([lm.index(), lm.point().clone(), pt.clone()]);
                 lm.setPoint(pt);
             }
@@ -487,8 +448,7 @@ export default function Handler () {
 
     // Group Selection hook
     // ------------------------------------------------------------------------
-
-    setGroupSelected = (val=true) => {
+    setGroupSelected = atomic.atomicOperation((val=true) => {
 
         if (!this.model.landmarks()) {
             return;
@@ -496,24 +456,24 @@ export default function Handler () {
 
         const _val = !!val; // Force cast to boolean
 
-        if (_val === groupSelected) {
+        if (_val === this.groupSelected) {
             return; // Nothing to do here
         }
 
-        groupSelected = _val;
+        this.groupSelected = _val;
 
         if (_val) {
             // Use keydown as keypress doesn't register arrows in some context
-            $(window).on('keydown', onKeypress);
+            $(window).on('keydown', this.onKeypress);
         } else {
-            this.deselectAll();
-            $(window).off('keydown', onKeypress);
+            this.viewport.deselectAll();
+            $(window).off('keydown', this.onKeypress);
         }
 
-        this.clearCanvas();
-    };
+        this.viewport.clearCanvas();
+    });
 
-    var completeGroupSelection = () => {
+    completeGroupSelection = () => {
 
         if (!this.model.landmarks()) {
             return;
@@ -521,17 +481,55 @@ export default function Handler () {
 
         this.model.landmarks().completeGroups();
 
-        setGroupSelected(true);
+        this.setGroupSelected(true);
     };
 
-    return {
-        // State management
-        setGroupSelected: atomic.atomicOperation(setGroupSelected),
-        completeGroupSelection: completeGroupSelection,
+    // Helpers
+    // ------------------------------------------------------------------------
 
-        // Exposed handlers
-        onMouseDown: atomic.atomicOperation(onMouseDown),
-        onMouseMove: atomic.atomicOperation(onMouseMove)
+    /**
+     * Find the 4 landmarks closest to a location (THREE vector)
+     * from a LandmarkGroup
+     *
+     * @param  {LandmarkGroup} lmGroup
+     * @param  {THREE.Vector} loc
+     *
+     * @return {Landmark[]}
+     */
+    findClosestLandmarks = (lmGroup, loc, locked=false) => {
+        var dist, i, j, lm, lmLoc, minDist,
+            dists = new Array(4), lms = new Array(4);
+
+        for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
+            lm = lmGroup.landmarks[i];
+
+            if (lm.isEmpty()) {
+                continue;
+            }
+
+            lmLoc = lm.point();
+
+            if (lmLoc === null || locked && lm === this.currentTargetLm) {
+                continue;
+            }
+
+            dist = loc.distanceTo(lmLoc);
+
+            // Compare to stored lm in order, 0 being the closest
+            for (j = 0; j < 3; j++) {
+                minDist = dists[j];
+                if (!minDist) {
+                    [dists[j], lms[j]] = [dist, lm];
+                    break;
+                } else if (dist <= minDist) { // leq to ensure we always have 4
+                    dists.splice(j, 0, dist);
+                    lms.splice(j, 0, lm);
+                    break;
+                }
+            }
+        }
+
+        return lms;
     };
 
 }
