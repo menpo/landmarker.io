@@ -114,7 +114,7 @@ export const EditingToggle = Backbone.View.extend({
     initialize: function () {
         this.$toggle = this.$el.find('#editingToggle')[0];
         _.bindAll(this, 'render', 'editingToggle');
-        this.listenTo(this.model, 'change:editingOn', this.render);
+        this.listenTo(this.model, 'change:_editingOn', this.render);
         this.render();
     },
 

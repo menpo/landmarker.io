@@ -144,7 +144,7 @@ export default function Handler () {
         this.cameraController.disable();
 
         if (!(downEvent.ctrlKey || downEvent.metaKey)) {
-            this.model.landmarks().deselectAll();
+            this.deselectAll();
         }
 
         $(document).on('mousemove.shiftDrag', shiftOnDrag);
@@ -187,7 +187,7 @@ export default function Handler () {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
                         shiftPressed();
-                    } else if (this.model.isEditingOn() && currentTargetLm) {
+                    } else if (this._editingOn && currentTargetLm) {
                         meshPressed();
                     } else {
                         nothingPressed();
@@ -200,7 +200,7 @@ export default function Handler () {
                 shiftPressed();
             } else if (
                 intersectsWithMesh.length > 0 &&
-                this.model.isEditingOn()
+                this._editingOn
             ) {
                 meshPressed();
             } else {
@@ -211,7 +211,7 @@ export default function Handler () {
                 intersectsWithLms.length <= 0 &&
                 intersectsWithMesh.length > 0
             ) {
-                this.model.landmarks().deselectAll();
+                this.deselectAll();
                 currentTargetLm = undefined;
                 meshPressed();
             }
@@ -317,7 +317,7 @@ export default function Handler () {
             this._worldToLocal(p, true);
 
             if (
-                this.model.isEditingOn() &&
+                this._editingOn &&
                 currentTargetLm &&
                 currentTargetLm.group() === this.model.landmarks() &&
                 !currentTargetLm.isEmpty()
@@ -385,7 +385,7 @@ export default function Handler () {
         this.clearCanvas();
 
         if (isPressed ||
-            !this.model.isEditingOn() ||
+            !this._editingOn ||
             !this.model.landmarks() ||
             this.model.landmarks().isEmpty()
         ) {

@@ -44,20 +44,63 @@ function _initialBoundingBox() {
 //    moveLandmarks: null,
 //    deleteLandmarks: null,
 //    insertLandmarks: null,
-//    setImage: null,
-//    setMesh: null,
-//    setLandmarks: null,
 //    setLandmarksSize: null,
-//    setConnectivityDisplay: null,
 //    setTexture: null,
 //    setPIPWindow: null,
 //    resetCamera: null
 //};
 
-export default class ViewportRedux {
+
+export default class BackboneViewport {
 
     constructor(app) {
+        this.model = app;
+        this.viewport = new ViewportRedux(app, app.meshMode());
 
+        this.model.on('newMeshAvailable', this.setMesh);
+        this.setMesh();
+
+        this.model.on('change:connectivityOn', this.setConnectivityDisplay);
+        this.setConnectivityDisplay();
+
+        this.model.on('change:_editingOn', this.setSnapMode);
+        this.setSnapMode();
+
+        this.model.on("change:landmarks", this.setLandmarks);
+        this.setMesh();
+
+    }
+
+    setMesh = () => {
+        const meshPayload = this.model.mesh();
+        if (meshPayload === null) {
+            return;
+        }
+        this.viewport.changeMesh(meshPayload.mesh, meshPayload.up, meshPayload.front);
+    };
+
+    setLandmarks = () => {
+        const landmarks = this.model.landmarks();
+        if (landmarks !== null) {
+            this.viewport.changeLandmarks(landmarks);
+        }
+    };
+
+    setConnectivityDisplay = () => {
+        this.viewport.updateConnectivityDisplay(this.model.isConnectivityOn());
+    };
+
+    setSnapMode = () => {
+        this.viewport.updateEditingDisplay(this.model.isEditingOn());
+    };
+
+}
+
+class ViewportRedux {
+
+    constructor(app, meshMode) {
+
+        this.meshMode = meshMode;
         this.connectivityOn = true;
         this.model = app;
         this.el = document.getElementById('canvas');
@@ -65,7 +108,7 @@ export default class ViewportRedux {
         this.$el = $('#canvas');
 
         // ----- CONFIGURATION ----- //
-        this.meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
+        this._meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
 
         // Disable context menu on viewport related elements
         $('canvas').on("contextmenu", function(e){
@@ -184,13 +227,11 @@ export default class ViewportRedux {
         // create the cameraController to look after all camera state.
         this.cameraController = CameraController(
             this._sPCam, this._sOCam, this._sOCamZoom,
-            this.el, this.model.imageMode());
+            this.el);
 
-        // when the camera updates, render
-        // REDUX callback
         this.cameraController.onChange = this.update;
 
-        if (!this.model.meshMode()) {
+        if (!this.meshMode) {
             // for images, default to orthographic camera
             // (note that we use toggle to make sure the UI gets updated)
             this.toggleCamera();
@@ -238,10 +279,6 @@ export default class ViewportRedux {
         this._shScaleRotate.add(this._sHTranslate);
         this._sceneHelpers.add(this._shScaleRotate);
 
-        // add mesh if there already is one present (we could have missed a
-        // backbone callback).
-        this.changeMesh();
-
         // store the views that we will later create
         this._landmarkViews = [];
         this._connectivityViews = [];
@@ -259,18 +296,6 @@ export default class ViewportRedux {
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this._resize, false);
-        // REDUX subscribe events
-        this.model.on('newMeshAvailable', this.changeMesh);
-        this.model.on("change:landmarks", this.changeLandmarks);
-
-        this.showConnectivity = true;
-        // REDUX subscribe events
-        this.model.on('change:connectivityOn', this.updateConnectivityDisplay);
-        this.updateConnectivityDisplay();
-
-        // REDUX subscribe events
-        this.model.on('change:editingOn', this.updateEditingDisplay);
-        this.updateEditingDisplay();
 
         // Reset helper views on wheel to keep scale
         // this.$el.on('wheel', () => {
@@ -318,19 +343,11 @@ export default class ViewportRedux {
         return this.$container[0].offsetHeight;
     };
 
-    changeMesh = () => {
-        var meshPayload, mesh, up, front;
+    changeMesh = (mesh, up, front) => {
         console.log('Viewport:changeMesh - memory before: ' + this.memoryString());
         // firstly, remove any existing mesh
         this.removeMeshIfPresent();
 
-        meshPayload = this.model.mesh();
-        if (meshPayload === null) {
-            return;
-        }
-        mesh = meshPayload.mesh;
-        up = meshPayload.up;
-        front = meshPayload.front;
         this.mesh = mesh;
 
         if (mesh.geometry instanceof THREE.BufferGeometry) {
@@ -342,8 +359,8 @@ export default class ViewportRedux {
         this._sMesh.add(mesh);
         // Now we need to rescale the _sMeshAndLms to fit in the unit sphere
         // First, the scale
-        this.meshScale = mesh.geometry.boundingSphere.radius;
-        var s = 1.0 / this.meshScale;
+        this._meshScale = mesh.geometry.boundingSphere.radius;
+        var s = 1.0 / this._meshScale;
         this._sScaleRotate.scale.set(s, s, s);
         this._shScaleRotate.scale.set(s, s, s);
         this._sScaleRotate.up.copy(up);
@@ -450,10 +467,10 @@ export default class ViewportRedux {
 
     resetCamera = () => {
         // reposition the cameras and focus back to the starting point.
-        const v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION :
-                                        IMAGE_MODE_STARTING_POSITION;
+        const v = this.meshMode ? MESH_MODE_STARTING_POSITION :
+                                  IMAGE_MODE_STARTING_POSITION;
         this.cameraController.reset(
-            v, this._scene.position, this.model.meshMode());
+            v, this._scene.position, this.meshMode);
         this.update();
     };
 
@@ -465,17 +482,18 @@ export default class ViewportRedux {
         this._handler.onMouseDown(event);
     };
 
-    updateConnectivityDisplay = atomic.atomicOperation(() => {
-        this.showConnectivity = this.model.isConnectivityOn();
-    });
+    updateConnectivityDisplay = (isConnectivityOn) => {
+        this.connectivityOn = isConnectivityOn;
+        this.update();
+    };
 
-    updateEditingDisplay = atomic.atomicOperation(() => {
-        this.editingOn = this.model.isEditingOn();
+    updateEditingDisplay = atomic.atomicOperation((isEditModeOn) => {
+        this._editingOn = isEditModeOn;
         this.clearCanvas();
         this._handler.setGroupSelected(false);
 
         // Manually bind to avoid useless function call (even with no effect)
-        if (this.editingOn) {
+        if (this._editingOn) {
             this.$el.on('mousemove', this._handler.onMouseMove);
         } else {
             this.$el.off('mousemove', this._handler.onMouseMove);
@@ -523,8 +541,7 @@ export default class ViewportRedux {
         }
     };
 
-    // REDUX subscribe LANDMARKS_CHANGED
-    changeLandmarks = atomic.atomicOperation(() => {
+    changeLandmarks = atomic.atomicOperation((landmarks) => {
         console.log('Viewport: landmarks have changed');
         var that = this;
 
@@ -536,12 +553,6 @@ export default class ViewportRedux {
         this._landmarkViews = [];
         this._connectivityViews = [];
 
-        var landmarks = this.model.landmarks();
-        if (landmarks === null) {
-            // no actual landmarks available - return
-            // TODO when can this happen?!
-            return;
-        }
         landmarks.landmarks.map(function (lm) {
             that._landmarkViews.push(new LandmarkTHREEView(
                 {

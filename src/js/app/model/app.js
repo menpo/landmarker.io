@@ -20,7 +20,7 @@ export default Backbone.Model.extend({
             landmarkSize: 0.5,
             mode: 'mesh',
             connectivityOn: true,
-            editingOn: true,
+            _editingOn: true,
             autoSaveOn: false,
             activeTemplate: undefined,
             activeCollection: undefined,
@@ -46,11 +46,11 @@ export default Backbone.Model.extend({
     },
 
     isEditingOn: function () {
-        return this.get('editingOn');
+        return this.get('_editingOn');
     },
 
     toggleEditing: function () {
-        this.set('editingOn', !this.isEditingOn());
+        this.set('_editingOn', !this.isEditingOn());
         if (!this.isEditingOn() && this.landmarks()) {
             this.landmarks().deselectAll();
             this.landmarks().resetNextAvailable();
