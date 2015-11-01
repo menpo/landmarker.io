@@ -233,7 +233,7 @@ export default class Handler {
         // if user drags into sidebar!
         var newPosition = { x: event.clientX, y: event.clientY };
         // clear the canvas and draw a selection rect.
-        this.viewport.clearCanvas();
+        this.viewport._clearCanvas();
         this.viewport._drawSelectionBox(this.onMouseDownPosition, newPosition);
     };
 
@@ -271,7 +271,7 @@ export default class Handler {
             }
         });
 
-        this.viewport.clearCanvas();
+        this.viewport._clearCanvas();
         this.isPressed = false;
         this.setGroupSelected(true);
     });
@@ -298,7 +298,7 @@ export default class Handler {
             }
         }
 
-        this.viewport.clearCanvas();
+        this.viewport._clearCanvas();
         this.isPressed = false;
         this.setGroupSelected(false);
     };
@@ -311,7 +311,7 @@ export default class Handler {
             this.setGroupSelected(false);
         }
 
-        this.viewport.clearCanvas();
+        this.viewport._clearCanvas();
         this.isPressed = false;
     };
 
@@ -341,7 +341,7 @@ export default class Handler {
             this.model.landmarks().tracker.record(this.dragStartPositions);
         }
 
-        this.viewport.clearCanvas();
+        this.viewport._clearCanvas();
         this.dragged = false;
         this.dragStartPositions = [];
         this.isPressed = false;
@@ -351,7 +351,7 @@ export default class Handler {
     // ------------------------------------------------------------------------
     onMouseMove = atomic.atomicOperation((evt) => {
 
-        this.viewport.clearCanvas();
+        this.viewport._clearCanvas();
 
         if (this.isPressed ||
             !this.viewport._editingOn ||
@@ -477,7 +477,7 @@ export default class Handler {
             $(window).off('keydown', this.onKeypress);
         }
 
-        this.viewport.clearCanvas();
+        this.viewport._clearCanvas();
     });
 
     completeGroupSelection = () => {

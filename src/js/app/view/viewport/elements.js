@@ -64,7 +64,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
             }
         }
         // tell our viewport to update
-        this.viewport.update();
+        this.viewport._update();
     },
 
     createSphere: function (v, radius, selected) {
@@ -94,7 +94,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
             var r = this.app.landmarkSize() * this.viewport._meshScale;
             this.symbol.scale.set(r, r, r);
             // tell our viewport to update
-            this.viewport.update();
+            this.viewport._update();
         }
     }
 });
@@ -134,7 +134,7 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
             }
         }
         // tell our viewport to update
-        this.viewport.update();
+        this.viewport._update();
     },
 
     createLine: function (start, end) {

@@ -75,13 +75,13 @@ export default class BackboneViewport {
         if (meshPayload === null) {
             return;
         }
-        this.viewport.changeMesh(meshPayload.mesh, meshPayload.up, meshPayload.front);
+        this.viewport.setMesh(meshPayload.mesh, meshPayload.up, meshPayload.front);
     };
 
     setLandmarks = () => {
         const landmarks = this.model.landmarks();
         if (landmarks !== null) {
-            this.viewport.changeLandmarks(landmarks);
+            this.viewport.setLandmarks(landmarks);
         }
     };
 
@@ -103,7 +103,6 @@ class ViewportRedux {
         this.connectivityOn = true;
         this.model = app;  // only place this is referenced now is in the LandmarkViews we create.
         this.el = document.getElementById('canvas');
-        this.el.addEventListener('mousedown', this._mousedownHandler);
         this.$el = $('#canvas');
 
         // ----- CONFIGURATION ----- //
@@ -228,7 +227,7 @@ class ViewportRedux {
             this._sPCam, this._sOCam, this._sOCamZoom,
             this.el);
 
-        this.cameraController.onChange = this.update;
+        this.cameraController.onChange = this._update;
 
         if (!this.meshMode) {
             // for images, default to orthographic camera
@@ -292,14 +291,11 @@ class ViewportRedux {
         // to the general viewport state without leaking it's state all over
         // the place.
         this._handler = new Handler(this, app);
+        this.el.addEventListener('mousedown', this._handler.onMouseDown);
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this._resize, false);
 
-        // Reset helper views on wheel to keep scale
-        // this.$el.on('wheel', () => {
-        //     this.clearCanvas();
-        // });
 
         // REDUX this probably goes away
         atomic.on("change:ATOMIC_OPERATION", this._batchHandler);
@@ -334,16 +330,38 @@ class ViewportRedux {
         });
     }
 
-    _width = () => {
-        return this.$container[0].offsetWidth;
-    };
+    setLandmarks = atomic.atomicOperation((landmarks) => {
+        console.log('Viewport: landmarks have changed');
+        var that = this;
 
-    _height = () => {
-        return this.$container[0].offsetHeight;
-    };
+        // 1. Dispose of all landmark and connectivity views
+        this._landmarkViews.map((lmView) => lmView.dispose());
+        this._connectivityViews.map((connView) => connView.dispose());
 
-    changeMesh = (mesh, up, front) => {
-        console.log('Viewport:changeMesh - memory before: ' + this.memoryString());
+        // 2. Build a fresh set of views - clear any existing views
+        this._landmarkViews = [];
+        this._connectivityViews = [];
+
+        landmarks.landmarks.map(function (lm) {
+            that._landmarkViews.push(new LandmarkTHREEView(
+                {
+                    model: lm,
+                    viewport: that
+                }));
+        });
+        landmarks.connectivity.map(function (ab) {
+            that._connectivityViews.push(new LandmarkConnectionTHREEView(
+                {
+                    model: [landmarks.landmarks[ab[0]],
+                        landmarks.landmarks[ab[1]]],
+                    viewport: that
+                }));
+        });
+
+    });
+
+    setMesh = (mesh, up, front) => {
+        console.log('Viewport:setMesh - memory before: ' + this.memoryString());
         // firstly, remove any existing mesh
         this.removeMeshIfPresent();
 
@@ -371,7 +389,7 @@ class ViewportRedux {
         t.multiplyScalar(-1.0);
         this._sTranslate.position.copy(t);
         this._sHTranslate.position.copy(t);
-        this.update();
+        this._update();
     };
 
     removeMeshIfPresent = () => {
@@ -388,8 +406,64 @@ class ViewportRedux {
                ' prog:' + this._renderer.info.memory.programs;
     };
 
+    toggleCamera = () => {
+        // check what the current setting is
+        var currentlyPerspective = (this._sCamera === this._sPCam);
+        if (currentlyPerspective) {
+            // going to orthographic - start listening for pip updates
+            this.cameraController.onChangePip = this._update;
+            this._sCamera = this._sOCam;
+            // hide the pip decoration
+            this._pipCanvas.style.display = null;
+        } else {
+            // leaving orthographic - stop listening to pip calls.
+            this.cameraController.onChangePip = null;
+            this._sCamera = this._sPCam;
+            // show the pip decoration
+            this._pipCanvas.style.display = 'none';
+        }
+        // clear the canvas and re-render our state
+        this._clearCanvas();
+        this._update();
+    };
+
+    resetCamera = () => {
+        // reposition the cameras and focus back to the starting point.
+        const v = this.meshMode ? MESH_MODE_STARTING_POSITION :
+            IMAGE_MODE_STARTING_POSITION;
+        this.cameraController.reset(
+            v, this._scene.position, this.meshMode);
+        this._update();
+    };
+
+    updateConnectivityDisplay = (isConnectivityOn) => {
+        this.connectivityOn = isConnectivityOn;
+        this._update();
+    };
+
+    updateEditingDisplay = atomic.atomicOperation((isEditModeOn) => {
+        this._editingOn = isEditModeOn;
+        this._clearCanvas();
+        this._handler.setGroupSelected(false);
+
+        // Manually bind to avoid useless function call (even with no effect)
+        if (this._editingOn) {
+            this.$el.on('mousemove', this._handler.onMouseMove);
+        } else {
+            this.$el.off('mousemove', this._handler.onMouseMove);
+        }
+    });
+
+    _width = () => {
+        return this.$container[0].offsetWidth;
+    };
+
+    _height = () => {
+        return this.$container[0].offsetHeight;
+    };
+
     // this is called whenever there is a state change on the THREE _scene
-    update = () => {
+    _update = () => {
         if (!this._renderer) {
             return;
         }
@@ -433,27 +507,6 @@ class ViewportRedux {
         }
     };
 
-    toggleCamera = () => {
-        // check what the current setting is
-        var currentlyPerspective = (this._sCamera === this._sPCam);
-        if (currentlyPerspective) {
-            // going to orthographic - start listening for pip updates
-            this.cameraController.onChangePip = this.update;
-            this._sCamera = this._sOCam;
-            // hide the pip decoration
-            this._pipCanvas.style.display = null;
-        } else {
-            // leaving orthographic - stop listening to pip calls.
-            this.cameraController.onChangePip = null;
-            this._sCamera = this._sPCam;
-            // show the pip decoration
-            this._pipCanvas.style.display = 'none';
-        }
-        // clear the canvas and re-render our state
-        this.clearCanvas();
-        this.update();
-    };
-
     _pipBounds = () => {
         var w = this._width();
         var h = this._height();
@@ -463,41 +516,6 @@ class ViewportRedux {
         var minY = maxY - PIP_HEIGHT;
         return {x: minX, y: minY, width: PIP_WIDTH, height: PIP_HEIGHT};
     };
-
-    resetCamera = () => {
-        // reposition the cameras and focus back to the starting point.
-        const v = this.meshMode ? MESH_MODE_STARTING_POSITION :
-                                  IMAGE_MODE_STARTING_POSITION;
-        this.cameraController.reset(
-            v, this._scene.position, this.meshMode);
-        this.update();
-    };
-
-    // Event Handlers
-    // =========================================================================
-
-    _mousedownHandler = (event) => {
-        event.preventDefault();
-        this._handler.onMouseDown(event);
-    };
-
-    updateConnectivityDisplay = (isConnectivityOn) => {
-        this.connectivityOn = isConnectivityOn;
-        this.update();
-    };
-
-    updateEditingDisplay = atomic.atomicOperation((isEditModeOn) => {
-        this._editingOn = isEditModeOn;
-        this.clearCanvas();
-        this._handler.setGroupSelected(false);
-
-        // Manually bind to avoid useless function call (even with no effect)
-        if (this._editingOn) {
-            this.$el.on('mousemove', this._handler.onMouseMove);
-        } else {
-            this.$el.off('mousemove', this._handler.onMouseMove);
-        }
-    });
 
     _resize = () => {
         var w, h;
@@ -523,45 +541,15 @@ class ViewportRedux {
 
         // move the _pipCanvas to the right place
         this._pipCanvas.style.left = this._pipBounds().x + 'px';
-        this.update();
+        this._update();
     };
 
     _batchHandler = (dispatcher) => {
         if (dispatcher.atomicOperationFinished()) {
             // just been turned off - trigger an update.
-            this.update();
+            this._update();
         }
     };
-
-    changeLandmarks = atomic.atomicOperation((landmarks) => {
-        console.log('Viewport: landmarks have changed');
-        var that = this;
-
-        // 1. Dispose of all landmark and connectivity views
-        this._landmarkViews.map((lmView) => lmView.dispose());
-        this._connectivityViews.map((connView) => connView.dispose());
-
-        // 2. Build a fresh set of views - clear any existing views
-        this._landmarkViews = [];
-        this._connectivityViews = [];
-
-        landmarks.landmarks.map(function (lm) {
-            that._landmarkViews.push(new LandmarkTHREEView(
-                {
-                    model: lm,
-                    viewport: that
-                }));
-        });
-        landmarks.connectivity.map(function (ab) {
-           that._connectivityViews.push(new LandmarkConnectionTHREEView(
-               {
-                   model: [landmarks.landmarks[ab[0]],
-                           landmarks.landmarks[ab[1]]],
-                   viewport: that
-               }));
-        });
-
-    });
 
     // 2D Canvas helper functions
     // ========================================================================
@@ -608,27 +596,27 @@ class ViewportRedux {
         this._ctx.strokeStyle = "#01e6fb";
 
         this._ctx.beginPath();
-        var targetPoint = this._localToScreen(targetLm.point());
+        const targetPoint = this._localToScreen(targetLm.point());
         this._updateCanvasBoundingBox(targetPoint);
         this._ctx.moveTo(targetPoint.x, targetPoint.y);
         this._ctx.lineTo(point.x, point.y);
         this._ctx.stroke();
     };
 
-    clearCanvas = () => {
+    _clearCanvas = () => {
         if (_.isEqual(this._ctxBox, _initialBoundingBox())) {
             // there has been no change to the canvas - no need to clear
             return null;
         }
         // we only want to clear the area of the canvas that we dirtied
         // since the last clear. The _ctxBox object tracks this
-        var p = 3;  // padding to be added to bounding box
-        var minX = Math.max(Math.floor(this._ctxBox.minX) - p, 0);
-        var minY = Math.max(Math.floor(this._ctxBox.minY) - p, 0);
-        var maxX = Math.ceil(this._ctxBox.maxX) + p;
-        var maxY = Math.ceil(this._ctxBox.maxY) + p;
-        var width = maxX - minX;
-        var height = maxY - minY;
+        const p = 3;  // padding to be added to bounding box
+        const minX = Math.max(Math.floor(this._ctxBox.minX) - p, 0);
+        const minY = Math.max(Math.floor(this._ctxBox.minY) - p, 0);
+        const maxX = Math.ceil(this._ctxBox.maxX) + p;
+        const maxY = Math.ceil(this._ctxBox.maxY) + p;
+        const width = maxX - minX;
+        const height = maxY - minY;
         this._ctx.clearRect(minX, minY, width, height);
         // reset the tracking of the context bounding box tracking.
         this._ctxBox = _initialBoundingBox();
@@ -641,7 +629,7 @@ class ViewportRedux {
         if (object === null || object.length === 0) {
             return [];
         }
-        var vector = new THREE.Vector3((x / this._width()) * 2 - 1,
+        const vector = new THREE.Vector3((x / this._width()) * 2 - 1,
                                         -(y / this._height()) * 2 + 1, 0.5);
 
         if (this._sCamera === this._sPCam) {
@@ -673,9 +661,9 @@ class ViewportRedux {
     };
 
     _worldToScreen = (vector) => {
-        var widthHalf = this._width() / 2;
-        var heightHalf = this._height() / 2;
-        var result = vector.project(this._sCamera);
+        const widthHalf = this._width() / 2;
+        const heightHalf = this._height() / 2;
+        const result = vector.project(this._sCamera);
         result.x = (result.x * widthHalf) + widthHalf;
         result.y = -(result.y * heightHalf) + heightHalf;
         return result;
@@ -692,18 +680,17 @@ class ViewportRedux {
     };
 
     _lmToScreen = (lmSymbol) => {
-        var pos = lmSymbol.position.clone();
+        const pos = lmSymbol.position.clone();
         this._sMeshAndLms.localToWorld(pos);
         return this._worldToScreen(pos);
     };
 
     _lmViewsInSelectionBox = (x1, y1, x2, y2) => {
-        var c;
-        var lmsInBox = [];
-        var that = this;
+        const lmsInBox = [];
+        const that = this;
         this._landmarkViews.map((lmView) => {
             if (lmView.symbol) {
-                c = that._lmToScreen(lmView.symbol);
+                const c = that._lmToScreen(lmView.symbol);
                 if (c.x > x1 && c.x < x2 && c.y > y1 && c.y < y2) {
                     lmsInBox.push(lmView);
                 }
