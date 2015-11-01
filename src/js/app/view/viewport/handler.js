@@ -106,9 +106,9 @@ export default function Handler () {
         // the clicked on landmark
         var landmarkSymbol = intersectsWithLms[0].object;
         // hunt through the landmarkViews for the right symbol
-        for (var i = 0; i < this.landmarkViews.length; i++) {
-            if (this.landmarkViews[i].symbol === landmarkSymbol) {
-                lmPressed = this.landmarkViews[i].model;
+        for (var i = 0; i < this._landmarkViews.length; i++) {
+            if (this._landmarkViews[i].symbol === landmarkSymbol) {
+                lmPressed = this._landmarkViews[i].model;
             }
         }
         console.log('Viewport: finding the selected points');
@@ -124,7 +124,7 @@ export default function Handler () {
         }
 
         // record the position of where the drag started.
-        positionLmDrag.copy(this.localToScreen(lmPressed.point()));
+        positionLmDrag.copy(this._localToScreen(lmPressed.point()));
         dragStartPositions = this.model.landmarks().selected().map(
             lm => [lm.index(), lm.point().clone()]);
 
@@ -167,12 +167,12 @@ export default function Handler () {
         onMouseDownPosition.set(event.clientX, event.clientY);
 
         // All interactions require intersections to distinguish
-        intersectsWithLms = this.getIntersectsFromEvent(
-            event, this.sLms);
+        intersectsWithLms = this._getIntersectsFromEvent(
+            event, this._sLms);
         // note that we explicitly ask for intersects with the mesh
         // object as we know get intersects will use an octree if
         // present.
-        intersectsWithMesh = this.getIntersectsFromEvent(event, this.mesh);
+        intersectsWithMesh = this._getIntersectsFromEvent(event, this.mesh);
 
         // Click type, we use MouseEvent.button which is the vanilla JS way
         // jQuery also exposes event.which which has different bindings
@@ -237,19 +237,19 @@ export default function Handler () {
         for (var i = 0; i < selectedLandmarks.length; i++) {
             lm = selectedLandmarks[i];
             // convert to screen coordinates
-            vScreen = this.localToScreen(lm.point());
+            vScreen = this._localToScreen(lm.point());
 
             // budge the screen coordinate
             vScreen.add(deltaLmDrag);
 
             // use the standard machinery to find intersections
             // note that we intersect the mesh to use the octree
-            intersectsWithMesh = this.getIntersects(
+            intersectsWithMesh = this._getIntersects(
                 vScreen.x, vScreen.y, this.mesh);
             if (intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
                 dragged = !!dragged || true;
-                lm.setPoint(this.worldToLocal(intersectsWithMesh[0].point));
+                lm.setPoint(this._worldToLocal(intersectsWithMesh[0].point));
             } else {
                 // don't update point - it would fall off the surface.
                 console.log("fallen off mesh");
@@ -264,7 +264,7 @@ export default function Handler () {
         var newPosition = { x: event.clientX, y: event.clientY };
         // clear the canvas and draw a selection rect.
         this.clearCanvas();
-        this.drawSelectionBox(onMouseDownPosition, newPosition);
+        this._drawSelectionBox(onMouseDownPosition, newPosition);
     };
 
     // Up handlers
@@ -291,12 +291,12 @@ export default function Handler () {
         }
         // First, let's just find all the landmarks in screen space that
         // are within our selection.
-        var lms = this.lmViewsInSelectionBox(minX, minY, maxX, maxY);
+        var lms = this._lmViewsInSelectionBox(minX, minY, maxX, maxY);
 
         // Of these, filter out the ones which are visible (not
         // obscured) and select the rest
         _.each(lms, (lm) => {
-            if (this.lmViewVisible(lm)) {
+            if (this._lmViewVisible(lm)) {
                 lm.model.select();
             }
         });
@@ -314,7 +314,7 @@ export default function Handler () {
             //  a click on the mesh
             p = intersectsWithMesh[0].point.clone();
             // Convert the point back into the mesh space
-            this.worldToLocal(p, true);
+            this._worldToLocal(p, true);
 
             if (
                 this.model.isEditingOn() &&
@@ -359,7 +359,7 @@ export default function Handler () {
                 lmPressed.selectAndDeselectRest();
             } else if (lmPressedWasSelected) {
                 var p = intersectsWithMesh[0].point.clone();
-                this.worldToLocal(p, true);
+                this._worldToLocal(p, true);
                 this.model.landmarks().setLmAt(lmPressed, p);
             } else if (ctrl) {
                 setGroupSelected(true);
@@ -400,7 +400,7 @@ export default function Handler () {
             currentTargetLm = undefined;
         }
 
-        intersectsWithMesh = this.getIntersectsFromEvent(evt, this.mesh);
+        intersectsWithMesh = this._getIntersectsFromEvent(evt, this.mesh);
 
         var lmGroup = this.model.landmarks();
 
@@ -412,7 +412,7 @@ export default function Handler () {
             return null;
         }
 
-        var mouseLoc = this.worldToLocal(intersectsWithMesh[0].point);
+        var mouseLoc = this._worldToLocal(intersectsWithMesh[0].point);
         var previousTargetLm = currentTargetLm;
 
         var lms = findClosestLandmarks(lmGroup, mouseLoc,
@@ -432,7 +432,7 @@ export default function Handler () {
                 currentTargetLm.selectAndDeselectRest();
             }
 
-            this.drawTargetingLines({x: evt.clientX, y: evt.clientY},
+            this._drawTargetingLines({x: evt.clientX, y: evt.clientY},
                 currentTargetLm, lms);
         }
     };
@@ -470,14 +470,14 @@ export default function Handler () {
 
         const ops = [];
         this.model.landmarks().selected().forEach((lm) => {
-            const lmScreen = this.localToScreen(lm.point());
+            const lmScreen = this._localToScreen(lm.point());
             lmScreen.add(move);
 
-            intersectsWithMesh = this.getIntersects(
+            intersectsWithMesh = this._getIntersects(
                 lmScreen.x, lmScreen.y, this.mesh);
 
             if (intersectsWithMesh.length > 0) {
-                const pt = this.worldToLocal(intersectsWithMesh[0].point);
+                const pt = this._worldToLocal(intersectsWithMesh[0].point);
                 ops.push([lm.index(), lm.point().clone(), pt.clone()]);
                 lm.setPoint(pt);
             }

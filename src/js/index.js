@@ -18,7 +18,7 @@ import SidebarView from './app/view/sidebar';
 import HelpOverlay from './app/view/help';
 import ToolbarView, { Toggle } from './app/view/toolbar'; // eslint-disable-line no-unused-vars
 import URLState from './app/view/url_state';
-import ViewportView from './app/view/viewport';
+import ViewportRedux from './app/view/viewport';
 import KeyboardShortcutsHandler from './app/view/keyboard';
 
 import React from 'react'; // eslint-disable-line no-unused-vars
@@ -251,7 +251,7 @@ function initLandmarker(server, mode, u) {
     new ToolbarView({model: app});
     new HelpOverlay({model: app});
 
-    var viewport = new ViewportView({model: app});
+    var viewport = new ViewportRedux(app);
 
     var prevAsset = null;
 
