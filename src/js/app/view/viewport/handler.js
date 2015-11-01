@@ -108,11 +108,18 @@ export default class Handler {
         this.viewport.cameraController.disable();
 
         if (!(this.downEvent.ctrlKey || this.downEvent.metaKey)) {
-            this.viewport.deselectAll();
+            this.deselectAll();
         }
 
         $(document).on('mousemove.shiftDrag', this.shiftOnDrag);
         $(document).one('mouseup.viewportShift', this.shiftOnMouseUp);
+    };
+
+    deselectAll = () => {
+        const lms = this.model.landmarks();
+        if (lms) {
+            lms.deselectAll();
+        }
     };
 
     // Catch all clicks and delegate to other handlers once user's intent
@@ -175,7 +182,7 @@ export default class Handler {
                 this.intersectsWithLms.length <= 0 &&
                 this.intersectsWithMesh.length > 0
             ) {
-                this.viewport.deselectAll();
+                this.deselectAll();
                 this.currentTargetLm = undefined;
                 this.meshPressed();
             }
@@ -466,7 +473,7 @@ export default class Handler {
             // Use keydown as keypress doesn't register arrows in some context
             $(window).on('keydown', this.onKeypress);
         } else {
-            this.viewport.deselectAll();
+            this.deselectAll();
             $(window).off('keydown', this.onKeypress);
         }
 

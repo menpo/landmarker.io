@@ -101,7 +101,7 @@ class ViewportRedux {
 
         this.meshMode = meshMode;
         this.connectivityOn = true;
-        this.model = app;
+        this.model = app;  // only place this is referenced now is in the LandmarkViews we create.
         this.el = document.getElementById('canvas');
         this.el.addEventListener('mousedown', this._mousedownHandler);
         this.$el = $('#canvas');
@@ -498,13 +498,6 @@ class ViewportRedux {
             this.$el.off('mousemove', this._handler.onMouseMove);
         }
     });
-
-    deselectAll = () => {
-        const lms = this.model.landmarks();
-        if (lms) {
-            lms.deselectAll();
-        }
-    };
 
     _resize = () => {
         var w, h;
