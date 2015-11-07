@@ -28,16 +28,33 @@ const lineMaterial = new THREE.LineBasicMaterial({
     linewidth: 1
 });
 
+function createLine(start, end) {
+    var geometry = new THREE.Geometry();
+    geometry.dynamic = true;
+    geometry.vertices.push(start.clone());
+    geometry.vertices.push(end.clone());
+    return new THREE.Line(geometry, lineMaterial);
+}
+
+/*
+Required state:
+
+position (THREE.Vector) / null
+lmSize (float)
+
+
+ */
 export const LandmarkTHREEView = Backbone.View.extend({
 
     initialize: function (options) {
-        _.bindAll(this, 'render', 'changeLandmarkSize');
-        this.listenTo(this.model, "change", this.render);
         this.viewport = options.viewport;
-        this.app = this.viewport.model;
-        this.listenTo(this.app, "change:landmarkSize", this.changeLandmarkSize);
         this.symbol = null; // a THREE object that represents this landmark.
         // null if the landmark isEmpty
+
+        // backbone stuff that we aim to remove
+        _.bindAll(this, 'render', 'setLandmarkSize');
+        this.listenTo(this.model, "change", this.render);
+
         this.render();
     },
 
@@ -57,8 +74,6 @@ export const LandmarkTHREEView = Backbone.View.extend({
                 // and there should be! Make it and update it
                 this.symbol = this.createSphere(this.model.point(), true);
                 this.updateSymbol();
-                // trigger changeLandmarkSize to make sure sizing is correct
-                this.changeLandmarkSize();
                 // and add it to the scene
                 this.viewport._sLms.add(this.symbol);
             }
@@ -88,10 +103,10 @@ export const LandmarkTHREEView = Backbone.View.extend({
         }
     },
 
-    changeLandmarkSize: function () {
+    setLandmarkSize: function (lmSize) {
         if (this.symbol) {
             // have a symbol, and need to change it's size.
-            var r = this.app.landmarkSize() * this.viewport._meshScale;
+            var r = lmSize * this.viewport._meshScale;
             this.symbol.scale.set(r, r, r);
             // tell our viewport to update
             this.viewport._update();
@@ -102,9 +117,10 @@ export const LandmarkTHREEView = Backbone.View.extend({
 export const LandmarkConnectionTHREEView = Backbone.View.extend({
 
     initialize: function (options) {
-        // Listen to both models for changes
+        // BB to remove
         this.listenTo(this.model[0], "change", this.render);
         this.listenTo(this.model[1], "change", this.render);
+
         this.viewport = options.viewport;
         this.symbol = null; // a THREE object that represents this connection.
         // null if the landmark isEmpty
@@ -126,8 +142,8 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
             // there is no symbol yet
             if (!this.model[0].isEmpty() && !this.model[1].isEmpty()) {
                 // and there should be! Make it and update it
-                this.symbol = this.createLine(this.model[0].point(),
-                        this.model[1].point());
+                this.symbol = createLine(this.model[0].point(),
+                                         this.model[1].point());
                 this.updateSymbol();
                 // and add it to the scene
                 this.viewport._sLmsConnectivity.add(this.symbol);
@@ -135,14 +151,6 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
         }
         // tell our viewport to update
         this.viewport._update();
-    },
-
-    createLine: function (start, end) {
-        var geometry = new THREE.Geometry();
-        geometry.dynamic = true;
-        geometry.vertices.push(start.clone());
-        geometry.vertices.push(end.clone());
-        return new THREE.Line(geometry, lineMaterial);
     },
 
     dispose: function () {

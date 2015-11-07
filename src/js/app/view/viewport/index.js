@@ -68,6 +68,8 @@ export default class BackboneViewport {
 
         this.model.on("change:landmarks", this.setLandmarks);
 
+        this.model.on("change:landmarkSize", this.setLandmarkSize);
+
     }
 
     setMesh = () => {
@@ -92,6 +94,10 @@ export default class BackboneViewport {
     setSnapMode = () => {
         this.viewport.updateEditingDisplay(this.model.isEditingOn());
     };
+
+    setLandmarkSize = () => {
+        this.viewport.setLandmarkSize((this.model.landmarkSize()));
+    }
 
 }
 
@@ -389,6 +395,10 @@ class ViewportRedux {
         this._sTranslate.position.copy(t);
         this._sHTranslate.position.copy(t);
         this._update();
+    };
+
+    setLandmarkSize = (lmSize) => {
+        this._landmarkViews.map(v => v.setLandmarkSize(lmSize));
     };
 
     removeMeshIfPresent = () => {
