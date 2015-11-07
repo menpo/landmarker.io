@@ -61,9 +61,6 @@ export default class BackboneViewport {
         this.model.on('newMeshAvailable', this.setMesh);
         this.setMesh();
 
-        this.model.on('change:connectivityOn', this.setConnectivityDisplay);
-        this.setConnectivityDisplay();
-
         this.model.on("change:landmarks", this.setLandmarks);
 
         this.model.on("change:landmarkSize", this.setLandmarkSize);
@@ -85,10 +82,6 @@ export default class BackboneViewport {
         }
     };
 
-    setConnectivityDisplay = () => {
-        this.viewport.updateConnectivityDisplay(this.model.isConnectivityOn());
-    };
-
     setLandmarkSize = () => {
         this.viewport.setLandmarkSize((this.model.landmarkSize()));
     }
@@ -100,11 +93,13 @@ class ReduxViewport {
     constructor(viewport) {
         this.vp = viewport;
         store.subscribe(this.update);
+        this.update();
     }
 
     update = () => {
         const newState = store.getState();
         this.vp.updateEditingDisplay(newState.snapOn);
+        this.vp.updateConnectivityDisplay(newState.connectivityOn);
     }
 }
 

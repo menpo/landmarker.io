@@ -18,7 +18,7 @@ function reduceLastAction(state=null, action) {
     return action;
 }
 
-function reduceConnectivityOn(state=false, action) {
+function reduceConnectivityOn(state=true, action) {
     switch(action.type) {
         case TYPE.CONNECTIVITY_DISPLAY:
             return action.flag;
@@ -36,7 +36,7 @@ function reduceTextureOn(state=false, action) {
     }
 }
 
-function reduceSnapOn(state=false, action) {
+function reduceSnapOn(state=true, action) {
     switch(action.type) {
         case TYPE.SNAP_MODE:
             return action.flag;

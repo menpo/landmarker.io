@@ -78,30 +78,6 @@ export const TextureToggle = Backbone.View.extend({
     }
 });
 
-export const ConnectivityToggle = Backbone.View.extend({
-
-    el: '#connectivityRow',
-
-    events: {
-        'click #connectivityToggle': "connectivityToggle"
-    },
-
-    initialize: function () {
-        this.$toggle = this.$el.find('#connectivityToggle')[0];
-        _.bindAll(this, 'render', 'connectivityToggle');
-        this.listenTo(this.model, 'change:connectivityOn', this.render);
-        this.render();
-    },
-
-    render: function () {
-        this.$toggle.checked = this.model.isConnectivityOn();
-        return this;
-    },
-
-    connectivityToggle: function () {
-        this.model.toggleConnectivity();
-    }
-});
 
 export const AutoSaveToggle = Backbone.View.extend({
 
@@ -134,7 +110,6 @@ export default Backbone.View.extend({
 
     initialize: function () {
         this.lmSizeSlider = new LandmarkSizeSlider({model: this.model});
-        this.connectivityToggle = new ConnectivityToggle({model: this.model});
         if (this.model.meshMode()) {
             this.textureToggle = new TextureToggle({model: this.model});
         } else {

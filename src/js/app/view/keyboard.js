@@ -55,7 +55,7 @@ const SHORTCUTS = {
     }, false, false],
 
     "l": [function (lms, app) { // l = toggle [l]inks
-        app.toggleConnectivity();
+        store.dispatch(ac.connectivityDisplay(!store.getState().connectivityOn));
     }, false, false],
 
     "e": [function (lms, app) { // e = toggle [e]dit mode

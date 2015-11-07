@@ -19,7 +19,6 @@ export default Backbone.Model.extend({
         return {
             landmarkSize: 0.5,
             mode: 'mesh',
-            connectivityOn: true,
             autoSaveOn: false,
             activeTemplate: undefined,
             activeCollection: undefined,
@@ -28,20 +27,12 @@ export default Backbone.Model.extend({
         };
     },
 
-    isConnectivityOn: function () {
-        return this.get('connectivityOn');
-    },
-
     isAutoSaveOn: function () {
         return this.get('autoSaveOn');
     },
 
     toggleAutoSave: function () {
         return this.set('autoSaveOn', !this.isAutoSaveOn());
-    },
-
-    toggleConnectivity: function () {
-        this.set('connectivityOn', !this.isConnectivityOn());
     },
 
     isHelpOverlayOn: function () {
