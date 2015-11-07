@@ -59,7 +59,7 @@ const SHORTCUTS = {
     }, false, false],
 
     "e": [function (lms, app) { // e = toggle [e]dit mode
-        app.toggleEditing();
+        store.dispatch(ac.snapMode(!store.getState().snapOn));
     }, false, false],
 
     "z": [function (lms) { // z = undo

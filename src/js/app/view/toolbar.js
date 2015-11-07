@@ -103,31 +103,6 @@ export const ConnectivityToggle = Backbone.View.extend({
     }
 });
 
-export const EditingToggle = Backbone.View.extend({
-
-    el: '#editingRow',
-
-    events: {
-        'click #editingToggle': "editingToggle"
-    },
-
-    initialize: function () {
-        this.$toggle = this.$el.find('#editingToggle')[0];
-        _.bindAll(this, 'render', 'editingToggle');
-        this.listenTo(this.model, 'change:_editingOn', this.render);
-        this.render();
-    },
-
-    render: function () {
-        this.$toggle.checked = this.model.isEditingOn();
-        return this;
-    },
-
-    editingToggle: function () {
-        this.model.toggleEditing();
-    }
-});
-
 export const AutoSaveToggle = Backbone.View.extend({
 
     el: '#autosaveRow',
@@ -160,7 +135,6 @@ export default Backbone.View.extend({
     initialize: function () {
         this.lmSizeSlider = new LandmarkSizeSlider({model: this.model});
         this.connectivityToggle = new ConnectivityToggle({model: this.model});
-        this.editingToggle = new EditingToggle({model: this.model});
         if (this.model.meshMode()) {
             this.textureToggle = new TextureToggle({model: this.model});
         } else {

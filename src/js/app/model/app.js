@@ -20,7 +20,6 @@ export default Backbone.Model.extend({
             landmarkSize: 0.5,
             mode: 'mesh',
             connectivityOn: true,
-            _editingOn: true,
             autoSaveOn: false,
             activeTemplate: undefined,
             activeCollection: undefined,
@@ -43,18 +42,6 @@ export default Backbone.Model.extend({
 
     toggleConnectivity: function () {
         this.set('connectivityOn', !this.isConnectivityOn());
-    },
-
-    isEditingOn: function () {
-        return this.get('_editingOn');
-    },
-
-    toggleEditing: function () {
-        this.set('_editingOn', !this.isEditingOn());
-        if (!this.isEditingOn() && this.landmarks()) {
-            this.landmarks().deselectAll();
-            this.landmarks().resetNextAvailable();
-        }
     },
 
     isHelpOverlayOn: function () {
@@ -414,3 +401,14 @@ export default Backbone.Model.extend({
     }
 
 });
+
+// REDUX functionality to match:
+
+// 1. Reset landmark selection after toggle of edit mode
+//toggleEditing: function () {
+//    this.set('_editingOn', !this.isEditingOn());
+//    if (!this.isEditingOn() && this.landmarks()) {
+//        this.landmarks().deselectAll();
+//        this.landmarks().resetNextAvailable();
+//    }
+//},

@@ -55,16 +55,14 @@ export default class BackboneViewport {
 
     constructor(app) {
         this.model = app;
-        this.viewport = new ViewportRedux(app, app.meshMode());
+        this.viewport = new ViewportCore(app, app.meshMode());
+        this.reduxViewport = new ReduxViewport(this.viewport);
 
         this.model.on('newMeshAvailable', this.setMesh);
         this.setMesh();
 
         this.model.on('change:connectivityOn', this.setConnectivityDisplay);
         this.setConnectivityDisplay();
-
-        this.model.on('change:_editingOn', this.setSnapMode);
-        this.setSnapMode();
 
         this.model.on("change:landmarks", this.setLandmarks);
 
@@ -91,17 +89,27 @@ export default class BackboneViewport {
         this.viewport.updateConnectivityDisplay(this.model.isConnectivityOn());
     };
 
-    setSnapMode = () => {
-        this.viewport.updateEditingDisplay(this.model.isEditingOn());
-    };
-
     setLandmarkSize = () => {
         this.viewport.setLandmarkSize((this.model.landmarkSize()));
     }
 
 }
 
-class ViewportRedux {
+class ReduxViewport {
+
+    constructor(viewport) {
+        this.vp = viewport;
+        store.subscribe(this.update);
+    }
+
+    update = () => {
+        const newState = store.getState();
+        this.vp.updateEditingDisplay(newState.snapOn);
+    }
+}
+
+
+class ViewportCore {
 
     constructor(app, meshMode) {
 
