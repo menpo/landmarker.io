@@ -295,14 +295,12 @@ class ViewportRedux {
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this._resize, false);
-
-
-        // REDUX this probably goes away
-        atomic.on("change:ATOMIC_OPERATION", this._batchHandler);
-
         // trigger resize to initially size the viewport
         // this will also clearCanvas (will draw context box if needed)
         this._resize();
+
+        // TODO this probably goes away
+        atomic.on("change:ATOMIC_OPERATION", this._batchHandler);
 
         // register for the animation loop
         animate();
@@ -313,6 +311,7 @@ class ViewportRedux {
             //stats.update();
         }
 
+        // TODO remove these jquery events
         this.$container.on('groupSelected', () => {
             this._handler.setGroupSelected(true);
         });
