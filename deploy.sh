@@ -77,7 +77,7 @@ if [[ ! -e "$MANIFEST" ]]; then  npm run build || exit 1; else echo "Already bui
 TMP_DIR=$(mktemp -d "/tmp/landmarker-build-$BRANCH-XXXX")
 mv ./build/* "$TMP_DIR"
 
-# Switch to latests gh-pages branch and enforce correct content
+# Switch to latest gh-pages branch and enforce correct content
 git checkout gh-pages || exit 1
 git clean -f
 git reset --hard
