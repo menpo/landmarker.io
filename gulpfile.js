@@ -52,7 +52,7 @@ gulp.task("webpack-dev-server", ['copystatic'], function() {
 gulp.task("webpack:build", ['copystatic'], function(callback) {
     // modify some webpack config options
     var productionConfig = Object.create(webpackConfig);
-    productionConfig.devtool = "source-map";  // full seperate source maps
+    productionConfig.devtool = "source-map";  // full separate source maps
     productionConfig.plugins = productionConfig.plugins.concat(
         new webpack.DefinePlugin({
             "process.env": {
@@ -86,4 +86,3 @@ gulp.task('build', ['webpack:build'], function() {
         .pipe(replace('<html lang="en">', '<html lang="en" manifest="lmio.appcache">'))
         .pipe(gulp.dest(BUILD_DIR));
 });
-

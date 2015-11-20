@@ -23,8 +23,8 @@ module.exports = {
                 loaders: ["style", "css?sourceMap", "resolve-url", "sass?sourceMap", "autoprefixer"]
             },
             {
-                test: /\.svg$/,
-                loader: 'file-loader'
+                test: /\.(png|jpg|svg)$/,
+                loader: 'url?limit=8192'  // inline base64 URLs for <=8k images, direct URLs for the rest
             }
         ]
     },
