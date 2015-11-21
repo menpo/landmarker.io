@@ -94,7 +94,7 @@
         content: '';
         background-size: cover;
         border-color: $colorDropboxLightBlue;
-        background-image: url(img/dropbox-white.svg);
+        background-image: url(../../img/dropbox-white.svg);
     }
 
     &:hover {
@@ -103,7 +103,7 @@
 
         &::before {
           border-color: $colorDropboxBlue;
-          background-image: url(img/dropbox-blue.svg);
+          background-image: url(../../img/dropbox-blue.svg);
         }
     }
 }

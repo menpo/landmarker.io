@@ -2,6 +2,7 @@
 
 import Backbone from 'backbone';
 import THREE from 'three';
+const placeholderUrl = require("../../../../img/placeholder.jpg");
 
 const FRONT = {
     image: new THREE.Vector3(0, 0, 1),
@@ -49,7 +50,7 @@ const untexturedMeshMaterial = new THREE.MeshPhongMaterial();
 untexturedMeshMaterial.transparent = true;
 
 const imagePlaceholderGeometry = mappedPlane(1, 1);
-const imagePlaceholderTexture = THREE.ImageUtils.loadTexture('./img/placeholder.jpg');
+const imagePlaceholderTexture = THREE.ImageUtils.loadTexture(placeholderUrl);
 // the placeholder texture will not be powers of two size, so we need
 // to set our resampling appropriately.
 imagePlaceholderTexture.minFilter = THREE.LinearFilter;
