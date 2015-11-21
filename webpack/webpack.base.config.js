@@ -3,8 +3,8 @@ var path = require('path');
 module.exports = {
     entry: "./src/js/index.js",
     output: {
-        path: path.join(__dirname, 'build'),
-        publicPath: "/",
+        path: path.join(path.dirname(__dirname), 'build'),
+        publicPath: "./",
         filename: "bundle.js"
     },
     module: {
@@ -23,8 +23,8 @@ module.exports = {
                 loaders: ["style", "css?sourceMap", "resolve-url", "sass?sourceMap", "autoprefixer"]
             },
             {
-                test: /\.svg$/,
-                loader: 'file-loader'
+                test: /\.(png|jpg|svg)$/,
+                loader: 'url?limit=8192'  // inline base64 URLs for <=8k images, direct URLs for the rest
             }
         ]
     },
