@@ -42,7 +42,6 @@ Required state:
 position (THREE.Vector) / null
 lmSize (float)
 
-
  */
 export const LandmarkTHREEView = Backbone.View.extend({
 

@@ -36,7 +36,6 @@ export default class Handler {
         // vector difference in one time step
         this.deltaLmDrag = new THREE.Vector2();
 
-
         this.dragStartPositions = [];
         this.dragged = false;
 

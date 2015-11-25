@@ -1,7 +1,6 @@
 'use strict';
 
 import _ from 'underscore';
-import Backbone from 'backbone';
 import $ from 'jquery';
 import THREE from 'three';
 
@@ -27,51 +26,6 @@ const MESH_SCALE = 1.0;
 function _initialBoundingBox() {
     return {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
 }
-
-export default class BackboneViewport {
-
-    constructor(app) {
-        this.model = app;
-        this.viewport = new ViewportCore(app, app.meshMode());
-
-        this.model.on('newMeshAvailable', this.setMesh);
-        this.setMesh();
-
-        this.model.on("change:landmarks", this.setLandmarks);
-        this.model.on("change:landmarkSize", this.setLandmarkSize);
-        this.model.on("change:connectivityOn", this.updateConnectivityDisplay);
-        this.model.on("change:editingOn", this.updateEditingDisplay);
-    }
-
-    setMesh = () => {
-        const meshPayload = this.model.mesh();
-        if (meshPayload === null) {
-            return;
-        }
-        this.viewport.setMesh(meshPayload.mesh, meshPayload.up, meshPayload.front);
-    };
-
-    setLandmarks = () => {
-        const landmarks = this.model.landmarks();
-        if (landmarks !== null) {
-            this.viewport.setLandmarks(landmarks);
-        }
-    };
-
-    setLandmarkSize = () => {
-        this.viewport.setLandmarkSize(this.model.landmarkSize());
-    };
-
-    updateEditingDisplay = () => {
-        this.viewport.updateEditingDisplay(this.model.isEditingOn());
-    };
-
-    updateConnectivityDisplay = () => {
-        this.viewport.updateConnectivityDisplay(this.model.isConnectivityOn());
-    };
-
-}
-
 
 class ViewportCore {
 
@@ -105,7 +59,7 @@ class ViewportCore {
         // The viewport and vpoverlay need to be position:fixed for WebGL
         // reasons. we listen for document resize and keep the size of these
         // two children in sync with the viewportContainer parent.
-        this.$container = $('#viewportContainer')
+        this.$container = $('#viewportContainer');
         // and grab the viewport div
         this.$webglel = $('#viewport');
 
@@ -695,4 +649,48 @@ class ViewportCore {
         // or is the mesh behind the landmarks?
         return iMesh.length === 0 || iMesh[0].distance > iLm[0].distance;
     };
+}
+
+export default class BackboneViewport {
+
+    constructor(app) {
+        this.model = app;
+        this.viewport = new ViewportCore(app, app.meshMode());
+
+        this.model.on('newMeshAvailable', this.setMesh);
+        this.setMesh();
+
+        this.model.on("change:landmarks", this.setLandmarks);
+        this.model.on("change:landmarkSize", this.setLandmarkSize);
+        this.model.on("change:connectivityOn", this.updateConnectivityDisplay);
+        this.model.on("change:editingOn", this.updateEditingDisplay);
+    }
+
+    setMesh = () => {
+        const meshPayload = this.model.mesh();
+        if (meshPayload === null) {
+            return;
+        }
+        this.viewport.setMesh(meshPayload.mesh, meshPayload.up, meshPayload.front);
+    };
+
+    setLandmarks = () => {
+        const landmarks = this.model.landmarks();
+        if (landmarks !== null) {
+            this.viewport.setLandmarks(landmarks);
+        }
+    };
+
+    setLandmarkSize = () => {
+        this.viewport.setLandmarkSize(this.model.landmarkSize());
+    };
+
+    updateEditingDisplay = () => {
+        this.viewport.updateEditingDisplay(this.model.isEditingOn());
+    };
+
+    updateConnectivityDisplay = () => {
+        this.viewport.updateConnectivityDisplay(this.model.isConnectivityOn());
+    };
+
 }
