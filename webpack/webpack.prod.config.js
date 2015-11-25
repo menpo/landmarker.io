@@ -7,6 +7,11 @@ var REMOTE_CACHED = [
     '//cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css'
 ];
 
+// in production we use relative paths so staging builds work properly.
+// (we can't do this for dev as relative paths seem to not play well
+// with webpack-dev-server)
+webpackConfig.output.publicPath = './';
+
 webpackConfig.devtool = "source-map";  // full separate source maps
 webpackConfig.bail = true;  // at any error just fallover
 webpackConfig.plugins = webpackConfig.plugins.concat(
