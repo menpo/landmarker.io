@@ -658,12 +658,16 @@ export default class BackboneViewport {
         this.viewport = new ViewportCore(app, app.meshMode());
 
         this.model.on('newMeshAvailable', this.setMesh);
-        this.setMesh();
-
         this.model.on("change:landmarks", this.setLandmarks);
         this.model.on("change:landmarkSize", this.setLandmarkSize);
         this.model.on("change:connectivityOn", this.updateConnectivityDisplay);
         this.model.on("change:editingOn", this.updateEditingDisplay);
+
+        // make sure we didn't miss any state changes on load
+        this.setMesh();
+        this.setLandmarkSize();
+        this.updateConnectivityDisplay();
+        this.updateEditingDisplay();
     }
 
     setMesh = () => {
@@ -682,6 +686,7 @@ export default class BackboneViewport {
     };
 
     setLandmarkSize = () => {
+        console.log('set landmark size');
         this.viewport.setLandmarkSize(this.model.landmarkSize());
     };
 
