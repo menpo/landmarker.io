@@ -178,7 +178,7 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         oCam.top += deltaV;
         oCam.bottom += deltaV;
         oCam.updateProjectionMatrix();
-        controller.trigger('change');
+        _change();
     }
 
     function zoom (distance) {
@@ -221,7 +221,7 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
             pageX: mouseHoverPosition.x,
             pageY: mouseHoverPosition.y
         });
-        controller.trigger('change');
+        _change();
     }
 
     function distanceToTarget () {
@@ -306,7 +306,7 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         rotateCamera(delta, pCam, singleDir);
         rotateCamera(delta, oCam, singleDir);
         rotateCamera(delta, oCamZoom, singleDir);
-        controller.trigger('change');
+        _change();
     }
 
     // mouse
@@ -422,7 +422,19 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         oCamZoom.updateProjectionMatrix();
         // emit a special change event. If the viewport is
         // interested (i.e. we are in PIP mode) it can update
-        controller.trigger('changePip');
+        _changePip();
+    }
+
+    function _changePip() {
+        if (controller.onChangePip !== null) {
+            controller.onChangePip();
+        }
+    }
+
+    function _change() {
+        if (controller.onChange !== null) {
+            controller.onChange();
+        }
     }
 
     function onMouseUp (event) {
@@ -507,6 +519,8 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
     controller.focus = focus;
     controller.position = position;
     controller.reset = reset;
+    controller.onChange = null;
+    controller.onChangePip = null;
 
     return controller;
 }

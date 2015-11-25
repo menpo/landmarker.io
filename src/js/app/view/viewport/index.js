@@ -24,14 +24,67 @@ const PIP_HEIGHT = 300;
 
 const MESH_SCALE = 1.0;
 
-export default Backbone.View.extend({
+function _initialBoundingBox() {
+    return {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
+}
 
-    el: '#canvas',
-    id: 'canvas',
+export default class BackboneViewport {
 
-    initialize: function () {
+    constructor(app) {
+        this.model = app;
+        this.viewport = new ViewportCore(app, app.meshMode());
+
+        this.model.on('newMeshAvailable', this.setMesh);
+        this.setMesh();
+
+        this.model.on("change:landmarks", this.setLandmarks);
+        this.model.on("change:landmarkSize", this.setLandmarkSize);
+        this.model.on("change:connectivityOn", this.updateConnectivityDisplay);
+        this.model.on("change:editingOn", this.updateEditingDisplay);
+    }
+
+    setMesh = () => {
+        const meshPayload = this.model.mesh();
+        if (meshPayload === null) {
+            return;
+        }
+        this.viewport.setMesh(meshPayload.mesh, meshPayload.up, meshPayload.front);
+    };
+
+    setLandmarks = () => {
+        const landmarks = this.model.landmarks();
+        if (landmarks !== null) {
+            this.viewport.setLandmarks(landmarks);
+        }
+    };
+
+    setLandmarkSize = () => {
+        this.viewport.setLandmarkSize(this.model.landmarkSize());
+    };
+
+    updateEditingDisplay = () => {
+        this.viewport.updateEditingDisplay(this.model.isEditingOn());
+    };
+
+    updateConnectivityDisplay = () => {
+        this.viewport.updateConnectivityDisplay(this.model.isConnectivityOn());
+    };
+
+}
+
+
+class ViewportCore {
+
+    constructor(app, meshMode) {
+
+        this.meshMode = meshMode;
+        this.connectivityOn = true;
+        this.model = app;  // only place this is referenced now is in the LandmarkViews we create.
+        this.el = document.getElementById('canvas');
+        this.$el = $('#canvas');
+
         // ----- CONFIGURATION ----- //
-        this.meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
+        this._meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
 
         // Disable context menu on viewport related elements
         $('canvas').on("contextmenu", function(e){
@@ -41,10 +94,6 @@ export default Backbone.View.extend({
         $('#viewportContainer').on("contextmenu", function(e){
             e.preventDefault();
         });
-
-        // TODO bind all methods on the Viewport
-        _.bindAll(this, 'resize', 'render', 'changeMesh',
-            'mousedownHandler', 'update', 'lmViewsInSelectionBox');
 
         // ----- DOM ----- //
         // We have three DOM concerns:
@@ -56,110 +105,109 @@ export default Backbone.View.extend({
         // The viewport and vpoverlay need to be position:fixed for WebGL
         // reasons. we listen for document resize and keep the size of these
         // two children in sync with the viewportContainer parent.
-        this.$container = $('#viewportContainer');
+        this.$container = $('#viewportContainer')
         // and grab the viewport div
         this.$webglel = $('#viewport');
 
         // we need to track the pixel ratio of this device (i.e. is it a
         // HIDPI/retina display?)
-        this.pixelRatio = window.devicePixelRatio || 1;
+        this._pixelRatio = window.devicePixelRatio || 1;
 
         // Get a hold on the overlay canvas and its context (note we use the
         // id - the Viewport should be passed the canvas element on
         // construction)
-        this.canvas = document.getElementById(this.id);
-        this.ctx = this.canvas.getContext('2d');
+        this._canvas = document.getElementById('canvas');
+        this._ctx = this._canvas.getContext('2d');
 
         // we hold a separate canvas for the PIP decoration - grab it
-        this.pipCanvas = document.getElementById('pipCanvas');
-        this.pipCtx = this.pipCanvas.getContext('2d');
+        this._pipCanvas = document.getElementById('pipCanvas');
+        this._pipCtx = this._pipCanvas.getContext('2d');
 
         // style the PIP canvas on initialization
-        this.pipCanvas.style.position = 'fixed';
-        this.pipCanvas.style.zIndex = 0;
-        this.pipCanvas.style.width = PIP_WIDTH + 'px';
-        this.pipCanvas.style.height = PIP_HEIGHT + 'px';
-        this.pipCanvas.width = PIP_WIDTH * this.pixelRatio;
-        this.pipCanvas.height = PIP_HEIGHT * this.pixelRatio;
-        this.pipCanvas.style.left = this.pipBounds().x + 'px';
+        this._pipCanvas.style.position = 'fixed';
+        this._pipCanvas.style.zIndex = 0;
+        this._pipCanvas.style.width = PIP_WIDTH + 'px';
+        this._pipCanvas.style.height = PIP_HEIGHT + 'px';
+        this._pipCanvas.width = PIP_WIDTH * this._pixelRatio;
+        this._pipCanvas.height = PIP_HEIGHT * this._pixelRatio;
+        this._pipCanvas.style.left = this._pipBounds().x + 'px';
 
-        // To compensate for rentina displays we have to manually
-        // scale our contexts up by the pixel ration. To conteract this (so we
+        // To compensate for retina displays we have to manually
+        // scale our contexts up by the pixel ratio. To counteract this (so we
         // can work in 'normal' pixel units) add a global transform to the
         // canvas contexts we are holding on to.
-        this.pipCtx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
-        this.ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+        this._pipCtx.setTransform(this._pixelRatio, 0, 0, this._pixelRatio, 0, 0);
+        this._ctx.setTransform(this._pixelRatio, 0, 0, this._pixelRatio, 0, 0);
 
         // Draw the PIP window - we only do this once.
-        this.pipCtx.strokeStyle = '#ffffff';
+        this._pipCtx.strokeStyle = '#ffffff';
 
         // vertical line
-        this.pipCtx.beginPath();
-        this.pipCtx.moveTo(PIP_WIDTH / 2, PIP_HEIGHT * 0.4);
-        this.pipCtx.lineTo(PIP_WIDTH / 2, PIP_HEIGHT * 0.6);
+        this._pipCtx.beginPath();
+        this._pipCtx.moveTo(PIP_WIDTH / 2, PIP_HEIGHT * 0.4);
+        this._pipCtx.lineTo(PIP_WIDTH / 2, PIP_HEIGHT * 0.6);
         // horizontal line
-        this.pipCtx.moveTo(PIP_WIDTH * 0.4, PIP_HEIGHT / 2);
-        this.pipCtx.lineTo(PIP_WIDTH * 0.6, PIP_HEIGHT / 2);
-        this.pipCtx.stroke();
+        this._pipCtx.moveTo(PIP_WIDTH * 0.4, PIP_HEIGHT / 2);
+        this._pipCtx.lineTo(PIP_WIDTH * 0.6, PIP_HEIGHT / 2);
+        this._pipCtx.stroke();
 
-        this.pipCtx.setLineDash([2, 2]);
-        this.pipCtx.strokeRect(0, 0, PIP_WIDTH, PIP_HEIGHT);
+        this._pipCtx.setLineDash([2, 2]);
+        this._pipCtx.strokeRect(0, 0, PIP_WIDTH, PIP_HEIGHT);
 
         // hide the pip decoration - should only be shown when in orthgraphic
         // mode.
-        this.pipCanvas.style.display = 'none';
+        this._pipCanvas.style.display = 'none';
 
         // to be efficient we want to track what parts of the canvas we are
         // drawing into each frame. This way we only need clear the relevant
         // area of the canvas which is a big perf win.
-        // see this.updateCanvasBoundingBox() for usage.
-        this.ctxBox = this.initialBoundingBox();
+        // see this._updateCanvasBoundingBox() for usage.
+        this._ctxBox = _initialBoundingBox();
 
         // ------ SCENE GRAPH CONSTRUCTION ----- //
-        this.scene = new THREE.Scene();
+        this._scene = new THREE.Scene();
 
         // we use an initial top level to handle the absolute positioning of
         // the mesh and landmarks. Rotation and scale are applied to the
-        // sMeshAndLms node directly.
-        this.sScaleRotate = new THREE.Object3D();
-        this.sTranslate = new THREE.Object3D();
+        // _sMeshAndLms node directly.
+        this._sScaleRotate = new THREE.Object3D();
+        this._sTranslate = new THREE.Object3D();
 
         // ----- SCENE: MODEL AND LANDMARKS ----- //
-        // sMeshAndLms stores the mesh and landmarks in the meshes original
+        // _sMeshAndLms stores the mesh and landmarks in the meshes original
         // coordinates. This is always transformed to the unit sphere for
         // consistency of camera.
-        this.sMeshAndLms = new THREE.Object3D();
-        // sLms stores the scene landmarks. This is a useful container to
-        // get at all landmarks in one go, and is a child of sMeshAndLms
-        this.sLms = new THREE.Object3D();
-        this.sMeshAndLms.add(this.sLms);
-        // sMesh is the parent of the mesh itself in the THREE scene.
+        this._sMeshAndLms = new THREE.Object3D();
+        // _sLms stores the scene landmarks. This is a useful container to
+        // get at all landmarks in one go, and is a child of _sMeshAndLms
+        this._sLms = new THREE.Object3D();
+        this._sMeshAndLms.add(this._sLms);
+        // _sMesh is the parent of the mesh itself in the THREE scene.
         // This will only ever have one child (the mesh).
-        // Child of sMeshAndLms
-        this.sMesh = new THREE.Object3D();
-        this.sMeshAndLms.add(this.sMesh);
-        this.sTranslate.add(this.sMeshAndLms);
-        this.sScaleRotate.add(this.sTranslate);
-        this.scene.add(this.sScaleRotate);
+        // Child of _sMeshAndLms
+        this._sMesh = new THREE.Object3D();
+        this._sMeshAndLms.add(this._sMesh);
+        this._sTranslate.add(this._sMeshAndLms);
+        this._sScaleRotate.add(this._sTranslate);
+        this._scene.add(this._sScaleRotate);
 
         // ----- SCENE: CAMERA AND DIRECTED LIGHTS ----- //
-        // sCamera holds the camera, and (optionally) any
+        // _sCamera holds the camera, and (optionally) any
         // lights that track with the camera as children
-        this.sOCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
-        this.sOCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
-        this.sPCam = new THREE.PerspectiveCamera(50, 1, 0.02, 20);
+        this._sOCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
+        this._sOCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
+        this._sPCam = new THREE.PerspectiveCamera(50, 1, 0.02, 20);
         // start with the perspective camera as the main one
-        this.sCamera = this.sPCam;
+        this._sCamera = this._sPCam;
 
         // create the cameraController to look after all camera state.
         this.cameraController = CameraController(
-            this.sPCam, this.sOCam, this.sOCamZoom,
-            this.el, this.model.imageMode());
+            this._sPCam, this._sOCam, this._sOCamZoom,
+            this.el);
 
-        // when the camera updates, render
-        this.cameraController.on('change', this.update);
+        this.cameraController.onChange = this._update;
 
-        if (!this.model.meshMode()) {
+        if (!this.meshMode) {
             // for images, default to orthographic camera
             // (note that we use toggle to make sure the UI gets updated)
             this.toggleCamera();
@@ -170,53 +218,49 @@ export default Backbone.View.extend({
         // ----- SCENE: GENERAL LIGHTING ----- //
         // TODO make lighting customizable
         // TODO no spot light for images
-        this.sLights = new THREE.Object3D();
-        var pointLightLeft = new THREE.PointLight(0x404040, 1, 0);
+        this._sLights = new THREE.Object3D();
+        const pointLightLeft = new THREE.PointLight(0x404040, 1, 0);
         pointLightLeft.position.set(-100, 0, 100);
-        this.sLights.add(pointLightLeft);
-        var pointLightRight = new THREE.PointLight(0x404040, 1, 0);
+        this._sLights.add(pointLightLeft);
+        const pointLightRight = new THREE.PointLight(0x404040, 1, 0);
         pointLightRight.position.set(100, 0, 100);
-        this.sLights.add(pointLightRight);
-        this.scene.add(this.sLights);
+        this._sLights.add(pointLightRight);
+        this._scene.add(this._sLights);
         // add a soft white ambient light
-        this.sLights.add(new THREE.AmbientLight(0x404040));
+        this._sLights.add(new THREE.AmbientLight(0x404040));
 
-        this.renderer = new THREE.WebGLRenderer(
+        this._renderer = new THREE.WebGLRenderer(
             { antialias: false, alpha: false });
-        this.renderer.setPixelRatio(window.devicePixelRatio || 1);
-        this.renderer.setClearColor(CLEAR_COLOUR, 1);
-        this.renderer.autoClear = false;
+        this._renderer.setPixelRatio(window.devicePixelRatio || 1);
+        this._renderer.setClearColor(CLEAR_COLOUR, 1);
+        this._renderer.autoClear = false;
         // attach the render on the element we picked out earlier
-        this.$webglel.html(this.renderer.domElement);
+        this.$webglel.html(this._renderer.domElement);
 
         // we  build a second scene for various helpers we may need
         // (intersection planes) and for connectivity information (so it
         // shows through)
-        this.sceneHelpers = new THREE.Scene();
+        this._sceneHelpers = new THREE.Scene();
 
-        // sLmsConnectivity is used to store the connectivity representation
+        // _sLmsConnectivity is used to store the connectivity representation
         // of the mesh. Note that we want
-        this.sLmsConnectivity = new THREE.Object3D();
+        this._sLmsConnectivity = new THREE.Object3D();
         // we want to replicate the mesh scene graph in the scene helpers, so we can
         // have show-though connectivity..
-        this.shScaleRotate = new THREE.Object3D();
-        this.sHTranslate = new THREE.Object3D();
-        this.shMeshAndLms = new THREE.Object3D();
-        this.shMeshAndLms.add(this.sLmsConnectivity);
-        this.sHTranslate.add(this.shMeshAndLms);
-        this.shScaleRotate.add(this.sHTranslate);
-        this.sceneHelpers.add(this.shScaleRotate);
+        this._shScaleRotate = new THREE.Object3D();
+        this._sHTranslate = new THREE.Object3D();
+        this._shMeshAndLms = new THREE.Object3D();
+        this._shMeshAndLms.add(this._sLmsConnectivity);
+        this._sHTranslate.add(this._shMeshAndLms);
+        this._shScaleRotate.add(this._sHTranslate);
+        this._sceneHelpers.add(this._shScaleRotate);
 
-        // add mesh if there already is one present (we could have missed a
-        // backbone callback).
-        this.changeMesh();
-
-        // make an empty list of landmark views
-        this.landmarkViews = [];
-        this.connectivityViews = [];
+        // store the views that we will later create
+        this._landmarkViews = [];
+        this._connectivityViews = [];
 
         // Tools for moving between screen and world coordinates
-        this.ray = new THREE.Raycaster();
+        this._ray = new THREE.Raycaster();
 
         // ----- MOUSE HANDLER ----- //
         // There is quite a lot of finicky state in handling the mouse
@@ -224,35 +268,17 @@ export default Backbone.View.extend({
         // We wrap all this complexity up in a closure so it can enjoy access
         // to the general viewport state without leaking it's state all over
         // the place.
-        this._handler = Handler.apply(this);
+        this._handler = new Handler(this, app);
+        this.el.addEventListener('mousedown', this._handler.onMouseDown);
 
         // ----- BIND HANDLERS ----- //
-        window.addEventListener('resize', this.resize, false);
-        this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
-        this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
-
-        this.showConnectivity = true;
-        this.listenTo(
-            this.model,
-            'change:connectivityOn',
-            this.updateConnectivityDisplay
-        );
-        this.updateConnectivityDisplay();
-
-        this.listenTo(
-            this.model, 'change:editingOn', this.updateEditingDisplay);
-        this.updateEditingDisplay();
-
-        // Reset helper views on wheel to keep scale
-        // this.$el.on('wheel', () => {
-        //     this.clearCanvas();
-        // });
-
-        this.listenTo(atomic, "change:ATOMIC_OPERATION", this.batchHandler);
-
+        window.addEventListener('resize', this._resize, false);
         // trigger resize to initially size the viewport
         // this will also clearCanvas (will draw context box if needed)
-        this.resize();
+        this._resize();
+
+        // TODO this probably goes away
+        atomic.on("change:ATOMIC_OPERATION", this._batchHandler);
 
         // register for the animation loop
         animate();
@@ -263,6 +289,7 @@ export default Backbone.View.extend({
             //stats.update();
         }
 
+        // TODO remove these jquery events
         this.$container.on('groupSelected', () => {
             this._handler.setGroupSelected(true);
         });
@@ -278,73 +305,147 @@ export default Backbone.View.extend({
         this.$container.on('resetCamera', () => {
             this.resetCamera();
         });
-    },
+    }
 
-    width: function () {
-        return this.$container[0].offsetWidth;
-    },
+    setLandmarks = atomic.atomicOperation((landmarks) => {
+        console.log('Viewport: landmarks have changed');
+        var that = this;
 
-    height: function () {
-        return this.$container[0].offsetHeight;
-    },
+        // 1. Dispose of all landmark and connectivity views
+        this._landmarkViews.map((lmView) => lmView.dispose());
+        this._connectivityViews.map((connView) => connView.dispose());
 
-    changeMesh: function () {
-        var meshPayload, mesh, up, front;
-        console.log('Viewport:changeMesh - memory before: ' + this.memoryString());
+        // 2. Build a fresh set of views - clear any existing views
+        this._landmarkViews = [];
+        this._connectivityViews = [];
+
+        landmarks.landmarks.map(function (lm) {
+            that._landmarkViews.push(new LandmarkTHREEView(
+                {
+                    model: lm,
+                    viewport: that
+                }));
+        });
+        landmarks.connectivity.map(function (ab) {
+            that._connectivityViews.push(new LandmarkConnectionTHREEView(
+                {
+                    model: [landmarks.landmarks[ab[0]],
+                        landmarks.landmarks[ab[1]]],
+                    viewport: that
+                }));
+        });
+
+    });
+
+    setMesh = (mesh, up, front) => {
+        console.log('Viewport:setMesh - memory before: ' + this.memoryString());
         // firstly, remove any existing mesh
         this.removeMeshIfPresent();
 
-        meshPayload = this.model.mesh();
-        if (meshPayload === null) {
-            return;
-        }
-        mesh = meshPayload.mesh;
-        up = meshPayload.up;
-        front = meshPayload.front;
         this.mesh = mesh;
 
-        if(mesh.geometry instanceof THREE.BufferGeometry) {
+        if (mesh.geometry instanceof THREE.BufferGeometry) {
             // octree only makes sense if we are dealing with a true mesh
             // (not images). Such meshes are always BufferGeometry instances.
             this.octree = octree.octreeForBufferGeometry(mesh.geometry);
         }
 
-        this.sMesh.add(mesh);
-        // Now we need to rescale the sMeshAndLms to fit in the unit sphere
+        this._sMesh.add(mesh);
+        // Now we need to rescale the _sMeshAndLms to fit in the unit sphere
         // First, the scale
-        this.meshScale = mesh.geometry.boundingSphere.radius;
-        var s = 1.0 / this.meshScale;
-        this.sScaleRotate.scale.set(s, s, s);
-        this.shScaleRotate.scale.set(s, s, s);
-        this.sScaleRotate.up.copy(up);
-        this.shScaleRotate.up.copy(up);
-        this.sScaleRotate.lookAt(front.clone());
-        this.shScaleRotate.lookAt(front.clone());
+        this._meshScale = mesh.geometry.boundingSphere.radius;
+        var s = 1.0 / this._meshScale;
+        this._sScaleRotate.scale.set(s, s, s);
+        this._shScaleRotate.scale.set(s, s, s);
+        this._sScaleRotate.up.copy(up);
+        this._shScaleRotate.up.copy(up);
+        this._sScaleRotate.lookAt(front.clone());
+        this._shScaleRotate.lookAt(front.clone());
         // translation
         var t = mesh.geometry.boundingSphere.center.clone();
         t.multiplyScalar(-1.0);
-        this.sTranslate.position.copy(t);
-        this.sHTranslate.position.copy(t);
-        this.update();
-    },
+        this._sTranslate.position.copy(t);
+        this._sHTranslate.position.copy(t);
+        this._update();
+    };
 
-    removeMeshIfPresent: function () {
+    setLandmarkSize = (lmSize) => {
+        this._landmarkViews.map(v => v.setLandmarkSize(lmSize));
+    };
+
+    removeMeshIfPresent = () => {
         if (this.mesh !== null) {
-            this.sMesh.remove(this.mesh);
+            this._sMesh.remove(this.mesh);
             this.mesh = null;
             this.octree = null;
         }
-    },
+    };
 
-    memoryString: function () {
-        return 'geo:' + this.renderer.info.memory.geometries +
-               ' tex:' + this.renderer.info.memory.textures +
-               ' prog:' + this.renderer.info.memory.programs;
-    },
+    memoryString = () => {
+        return 'geo:' + this._renderer.info.memory.geometries +
+               ' tex:' + this._renderer.info.memory.textures +
+               ' prog:' + this._renderer.info.memory.programs;
+    };
 
-    // this is called whenever there is a state change on the THREE scene
-    update: function () {
-        if (!this.renderer) {
+    toggleCamera = () => {
+        // check what the current setting is
+        var currentlyPerspective = (this._sCamera === this._sPCam);
+        if (currentlyPerspective) {
+            // going to orthographic - start listening for pip updates
+            this.cameraController.onChangePip = this._update;
+            this._sCamera = this._sOCam;
+            // hide the pip decoration
+            this._pipCanvas.style.display = null;
+        } else {
+            // leaving orthographic - stop listening to pip calls.
+            this.cameraController.onChangePip = null;
+            this._sCamera = this._sPCam;
+            // show the pip decoration
+            this._pipCanvas.style.display = 'none';
+        }
+        // clear the canvas and re-render our state
+        this._clearCanvas();
+        this._update();
+    };
+
+    resetCamera = () => {
+        // reposition the cameras and focus back to the starting point.
+        const v = this.meshMode ? MESH_MODE_STARTING_POSITION :
+            IMAGE_MODE_STARTING_POSITION;
+        this.cameraController.reset(
+            v, this._scene.position, this.meshMode);
+        this._update();
+    };
+
+    updateConnectivityDisplay = (isConnectivityOn) => {
+        this.connectivityOn = isConnectivityOn;
+        this._update();
+    };
+
+    updateEditingDisplay = atomic.atomicOperation((isEditModeOn) => {
+        this._editingOn = isEditModeOn;
+        this._clearCanvas();
+        this._handler.setGroupSelected(false);
+
+        // Manually bind to avoid useless function call (even with no effect)
+        if (this._editingOn) {
+            this.$el.on('mousemove', this._handler.onMouseMove);
+        } else {
+            this.$el.off('mousemove', this._handler.onMouseMove);
+        }
+    });
+
+    _width = () => {
+        return this.$container[0].offsetWidth;
+    };
+
+    _height = () => {
+        return this.$container[0].offsetHeight;
+    };
+
+    // this is called whenever there is a state change on the THREE _scene
+    _update = () => {
+        if (!this._renderer) {
             return;
         }
         // if in batch mode - noop.
@@ -354,357 +455,244 @@ export default Backbone.View.extend({
         //console.log('Viewport:update');
         // 1. Render the main viewport
         var w, h;
-        w = this.width();
-        h = this.height();
-        this.renderer.setViewport(0, 0, w, h);
-        this.renderer.setScissor(0, 0, w, h);
-        this.renderer.enableScissorTest(true);
-        this.renderer.clear();
-        this.renderer.render(this.scene, this.sCamera);
+        w = this._width();
+        h = this._height();
+        this._renderer.setViewport(0, 0, w, h);
+        this._renderer.setScissor(0, 0, w, h);
+        this._renderer.enableScissorTest(true);
+        this._renderer.clear();
+        this._renderer.render(this._scene, this._sCamera);
 
-        if (this.showConnectivity) {
-            this.renderer.clearDepth(); // clear depth buffer
+        if (this.connectivityOn) {
+            this._renderer.clearDepth(); // clear depth buffer
             // and render the connectivity
-            this.renderer.render(this.sceneHelpers, this.sCamera);
+            this._renderer.render(this._sceneHelpers, this._sCamera);
         }
 
         // 2. Render the PIP image if in orthographic mode
-        if (this.sCamera === this.sOCam) {
-            var b = this.pipBounds();
-            this.renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
-            this.renderer.setViewport(b.x, b.y, b.width, b.height);
-            this.renderer.setScissor(b.x, b.y, b.width, b.height);
-            this.renderer.enableScissorTest(true);
-            this.renderer.clear();
+        if (this._sCamera === this._sOCam) {
+            var b = this._pipBounds();
+            this._renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
+            this._renderer.setViewport(b.x, b.y, b.width, b.height);
+            this._renderer.setScissor(b.x, b.y, b.width, b.height);
+            this._renderer.enableScissorTest(true);
+            this._renderer.clear();
             // render the PIP image
-            this.renderer.render(this.scene, this.sOCamZoom);
-            if (this.showConnectivity) {
-                this.renderer.clearDepth(); // clear depth buffer
+            this._renderer.render(this._scene, this._sOCamZoom);
+            if (this.connectivityOn) {
+                this._renderer.clearDepth(); // clear depth buffer
                 // and render the connectivity
-                this.renderer.render(this.sceneHelpers, this.sOCamZoom);
+                this._renderer.render(this._sceneHelpers, this._sOCamZoom);
             }
-            this.renderer.setClearColor(CLEAR_COLOUR, 1);
+            this._renderer.setClearColor(CLEAR_COLOUR, 1);
         }
-    },
+    };
 
-    toggleCamera: function () {
-        // check what the current setting is
-        var currentlyPerspective = (this.sCamera === this.sPCam);
-        if (currentlyPerspective) {
-            // going to orthographic - start listening for pip updates
-            this.listenTo(this.cameraController, "changePip", this.update);
-            this.sCamera = this.sOCam;
-            // hide the pip decoration
-            this.pipCanvas.style.display = null;
-        } else {
-            // leaving orthographic - stop listening to pip calls.
-            this.stopListening(this.cameraController, "changePip");
-            this.sCamera = this.sPCam;
-            // show the pip decoration
-            this.pipCanvas.style.display = 'none';
-        }
-        // clear the canvas and re-render our state
-        this.clearCanvas();
-        this.update();
-    },
-
-    pipBounds: function () {
-        var w = this.width();
-        var h = this.height();
+    _pipBounds = () => {
+        var w = this._width();
+        var h = this._height();
         var maxX = w;
         var maxY = h;
         var minX = maxX - PIP_WIDTH;
         var minY = maxY - PIP_HEIGHT;
         return {x: minX, y: minY, width: PIP_WIDTH, height: PIP_HEIGHT};
-    },
+    };
 
-    resetCamera: function () {
-        // reposition the cameras and focus back to the starting point.
-        const v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION :
-                                        IMAGE_MODE_STARTING_POSITION;
-        this.cameraController.reset(
-            v, this.scene.position, this.model.meshMode());
-        this.update();
-    },
-
-    // Event Handlers
-    // =========================================================================
-
-    events: {
-        'mousedown': "mousedownHandler"
-    },
-
-    mousedownHandler: function (event) {
-        event.preventDefault();
-        this._handler.onMouseDown(event);
-    },
-
-    updateConnectivityDisplay: atomic.atomicOperation(function () {
-        this.showConnectivity = this.model.isConnectivityOn();
-    }),
-
-    updateEditingDisplay: atomic.atomicOperation(function () {
-        this.editingOn = this.model.isEditingOn();
-        this.clearCanvas();
-        this._handler.setGroupSelected(false);
-
-        // Manually bind to avoid useless function call (even with no effect)
-        if (this.editingOn) {
-            this.$el.on('mousemove', this._handler.onMouseMove);
-        } else {
-            this.$el.off('mousemove', this._handler.onMouseMove);
-        }
-    }),
-
-    deselectAll: function () {
-        const lms = this.model.get('landmarks');
-        if (lms) {
-            lms.deselectAll();
-        }
-    },
-
-    resize: function () {
+    _resize = () => {
         var w, h;
-        w = this.width();
-        h = this.height();
+        w = this._width();
+        h = this._height();
 
         // ask the camera controller to update the cameras appropriately
         this.cameraController.resize(w, h);
         // update the size of the renderer and the canvas
-        this.renderer.setSize(w, h);
+        this._renderer.setSize(w, h);
 
         // scale the canvas and change its CSS width/height to make it high res.
         // note that this means the canvas will be 2x the size of the screen
         // with 2x displays - that's OK though, we know this is a FullScreen
         // CSS class and so will be made to fit in the existing window by other
         // constraints.
-        this.canvas.width = w * this.pixelRatio;
-        this.canvas.height = h * this.pixelRatio;
+        this._canvas.width = w * this._pixelRatio;
+        this._canvas.height = h * this._pixelRatio;
 
         // make sure our global transform for the general context accounts for
         // the pixelRatio
-        this.ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+        this._ctx.setTransform(this._pixelRatio, 0, 0, this._pixelRatio, 0, 0);
 
-        // move the pipCanvas to the right place
-        this.pipCanvas.style.left = this.pipBounds().x + 'px';
-        this.update();
-    },
+        // move the _pipCanvas to the right place
+        this._pipCanvas.style.left = this._pipBounds().x + 'px';
+        this._update();
+    };
 
-    batchHandler: function (dispatcher) {
+    _batchHandler = (dispatcher) => {
         if (dispatcher.atomicOperationFinished()) {
             // just been turned off - trigger an update.
-            this.update();
+            this._update();
         }
-    },
-
-    changeLandmarks: atomic.atomicOperation(function () {
-        console.log('Viewport: landmarks have changed');
-        var that = this;
-
-        // 1. Dispose of all landmark and connectivity views
-        _.map(this.landmarkViews, function (lmView) {
-            lmView.dispose();
-        });
-        _.map(this.connectivityViews, function (connView) {
-            connView.dispose();
-        });
-
-        // 2. Build a fresh set of views - clear any existing views
-        this.landmarkViews = [];
-        this.connectivityViews = [];
-
-        var landmarks = this.model.get('landmarks');
-        if (landmarks === null) {
-            // no actual landmarks available - return
-            // TODO when can this happen?!
-            return;
-        }
-        landmarks.landmarks.map(function (lm) {
-            that.landmarkViews.push(new LandmarkTHREEView(
-                {
-                    model: lm,
-                    viewport: that
-                }));
-        });
-        landmarks.connectivity.map(function (ab) {
-           that.connectivityViews.push(new LandmarkConnectionTHREEView(
-               {
-                   model: [landmarks.landmarks[ab[0]],
-                           landmarks.landmarks[ab[1]]],
-                   viewport: that
-               }));
-        });
-
-    }),
+    };
 
     // 2D Canvas helper functions
     // ========================================================================
 
-    updateCanvasBoundingBox: function(point) {
+    _updateCanvasBoundingBox = (point) => {
         // update the canvas bounding box to account for this new point
-        this.ctxBox.minX = Math.min(this.ctxBox.minX, point.x);
-        this.ctxBox.minY = Math.min(this.ctxBox.minY, point.y);
-        this.ctxBox.maxX = Math.max(this.ctxBox.maxX, point.x);
-        this.ctxBox.maxY = Math.max(this.ctxBox.maxY, point.y);
-    },
+        this._ctxBox.minX = Math.min(this._ctxBox.minX, point.x);
+        this._ctxBox.minY = Math.min(this._ctxBox.minY, point.y);
+        this._ctxBox.maxX = Math.max(this._ctxBox.maxX, point.x);
+        this._ctxBox.maxY = Math.max(this._ctxBox.maxY, point.y);
+    };
 
-    drawSelectionBox: function (mouseDown, mousePosition) {
+    _drawSelectionBox = (mouseDown, mousePosition) => {
         var x = mouseDown.x;
         var y = mouseDown.y;
         var dx = mousePosition.x - x;
         var dy = mousePosition.y - y;
-        this.ctx.strokeRect(x, y, dx, dy);
+        this._ctx.strokeRect(x, y, dx, dy);
         // update the bounding box
-        this.updateCanvasBoundingBox(mouseDown);
-        this.updateCanvasBoundingBox(mousePosition);
-    },
+        this._updateCanvasBoundingBox(mouseDown);
+        this._updateCanvasBoundingBox(mousePosition);
+    };
 
-    drawTargetingLines: function (point, targetLm, secondaryLms) {
+    _drawTargetingLines = (point, targetLm, secondaryLms) => {
 
-        this.updateCanvasBoundingBox(point);
+        this._updateCanvasBoundingBox(point);
 
         // first, draw the secondary lines
-        this.ctx.save();
-        this.ctx.strokeStyle = "#7ca5fe";
-        this.ctx.setLineDash([5, 15]);
+        this._ctx.save();
+        this._ctx.strokeStyle = "#7ca5fe";
+        this._ctx.setLineDash([5, 15]);
 
-        this.ctx.beginPath();
+        this._ctx.beginPath();
         secondaryLms.forEach((lm) => {
-            var lmPoint = this.localToScreen(lm.point());
-            this.updateCanvasBoundingBox(lmPoint);
-            this.ctx.moveTo(lmPoint.x, lmPoint.y);
-            this.ctx.lineTo(point.x, point.y);
+            var lmPoint = this._localToScreen(lm.point());
+            this._updateCanvasBoundingBox(lmPoint);
+            this._ctx.moveTo(lmPoint.x, lmPoint.y);
+            this._ctx.lineTo(point.x, point.y);
         });
-        this.ctx.stroke();
-        this.ctx.restore();
+        this._ctx.stroke();
+        this._ctx.restore();
 
         // now, draw the primary line
-        this.ctx.strokeStyle = "#01e6fb";
+        this._ctx.strokeStyle = "#01e6fb";
 
-        this.ctx.beginPath();
-        var targetPoint = this.localToScreen(targetLm.point());
-        this.updateCanvasBoundingBox(targetPoint);
-        this.ctx.moveTo(targetPoint.x, targetPoint.y);
-        this.ctx.lineTo(point.x, point.y);
-        this.ctx.stroke();
-    },
+        this._ctx.beginPath();
+        const targetPoint = this._localToScreen(targetLm.point());
+        this._updateCanvasBoundingBox(targetPoint);
+        this._ctx.moveTo(targetPoint.x, targetPoint.y);
+        this._ctx.lineTo(point.x, point.y);
+        this._ctx.stroke();
+    };
 
-    clearCanvas: function () {
-        if (_.isEqual(this.ctxBox, this.initialBoundingBox())) {
+    _clearCanvas = () => {
+        if (_.isEqual(this._ctxBox, _initialBoundingBox())) {
             // there has been no change to the canvas - no need to clear
             return null;
         }
         // we only want to clear the area of the canvas that we dirtied
-        // since the last clear. The ctxBox object tracks this
-        var p = 3;  // padding to be added to bounding box
-        var minX = Math.max(Math.floor(this.ctxBox.minX) - p, 0);
-        var minY = Math.max(Math.floor(this.ctxBox.minY) - p, 0);
-        var maxX = Math.ceil(this.ctxBox.maxX) + p;
-        var maxY = Math.ceil(this.ctxBox.maxY) + p;
-        var width = maxX - minX;
-        var height = maxY - minY;
-        this.ctx.clearRect(minX, minY, width, height);
+        // since the last clear. The _ctxBox object tracks this
+        const p = 3;  // padding to be added to bounding box
+        const minX = Math.max(Math.floor(this._ctxBox.minX) - p, 0);
+        const minY = Math.max(Math.floor(this._ctxBox.minY) - p, 0);
+        const maxX = Math.ceil(this._ctxBox.maxX) + p;
+        const maxY = Math.ceil(this._ctxBox.maxY) + p;
+        const width = maxX - minX;
+        const height = maxY - minY;
+        this._ctx.clearRect(minX, minY, width, height);
         // reset the tracking of the context bounding box tracking.
-        this.ctxBox = this.initialBoundingBox();
-    },
-
-    initialBoundingBox: function () {
-        return {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
-    },
+        this._ctxBox = _initialBoundingBox();
+    };
 
     // Coordinates and intersection helpers
     // =========================================================================
 
-    getIntersects: function (x, y, object) {
+    _getIntersects = (x, y, object) => {
         if (object === null || object.length === 0) {
             return [];
         }
-        var vector = new THREE.Vector3((x / this.width()) * 2 - 1,
-                                        -(y / this.height()) * 2 + 1, 0.5);
+        const vector = new THREE.Vector3((x / this._width()) * 2 - 1,
+                                        -(y / this._height()) * 2 + 1, 0.5);
 
-        if (this.sCamera === this.sPCam) {
+        if (this._sCamera === this._sPCam) {
             // perspective selection
             vector.setZ(0.5);
-            vector.unproject(this.sCamera);
-            this.ray.set(this.sCamera.position, vector.sub(this.sCamera.position).normalize());
+            vector.unproject(this._sCamera);
+            this._ray.set(this._sCamera.position, vector.sub(this._sCamera.position).normalize());
         } else {
             // orthographic selection
             vector.setZ(-1);
-            vector.unproject(this.sCamera);
+            vector.unproject(this._sCamera);
             var dir = new THREE.Vector3(0, 0, -1)
-                .transformDirection(this.sCamera.matrixWorld);
-            this.ray.set(vector, dir);
+                .transformDirection(this._sCamera.matrixWorld);
+            this._ray.set(vector, dir);
         }
 
         if (object === this.mesh && this.octree) {
             // we can use the octree to intersect the mesh efficiently.
-            return octree.intersectMesh(this.ray, this.mesh, this.octree);
+            return octree.intersectMesh(this._ray, this.mesh, this.octree);
         } else if (object instanceof Array) {
-            return this.ray.intersectObjects(object, true);
+            return this._ray.intersectObjects(object, true);
         } else {
-            return this.ray.intersectObject(object, true);
+            return this._ray.intersectObject(object, true);
         }
-    },
+    };
 
-    getIntersectsFromEvent: function (event, object) {
-      return this.getIntersects(event.clientX, event.clientY, object);
-    },
+    _getIntersectsFromEvent = (event, object) => {
+      return this._getIntersects(event.clientX, event.clientY, object);
+    };
 
-    worldToScreen: function (vector) {
-        var widthHalf = this.width() / 2;
-        var heightHalf = this.height() / 2;
-        var result = vector.project(this.sCamera);
+    _worldToScreen = (vector) => {
+        const widthHalf = this._width() / 2;
+        const heightHalf = this._height() / 2;
+        const result = vector.project(this._sCamera);
         result.x = (result.x * widthHalf) + widthHalf;
         result.y = -(result.y * heightHalf) + heightHalf;
         return result;
-    },
+    };
 
-    localToScreen: function (vector) {
-        return this.worldToScreen(
-            this.sMeshAndLms.localToWorld(vector.clone()));
-    },
+    _localToScreen = (vector) => {
+        return this._worldToScreen(
+            this._sMeshAndLms.localToWorld(vector.clone()));
+    };
 
-    worldToLocal: function (vector, inPlace=false) {
-        return inPlace ? this.sMeshAndLms.worldToLocal(vector) :
-                         this.sMeshAndLms.worldToLocal(vector.clone());
-    },
+    _worldToLocal = (vector, inPlace=false) => {
+        return inPlace ? this._sMeshAndLms.worldToLocal(vector) :
+                         this._sMeshAndLms.worldToLocal(vector.clone());
+    };
 
-    lmToScreen: function (lmSymbol) {
-        var pos = lmSymbol.position.clone();
-        this.sMeshAndLms.localToWorld(pos);
-        return this.worldToScreen(pos);
-    },
+    _lmToScreen = (lmSymbol) => {
+        const pos = lmSymbol.position.clone();
+        this._sMeshAndLms.localToWorld(pos);
+        return this._worldToScreen(pos);
+    };
 
-    lmViewsInSelectionBox: function (x1, y1, x2, y2) {
-        var c;
-        var lmsInBox = [];
-        var that = this;
-        _.each(this.landmarkViews, function (lmView) {
+    _lmViewsInSelectionBox = (x1, y1, x2, y2) => {
+        const lmsInBox = [];
+        const that = this;
+        this._landmarkViews.map((lmView) => {
             if (lmView.symbol) {
-                c = that.lmToScreen(lmView.symbol);
+                const c = that._lmToScreen(lmView.symbol);
                 if (c.x > x1 && c.x < x2 && c.y > y1 && c.y < y2) {
                     lmsInBox.push(lmView);
                 }
             }
-
         });
 
         return lmsInBox;
-    },
+    };
 
-    lmViewVisible: function (lmView) {
+    _lmViewVisible = (lmView) => {
         if (!lmView.symbol) {
             return false;
         }
-        var screenCoords = this.lmToScreen(lmView.symbol);
+        var screenCoords = this._lmToScreen(lmView.symbol);
         // intersect the mesh and the landmarks
-        var iMesh = this.getIntersects(
+        var iMesh = this._getIntersects(
             screenCoords.x, screenCoords.y, this.mesh);
-        var iLm = this.getIntersects(
+        var iLm = this._getIntersects(
             screenCoords.x, screenCoords.y, lmView.symbol);
         // is there no mesh here (pretty rare as landmarks have to be on mesh)
         // or is the mesh behind the landmarks?
         return iMesh.length === 0 || iMesh[0].distance > iLm[0].distance;
-    }
-
-});
+    };
+}

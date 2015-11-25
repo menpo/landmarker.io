@@ -191,7 +191,7 @@ LandmarkGroup.prototype.resetNextAvailable = function (originLm) {
 LandmarkGroup.prototype.deleteSelected = atomicOperation(function () {
     const ops = [];
     this.selected().forEach(function (lm) {
-        ops.push([lm.get('index'), lm.point().clone(), undefined]);
+        ops.push([lm.index(), lm.point().clone(), undefined]);
         lm.clear();
     });
     // reactivate the group to reset next available.
@@ -217,7 +217,7 @@ LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
     }
 
     this.tracker.record([
-        [ lm.get('index'),
+        [lm.index(),
          lm.point() ? lm.point().clone() : undefined,
          v.clone() ]
     ]);
