@@ -102,15 +102,6 @@ export const LandmarkTHREEView = Backbone.View.extend({
             this.onDispose(this.symbol);
             this.symbol = null;
         }
-    },
-
-    setLandmarkSize: function (lmSize) {
-        if (this.symbol) {
-            // have a symbol, and need to change it's size.
-            this.symbol.scale.set(lmSize, lmSize, lmSize);
-            // tell our viewport to update
-            this.onUpdate();
-        }
     }
 });
 

@@ -39,6 +39,7 @@ class ViewportCore {
 
         // ----- CONFIGURATION ----- //
         this._meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
+        this._lmSize = 1;
 
         // Disable context menu on viewport related elements
         $('canvas').on("contextmenu", function(e){
@@ -328,7 +329,7 @@ class ViewportCore {
     };
 
     setLandmarkSize = (lmSize) => {
-        this._landmarkViews.map(v => v.setLandmarkSize(lmSize * this._meshScale));
+        this._lmSize = lmSize;
     };
 
     removeMeshIfPresent = () => {
@@ -419,6 +420,10 @@ class ViewportCore {
         this._renderer.enableScissorTest(true);
         this._renderer.clear();
         this._renderer.render(this._scene, this._sCamera);
+
+        // ensure the landmarks are the right size
+        const s = this._lmSize * this._meshScale;
+        this._sLms.children.map(v => v.scale.x !== s ? v.scale.set(s, s, s) : console.log('no cange'));
 
         if (this.connectivityOn) {
             this._renderer.clearDepth(); // clear depth buffer
