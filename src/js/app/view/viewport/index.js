@@ -423,7 +423,7 @@ class ViewportCore {
 
         // ensure the landmarks are the right size
         const s = this._lmSize * this._meshScale;
-        this._sLms.children.map(v => v.scale.x !== s ? v.scale.set(s, s, s) : console.log('no cange'));
+        this._sLms.children.map(v => v.scale.x !== s ? v.scale.set(s, s, s) : null);
 
         if (this.connectivityOn) {
             this._renderer.clearDepth(); // clear depth buffer

@@ -53,7 +53,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
         // null if the landmark isEmpty
 
         // backbone stuff that we aim to remove
-        _.bindAll(this, 'render', 'setLandmarkSize');
+        _.bindAll(this, 'render');
         this.listenTo(this.model, "change", this.render);
 
         this.render();
@@ -86,7 +86,8 @@ export const LandmarkTHREEView = Backbone.View.extend({
     createSphere: function (v, radius, selected) {
         //console.log('creating sphere of radius ' + radius);
         var landmark = new THREE.Mesh(lmGeometry, lmMaterialForSelected[selected]);
-        landmark.name = 'Landmark ' + landmark.id;
+        landmark.name = 'Landmark ' + this.model.index();
+        landmark.userData.index = this.model.index();
         landmark.position.copy(v);
         return landmark;
     },
