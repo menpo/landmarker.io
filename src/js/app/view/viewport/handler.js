@@ -540,19 +540,3 @@ export default class Handler {
     };
 
 }
-
-
-// selectLandmarks()
-// deselectLandmarks()
-
-//this.lmPressed.select();
-
-//this.model.landmarks().completeGroups();
-
-//ops.push([lm.index(), lm.point().clone(), pt.clone()]);
-//this.model.landmarks().tracker.record(ops);
-//this.lmPressed.deselect();
-//lm.setPoint(pt);
-//this.currentTargetLm.selectAndDeselectRest();
-//this.deselectAll();
-//this.model.landmarks().setLmAt(this.lmPressed, p);
