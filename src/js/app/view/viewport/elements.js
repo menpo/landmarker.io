@@ -46,7 +46,9 @@ lmSize (float)
 export const LandmarkTHREEView = Backbone.View.extend({
 
     initialize: function (options) {
-        this.viewport = options.viewport;
+        this.onCreate = options.onCreate;
+        this.onDispose = options.onDispose;
+        this.onUpdate = options.onUpdate;
         this.symbol = null; // a THREE object that represents this landmark.
         // null if the landmark isEmpty
 
@@ -74,11 +76,11 @@ export const LandmarkTHREEView = Backbone.View.extend({
                 this.symbol = this.createSphere(this.model.point(), true);
                 this.updateSymbol();
                 // and add it to the scene
-                this.viewport._sLms.add(this.symbol);
+                this.onCreate(this.symbol);
             }
         }
-        // tell our viewport to update
-        this.viewport._update();
+        // trigger the update callback
+        this.onUpdate();
     },
 
     createSphere: function (v, radius, selected) {
@@ -97,7 +99,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
 
     dispose: function () {
         if (this.symbol) {
-            this.viewport._sLms.remove(this.symbol);
+            this.onDispose(this.symbol);
             this.symbol = null;
         }
     },
@@ -105,10 +107,9 @@ export const LandmarkTHREEView = Backbone.View.extend({
     setLandmarkSize: function (lmSize) {
         if (this.symbol) {
             // have a symbol, and need to change it's size.
-            var r = lmSize * this.viewport._meshScale;
-            this.symbol.scale.set(r, r, r);
+            this.symbol.scale.set(lmSize, lmSize, lmSize);
             // tell our viewport to update
-            this.viewport._update();
+            this.onUpdate();
         }
     }
 });
@@ -120,7 +121,9 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
         this.listenTo(this.model[0], "change", this.render);
         this.listenTo(this.model[1], "change", this.render);
 
-        this.viewport = options.viewport;
+        this.onCreate = options.onCreate;
+        this.onDispose = options.onDispose;
+        this.onUpdate = options.onUpdate;
         this.symbol = null; // a THREE object that represents this connection.
         // null if the landmark isEmpty
         this.render();
@@ -145,16 +148,16 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
                                          this.model[1].point());
                 this.updateSymbol();
                 // and add it to the scene
-                this.viewport._sLmsConnectivity.add(this.symbol);
+                this.onCreate(this.symbol);
             }
         }
-        // tell our viewport to update
-        this.viewport._update();
+        // trigger the update callback
+        this.onUpdate();
     },
 
     dispose: function () {
         if (this.symbol) {
-            this.viewport._sLmsConnectivity.remove(this.symbol);
+            this.onDispose(this.symbol);
             this.symbol.geometry.dispose();
             this.symbol = null;
         }

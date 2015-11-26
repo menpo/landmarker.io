@@ -277,7 +277,9 @@ class ViewportCore {
             that._landmarkViews.push(new LandmarkTHREEView(
                 {
                     model: lm,
-                    viewport: that
+                    onCreate: (symbol) => that._sLms.add(symbol),
+                    onDispose: (symbol) => that._sLms.remove(symbol),
+                    onUpdate: () => that._update()
                 }));
         });
         landmarks.connectivity.map(function (ab) {
@@ -285,7 +287,9 @@ class ViewportCore {
                 {
                     model: [landmarks.landmarks[ab[0]],
                         landmarks.landmarks[ab[1]]],
-                    viewport: that
+                    onCreate: (symbol) => that._sLmsConnectivity.add(symbol),
+                    onDispose: (symbol) => that._sLmsConnectivity.remove(symbol),
+                    onUpdate: () => that._update()
                 }));
         });
 
@@ -324,7 +328,7 @@ class ViewportCore {
     };
 
     setLandmarkSize = (lmSize) => {
-        this._landmarkViews.map(v => v.setLandmarkSize(lmSize));
+        this._landmarkViews.map(v => v.setLandmarkSize(lmSize * this._meshScale));
     };
 
     removeMeshIfPresent = () => {
@@ -408,9 +412,8 @@ class ViewportCore {
         }
         //console.log('Viewport:update');
         // 1. Render the main viewport
-        var w, h;
-        w = this._width();
-        h = this._height();
+        const w = this._width();
+        const h = this._height();
         this._renderer.setViewport(0, 0, w, h);
         this._renderer.setScissor(0, 0, w, h);
         this._renderer.enableScissorTest(true);
