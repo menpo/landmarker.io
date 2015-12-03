@@ -15,11 +15,11 @@
 }
 
 .WebcamArea {
-    border-collapse: collapse;
-    background: white;
-    padding: 0;
     max-height: 95%;
     max-width: 95%;
     display: block;
+}
 
+.CaptureButton {
+    background: $colorRed;
 }

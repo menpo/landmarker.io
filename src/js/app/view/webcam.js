@@ -13,6 +13,8 @@ export default Backbone.View.extend({
         this.listenTo(this.model, 'change:webcamOverlayIsDisplayed', this.render);
         var video = document.querySelector('video');
         var canvas = document.getElementById('webcamCanvas');
+        canvas.width  = 1024;
+        canvas.height = 1024;
         var ctx = canvas.getContext('2d');
         var localMediaStream = null;
         var thatModel = this.model;
@@ -25,9 +27,22 @@ export default Backbone.View.extend({
                     });
             }
         }, false);
-
+        var constraints = {
+            audio: false,
+            video: {
+                mandatory: {
+                    minWidth: 1280,
+                    minHeight: 720
+                }
+            }
+        };
         // Not showing vendor prefixes or code that works cross-browser.
-        navigator.webkitGetUserMedia({video: true}, stream => {
+        navigator.webkitGetUserMedia(constraints, stream => {
+            video.onloadedmetadata = function(){
+                console.log(this.width + "x" + this.height);
+                canvas.width = this.videoWidth;
+                canvas.height = this.videoHeight;
+            };
             video.src = window.URL.createObjectURL(stream);
             localMediaStream = stream;
         }, (e) => console.log(e));
