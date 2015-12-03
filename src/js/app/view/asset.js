@@ -18,6 +18,7 @@ export const AssetPagerView = Backbone.View.extend({
 
     events: {
         'click #next': 'next',
+        'click #capture': 'capture',
         'click #previous': 'previous'
     },
 
@@ -36,6 +37,10 @@ export const AssetPagerView = Backbone.View.extend({
 
     next: function () {
         this.model.nextAsset();
+    },
+
+    capture: function () {
+        this.model.toggleWebcamOverlay();
     },
 
     previous: function () {

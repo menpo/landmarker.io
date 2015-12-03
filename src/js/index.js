@@ -16,6 +16,7 @@ import Intro from './app/view/intro';
 import AssetView from './app/view/asset';
 import SidebarView from './app/view/sidebar';
 import HelpOverlay from './app/view/help';
+import WebcamOverlay from './app/view/webcam';
 import ToolbarView from './app/view/toolbar';
 import URLState from './app/view/url_state';
 import ViewportView from './app/view/viewport';
@@ -239,6 +240,7 @@ function initLandmarker(server, mode, u) {
     new AssetView({model: app});
     new ToolbarView({model: app});
     new HelpOverlay({model: app});
+    new WebcamOverlay({model: app});
 
     const viewport = new ViewportView({model: app});
 

@@ -84,6 +84,15 @@ Server.prototype.saveLandmarkGroup = function (id, type, json) {
     });
 };
 
+Server.prototype.saveImage = function (id, img) {
+    return putJSON(this.map(`textures/${id}`), {
+        data: {
+            'img_data': img
+        },
+        auth: this.httpAuth
+    });
+};
+
 Server.prototype.fetchThumbnail = function (assetId) {
     return ImagePromise(this.map(`thumbnails/${assetId}`), this.httpAuth);
 };

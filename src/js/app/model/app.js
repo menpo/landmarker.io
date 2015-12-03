@@ -24,6 +24,7 @@ export default Backbone.Model.extend({
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
+            webcamOverlayIsDisplayed: false,
             tracker: {},
             fitter: undefined
         };
@@ -63,6 +64,14 @@ export default Backbone.Model.extend({
 
     toggleHelpOverlay: function () {
         this.set('helpOverlayIsDisplayed', !this.isHelpOverlayOn());
+    },
+
+    isWebcamOverlayOn: function () {
+        return this.get('webcamOverlayIsDisplayed');
+    },
+
+    toggleWebcamOverlay: function () {
+        this.set('webcamOverlayIsDisplayed', !this.isWebcamOverlayOn());
     },
 
     mode: function () {
@@ -203,7 +212,7 @@ export default Backbone.Model.extend({
         });
     },
 
-    reloadAssetSource: function () {
+    reloadAssetSource: function (gotoLast=false) {
         // needs to have an activeCollection to preceed. AssetSource should be
         // updated every time the active collection is updated.
         if (!this.get('activeCollection')) {
@@ -247,7 +256,9 @@ export default Backbone.Model.extend({
         assetSource.fetch().then(() => {
             let i;
 
-            if (oldIndex >= 0 && !this.hasChanged('activeCollection')) {
+            if (gotoLast) {
+                i = assetSource.nAssets() - 1;
+            } else if (oldIndex >= 0 && !this.hasChanged('activeCollection')) {
                 i = oldIndex;
             } else if (this.has('_assetIndex') && !this.has('asset')) {
                 i = this.get('_assetIndex');

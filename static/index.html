@@ -33,8 +33,8 @@
     <meta name="msapplication-TileImage" content="/mstile-144x144.png">
     <meta name="theme-color" content="#0a4eb2">
     <!-- End of http://realfavicongenerator.net content -->
-    <link href='//fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css">
+    <!--<link href='//fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic' rel='stylesheet' type='text/css'>-->
+    <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/octicons/2.4.1/octicons.css">-->
     <script src="bundle.js"></script>
 </head>
 <!-- errorception  -->
@@ -155,6 +155,9 @@
                     <button class="Button-Basic" id="previous">&larr;</button>
                 </div>
                 <div class="Pager-Item">
+                    <button class="Button-Basic" id="capture">Webcam;</button>
+                </div>
+                <div class="Pager-Item">
                     <button class="Button-Basic" id="next">&rarr;</button>
                 </div>
             </div>
@@ -212,6 +215,16 @@
 <div class="FullScreen ModalCentreFlex">
     <div class="HelpOverlay" id="helpOverlay">
         <table class="HelpContentTable"><tbody></tbody></table>
+    </div>
+</div>
+
+<div class="FullScreen ModalCentreFlex">
+    <div class="WebcamOverlay" id="webcamOverlay">
+        <div class="WebcamArea">
+            <video autoplay></video>
+            <img src="" id="webcamcapture">
+            <canvas style="display:none;" id="webcamCanvas"></canvas>
+        </div>
     </div>
 </div>
 
