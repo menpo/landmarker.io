@@ -1,7 +1,7 @@
 sudo: false
 language: node_js
 node_js:
-- '0.12'
+- '4.1'
 install:
   - npm install
   - gem install s3_website

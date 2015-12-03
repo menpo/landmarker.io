@@ -20,7 +20,7 @@ export default Backbone.Model.extend({
             mode: 'mesh',
             connectivityOn: true,
             editingOn: true,
-            autoSaveOn: true,
+            autoSaveOn: false,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
@@ -294,7 +294,7 @@ export default Backbone.Model.extend({
         const lms = this.landmarks();
         if (lms && !lms.tracker.isUpToDate()) {
             if (!this.isAutoSaveOn()) {
-                Modal.confirm('You have unsaved changes, are you sure you want to proceed ? (Your changes will be lost)', fn);
+                Modal.confirm('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn);
             } else {
                 lms.save().then(fn);
             }

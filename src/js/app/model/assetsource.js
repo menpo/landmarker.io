@@ -4,6 +4,7 @@ import Backbone from 'backbone';
 import _ from 'underscore';
 
 import * as Asset from './asset';
+import {loading} from '../view/notification';
 
 function abortAllObj (obj) {
     _.values(obj).forEach(function (x) {
@@ -114,6 +115,7 @@ export const MeshSource = AssetSource.extend({
         console.log("Starting abort");
         abortAllObj(this.pending);
         this.set('assetIsLoading', true);
+        const asyncId = loading.start();
         // set the asset immediately (triggering change in UI)
         this.set('asset', newMesh);
 
@@ -143,8 +145,10 @@ export const MeshSource = AssetSource.extend({
                 oldAsset = null;
             }
             delete this.pending[newMesh.id];
+            loading.stop(asyncId);
             this.set('assetIsLoading', false);
         }, function (err) {
+            loading.stop(asyncId);
             console.log('geometry.then something went wrong ' + err.stack);
         });
         // return the geometry promise
@@ -175,6 +179,7 @@ export const ImageSource = AssetSource.extend({
             this.stopListening(oldAsset);
         }
         this.set('assetIsLoading', true);
+        const asyncId = loading.start();
         // set the asset immediately (triggering change in UI)
         this.set('asset', newAsset);
 
@@ -192,7 +197,9 @@ export const ImageSource = AssetSource.extend({
         texture.then(() => {
             console.log('grabbed new image texture');
             this.set('assetIsLoading', false);
+            loading.stop(asyncId);
         }, function (err) {
+            loading.stop(asyncId);
             console.log('texture.then something went wrong ' + err.stack);
         });
         // return the texture promise. Once the texture is ready, landmarks

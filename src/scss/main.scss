@@ -20,6 +20,7 @@ body {
     margin: 0;
     font-family: $fontFamily;
     font-weight: 400;
+    -webkit-overflow-scrolling: touch;
 }
 
 .Viewport {
