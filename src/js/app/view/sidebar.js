@@ -240,7 +240,6 @@ export const ActionsView = Backbone.View.extend({
         this.$el.find('#save').addClass('Button--Disabled');
         this.model.save().then(() => {
             this.$el.find('#save').removeClass('Button--Disabled');
-            this.app.afterSave();
         }, () => {
             this.$el.find('#save').removeClass('Button--Disabled');
         });

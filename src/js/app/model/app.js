@@ -407,26 +407,11 @@ export default Backbone.Model.extend({
         }
     },
 
-    afterSave: function () {
-        const fitter = this.fitter();
-        if (!fitter) {
-            return null;
-        }
-
-        const lms = this.landmarks();
-        if (lms && !lms.hasEmpty()) {
-            fitter.update(
-                this.activeTemplate(), this.asset().id, lms.toJSON()
-            );
-        }
-    },
-
     fitCurrent: function () {
         const fitter = this.fitter();
         const lms = this.landmarks();
         const asset = this.asset();
         const tmplType = this.activeTemplate();
-        let q;
 
         if (!fitter || !lms) {
             console.warn('Cannot fit without a fitter or landmarks');
@@ -435,13 +420,8 @@ export default Backbone.Model.extend({
 
         const async = loading.start();
         const lmsJSON = lms.isEmpty() ? null : lms.toJSON();
-        if (fitter.hasAsset(tmplType, asset.id)) {
-            q = fitter.fit(tmplType, asset.id, lmsJSON);
-        } else {
-            q = fitter.init(tmplType, asset.id, asset.sourceImage, lmsJSON);
-        }
-
-        q.then((res) => {
+        fitter.fit(tmplType, asset.sourceImage, lmsJSON)
+        .then((res) => {
             if (res.result) {
                 lms.tracker.recordState(lms.toJSON());
                 const json = lms.toJSON();
