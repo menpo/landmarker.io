@@ -20,7 +20,7 @@ export default Backbone.Model.extend({
             mode: 'mesh',
             connectivityOn: true,
             editingOn: true,
-            autoSaveOn: false,
+            autoSaveOn: true,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
