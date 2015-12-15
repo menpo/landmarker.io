@@ -53,10 +53,6 @@ export const BackendNameView = Backbone.View.extend({
 
     el: '#backendName',
 
-    events: {
-        click: "handleClick"
-    },
-
     initialize: function () {
         _.bindAll(this, 'render');
         this.render();
@@ -73,8 +69,7 @@ export const BackendNameView = Backbone.View.extend({
             this.$el.find('.content').html('Dropbox');
             this.$el.addClass('BackendName--Dropbox');
         } else if (server instanceof Server) {
-            this.$el.find('.content').html(
-                server.demoMode ? 'demo' : server.url);
+            this.$el.find('.content').html('ICCV Demo');
             this.$el.addClass('BackendName--Server');
             this.$el.prepend($('<span class="octicon octicon-globe"></span>'));
         } else {
@@ -84,12 +79,6 @@ export const BackendNameView = Backbone.View.extend({
         return this;
     },
 
-    handleClick: function () {
-        if (this.model.has('server')) {
-            Modal.confirm(
-                'Log out of the current data source and restart the landmarker ?', Intro.open);
-        }
-    }
 });
 
 export const AssetNameView = Backbone.View.extend({

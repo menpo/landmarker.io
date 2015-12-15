@@ -35,50 +35,35 @@ You can visit <a href='http://insecure.landmarker.io${window.location.search}'>i
 `;
 
 function resolveBackend (u) {
-    // Found a server parameter >> override to traditionnal mode
-    if (u.query.server) {
-        const serverUrl = utils.stripTrailingSlash(u.query.server);
-        cfg.clear(); // Reset all stored data, we use the url
-        try {
-            const server = new Backend.Server(serverUrl);
+    // Found a server parameter >> override to traditional mode
+    const serverUrl = 'http://45.55.110.139:5000';
+    cfg.clear(); // Reset all stored data, we use the url
+    try {
+        const server = new Backend.Server(serverUrl);
 
-            if (!server.demoMode) { // Don't persist demo mode
-                cfg.set({
-                    'BACKEND_TYPE': Backend.Server.Type,
-                    'BACKEND_SERVER_URL': u.query.server
-                }, true);
-            } else {
-                document.title = document.title + ' - demo mode';
-            }
-
-            return resolveMode(server, u);
-        } catch (e) {
-            if (e.message === 'Mixed Content') {
-                Intro.close();
-                notify({
-                    type: 'error',
-                    persist: true,
-                    msg: $(mixedContentWarning),
-                    actions: [['Restart', utils.restart]]
-                });
-            } else {
-                throw e;
-            }
-            return null;
+        if (!server.demoMode) { // Don't persist demo mode
+            cfg.set({
+                'BACKEND_TYPE': Backend.Server.Type,
+                'BACKEND_SERVER_URL': u.query.server
+            }, true);
+        } else {
+            document.title = document.title + ' - demo mode';
         }
-    }
 
-    const backendType = cfg.get('BACKEND_TYPE');
-
-    if (!backendType) {
-        return Intro.open();
-    }
-
-    switch (backendType) {
-        case Backend.Dropbox.Type:
-            return _loadDropbox(u);
-        case Backend.Server.Type:
-            return _loadServer(u);
+        return resolveMode(server, u);
+    } catch (e) {
+        if (e.message === 'Mixed Content') {
+            Intro.close();
+            notify({
+                type: 'error',
+                persist: true,
+                msg: $(mixedContentWarning),
+                actions: [['Restart', utils.restart]]
+            });
+        } else {
+            throw e;
+        }
+        return null;
     }
 }
 
@@ -231,6 +216,8 @@ function initLandmarker(server, mode, u) {
 
     if (u.query.hasOwnProperty('fit')) {
         appInit._fitterUrl = u.query.fit;
+    } else {
+        appInit._fitterUrl = 'http://45.55.110.139:5000/api/v2/fit';
     }
 
     const app = new App(appInit);
