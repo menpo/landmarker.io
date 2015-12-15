@@ -155,6 +155,9 @@
                     <button class="Button-Basic" id="previous">&larr;</button>
                 </div>
                 <div class="Pager-Item">
+                    <button class="CaptureButton Button-Basic" id="capture"><span class="octicon octicon-device-camera"></span></button>
+                </div>
+                <div class="Pager-Item">
                     <button class="Button-Basic" id="next">&rarr;</button>
                 </div>
             </div>
@@ -212,6 +215,16 @@
 <div class="FullScreen ModalCentreFlex">
     <div class="HelpOverlay" id="helpOverlay">
         <table class="HelpContentTable"><tbody></tbody></table>
+    </div>
+</div>
+
+<div class="FullScreen ModalCentreFlex">
+    <div class="WebcamOverlay" id="webcamOverlay">
+        <div class="WebcamArea">
+            <video autoplay style="width: 100%;"></video>
+            <img src="" id="webcamcapture">
+            <canvas style="display:none;" id="webcamCanvas"></canvas>
+        </div>
     </div>
 </div>
 
