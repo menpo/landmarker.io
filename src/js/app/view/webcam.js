@@ -1,7 +1,6 @@
 'use strict';
 
 import Backbone from 'backbone';
-import $ from 'jquery';
 
 export default Backbone.View.extend({
 
@@ -10,10 +9,11 @@ export default Backbone.View.extend({
     events: { click: 'close' },
 
     initialize: function() {
+        console.log('building webcam');
         this.listenTo(this.model, 'change:webcamOverlayIsDisplayed', this.render);
         var video = document.querySelector('video');
         var canvas = document.getElementById('webcamCanvas');
-        canvas.width  = 1024;
+        canvas.width = 1024;
         canvas.height = 1024;
         var ctx = canvas.getContext('2d');
         var localMediaStream = null;

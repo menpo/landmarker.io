@@ -30,19 +30,6 @@ Fitter.prototype.hasType = function (type) {
     return this.types.indexOf(type) > -1;
 };
 
-Fitter.prototype.init = function (type, id, img, lms=null) {
-    console.time(`FittingTime:${id}`);
-    return request.putJSON(`${this.url}/${type}`, {
-        data: {
-            'img_data': imgData,
-            landmarks: JSON.stringify(lms)
-        }
-    }).then((res) => {
-        console.timeEnd(`FittingTime:${id}`);
-        return res;
-    });
-};
-
 Fitter.prototype.fit = function (type, img, lms=null) {
     const data = {
         'img_data': _u.imgToDataUrl(img)
