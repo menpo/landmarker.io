@@ -1,6 +1,3 @@
-'use strict';
-
-import _ from 'underscore';
 import THREE from 'three';
 import $ from 'jquery';
 
@@ -68,7 +65,6 @@ export default class Handler {
         this.downEvent = null;
 
         this.lmPressed = false;
-        this.lmPressedWasSelected = false;
         this.isPressed = false;
         this.groupSelected = false;
 
@@ -116,25 +112,23 @@ export default class Handler {
         var landmarkSymbol = this.intersectsWithLms[0].object;
         // hunt through the landmarkViews for the right symbol
         console.log(landmarkSymbol);
-        for (var i = 0; i < this.viewport._landmarkViews.length; i++) {
-            if (this.viewport._landmarkViews[i].symbol === landmarkSymbol) {
-                this.lmPressed = this.viewport._landmarkViews[i].model;
-            }
-        }
-        console.log('Viewport: finding the selected points');
-        this.lmPressedWasSelected = this.lmPressed.isSelected();
 
-        if (!this.lmPressedWasSelected && !ctrl) {
+        this.viewport._landmarkViews
+            .filter(lmv => lmv.symbol === landmarkSymbol)
+            .forEach(lmv => this.lmPressed = this.viewport._landmarks[lmv.index]);
+        console.log('Viewport: finding the selected points');
+
+        if (!this.lmPressed.isSelected && !ctrl) {
             // this lm wasn't pressed before and we aren't holding
             // mutliselection down - deselect rest and select this
             console.log("normal click on a unselected lm - deselecting rest and selecting me");
-            this.lmPressed.selectAndDeselectRest();
-        } else if (ctrl && !this.lmPressedWasSelected) {
-            this.lmPressed.select();
+            this.viewport.on.selectLandmarkAndDeselectRest(this.lmPressed.index);
+        } else if (ctrl && !this.lmPressed.isSelected) {
+            this.viewport.on.selectLandmarks([this.lmPressed.index]);
         }
 
         // record the position of where the drag started.
-        this.positionLmDrag.copy(this.viewport._localToScreen(this.lmPressed.point()));
+        this.positionLmDrag.copy(this.viewport._localToScreen(this.lmPressed.point));
         this.dragStartPositions = this.model.landmarks().selected().map(
             lm => [lm.index(), lm.point().clone()]);
 
@@ -311,12 +305,8 @@ export default class Handler {
 
         // Of these, filter out the ones which are visible (not
         // obscured) and select the rest
-        _.each(lms, (lm) => {
-            if (this.viewport._lmViewVisible(lm)) {
-                lm.model.select();
-            }
-        });
-
+        const indexesToSelect = lms.filter(this.viewport._lmViewVisible).map(lm => lm.index);
+        this.viewport.on.selectLandmarks(indexesToSelect);
         this.viewport._clearCanvas();
         this.isPressed = false;
         this.setGroupSelected(true);
@@ -369,11 +359,11 @@ export default class Handler {
         this.onMouseUpPosition.set(event.clientX, event.clientY);
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) === 0) {
             // landmark was pressed
-            if (this.lmPressedWasSelected && ctrl) {
-                this.lmPressed.deselect();
-            } else if (!ctrl && !this.lmPressedWasSelected) {
-                this.lmPressed.selectAndDeselectRest();
-            } else if (this.lmPressedWasSelected) {
+            if (this.lmPressed.isSelected && ctrl) {
+                this.viewport.on.deselectLandmarks([this.lmPressed.index]);
+            } else if (!ctrl && !this.lmPressed.isSelected) {
+                this.viewport.on.selectLandmarkAndDeselectRest(this.lmPressed.index);
+            } else if (this.lmPressed.isSelected) {
                 var p = this.intersectsWithMesh[0].point.clone();
                 this.viewport._worldToLocal(p, true);
                 this.model.landmarks().setLmAt(this.lmPressed, p);

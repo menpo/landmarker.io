@@ -33,11 +33,12 @@ function _initialBoundingBox() {
 // the Viewport core code into a standalone class with minimal interaction with Backbone.
 class ViewportCore {
 
-    constructor(app, meshMode) {
+    constructor(app, meshMode, on) {
 
         // only place this is referenced now is in the LandmarkViews we create, and in the
         // mouse handler.
         this.model = app;
+        this.on = on;
 
         this.meshMode = meshMode;
         this.connectivityOn = true;
@@ -272,19 +273,19 @@ class ViewportCore {
 
     setLandmarks = atomic.atomicOperation(landmarks => {
         console.log('Viewport: landmarks have changed');
+        this._landmarks = landmarks.landmarks.map(landmarkForBBLandmark);
+
 
         // 1. Dispose of all landmark and connectivity views
         this._landmarkViews.forEach(lmView => lmView.dispose());
         this._connectivityViews.forEach(connView => connView.dispose());
 
         // 2. Build a fresh set of views
-        this._landmarkViews = landmarks.landmarks.map(lm =>
-            new LandmarkTHREEView(
+        this._landmarkViews = this._landmarks.map(lm =>
+            new LandmarkTHREEView(lm,
                 {
-                    model: lm,
                     onCreate: symbol => this._sLms.add(symbol),
-                    onDispose: symbol => this._sLms.remove(symbol),
-                    onUpdate: () => this._update()
+                    onDispose: symbol => this._sLms.remove(symbol)
                 })
         );
         this._connectivityViews = landmarks.connectivity.map(ab =>
@@ -298,6 +299,13 @@ class ViewportCore {
                 })
         );
 
+    });
+
+    updateLandmarks = atomic.atomicOperation(landmarks => {
+        landmarks.forEach(lm => {
+            this._landmarkViews[lm.index].render(lm)
+        })
+        this._update()
     });
 
     setMesh = (mesh, up, front) => {
@@ -664,11 +672,24 @@ class ViewportCore {
     };
 }
 
+const landmarkForBBLandmark = bbLm => ({
+        point: bbLm.point(),
+        isSelected: bbLm.isSelected(),
+        index: bbLm.index()
+});
+
 export default class BackboneViewport {
 
     constructor(app) {
         this.model = app;
-        this.viewport = new ViewportCore(app, app.meshMode());
+
+
+        const on = {
+            selectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].select()),
+            deselectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].deselect()),
+            selectLandmarkAndDeselectRest: i => this.model.landmarks().landmarks[i].selectAndDeselectRest()
+        }
+        this.viewport = new ViewportCore(app, app.meshMode(), on);
 
         this.model.on('newMeshAvailable', this.setMesh);
         this.model.on("change:landmarks", this.setLandmarks);
@@ -695,7 +716,11 @@ export default class BackboneViewport {
         const landmarks = this.model.landmarks();
         if (landmarks !== null) {
             this.viewport.setLandmarks(landmarks);
+
+            // TODO will this be collected properly?
+            landmarks.landmarks.forEach(lm => lm.on('change', () => this.updateLandmark(lm.index())));
         }
+
     };
 
     setLandmarkSize = () => {
@@ -708,6 +733,14 @@ export default class BackboneViewport {
 
     updateConnectivityDisplay = () => {
         this.viewport.updateConnectivityDisplay(this.model.isConnectivityOn());
+    };
+
+    updateLandmark = i => {
+        console.log(`updating landmark ${i}`);
+        this.viewport.updateLandmarks([
+                landmarkForBBLandmark(this.model.landmarks().landmarks[i])
+            ]
+        )
     };
 
 }

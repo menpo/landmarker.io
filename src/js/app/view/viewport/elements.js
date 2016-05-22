@@ -44,60 +44,55 @@ function createLine(start, end) {
 }
 
 
-export const LandmarkTHREEView = Backbone.View.extend({
+export class LandmarkTHREEView {
 
-    initialize: function (options) {
+    constructor (lm, options) {
         this.onCreate = options.onCreate;
         this.onDispose = options.onDispose;
         this.onUpdate = options.onUpdate;
+
         // a THREE object that represents this landmark.
         // null if the landmark isEmpty
         this.symbol = null;
+        this.index = lm.index
 
-        this.render();
+        this.render(lm);
+    }
 
-        // TODO BB to remove
-        _.bindAll(this, 'render');
-        this.listenTo(this.model, "change", this.render);
-    },
-
-    render: function () {
+    render = (lm) => {
         if (this.symbol) {
             // this landmark already has an allocated representation..
-            if (this.model.isEmpty()) {
+            if (lm.point === null) {
                 // but it's been deleted.
                 this.dispose();
             } else {
                 // the lm may need updating. See what needs to be done
-                this.updateSymbol();
+                this.updateSymbol(lm);
             }
         } else {
             // there is no symbol yet
-            if (!this.model.isEmpty()) {
+            if (lm.point !== null) {
                 // and there should be! Make it and update it
-                this.symbol = createSphere(this.model.index());
-                this.updateSymbol();
+                this.symbol = createSphere(lm.index);
+                this.updateSymbol(lm);
                 // and add it to the scene
                 this.onCreate(this.symbol);
             }
         }
-        // TODO BB to remove (should be handled at Viewport level)
-        this.onUpdate();
-    },
+    };
 
-    updateSymbol: function () {
-        this.symbol.position.copy(this.model.point());
-        var selected = this.model.isSelected();
-        this.symbol.material = LM_MATERIAL_FOR_SELECTED[selected];
-    },
+    updateSymbol = (lm) => {
+        this.symbol.position.copy(lm.point);
+        this.symbol.material = LM_MATERIAL_FOR_SELECTED[lm.isSelected];
+    };
 
-    dispose: function () {
+    dispose = () => {
         if (this.symbol) {
             this.onDispose(this.symbol);
             this.symbol = null;
         }
     }
-});
+}
 
 export const LandmarkConnectionTHREEView = Backbone.View.extend({
 
