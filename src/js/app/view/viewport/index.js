@@ -411,12 +411,16 @@ class ViewportCore {
         if (!this._renderer) {
             return;
         }
-        // if in batch mode - noop.
+        // if in batch mode - dont render unnecessarily
         if (atomic.atomicOperationUnderway()) {
             return;
         }
-        //console.log('Viewport:update');
-        // 1. Render the main viewport
+
+        // 1. Before we do any rendering ensure the landmarks are the right size
+        const s = this._lmSize * this._meshScale;
+        this._sLms.children.forEach(v => v.scale.x !== s ? v.scale.set(s, s, s) : null);
+
+        // 2. Render the main viewport...
         const w = this._width();
         const h = this._height();
         this._renderer.setViewport(0, 0, w, h);
@@ -425,17 +429,14 @@ class ViewportCore {
         this._renderer.clear();
         this._renderer.render(this._scene, this._sCamera);
 
-        // ensure the landmarks are the right size
-        const s = this._lmSize * this._meshScale;
-        this._sLms.children.map(v => v.scale.x !== s ? v.scale.set(s, s, s) : null);
-
         if (this.connectivityOn) {
-            this._renderer.clearDepth(); // clear depth buffer
+            // clear depth buffer
+            this._renderer.clearDepth();
             // and render the connectivity
             this._renderer.render(this._sceneHelpers, this._sCamera);
         }
 
-        // 2. Render the PIP image if in orthographic mode
+        // 3. Render the PIP image if in orthographic mode
         if (this._sCamera === this._sOCam) {
             var b = this._pipBounds();
             this._renderer.setClearColor(CLEAR_COLOUR_PIP, 1);

@@ -76,7 +76,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
             // there is no symbol yet
             if (!this.model.isEmpty()) {
                 // and there should be! Make it and update it
-                this.symbol = createSphere(this.model.point(), this.model.index(), true);
+                this.symbol = createSphere(this.model.point(), this.model.index(), this.model.isSelected());
                 this.updateSymbol();
                 // and add it to the scene
                 this.onCreate(this.symbol);
