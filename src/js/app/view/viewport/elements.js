@@ -28,31 +28,34 @@ const lineMaterial = new THREE.LineBasicMaterial({
     linewidth: 1
 });
 
+function createSphere(position, index, selected) {
+    const landmark = new THREE.Mesh(lmGeometry, lmMaterialForSelected[selected]);
+    landmark.name = 'Landmark ' + index;
+    landmark.userData.index = index;
+    landmark.position.copy(position);
+    return landmark
+}
+
 function createLine(start, end) {
-    var geometry = new THREE.Geometry();
+    const geometry = new THREE.Geometry();
     geometry.dynamic = true;
     geometry.vertices.push(start.clone());
     geometry.vertices.push(end.clone());
-    return new THREE.Line(geometry, lineMaterial);
+    return new THREE.Line(geometry, lineMaterial)
 }
 
-/*
-Required state:
 
-position (THREE.Vector) / null
-lmSize (float)
-
- */
 export const LandmarkTHREEView = Backbone.View.extend({
 
     initialize: function (options) {
         this.onCreate = options.onCreate;
         this.onDispose = options.onDispose;
         this.onUpdate = options.onUpdate;
-        this.symbol = null; // a THREE object that represents this landmark.
+        // a THREE object that represents this landmark.
         // null if the landmark isEmpty
+        this.symbol = null;
 
-        // backbone stuff that we aim to remove
+        // TODO BB to remove
         _.bindAll(this, 'render');
         this.listenTo(this.model, "change", this.render);
 
@@ -73,7 +76,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
             // there is no symbol yet
             if (!this.model.isEmpty()) {
                 // and there should be! Make it and update it
-                this.symbol = this.createSphere(this.model.point(), true);
+                this.symbol = createSphere(this.model.point(), this.model.index(), true);
                 this.updateSymbol();
                 // and add it to the scene
                 this.onCreate(this.symbol);
@@ -81,15 +84,6 @@ export const LandmarkTHREEView = Backbone.View.extend({
         }
         // trigger the update callback
         this.onUpdate();
-    },
-
-    createSphere: function (v, radius, selected) {
-        //console.log('creating sphere of radius ' + radius);
-        var landmark = new THREE.Mesh(lmGeometry, lmMaterialForSelected[selected]);
-        landmark.name = 'Landmark ' + this.model.index();
-        landmark.userData.index = this.model.index();
-        landmark.position.copy(v);
-        return landmark;
     },
 
     updateSymbol: function () {
@@ -147,17 +141,18 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
         this.onUpdate();
     },
 
+    updateSymbol: function () {
+        this.symbol.geometry.vertices[0].copy(this.model[0].point());
+        this.symbol.geometry.vertices[1].copy(this.model[1].point());
+        this.symbol.geometry.verticesNeedUpdate = true;
+    },
+
     dispose: function () {
         if (this.symbol) {
             this.onDispose(this.symbol);
             this.symbol.geometry.dispose();
             this.symbol = null;
         }
-    },
-
-    updateSymbol: function () {
-        this.symbol.geometry.vertices[0].copy(this.model[0].point());
-        this.symbol.geometry.vertices[1].copy(this.model[1].point());
-        this.symbol.geometry.verticesNeedUpdate = true;
     }
+
 });
