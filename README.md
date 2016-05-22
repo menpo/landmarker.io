@@ -1,4 +1,4 @@
-![](favicon-194x194.png)
+![](./static/favicon-194x194.png)
 
 # landmarker.io
 
