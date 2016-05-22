@@ -27,13 +27,21 @@ function _initialBoundingBox() {
     return {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
 }
 
+
+// We are trying to move towards the whole viewport module being a standalone black box that
+// has no dependencies beyond THREE and our octree. As part of this effort, we refactor out
+// the Viewport core code into a standalone class with minimal interaction with Backbone.
 class ViewportCore {
 
     constructor(app, meshMode) {
 
+        // only place this is referenced now is in the LandmarkViews we create, and in the
+        // mouse handler.
+        this.model = app;
+
         this.meshMode = meshMode;
         this.connectivityOn = true;
-        this.model = app;  // only place this is referenced now is in the LandmarkViews we create.
+
         this.el = document.getElementById('canvas');
         this.$el = $('#canvas');
 
@@ -232,7 +240,7 @@ class ViewportCore {
         // this will also clearCanvas (will draw context box if needed)
         this._resize();
 
-        // TODO this probably goes away
+        // TODO this probably goes away once we remove Backbone from the view
         atomic.on("change:ATOMIC_OPERATION", this._batchHandler);
 
         // register for the animation loop
@@ -262,37 +270,33 @@ class ViewportCore {
         });
     }
 
-    setLandmarks = atomic.atomicOperation((landmarks) => {
+    setLandmarks = atomic.atomicOperation(landmarks => {
         console.log('Viewport: landmarks have changed');
-        var that = this;
 
         // 1. Dispose of all landmark and connectivity views
-        this._landmarkViews.map((lmView) => lmView.dispose());
-        this._connectivityViews.map((connView) => connView.dispose());
+        this._landmarkViews.forEach(lmView => lmView.dispose());
+        this._connectivityViews.forEach(connView => connView.dispose());
 
-        // 2. Build a fresh set of views - clear any existing views
-        this._landmarkViews = [];
-        this._connectivityViews = [];
-
-        landmarks.landmarks.map(function (lm) {
-            that._landmarkViews.push(new LandmarkTHREEView(
+        // 2. Build a fresh set of views
+        this._landmarkViews = landmarks.landmarks.map(lm =>
+            new LandmarkTHREEView(
                 {
                     model: lm,
-                    onCreate: (symbol) => that._sLms.add(symbol),
-                    onDispose: (symbol) => that._sLms.remove(symbol),
-                    onUpdate: () => that._update()
-                }));
-        });
-        landmarks.connectivity.map(function (ab) {
-            that._connectivityViews.push(new LandmarkConnectionTHREEView(
+                    onCreate: symbol => this._sLms.add(symbol),
+                    onDispose: symbol => this._sLms.remove(symbol),
+                    onUpdate: () => this._update()
+                })
+        );
+        this._connectivityViews = landmarks.connectivity.map(ab =>
+            new LandmarkConnectionTHREEView(
                 {
                     model: [landmarks.landmarks[ab[0]],
-                        landmarks.landmarks[ab[1]]],
-                    onCreate: (symbol) => that._sLmsConnectivity.add(symbol),
-                    onDispose: (symbol) => that._sLmsConnectivity.remove(symbol),
-                    onUpdate: () => that._update()
-                }));
-        });
+                            landmarks.landmarks[ab[1]]],
+                    onCreate: symbol => this._sLmsConnectivity.add(symbol),
+                    onDispose: symbol => this._sLmsConnectivity.remove(symbol),
+                    onUpdate: () => this._update()
+                })
+        );
 
     });
 
