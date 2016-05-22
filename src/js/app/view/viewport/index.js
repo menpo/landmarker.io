@@ -699,7 +699,6 @@ export default class BackboneViewport {
     };
 
     setLandmarkSize = () => {
-        console.log('set landmark size');
         this.viewport.setLandmarkSize(this.model.landmarkSize());
     };
 
