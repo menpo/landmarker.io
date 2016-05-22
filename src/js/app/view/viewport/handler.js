@@ -6,6 +6,52 @@ import $ from 'jquery';
 
 import atomic from '../../model/atomic';
 
+// Helpers
+// ------------------------------------------------------------------------
+
+/**
+ * Find the 4 landmarks closest to a location (THREE vector)
+ * from a LandmarkGroup
+**/
+const findClosestLandmarks = (lmGroup, loc, currentTargetLm, locked=false) => {
+    let distance, i, j, lm, lmLoc, minDist;
+    const dists = new Array(4);
+    const lms = new Array(4);
+
+    for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
+        lm = lmGroup.landmarks[i];
+
+        if (lm.isEmpty()) {
+            continue;
+        }
+
+        lmLoc = lm.point();
+
+        if (lmLoc === null || locked && lm === currentTargetLm) {
+            continue;
+        }
+
+        distance = loc.distanceTo(lmLoc);
+
+        // Compare to stored lm in order, 0 being the closest
+        for (j = 0; j < 3; j++) {
+            minDist = dists[j];
+            if (!minDist) {
+                [dists[j], lms[j]] = [distance, lm];
+                break;
+            } else if (distance <= minDist) { // leq to ensure we always have 4
+                dists.splice(j, 0, distance);
+                lms.splice(j, 0, lm);
+                break;
+            }
+        }
+    }
+
+    return lms;
+};
+
+
+
 /**
  * Holds state usable by all event handlers and should be bound to the
  * Viewport view instance.
@@ -384,7 +430,7 @@ export default class Handler {
         var mouseLoc = this.viewport._worldToLocal(this.intersectsWithMesh[0].point);
         var previousTargetLm = this.currentTargetLm;
 
-        var lms = this.findClosestLandmarks(lmGroup, mouseLoc, evt.ctrlKey || evt.metaKey);
+        var lms = findClosestLandmarks(lmGroup, mouseLoc, this.currentTargetLm, evt.ctrlKey || evt.metaKey);
 
         if (lms[0] && !evt.ctrlKey) {
             this.currentTargetLm = lms[0];
@@ -490,53 +536,4 @@ export default class Handler {
 
         this.setGroupSelected(true);
     };
-
-    // Helpers
-    // ------------------------------------------------------------------------
-
-    /**
-     * Find the 4 landmarks closest to a location (THREE vector)
-     * from a LandmarkGroup
-     *
-     * @param  {LandmarkGroup} lmGroup
-     * @param  {THREE.Vector} loc
-     *
-     * @return {Landmark[]}
-     */
-    findClosestLandmarks = (lmGroup, loc, locked=false) => {
-        var dist, i, j, lm, lmLoc, minDist,
-            dists = new Array(4), lms = new Array(4);
-
-        for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
-            lm = lmGroup.landmarks[i];
-
-            if (lm.isEmpty()) {
-                continue;
-            }
-
-            lmLoc = lm.point();
-
-            if (lmLoc === null || locked && lm === this.currentTargetLm) {
-                continue;
-            }
-
-            dist = loc.distanceTo(lmLoc);
-
-            // Compare to stored lm in order, 0 being the closest
-            for (j = 0; j < 3; j++) {
-                minDist = dists[j];
-                if (!minDist) {
-                    [dists[j], lms[j]] = [dist, lm];
-                    break;
-                } else if (dist <= minDist) { // leq to ensure we always have 4
-                    dists.splice(j, 0, dist);
-                    lms.splice(j, 0, lm);
-                    break;
-                }
-            }
-        }
-
-        return lms;
-    };
-
 }
