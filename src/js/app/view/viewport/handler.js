@@ -6,48 +6,12 @@ import atomic from '../../model/atomic';
 // Helpers
 // ------------------------------------------------------------------------
 
-/**
- * Find the 4 landmarks closest to a location (THREE vector)
- * from a LandmarkGroup
-**/
-const findClosestLandmarks = (lmGroup, loc, currentTargetLm, locked=false) => {
-    let distance, i, j, lm, lmLoc, minDist;
-    const dists = new Array(4);
-    const lms = new Array(4);
-
-    for (i = lmGroup.landmarks.length - 1; i >= 0; i--) {
-        lm = lmGroup.landmarks[i];
-
-        if (lm.isEmpty()) {
-            continue;
-        }
-
-        lmLoc = lm.point();
-
-        if (lmLoc === null || locked && lm === currentTargetLm) {
-            continue;
-        }
-
-        distance = loc.distanceTo(lmLoc);
-
-        // Compare to stored lm in order, 0 being the closest
-        for (j = 0; j < 3; j++) {
-            minDist = dists[j];
-            if (!minDist) {
-                [dists[j], lms[j]] = [distance, lm];
-                break;
-            } else if (distance <= minDist) { // leq to ensure we always have 4
-                dists.splice(j, 0, distance);
-                lms.splice(j, 0, lm);
-                break;
-            }
-        }
-    }
-
-    return lms;
-};
-
-
+const findClosestLandmarks = (lms, point, n = 4) =>
+    lms
+        .map(lm => ({ landmark: lm, distance: point.distanceTo(lm.point) }))
+        .sort((a, b) => a.distance >= b.distance)
+        .slice(0, n)
+        .map(lmd => lmd.landmark);
 
 /**
  * Holds state usable by all event handlers and should be bound to the
@@ -56,6 +20,7 @@ const findClosestLandmarks = (lmGroup, loc, currentTargetLm, locked=false) => {
 export default class Handler {
 
     constructor(viewport, model) {
+        
         this.viewport = viewport;
         this.model = model;
 
@@ -83,6 +48,7 @@ export default class Handler {
 
         this.intersectsWithLms = [];
         this.intersectsWithMesh = [];
+
     }
 
     // High level handlers
@@ -94,13 +60,18 @@ export default class Handler {
 
     meshPressed = () => {
         console.log('mesh pressed!');
-        if (this.groupSelected) {
+        if (this.viewport._groupModeActive) {
             this.nothingPressed();
         } else if (this.downEvent.button === 0 && this.downEvent.shiftKey) {
             this.shiftPressed();  // LMB + SHIFT
         } else {
             $(document).one('mouseup.viewportMesh', this.meshOnMouseUp);
         }
+    };
+
+    // called when the landmarks are changed on the viewport.
+    resetLandmarks = () => {
+        this.currentTargetLm = undefined
     };
 
     landmarkPressed = () => {
@@ -300,7 +271,6 @@ export default class Handler {
         this.viewport.on.selectLandmarks(indexesToSelect);
         this.viewport._clearCanvas();
         this.isPressed = false;
-        this.setGroupSelected(true);
     });
 
     meshOnMouseUp = (event) => {
@@ -316,18 +286,17 @@ export default class Handler {
             if (
                 this.viewport._editingOn &&
                 this.currentTargetLm &&
-                this.currentTargetLm.group() === this.model.landmarks() &&
-                !this.currentTargetLm.isEmpty()
+                this.currentTargetLm.point !== null
             ) {
-                this.model.landmarks().setLmAt(this.currentTargetLm, p);
+                // we are in edit mode - adjust the target point
+                this.viewport.on.setLandmarkPoint(this.currentTargetLm.index, p)
             } else if (this.downEvent.button === 2) {
+                // right click - insert point.
                 this.model.landmarks().insertNew(p);
             }
         }
-
-        this.viewport._clearCanvas();
         this.isPressed = false;
-        this.setGroupSelected(false);
+        this.viewport._clearCanvas();
     };
 
     nothingOnMouseUp = (event) => {
@@ -335,11 +304,10 @@ export default class Handler {
         this.onMouseUpPosition.set(event.clientX, event.clientY);
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
             // a click on nothing - deselect all
-            this.setGroupSelected(false);
+            this.viewport.on.deselectAllLandmarks();
         }
-
-        this.viewport._clearCanvas();
         this.isPressed = false;
+        this.viewport._clearCanvas();
     };
 
     landmarkOnMouseUp = atomic.atomicOperation((event) => {
@@ -358,8 +326,6 @@ export default class Handler {
                 const p = this.intersectsWithMesh[0].point.clone();
                 this.viewport._worldToLocal(p, true);
                 this.viewport.on.setLandmarkPoint(this.lmPressed.index, p)
-            } else if (ctrl) {
-                this.setGroupSelected(true);
             }
         } else if (this.dragged) {
             this.viewport._selectedLandmarks.forEach((lm, i) => {
@@ -383,136 +349,63 @@ export default class Handler {
         if (this.isPressed ||
             !this.viewport._editingOn ||
             !this.viewport._hasLandmarks ||
-            this.viewport._allLandmarksEmpty
+            this.viewport._allLandmarksEmpty ||
+            this.viewport._groupModeActive
         ) {
             return null;
         }
+        // only here as:
+        // 1. Edit mode is enabled
+        // 2. No group selection is made
+        // 3. There is at least one landmark
 
-        if (
-            this.currentTargetLm &&
-            (this.currentTargetLm.isEmpty() ||
-            this.model.landmarks() !== this.currentTargetLm.group())
-        ) {
+        if (this.currentTargetLm && this.currentTargetLm.point === null)
+        {
+            // the target point has been deleted - reset it.
+            // TODO decide on reset state for target landmark
             this.currentTargetLm = undefined;
         }
 
         this.intersectsWithMesh = this.viewport._getIntersectsFromEvent(evt, this.viewport.mesh);
 
-        var lmGroup = this.model.landmarks();
-
-        var shouldUpdate = this.intersectsWithMesh.length > 0 &&
-                           lmGroup &&
-                           lmGroup.landmarks;
-
-        if (!shouldUpdate) {
+        if (this.intersectsWithMesh.length == 0) {
+            // moving the mouse off the mesh does nothing.
             return null;
         }
 
-        var mouseLoc = this.viewport._worldToLocal(this.intersectsWithMesh[0].point);
-        var previousTargetLm = this.currentTargetLm;
+        const mouseLoc = this.viewport._worldToLocal(this.intersectsWithMesh[0].point);
 
-        var lms = findClosestLandmarks(lmGroup, mouseLoc, this.currentTargetLm, evt.ctrlKey || evt.metaKey);
+        // lock only works once we have an existing target landmark
+        const lockEnabled = (evt.ctrlKey || evt.metaKey) && this.currentTargetLm;
 
-        if (lms[0] && !evt.ctrlKey) {
-            this.currentTargetLm = lms[0];
-            lms = lms.slice(1, 4);
-        } else if (lms[0]) {
-            lms = lms.slice(0, 3);
-        }
+        let newTarget = undefined, nextClosest = [];
+        if (lockEnabled) {
+            // we will not change the existing target
+            newTarget = this.currentTargetLm;
 
-        if (this.currentTargetLm && !this.groupSelected && lms.length > 0) {
+            // only pick from the remaining landmarks
+            const candidateLandmarks = this.viewport._nonEmptyLandmarks
+                .filter(lm => lm.index !== this.currentTargetLm.index);
+            nextClosest = findClosestLandmarks(candidateLandmarks, mouseLoc, 3)
 
-            if (this.currentTargetLm !== previousTargetLm) {
-                // Linear operation hence protected
-                this.currentTargetLm.selectAndDeselectRest();
-            }
-
-            this.viewport._drawTargetingLines({x: evt.clientX, y: evt.clientY},
-                this.currentTargetLm, lms);
-        }
-    });
-
-    // Keyboard handlers
-    // ------------------------------------------------------------------------
-    onKeypress = atomic.atomicOperation((evt) => {
-        // Only work in group selection mode
-        if (
-            !this.groupSelected || !this.viewport._hasLandmarks ||
-            evt.which < 37 || evt.which > 40
-        ) {
-            return;
-        }
-
-        // Up and down are inversed due to the way THREE handles coordinates
-        const directions = {
-            37: [-1, 0],    // Left
-            38: [0, -1],     // Up
-            39: [1, 0],     // Right
-            40: [0, 1]     // Down
-        }[evt.which];
-
-        // Only operate on arrow keys
-        if (directions === undefined) {
-            return;
-        }
-
-        // Set a movement of 0.5% of the screen in the suitable direction
-        const [x, y] = directions,
-              move = new THREE.Vector2(),
-              [dx, dy] = [.005 * window.innerWidth, .005 * window.innerHeight];
-
-        move.set(x * dx, y * dy);
-
-        const ops = [];
-        this.viewport._selectedLandmarks.forEach((lm) => {
-            const lmScreen = this.viewport._localToScreen(lm.point);
-            lmScreen.add(move);
-
-            this.intersectsWithMesh = this.viewport._getIntersects(
-                lmScreen.x, lmScreen.y, this.viewport.mesh);
-
-            if (this.intersectsWithMesh.length > 0) {
-                const pt = this.viewport._worldToLocal(this.intersectsWithMesh[0].point);
-                ops.push([lm.index, lm.point.clone(), pt.clone()]);
-                this.viewport.on.setLandmarkPointWithHistory(lm.index, pt);
-            }
-        });
-        this.viewport.on.addLandmarkHistory(ops);
-    });
-
-    // Group Selection hook
-    // ------------------------------------------------------------------------
-    setGroupSelected = atomic.atomicOperation((val=true) => {
-
-        if (!this.viewport._hasLandmarks) {
-            return;
-        }
-
-        const _val = !!val; // Force cast to boolean
-
-        if (_val === this.groupSelected) {
-            return; // Nothing to do here
-        }
-
-        this.groupSelected = _val;
-
-        if (_val) {
-            // Use keydown as keypress doesn't register arrows in some context
-            $(window).on('keydown', this.onKeypress);
         } else {
-            this.viewport.on.deselectAllLandmarks();
-            $(window).off('keydown', this.onKeypress);
+            // need to chose a new target landmark and new next closest
+            [newTarget, ...nextClosest] = findClosestLandmarks(this.viewport._nonEmptyLandmarks, mouseLoc, 4)
         }
 
-        this.viewport._clearCanvas();
+        // Remember, we know there are >= 1 landmarks, so we always have a newTarget.
+        // Draw it and the next closest on the UI....
+        this.viewport._drawTargetingLines({x: evt.clientX, y: evt.clientY},
+            newTarget, nextClosest);
+
+        // and if we have a change of new target, update the selection
+        if (!this.currentTargetLm || newTarget.index !== this.currentTargetLm.index) {
+            // target has changed, which triggers a change in selection
+            this.viewport.on.selectLandmarkAndDeselectRest(newTarget.index)
+
+            // finally, update the current target lm for next time around.
+            this.currentTargetLm = newTarget;
+        }
     });
 
-    completeGroupSelection = () => {
-        if (!this.viewport._hasLandmarks) {
-            return;
-        }
-        this.viewport.on.completeLandmarkGroups();
-
-        this.setGroupSelected(true);
-    };
 }

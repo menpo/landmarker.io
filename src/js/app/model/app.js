@@ -147,6 +147,11 @@ export default Backbone.Model.extend({
         this._initCollections();
     },
 
+    budgeLandmarks: function(vector) {
+        // call our onBudgeLandmarks callback
+        this.onBudgeLandmarks(vector)
+    },
+
     _initTemplates: function (override=false) {
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.

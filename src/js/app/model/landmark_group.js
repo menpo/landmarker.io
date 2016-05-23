@@ -215,7 +215,6 @@ LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
     if (!v) {
         return;
     }
-
     this.tracker.record([
         [lm.index(),
          lm.point() ? lm.point().clone() : undefined,

@@ -253,19 +253,6 @@ class ViewportCore {
             //stats.update();
         }
 
-        // TODO remove these jquery events
-        this.$container.on('groupSelected', () => {
-            this._handler.setGroupSelected(true);
-        });
-
-        this.$container.on('groupDeselected', () => {
-            this._handler.setGroupSelected(false);
-        });
-
-        this.$container.on('completeGroupSelection', () => {
-            this._handler.completeGroupSelection();
-        });
-
         this.$container.on('resetCamera', () => {
             this.resetCamera();
         });
@@ -298,6 +285,9 @@ class ViewportCore {
                     onUpdate: () => this._update()
                 })
         );
+
+        // 3. Reset the handler state
+        this._handler.resetLandmarks()
 
     });
 
@@ -394,10 +384,10 @@ class ViewportCore {
         this._update();
     };
 
-    updateEditingDisplay = atomic.atomicOperation((isEditModeOn) => {
+    updateEditingDisplay = atomic.atomicOperation(isEditModeOn => {
         this._editingOn = isEditModeOn;
         this._clearCanvas();
-        this._handler.setGroupSelected(false);
+        this.on.deselectAllLandmarks();
 
         // Manually bind to avoid useless function call (even with no effect)
         if (this._editingOn) {
@@ -405,6 +395,31 @@ class ViewportCore {
         } else {
             this.$el.off('mousemove', this._handler.onMouseMove);
         }
+    });
+
+    budgeLandmarks = atomic.atomicOperation(vector => {
+
+        // Set a movement of 0.5% of the screen in the suitable direction
+        const [x, y] = vector,
+            move = new THREE.Vector2(),
+            [dx, dy] = [.005 * window.innerWidth, .005 * window.innerHeight];
+
+        move.set(x * dx, y * dy);
+
+        const ops = [];
+        this._selectedLandmarks.forEach((lm) => {
+            const lmScreen = this._localToScreen(lm.point);
+            lmScreen.add(move);
+
+            const intersectsWithMesh = this._getIntersects(lmScreen.x, lmScreen.y, this.mesh);
+
+            if (intersectsWithMesh.length > 0) {
+                const pt = this._worldToLocal(intersectsWithMesh[0].point);
+                ops.push([lm.index, lm.point.clone(), pt.clone()]);
+                this.on.setLandmarkPointWithHistory(lm.index, pt);
+            }
+        });
+        this.on.addLandmarkHistory(ops);
     });
 
     get _hasLandmarks() {
@@ -417,6 +432,10 @@ class ViewportCore {
 
     get _selectedLandmarks() {
         return this._landmarks.filter(lm => lm.isSelected)
+    }
+
+    get _groupModeActive() {
+        return this._selectedLandmarks.length > 1
     }
 
     get _allLandmarksEmpty() {
@@ -556,8 +575,8 @@ class ViewportCore {
         this._ctx.setLineDash([5, 15]);
 
         this._ctx.beginPath();
-        secondaryLms.forEach((lm) => {
-            var lmPoint = this._localToScreen(lm.point());
+        secondaryLms.forEach(lm => {
+            var lmPoint = this._localToScreen(lm.point);
             this._updateCanvasBoundingBox(lmPoint);
             this._ctx.moveTo(lmPoint.x, lmPoint.y);
             this._ctx.lineTo(point.x, point.y);
@@ -569,7 +588,7 @@ class ViewportCore {
         this._ctx.strokeStyle = "#01e6fb";
 
         this._ctx.beginPath();
-        const targetPoint = this._localToScreen(targetLm.point());
+        const targetPoint = this._localToScreen(targetLm.point);
         this._updateCanvasBoundingBox(targetPoint);
         this._ctx.moveTo(targetPoint.x, targetPoint.y);
         this._ctx.lineTo(point.x, point.y);
@@ -700,6 +719,8 @@ export default class BackboneViewport {
     constructor(app) {
         this.model = app;
 
+        this.model.onBudgeLandmarks = vector => this.viewport.budgeLandmarks(vector)
+
 
         const on = {
             selectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].select()),
@@ -711,7 +732,7 @@ export default class BackboneViewport {
                 }
             },
             selectLandmarkAndDeselectRest: i => this.model.landmarks().landmarks[i].selectAndDeselectRest(),
-            setLandmarkPoint: (i, point) => this.model.landmarks().setLmAt(i, point),
+            setLandmarkPoint: (i, point) => this.model.landmarks().setLmAt(this.model.landmarks().landmarks[i], point),
             setLandmarkPointWithHistory: (i, point) => this.model.landmarks().landmarks[i].setPoint(point),
             addLandmarkHistory: points => this.model.landmarks().tracker.record(points),
             completeLandmarkGroups: () => this.model.landmarks().completeGroups()
