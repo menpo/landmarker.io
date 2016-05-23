@@ -23,16 +23,21 @@
  */
 'use strict';
 
-import _ from 'underscore';
 import THREE from 'three';
 import $ from 'jquery';
-import Backbone from 'backbone';
 
 const MOUSE_WHEEL_SENSITIVITY = 0.5;
 const ROTATION_SENSITIVITY = 3.5;
 const DAMPING_FACTOR = 0.2;
 const PIP_ZOOM_FACTOR = 12.0;
 // const EPS = 0.000001;
+
+const STATE = {
+    NONE: -1,
+    ROTATE: 0,
+    ZOOM: 1,
+    PAN: 2
+};
 
 // see https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent.deltaMode
 const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
@@ -44,14 +49,6 @@ const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
 export default function CameraController (pCam, oCam, oCamZoom, domElement) {
 
     const controller = {};
-    _.extend(controller, Backbone.Events);
-
-    const STATE = {
-        NONE: -1,
-        ROTATE: 0,
-        ZOOM: 1,
-        PAN: 2
-    };
 
     let state = STATE.NONE; // the current state of the Camera
     let canRotate = true;
@@ -141,8 +138,9 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         pCam.updateProjectionMatrix();
     }
 
-    const tvec = new THREE.Vector3(); // a temporary vector for efficient maths
-    const tinput = new THREE.Vector3(); // temp vec used for
+    // temporary vectors for efficient maths
+    const tvec = new THREE.Vector3();
+    const tinput = new THREE.Vector3();
 
     const normalMatrix = new THREE.Matrix3();
 
