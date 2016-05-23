@@ -692,6 +692,12 @@ export default class BackboneViewport {
         const on = {
             selectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].select()),
             deselectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].deselect()),
+            deselectAllLandmarks: () => {
+                const lms = this.model.landmarks();
+                if (lms) {
+                    lms.deselectAll()
+                }
+            },
             selectLandmarkAndDeselectRest: i => this.model.landmarks().landmarks[i].selectAndDeselectRest(),
             setLandmarkPoint: (i, point) => this.model.landmarks().setLmAt(i, point),
             addLandmarkHistory: points => this.model.landmarks().tracker.record(points)
