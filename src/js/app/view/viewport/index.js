@@ -407,8 +407,20 @@ class ViewportCore {
         }
     });
 
+    get _hasLandmarks() {
+        return this._landmarks !== null && this._landmarks !== undefined
+    }
+
+    get _nonEmptyLandmarks() {
+        return this._landmarks.filter(lm => lm.point !== null)
+    }
+
     get _selectedLandmarks() {
         return this._landmarks.filter(lm => lm.isSelected)
+    }
+
+    get _allLandmarksEmpty() {
+        return this._nonEmptyLandmarks.length === 0
     }
 
     _width = () => {
@@ -700,7 +712,9 @@ export default class BackboneViewport {
             },
             selectLandmarkAndDeselectRest: i => this.model.landmarks().landmarks[i].selectAndDeselectRest(),
             setLandmarkPoint: (i, point) => this.model.landmarks().setLmAt(i, point),
-            addLandmarkHistory: points => this.model.landmarks().tracker.record(points)
+            setLandmarkPointWithHistory: (i, point) => this.model.landmarks().landmarks[i].setPoint(point),
+            addLandmarkHistory: points => this.model.landmarks().tracker.record(points),
+            completeLandmarkGroups: () => this.model.landmarks().completeGroups()
         };
         this.viewport = new ViewportCore(app, app.meshMode(), on);
 

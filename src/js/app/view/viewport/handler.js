@@ -154,14 +154,14 @@ export default class Handler {
         $(document).on('mousemove.shiftDrag', this.shiftOnDrag);
         $(document).one('mouseup.viewportShift', this.shiftOnMouseUp);
     };
-    
+
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
     onMouseDown = atomic.atomicOperation((event) => {
         event.preventDefault();
         this.viewport.$el.focus();
 
-        if (!this.model.landmarks()) {
+        if (!this.viewport._hasLandmarks) {
             return;
         }
 
@@ -235,12 +235,9 @@ export default class Handler {
         this.deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
         // update the position
         this.positionLmDrag.copy(newPositionLmDrag);
-        var selectedLandmarks = this.model.landmarks().selected();
-        var lm, vScreen;
-        for (var i = 0; i < selectedLandmarks.length; i++) {
-            lm = selectedLandmarks[i];
+        this.viewport._selectedLandmarks.forEach(lm => {
             // convert to screen coordinates
-            vScreen = this.viewport._localToScreen(lm.point());
+            const vScreen = this.viewport._localToScreen(lm.point);
 
             // budge the screen coordinate
             vScreen.add(this.deltaLmDrag);
@@ -252,12 +249,13 @@ export default class Handler {
             if (this.intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
                 this.dragged = !!this.dragged || true;
-                lm.setPoint(this.viewport._worldToLocal(this.intersectsWithMesh[0].point));
+                this.viewport.on.setLandmarkPointWithHistory(lm.index,
+                    this.viewport._worldToLocal(this.intersectsWithMesh[0].point));
             } else {
                 // don't update point - it would fall off the surface.
                 console.log("fallen off mesh");
             }
-        }
+        })
     });
 
     shiftOnDrag = (event) => {
@@ -384,8 +382,8 @@ export default class Handler {
 
         if (this.isPressed ||
             !this.viewport._editingOn ||
-            !this.model.landmarks() ||
-            this.model.landmarks().isEmpty()
+            !this.viewport._hasLandmarks ||
+            this.viewport._allLandmarksEmpty
         ) {
             return null;
         }
@@ -439,7 +437,7 @@ export default class Handler {
     onKeypress = atomic.atomicOperation((evt) => {
         // Only work in group selection mode
         if (
-            !this.groupSelected || !this.model.landmarks() ||
+            !this.groupSelected || !this.viewport._hasLandmarks ||
             evt.which < 37 || evt.which > 40
         ) {
             return;
@@ -466,8 +464,8 @@ export default class Handler {
         move.set(x * dx, y * dy);
 
         const ops = [];
-        this.model.landmarks().selected().forEach((lm) => {
-            const lmScreen = this.viewport._localToScreen(lm.point());
+        this.viewport._selectedLandmarks.forEach((lm) => {
+            const lmScreen = this.viewport._localToScreen(lm.point);
             lmScreen.add(move);
 
             this.intersectsWithMesh = this.viewport._getIntersects(
@@ -475,18 +473,18 @@ export default class Handler {
 
             if (this.intersectsWithMesh.length > 0) {
                 const pt = this.viewport._worldToLocal(this.intersectsWithMesh[0].point);
-                ops.push([lm.index(), lm.point().clone(), pt.clone()]);
-                lm.setPoint(pt);
+                ops.push([lm.index, lm.point.clone(), pt.clone()]);
+                this.viewport.on.setLandmarkPointWithHistory(lm.index, pt);
             }
         });
-        this.model.landmarks().tracker.record(ops);
+        this.viewport.on.addLandmarkHistory(ops);
     });
 
     // Group Selection hook
     // ------------------------------------------------------------------------
     setGroupSelected = atomic.atomicOperation((val=true) => {
 
-        if (!this.model.landmarks()) {
+        if (!this.viewport._hasLandmarks) {
             return;
         }
 
@@ -510,12 +508,10 @@ export default class Handler {
     });
 
     completeGroupSelection = () => {
-
-        if (!this.model.landmarks()) {
+        if (!this.viewport._hasLandmarks) {
             return;
         }
-
-        this.model.landmarks().completeGroups();
+        this.viewport.on.completeLandmarkGroups();
 
         this.setGroupSelected(true);
     };
