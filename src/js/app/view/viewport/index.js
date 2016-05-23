@@ -7,9 +7,10 @@ import THREE from 'three';
 import atomic from '../../model/atomic';
 import * as octree from './octree';
 
-import CameraController from './camera';
+import { CameraController } from './camera';
 import Handler from './handler';
-import { LandmarkConnectionTHREEView, LandmarkTHREEView } from './elements';
+import { LandmarkConnectionTHREEView } from './elements/connection'
+import { LandmarkTHREEView } from './elements/landmark'
 
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE;
@@ -649,9 +650,7 @@ export class Viewport {
         }
     };
 
-    _getIntersectsFromEvent = (event, object) => {
-      return this._getIntersects(event.clientX, event.clientY, object);
-    };
+    _getIntersectsFromEvent = (e, object) => this._getIntersects(e.clientX, e.clientY, object);
 
     _worldToScreen = (vector) => {
         const widthHalf = this._width() / 2;
@@ -662,47 +661,38 @@ export class Viewport {
         return result;
     };
 
-    _localToScreen = (vector) => {
-        return this._worldToScreen(
+    _localToScreen = (vector) =>
+        this._worldToScreen(
             this._sMeshAndLms.localToWorld(vector.clone()));
-    };
 
     _worldToLocal = (vector, inPlace=false) => {
         return inPlace ? this._sMeshAndLms.worldToLocal(vector) :
                          this._sMeshAndLms.worldToLocal(vector.clone());
     };
 
-    _lmToScreen = (lmSymbol) => {
-        const pos = lmSymbol.position.clone();
-        this._sMeshAndLms.localToWorld(pos);
-        return this._worldToScreen(pos);
-    };
+    _lmToScreen = (lmSymbol) =>
+        this._worldToScreen(this._sMeshAndLms.localToWorld(lmSymbol.position.clone()));
 
-    _lmViewsInSelectionBox = (x1, y1, x2, y2) => {
-        const lmsInBox = [];
-        const that = this;
-        this._landmarkViews.map((lmView) => {
-            if (lmView.symbol) {
-                const c = that._lmToScreen(lmView.symbol);
-                if (c.x > x1 && c.x < x2 && c.y > y1 && c.y < y2) {
-                    lmsInBox.push(lmView);
-                }
+    _lmViewsInSelectionBox = (x1, y1, x2, y2) =>
+        this._landmarkViews.filter(lmv => {
+            if (lmv.symbol) {
+                const c = this._lmToScreen(lmv.symbol);
+                return c.x > x1 && c.x < x2 && c.y > y1 && c.y < y2
+            } else {
+                return false
             }
         });
 
-        return lmsInBox;
-    };
-
-    _lmViewVisible = (lmView) => {
-        if (!lmView.symbol) {
+    _lmViewVisible = (lmv) => {
+        if (!lmv.symbol) {
             return false;
         }
-        var screenCoords = this._lmToScreen(lmView.symbol);
+        const screenCoords = this._lmToScreen(lmv.symbol);
         // intersect the mesh and the landmarks
-        var iMesh = this._getIntersects(
+        const iMesh = this._getIntersects(
             screenCoords.x, screenCoords.y, this.mesh);
-        var iLm = this._getIntersects(
-            screenCoords.x, screenCoords.y, lmView.symbol);
+        const iLm = this._getIntersects(
+            screenCoords.x, screenCoords.y, lmv.symbol);
         // is there no mesh here (pretty rare as landmarks have to be on mesh)
         // or is the mesh behind the landmarks?
         return iMesh.length === 0 || iMesh[0].distance > iLm[0].distance;

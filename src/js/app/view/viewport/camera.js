@@ -1,28 +1,3 @@
-/**
- * Controller for handling basic camera events on a Landmarker.
- *
- * A landmarker in general has complex state - what landmarks are selected,
- * what mesh is being used, lighting arrangements, and so on. The camera's
- * behavior however is simple - in response to certain mouse and touch
- * interactions, the camera is rotated, zoomed, and panned around some sort of
- * target. This class encapsulates this behavior.
- *
- * Takes a camera object as it's first parameter, and optionally a domElement to
- * attach to (if none provided, the document is used).
- *
- * Hooks up the following callbacks to the domElement:
- *
- * - focus(target)  // refocus the camera on a new target
- * - pan(vector)  // pan the camera along a certain vector
- * - zoom(vector)  // zoom the camera along a certain vector
- * - rotate(delta)  // rotate the camera around the target
- *
- * Note that other more complex behaviors (selecting and repositioning landmarks
- * for instance) can disable the Controller temporarily with the enabled
- * property.
- */
-'use strict';
-
 import THREE from 'three';
 import $ from 'jquery';
 
@@ -46,7 +21,30 @@ const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
     2: 1.0 // The delta values are specified in pages.
 };
 
-export default function CameraController (pCam, oCam, oCamZoom, domElement) {
+/**
+ * Controller for handling basic camera events on a Landmarker.
+ *
+ * A landmarker in general has complex state - what landmarks are selected,
+ * what mesh is being used, lighting arrangements, and so on. The camera's
+ * behavior however is simple - in response to certain mouse and touch
+ * interactions, the camera is rotated, zoomed, and panned around some sort of
+ * target. This class encapsulates this behavior.
+ *
+ * Takes a camera object as it's first parameter, and optionally a domElement to
+ * attach to (if none provided, the document is used).
+ *
+ * Hooks up the following callbacks to the domElement:
+ *
+ * - focus(target)  // refocus the camera on a new target
+ * - pan(vector)  // pan the camera along a certain vector
+ * - zoom(vector)  // zoom the camera along a certain vector
+ * - rotate(delta)  // rotate the camera around the target
+ *
+ * Note that other more complex behaviors (selecting and repositioning landmarks
+ * for instance) can disable the Controller temporarily with the enabled
+ * property.
+ */
+export function CameraController (pCam, oCam, oCamZoom, domElement) {
 
     const controller = {};
 
