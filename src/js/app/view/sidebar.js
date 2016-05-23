@@ -63,7 +63,6 @@ export const LandmarkView = Backbone.View.extend({
         } else if (event.ctrlKey || event.metaKey) {
             if (!this.model.isSelected()) {
                 this.model.select();
-                $('#viewportContainer').trigger("groupSelected");
             }
         } else if (this.model.isEmpty()) {
             // user is clicking on an empty landmark - mark it as the next for
@@ -77,12 +76,10 @@ export const LandmarkView = Backbone.View.extend({
     selectGroup: function () {
         this.model.group().deselectAll();
         this.model.group().labels[this.labelIndex].selectAll();
-        $('#viewportContainer').trigger("groupSelected");
     },
 
     selectAll: function () {
         this.model.group().selectAll();
-        $('#viewportContainer').trigger("groupSelected");
     }
 });
 
