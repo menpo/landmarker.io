@@ -33,11 +33,8 @@ function _initialBoundingBox() {
 // the Viewport core code into a standalone class with minimal interaction with Backbone.
 class ViewportCore {
 
-    constructor(app, meshMode, on) {
-
-        // only place this is referenced now is in the LandmarkViews we create, and in the
-        // mouse handler.
-        this.model = app;
+    constructor(meshMode, on) {
+        // all our callbacks are stored under the on namespace.
         this.on = on;
 
         this.meshMode = meshMode;
@@ -232,7 +229,7 @@ class ViewportCore {
         // We wrap all this complexity up in a closure so it can enjoy access
         // to the general viewport state without leaking it's state all over
         // the place.
-        this._handler = new Handler(this, app);
+        this._handler = new Handler(this);
         this.el.addEventListener('mousedown', this._handler.onMouseDown);
 
         // ----- BIND HANDLERS ----- //
@@ -261,7 +258,7 @@ class ViewportCore {
     setLandmarks = atomic.atomicOperation(landmarks => {
         console.log('Viewport: landmarks have changed');
         this._landmarks = landmarks.landmarks.map(landmarkForBBLandmark);
-
+        this._connectivity = landmarks.connectivity;
 
         // 1. Dispose of all landmark and connectivity views
         this._landmarkViews.forEach(lmView => lmView.dispose());
@@ -275,14 +272,11 @@ class ViewportCore {
                     onDispose: symbol => this._sLms.remove(symbol)
                 })
         );
-        this._connectivityViews = landmarks.connectivity.map(ab =>
-            new LandmarkConnectionTHREEView(
+        this._connectivityViews = landmarks.connectivity.map(([a, b]) =>
+            new LandmarkConnectionTHREEView(this._landmarks[a], this._landmarks[b],
                 {
-                    model: [landmarks.landmarks[ab[0]],
-                            landmarks.landmarks[ab[1]]],
                     onCreate: symbol => this._sLmsConnectivity.add(symbol),
-                    onDispose: symbol => this._sLmsConnectivity.remove(symbol),
-                    onUpdate: () => this._update()
+                    onDispose: symbol => this._sLmsConnectivity.remove(symbol)
                 })
         );
 
@@ -293,9 +287,16 @@ class ViewportCore {
 
     updateLandmarks = atomic.atomicOperation(landmarks => {
         landmarks.forEach(lm => {
-            this._landmarks[lm.index] = lm
-            this._landmarkViews[lm.index].render(lm)
-        })
+            this._landmarks[lm.index] = lm;
+            this._landmarkViews[lm.index].render(lm);
+        });
+
+        // Finally go through all connectivity views and update them
+        this._connectivityViews.forEach((view, i) => {
+            const [a, b] = this._connectivity[i];
+            view.render(this._landmarks[a], this._landmarks[b])
+        });
+
         this._update()
     });
 
@@ -735,9 +736,10 @@ export default class BackboneViewport {
             setLandmarkPoint: (i, point) => this.model.landmarks().setLmAt(this.model.landmarks().landmarks[i], point),
             setLandmarkPointWithHistory: (i, point) => this.model.landmarks().landmarks[i].setPoint(point),
             addLandmarkHistory: points => this.model.landmarks().tracker.record(points),
-            completeLandmarkGroups: () => this.model.landmarks().completeGroups()
-        };
-        this.viewport = new ViewportCore(app, app.meshMode(), on);
+            insertNewLandmark: point => this.model.landmarks().insertNew(point)
+    };
+        this.viewport = new ViewportCore(app.meshMode(), on);
+
 
         this.model.on('newMeshAvailable', this.setMesh);
         this.model.on("change:landmarks", this.setLandmarks);

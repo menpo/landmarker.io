@@ -19,10 +19,9 @@ const findClosestLandmarks = (lms, point, n = 4) =>
  */
 export default class Handler {
 
-    constructor(viewport, model) {
-        
+    constructor(viewport) {
+
         this.viewport = viewport;
-        this.model = model;
 
         // Setup handler state variables
         // ------------------------------------------------------------------------
@@ -292,7 +291,7 @@ export default class Handler {
                 this.viewport.on.setLandmarkPoint(this.currentTargetLm.index, p)
             } else if (this.downEvent.button === 2) {
                 // right click - insert point.
-                this.model.landmarks().insertNew(p);
+                this.viewport.on.insertNewLandmark(p)
             }
         }
         this.isPressed = false;

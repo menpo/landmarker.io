@@ -94,60 +94,51 @@ export class LandmarkTHREEView {
     }
 }
 
-export const LandmarkConnectionTHREEView = Backbone.View.extend({
+export class LandmarkConnectionTHREEView {
 
-    initialize: function (options) {
+    constructor(lmA, lmB, options) {
         this.onCreate = options.onCreate;
         this.onDispose = options.onDispose;
-        this.onUpdate = options.onUpdate;
         this.symbol = null; // a THREE object that represents this connection.
         // null if the landmark isEmpty
-        this.render();
+        this.render(lmA, lmB);
+    }
 
-
-        // TODO BB to remove
-        this.listenTo(this.model[0], "change", this.render);
-        this.listenTo(this.model[1], "change", this.render);
-    },
-
-    render: function () {
+    render = (lmA, lmB) => {
+        const shouldBeVisible = lmA.point !== null && lmB.point !== null;
         if (this.symbol !== null) {
             // this landmark already has an allocated representation..
-            if (this.model[0].isEmpty() || this.model[1].isEmpty()) {
+            if (!shouldBeVisible) {
                 // but it's been deleted.
                 this.dispose();
-
             } else {
                 // the connection may need updating. See what needs to be done
-                this.updateSymbol();
+                this.updateSymbol(lmA, lmB);
             }
         } else {
             // there is no symbol yet
-            if (!this.model[0].isEmpty() && !this.model[1].isEmpty()) {
+            if (shouldBeVisible) {
                 // and there should be! Make it and update it
-                this.symbol = createLine(this.model[0].point(),
-                                         this.model[1].point());
-                this.updateSymbol();
+                this.symbol = createLine(lmA.point, lmB.point);
+                this.updateSymbol(lmA, lmB);
                 // and add it to the scene
                 this.onCreate(this.symbol);
             }
         }
-        // TODO BB to remove (should be handled at Viewport level)
-        this.onUpdate();
-    },
+    };
 
-    updateSymbol: function () {
-        this.symbol.geometry.vertices[0].copy(this.model[0].point());
-        this.symbol.geometry.vertices[1].copy(this.model[1].point());
+    updateSymbol = (lmA, lmB) => {
+        this.symbol.geometry.vertices[0].copy(lmA.point);
+        this.symbol.geometry.vertices[1].copy(lmB.point);
         this.symbol.geometry.verticesNeedUpdate = true;
-    },
+    };
 
-    dispose: function () {
+    dispose = () => {
         if (this.symbol) {
             this.onDispose(this.symbol);
             this.symbol.geometry.dispose();
             this.symbol = null;
         }
-    }
+    };
 
-});
+}
