@@ -5,7 +5,7 @@ import $ from 'jquery';
 import THREE from 'three';
 
 import atomic from '../../model/atomic';
-import * as octree from '../../model/octree';
+import * as octree from './octree';
 
 import CameraController from './camera';
 import Handler from './handler';
@@ -31,7 +31,7 @@ function _initialBoundingBox() {
 // We are trying to move towards the whole viewport module being a standalone black box that
 // has no dependencies beyond THREE and our octree. As part of this effort, we refactor out
 // the Viewport core code into a standalone class with minimal interaction with Backbone.
-class ViewportCore {
+export class Viewport {
 
     constructor(meshMode, on) {
         // all our callbacks are stored under the on namespace.
@@ -255,10 +255,10 @@ class ViewportCore {
         });
     }
 
-    setLandmarks = atomic.atomicOperation(landmarks => {
+    setLandmarksAndConnectivity = atomic.atomicOperation((landmarks, connectivity) => {
         console.log('Viewport: landmarks have changed');
-        this._landmarks = landmarks.landmarks.map(landmarkForBBLandmark);
-        this._connectivity = landmarks.connectivity;
+        this._landmarks = landmarks;
+        this._connectivity = connectivity;
 
         // 1. Dispose of all landmark and connectivity views
         this._landmarkViews.forEach(lmView => lmView.dispose());
@@ -272,7 +272,7 @@ class ViewportCore {
                     onDispose: symbol => this._sLms.remove(symbol)
                 })
         );
-        this._connectivityViews = landmarks.connectivity.map(([a, b]) =>
+        this._connectivityViews = this._connectivity.map(([a, b]) =>
             new LandmarkConnectionTHREEView(this._landmarks[a], this._landmarks[b],
                 {
                     onCreate: symbol => this._sLmsConnectivity.add(symbol),
@@ -707,90 +707,4 @@ class ViewportCore {
         // or is the mesh behind the landmarks?
         return iMesh.length === 0 || iMesh[0].distance > iLm[0].distance;
     };
-}
-
-const landmarkForBBLandmark = bbLm => ({
-        point: bbLm.point(),
-        isSelected: bbLm.isSelected(),
-        index: bbLm.index()
-});
-
-export default class BackboneViewport {
-
-    constructor(app) {
-        this.model = app;
-
-        this.model.onBudgeLandmarks = vector => this.viewport.budgeLandmarks(vector)
-
-
-        const on = {
-            selectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].select()),
-            deselectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].deselect()),
-            deselectAllLandmarks: () => {
-                const lms = this.model.landmarks();
-                if (lms) {
-                    lms.deselectAll()
-                }
-            },
-            selectLandmarkAndDeselectRest: i => this.model.landmarks().landmarks[i].selectAndDeselectRest(),
-            setLandmarkPoint: (i, point) => this.model.landmarks().setLmAt(this.model.landmarks().landmarks[i], point),
-            setLandmarkPointWithHistory: (i, point) => this.model.landmarks().landmarks[i].setPoint(point),
-            addLandmarkHistory: points => this.model.landmarks().tracker.record(points),
-            insertNewLandmark: point => this.model.landmarks().insertNew(point)
-    };
-        this.viewport = new ViewportCore(app.meshMode(), on);
-
-
-        this.model.on('newMeshAvailable', this.setMesh);
-        this.model.on("change:landmarks", this.setLandmarks);
-        this.model.on("change:landmarkSize", this.setLandmarkSize);
-        this.model.on("change:connectivityOn", this.updateConnectivityDisplay);
-        this.model.on("change:editingOn", this.updateEditingDisplay);
-
-        // make sure we didn't miss any state changes on load
-        this.setMesh();
-        this.setLandmarkSize();
-        this.updateConnectivityDisplay();
-        this.updateEditingDisplay();
-    }
-
-    setMesh = () => {
-        const meshPayload = this.model.mesh();
-        if (meshPayload === null) {
-            return;
-        }
-        this.viewport.setMesh(meshPayload.mesh, meshPayload.up, meshPayload.front);
-    };
-
-    setLandmarks = () => {
-        const landmarks = this.model.landmarks();
-        if (landmarks !== null) {
-            this.viewport.setLandmarks(landmarks);
-
-            // TODO will this be collected properly?
-            landmarks.landmarks.forEach(lm => lm.on('change', () => this.updateLandmark(lm.index())));
-        }
-
-    };
-
-    setLandmarkSize = () => {
-        this.viewport.setLandmarkSize(this.model.landmarkSize());
-    };
-
-    updateEditingDisplay = () => {
-        this.viewport.updateEditingDisplay(this.model.isEditingOn());
-    };
-
-    updateConnectivityDisplay = () => {
-        this.viewport.updateConnectivityDisplay(this.model.isConnectivityOn());
-    };
-
-    updateLandmark = i => {
-        console.log(`updating landmark ${i}`);
-        this.viewport.updateLandmarks([
-                landmarkForBBLandmark(this.model.landmarks().landmarks[i])
-            ]
-        )
-    };
-
 }
