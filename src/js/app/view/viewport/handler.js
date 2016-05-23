@@ -129,8 +129,8 @@ export default class Handler {
 
         // record the position of where the drag started.
         this.positionLmDrag.copy(this.viewport._localToScreen(this.lmPressed.point));
-        this.dragStartPositions = this.model.landmarks().selected().map(
-            lm => [lm.index(), lm.point().clone()]);
+        this.dragStartPositions = this.viewport._selectedLandmarks
+            .map(lm => [lm.index, lm.point.clone()]);
 
         // start listening for dragging landmarks
         $(document).on('mousemove.landmarkDrag', this.landmarkOnDrag);
@@ -352,7 +352,7 @@ export default class Handler {
     };
 
     landmarkOnMouseUp = atomic.atomicOperation((event) => {
-        var ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey;
+        const ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey;
         this.viewport.cameraController.enable();
         console.log("landmarkPress:up");
         $(document).off('mousemove.landmarkDrag');
@@ -364,17 +364,17 @@ export default class Handler {
             } else if (!ctrl && !this.lmPressed.isSelected) {
                 this.viewport.on.selectLandmarkAndDeselectRest(this.lmPressed.index);
             } else if (this.lmPressed.isSelected) {
-                var p = this.intersectsWithMesh[0].point.clone();
+                const p = this.intersectsWithMesh[0].point.clone();
                 this.viewport._worldToLocal(p, true);
-                this.model.landmarks().setLmAt(this.lmPressed, p);
+                this.viewport.on.setLandmarkPoint(this.lmPressed.index, p)
             } else if (ctrl) {
                 this.setGroupSelected(true);
             }
         } else if (this.dragged) {
-            this.model.landmarks().selected().forEach((lm, i) => {
-                this.dragStartPositions[i].push(lm.point().clone());
+            this.viewport._selectedLandmarks.forEach((lm, i) => {
+                this.dragStartPositions[i].push(lm.point.clone());
             });
-            this.model.landmarks().tracker.record(this.dragStartPositions);
+            this.viewport.on.addLandmarkHistory(this.dragStartPositions);
         }
 
         this.viewport._clearCanvas();

@@ -303,6 +303,7 @@ class ViewportCore {
 
     updateLandmarks = atomic.atomicOperation(landmarks => {
         landmarks.forEach(lm => {
+            this._landmarks[lm.index] = lm
             this._landmarkViews[lm.index].render(lm)
         })
         this._update()
@@ -405,6 +406,10 @@ class ViewportCore {
             this.$el.off('mousemove', this._handler.onMouseMove);
         }
     });
+
+    get _selectedLandmarks() {
+        return this._landmarks.filter(lm => lm.isSelected)
+    }
 
     _width = () => {
         return this.$container[0].offsetWidth;
@@ -687,8 +692,10 @@ export default class BackboneViewport {
         const on = {
             selectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].select()),
             deselectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].deselect()),
-            selectLandmarkAndDeselectRest: i => this.model.landmarks().landmarks[i].selectAndDeselectRest()
-        }
+            selectLandmarkAndDeselectRest: i => this.model.landmarks().landmarks[i].selectAndDeselectRest(),
+            setLandmarkPoint: (i, point) => this.model.landmarks().setLmAt(i, point),
+            addLandmarkHistory: points => this.model.landmarks().tracker.record(points)
+        };
         this.viewport = new ViewportCore(app, app.meshMode(), on);
 
         this.model.on('newMeshAvailable', this.setMesh);
