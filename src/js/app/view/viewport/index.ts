@@ -24,6 +24,10 @@ const PIP_HEIGHT = 300;
 
 const MESH_SCALE = 1.0;
 
+interface BoundingBox {
+    minX: number, minY: number, maxX: number, maxY: number
+}
+
 function _initialBoundingBox() {
     return {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
 }
@@ -33,7 +37,65 @@ function _initialBoundingBox() {
 // has no dependencies beyond THREE and our octree. As part of this effort, we refactor out
 // the Viewport core code into a standalone class with minimal interaction with Backbone.
 export class Viewport {
+    
+    on: any
+    meshMode: any
+    connectivityOn: boolean
+    _editingOn: boolean
 
+    el: HTMLElement
+    $el: any
+    
+    $container: any
+    $webglel: any
+    
+    _canvas: HTMLCanvasElement
+    _pipCanvas: HTMLCanvasElement
+    _ctx: CanvasRenderingContext2D
+    _pipCtx: CanvasRenderingContext2D
+    
+    _pixelRatio: number
+    _meshScale: number
+    _lmSize: number
+    
+    _ctxBox: BoundingBox
+    
+    _scene: THREE.Scene
+    _sScaleRotate: THREE.Object3D
+    _sTranslate: THREE.Object3D
+    _sMeshAndLms: THREE.Object3D
+    _sLms: THREE.Object3D
+    _sMesh: THREE.Object3D
+    
+    _sOCam: THREE.OrthographicCamera
+    _sOCamZoom: THREE.OrthographicCamera
+    _sPCam: THREE.PerspectiveCamera
+    _sCamera: THREE.Camera
+    
+    _sLights: THREE.Object3D
+    _renderer: THREE.WebGLRenderer
+    
+    _sceneHelpers: THREE.Scene    
+    _sLmsConnectivity: THREE.Object3D
+    _shScaleRotate: THREE.Object3D
+    _sHTranslate: THREE.Object3D
+    _shMeshAndLms: THREE.Object3D   
+    
+    cameraController: any
+    
+    _landmarkViews: any[]
+    _connectivityViews: any[]
+    _ray: THREE.Raycaster
+
+    _handler: Handler
+    
+    _landmarks: any[]
+    _connectivity: any[]
+    
+    mesh: THREE.Mesh
+    octree: any
+    
+    
     constructor(meshMode, on) {
         // all our callbacks are stored under the on namespace.
         this.on = on;
@@ -78,16 +140,16 @@ export class Viewport {
         // Get a hold on the overlay canvas and its context (note we use the
         // id - the Viewport should be passed the canvas element on
         // construction)
-        this._canvas = document.getElementById('canvas');
+        this._canvas = <HTMLCanvasElement> document.getElementById('canvas');
         this._ctx = this._canvas.getContext('2d');
 
         // we hold a separate canvas for the PIP decoration - grab it
-        this._pipCanvas = document.getElementById('pipCanvas');
+        this._pipCanvas = <HTMLCanvasElement> document.getElementById('pipCanvas');
         this._pipCtx = this._pipCanvas.getContext('2d');
 
         // style the PIP canvas on initialization
         this._pipCanvas.style.position = 'fixed';
-        this._pipCanvas.style.zIndex = 0;
+        this._pipCanvas.style.zIndex = '0';
         this._pipCanvas.style.width = PIP_WIDTH + 'px';
         this._pipCanvas.style.height = PIP_HEIGHT + 'px';
         this._pipCanvas.width = PIP_WIDTH * this._pixelRatio;
@@ -347,8 +409,8 @@ export class Viewport {
 
     memoryString = () => {
         return 'geo:' + this._renderer.info.memory.geometries +
-               ' tex:' + this._renderer.info.memory.textures +
-               ' prog:' + this._renderer.info.memory.programs;
+               ' tex:' + this._renderer.info.memory.textures + ''
+            //    ' prog:' + this._renderer.info.memory.programs;
     };
 
     toggleCamera = () => {

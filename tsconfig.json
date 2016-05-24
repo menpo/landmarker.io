@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"target": "es5",
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true,
+        "noImplicitAny": false,
+		"allowJs": true
+	},
+	"exclude": [
+		"node_modules",
+		"build",
+		"tsDist",
+		"webpack",
+		"test"
+	]
+}

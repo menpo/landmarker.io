@@ -9,13 +9,17 @@ const LINE_MATERIAL = new THREE.LineBasicMaterial({
 
 function createLine(start, end) {
     const geometry = new THREE.Geometry();
-    geometry.dynamic = true;
+    // geometry.dynamic = true;
     geometry.vertices.push(start.clone());
     geometry.vertices.push(end.clone());
     return new THREE.Line(geometry, LINE_MATERIAL)
 }
 
 export class LandmarkConnectionTHREEView {
+
+    onCreate: (symbol: THREE.Object3D) => void
+    onDispose: (symbol: THREE.Object3D) => void
+    symbol: THREE.Line
 
     constructor(lmA, lmB, options) {
         this.onCreate = options.onCreate;
@@ -49,9 +53,9 @@ export class LandmarkConnectionTHREEView {
     };
 
     updateSymbol = (lmA, lmB) => {
-        this.symbol.geometry.vertices[0].copy(lmA.point);
-        this.symbol.geometry.vertices[1].copy(lmB.point);
-        this.symbol.geometry.verticesNeedUpdate = true;
+        // this.symbol.geometry.vertices[0].copy(lmA.point);
+        // this.symbol.geometry.vertices[1].copy(lmB.point);
+        // this.symbol.geometry.verticesNeedUpdate = true;
     };
 
     dispose = () => {

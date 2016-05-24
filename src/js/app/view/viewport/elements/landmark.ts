@@ -12,24 +12,30 @@ const LM_GEOMETRY = new THREE.SphereGeometry(
     LM_SPHERE_PARTS
 );
 
-const LM_MATERIAL_FOR_SELECTED = {
-    true: new THREE.MeshBasicMaterial({color: LM_SPHERE_SELECTED_COLOR}),
-    false: new THREE.MeshBasicMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
-};
+const SELECTED_LM_MATERIAL = new THREE.MeshBasicMaterial({color: LM_SPHERE_SELECTED_COLOR})
+const UNSELECTED_LM_MATERIAL = new THREE.MeshBasicMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
+
+
+const lmMaterialForSelected = (selected: boolean) : THREE.Material => 
+selected ? SELECTED_LM_MATERIAL : UNSELECTED_LM_MATERIAL
 
 function createSphere(index) {
-    const landmark = new THREE.Mesh(LM_GEOMETRY, LM_MATERIAL_FOR_SELECTED[false]);
+    const landmark = new THREE.Mesh(LM_GEOMETRY, lmMaterialForSelected(false))
     landmark.name = 'Landmark ' + index;
     landmark.userData.index = index;
     return landmark
 }
 
 export class LandmarkTHREEView {
-
+    
+    onCreate: (symbol: THREE.Object3D) => void
+    onDispose: (symbol: THREE.Object3D) => void
+    symbol: THREE.Mesh
+    index: number
+    
     constructor (lm, options) {
         this.onCreate = options.onCreate;
         this.onDispose = options.onDispose;
-        this.onUpdate = options.onUpdate;
 
         // a THREE object that represents this landmark.
         // null if the landmark isEmpty
@@ -63,7 +69,7 @@ export class LandmarkTHREEView {
 
     updateSymbol = (lm) => {
         this.symbol.position.copy(lm.point);
-        this.symbol.material = LM_MATERIAL_FOR_SELECTED[lm.isSelected];
+        this.symbol.material = lmMaterialForSelected(lm.isSelected);
     };
 
     dispose = () => {

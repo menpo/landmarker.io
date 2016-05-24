@@ -3,13 +3,19 @@ import $ from 'jquery';
 
 import atomic from '../../model/atomic';
 
+interface Landmark {
+    point: THREE.Vector,
+    index: number,
+    isSelected: boolean
+}
+
 // Helpers
 // ------------------------------------------------------------------------
 
-const findClosestLandmarks = (lms, point, n = 4) =>
+const findClosestLandmarks = (lms: Landmark[], point: THREE.Vector, n = 4) =>
     lms
         .map(lm => ({ landmark: lm, distance: point.distanceTo(lm.point) }))
-        .sort((a, b) => a.distance >= b.distance)
+        .sort((a, b) => a.distance - b.distance)
         .slice(0, n)
         .map(lmd => lmd.landmark);
 
@@ -18,19 +24,29 @@ const findClosestLandmarks = (lms, point, n = 4) =>
  * Viewport view instance.
  */
 export default class Handler {
-
+    
+    viewport: any
+    currentTargetLm: any
+    downEvent: any
+    lmPressed: Landmark
+    isPressed: boolean
+    onMouseDownPosition: THREE.Vector2
+    onMouseUpPosition: THREE.Vector2
+    positionLmDrag: THREE.Vector2
+    dragStartPositions: any[]
+    dragged: boolean
+    intersectsWithLms: any[]
+    intersectsWithMesh: any[]
+    
     constructor(viewport) {
 
         this.viewport = viewport;
 
-        // Setup handler state variables
-        // ------------------------------------------------------------------------
         this.currentTargetLm = undefined;
         this.downEvent = null;
 
-        this.lmPressed = false;
+        this.lmPressed = null;
         this.isPressed = false;
-        this.groupSelected = false;
 
         // x, y position of mouse on click states
         this.onMouseDownPosition = new THREE.Vector2();
@@ -38,9 +54,6 @@ export default class Handler {
 
         // current screen position when in drag state
         this.positionLmDrag = new THREE.Vector2();
-
-        // vector difference in one time step
-        this.deltaLmDrag = new THREE.Vector2();
 
         this.dragStartPositions = [];
         this.dragged = false;
@@ -127,7 +140,7 @@ export default class Handler {
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
-    onMouseDown = atomic.atomicOperation((event) => {
+    onMouseDown = atomic.atomicOperation(event => {
         event.preventDefault();
         this.viewport.$el.focus();
 
@@ -156,7 +169,7 @@ export default class Handler {
                 // degenerate case - which is closer?
                 if (this.intersectsWithLms[0].distance <
                     this.intersectsWithMesh[0].distance) {
-                    this.landmarkPressed(event);
+                    this.landmarkPressed();
                 } else {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
@@ -168,7 +181,7 @@ export default class Handler {
                     }
                 }
             } else if (this.intersectsWithLms.length > 0) {
-                this.landmarkPressed(event);
+                this.landmarkPressed();
             } else if (event.shiftKey) {
                 // shift trumps all!
                 this.shiftPressed();
@@ -202,7 +215,10 @@ export default class Handler {
             event.clientX, event.clientY);
         var prevPositionLmDrag = this.positionLmDrag.clone();
         // change in this step in screen space
-        this.deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
+
+        // vector difference in one time step
+        const deltaLmDrag = new THREE.Vector2();
+        deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
         // update the position
         this.positionLmDrag.copy(newPositionLmDrag);
         this.viewport._selectedLandmarks.forEach(lm => {
@@ -210,7 +226,7 @@ export default class Handler {
             const vScreen = this.viewport._localToScreen(lm.point);
 
             // budge the screen coordinate
-            vScreen.add(this.deltaLmDrag);
+            vScreen.add(deltaLmDrag);
 
             // use the standard machinery to find intersections
             // note that we intersect the mesh to use the octree

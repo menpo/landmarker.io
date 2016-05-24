@@ -1,0 +1,8 @@
+{
+  "globalDependencies": {
+    "backbone": "registry:dt/backbone#1.0.0+20160316155526",
+    "jquery": "registry:dt/jquery#1.10.0+20160417213236",
+    "three": "registry:dt/three#0.0.0+20160523041317",
+    "underscore": "registry:dt/underscore#1.7.0+20160505190121"
+  }
+}
