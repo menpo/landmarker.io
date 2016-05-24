@@ -1,6 +1,6 @@
 'use strict';
 
-import Backbone from 'backbone';
+import * as Backbone from 'backbone';
 import THREE from 'three';
 const placeholderUrl = require("../../../../img/placeholder.jpg");
 

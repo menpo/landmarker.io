@@ -1,8 +1,8 @@
 'use strict';
 
 import _ from 'underscore';
-import Backbone from 'backbone';
-import $ from 'jquery';
+import * as Backbone from 'backbone';
+import * as $ from 'jquery';
 
 import {randomString} from '../lib/utils';
 

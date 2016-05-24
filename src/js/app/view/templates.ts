@@ -3,7 +3,7 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
 import $ from 'jquery';
-
+import { notify } from './notification';
 import Server from '../backend/server';
 // import ListPicker from './list_picker';
 
@@ -87,7 +87,7 @@ export const TemplatePicker = Backbone.View.extend({
                 this.model.set('_activeTemplate', name);
                 this.model._initTemplates();
             }, function (err) {
-                Notification.notify({
+                notify({
                     type: 'error',
                     msg: 'Error picking template ' + err
                 });

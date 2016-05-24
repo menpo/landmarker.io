@@ -19,7 +19,7 @@ const IMAGE_EXTENSIONS = ['jpeg', 'jpg', 'png'];
 const MESH_EXTENSIONS = ['obj', 'stl', 'mtl'].concat(IMAGE_EXTENSIONS);
 
 import { format } from 'url';
-import Promise from 'promise-polyfill';
+import { Promise } from 'es6-promise';
 
 import OBJLoader from '../lib/obj_loader';
 import STLLoader from '../lib/stl_loader';
@@ -34,7 +34,7 @@ import { notify } from '../view/notification';
 import { getJSON, get, putJSON, getArrayBuffer } from '../lib/requests';
 import ImagePromise from '../lib/imagepromise';
 import Template from '../template';
-import Picker from '../view/dropbox_picker.js';
+import Picker from '../view/dropbox_picker';
 import Base from './base';
 
 const Dropbox = Base.extend('DROPBOX', function (token, cfg) {

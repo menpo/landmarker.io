@@ -2,7 +2,7 @@
 
 import _ from 'underscore';
 import $ from 'jquery';
-import Promise from 'promise-polyfill';
+import { Promise } from 'es6-promise';
 import Backbone from 'backbone';
 
 import Tracker from '../lib/tracker';

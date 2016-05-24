@@ -6,7 +6,7 @@ require('../scss/main.scss');
 import $ from 'jquery';
 import THREE from 'three';
 import url from 'url';
-import Promise from 'promise-polyfill';
+import { Promise } from 'es6-promise';
 
 import * as utils from './app/lib/utils';
 import * as support from './app/lib/support';
