@@ -2,7 +2,7 @@
 
 import { getJSON, putJSON, getArrayBuffer } from '../lib/requests';
 import { capitalize } from '../lib/utils';
-import support from '../lib/support';
+import * as support from '../lib/support';
 import ImagePromise from '../lib/imagepromise';
 
 import Base from './base';

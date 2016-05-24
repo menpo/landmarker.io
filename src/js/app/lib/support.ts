@@ -32,10 +32,3 @@ export const localstorage = (function () {
 export const https = (function () {
     return window.location.protocol.indexOf('https') > -1;
 })();
-
-export default {
-    ie,
-    webgl,
-    localstorage,
-    https
-};

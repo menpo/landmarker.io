@@ -19,7 +19,6 @@ const IMAGE_EXTENSIONS = ['jpeg', 'jpg', 'png'];
 const MESH_EXTENSIONS = ['obj', 'stl', 'mtl'].concat(IMAGE_EXTENSIONS);
 
 import { format } from 'url';
-import { Promise } from 'es6-promise';
 
 import OBJLoader from '../lib/obj_loader';
 import STLLoader from '../lib/stl_loader';
@@ -59,7 +58,7 @@ const Dropbox = Base.extend('DROPBOX', function (token, cfg) {
     }, true);
 });
 
-export default Dropbox;
+export default Dropbox
 
 // ============================================================================
 // Dropbox specific code and setup functions

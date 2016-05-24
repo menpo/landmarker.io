@@ -2,7 +2,6 @@
 
 import * as _ from 'underscore';
 import * as $ from 'jquery';
-import { Promise } from 'es6-promise';
 import * as Backbone from 'backbone';
 
 import Tracker from '../lib/tracker';

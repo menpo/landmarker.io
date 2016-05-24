@@ -48,4 +48,6 @@ const AtomicOperationTracker = Backbone.Model.extend({
 });
 
 const atomicTracker = new AtomicOperationTracker();
-export const atomicOperation = atomicTracker.atomicOperation;
+export const atomicOperation = f => atomicTracker.atomicOperation(f);
+export const on = atomicTracker.on;
+export const atomicOperationUnderway = () => atomicTracker.atomicOperationUnderway()

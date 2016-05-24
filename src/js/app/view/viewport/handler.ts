@@ -15,7 +15,7 @@ interface Landmark {
 const findClosestLandmarks = (lms: Landmark[], point: THREE.Vector, n = 4) =>
     lms
         .map(lm => ({ landmark: lm, distance: point.distanceTo(lm.point) }))
-        .sort((a, b) => a.distance - b.distance)
+        .sort((a, b) => Math.abs(a.distance - b.distance))
         .slice(0, n)
         .map(lmd => lmd.landmark);
 
@@ -140,7 +140,7 @@ export default class Handler {
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
-    onMouseDown = atomic.atomicOperation(event => {
+    onMouseDown = atomicOperation(event => {
         event.preventDefault();
         this.viewport.$el.focus();
 

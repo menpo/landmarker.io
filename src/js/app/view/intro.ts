@@ -3,10 +3,11 @@
 import * as $ from 'jquery';
 
 import Modal from './modal';
-import Backend from '../backend';
+import Dropbox from '../backend/dropbox';
+import Server from '../backend/server';
 import { baseUrl, restart } from '../lib/utils';
 
-import support from '../lib/support';
+import * as support from '../lib/support';
 import { version } from '../../../../package.json';
 
 
@@ -80,10 +81,10 @@ const Intro = Modal.extend({
 
     startDropbox: function () {
         this._cfg.clear();
-        const [dropUrl, state] = Backend.Dropbox.authorize();
+        const [dropUrl, state] = Dropbox.authorize();
         this._cfg.set({
             'OAUTH_STATE': state,
-            'BACKEND_TYPE': Backend.Dropbox.Type
+            'BACKEND_TYPE': Dropbox.Type
         }, true);
         window.location.replace(dropUrl);
     },

@@ -3,10 +3,15 @@
 // include all our style information
 require('../scss/main.scss');
 
+
+// Polyfill promise if it's not globally definted
+if (typeof window.Promise !== 'function') {
+  require('es6-promise').polyfill();
+}
+
 import * as $ from 'jquery';
 import * as THREE from 'three';
 import * as url from 'url';
-import { Promise } from 'es6-promise';
 
 import * as utils from './app/lib/utils';
 import * as support from './app/lib/support';
@@ -24,7 +29,8 @@ import KeyboardShortcutsHandler from './app/view/keyboard';
 import Config from './app/model/config';
 import App from './app/model/app';
 
-import Backend from './app/backend';
+import Dropbox from './app/backend/dropbox';
+import Server from './app/backend/server';
 
 const cfg = Config();
 
@@ -43,11 +49,11 @@ function resolveBackend (u) {
         const serverUrl = utils.stripTrailingSlash(u.query.server);
         cfg.clear(); // Reset all stored data, we use the url
         try {
-            const server = new Backend.Server(serverUrl);
+            const server = new Server(serverUrl);
 
             if (!server.demoMode) { // Don't persist demo mode
                 cfg.set({
-                    'BACKEND_TYPE': Backend.Server.Type,
+                    'BACKEND_TYPE': Server.Type,
                     'BACKEND_SERVER_URL': u.query.server
                 }, true);
             } else {
@@ -78,9 +84,9 @@ function resolveBackend (u) {
     }
 
     switch (backendType) {
-        case Backend.Dropbox.Type:
+        case Dropbox.Type:
             return _loadDropbox(u);
-        case Backend.Server.Type:
+        case Server.Type:
             return _loadServer(u);
     }
 }
@@ -100,7 +106,7 @@ function retry (msg) {
 }
 
 function _loadServer (u) {
-    const server = new Backend.Server(cfg.get('BACKEND_SERVER_URL'));
+    const server = new Server(cfg.get('BACKEND_SERVER_URL'));
     u.query.server = cfg.get('BACKEND_SERVER_URL');
     history.replaceState(null, null, url.format(u).replace('?', '#'));
     resolveMode(server, u);

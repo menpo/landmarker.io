@@ -4,7 +4,7 @@ import * as _ from 'underscore';
 import * as $ from 'jquery';
 import * as THREE from 'three';
 
-import { atomicOperation } from '../../model/atomic';
+import { atomicOperation, on as atomicOn, atomicOperationUnderway } from '../../model/atomic';
 import * as octree from './octree';
 
 import { CameraController } from './camera';
@@ -302,7 +302,7 @@ export class Viewport {
         this._resize();
 
         // TODO this probably goes away once we remove Backbone from the view
-        atomic.on("change:ATOMIC_OPERATION", this._batchHandler);
+        atomicOn("change:ATOMIC_OPERATION", this._batchHandler);
 
         // register for the animation loop
         animate();
