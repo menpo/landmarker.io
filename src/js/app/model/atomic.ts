@@ -17,33 +17,35 @@ class AtomicOperationTracker extends Backbone.Model {
         this.set('ATOMIC_OPERATION', false);
     }
 
-    atomicOperationUnderway () {
+    atomicOperationUnderway (): boolean {
         return this.get('ATOMIC_OPERATION');
     }
 
-    atomicOperationFinished () {
+    atomicOperationFinished (): boolean {
         return !this.get('ATOMIC_OPERATION');
     }
 
-    atomicOperation (f) {
+    atomicOperation <T extends Function>(f: T) : any {
         // calls f ensuring that the atomic operation is set throughout.
 
-        return function () {
+        const wrapped = function (...args) {
             if (!atomicTracker.atomicOperationUnderway()) {
                 // we are the highest level atomic lock. Code inside should be
                 // called with a single atomic lock wrapped around it.
 
                 // console.log('Starting atomic operation');
                 atomicTracker._startAtomicOperation();
-                f.apply(this, arguments);
+                f.apply(this, args);
                 // console.log('Ending atomic operation');
                 atomicTracker._endAtomicOperation();
             } else {
                 // we are nested inside some other atomic lock. Just call the
                 // function as normal.
-                f.apply(this, arguments);
+                f.apply(this, args);
             }
-        };
+        }
+        
+        return wrapped
     }
     
 }

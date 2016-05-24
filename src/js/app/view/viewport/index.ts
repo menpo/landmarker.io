@@ -461,7 +461,7 @@ export class Viewport {
         }
     });
 
-    budgeLandmarks = atomic.atomicOperation(vector => {
+    budgeLandmarks = atomic.atomicOperation((vector: number[]) => {
 
         // Set a movement of 0.5% of the screen in the suitable direction
         const [x, y] = vector,
