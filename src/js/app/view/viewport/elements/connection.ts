@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Landmark } from '../types'
 
 const LINE_COLOR = 0xffff00;
 
@@ -7,12 +8,17 @@ const LINE_MATERIAL = new THREE.LineBasicMaterial({
     linewidth: 1
 });
 
-function createLine(start, end) {
+function createLine(start: THREE.Vector3, end: THREE.Vector3) {
     const geometry = new THREE.Geometry();
-    // geometry.dynamic = true;
+    geometry.dynamic = true;
     geometry.vertices.push(start.clone());
     geometry.vertices.push(end.clone());
     return new THREE.Line(geometry, LINE_MATERIAL)
+}
+
+interface ConnectionOpts {
+    onCreate: (symbol: THREE.Object3D) => void
+    onDispose: (symbol: THREE.Object3D) => void
 }
 
 export class LandmarkConnectionTHREEView {
@@ -21,7 +27,7 @@ export class LandmarkConnectionTHREEView {
     onDispose: (symbol: THREE.Object3D) => void
     symbol: THREE.Line
 
-    constructor(lmA, lmB, options) {
+    constructor(lmA: Landmark, lmB: Landmark, options: ConnectionOpts) {
         this.onCreate = options.onCreate;
         this.onDispose = options.onDispose;
         this.symbol = null; // a THREE object that represents this connection.
@@ -29,7 +35,7 @@ export class LandmarkConnectionTHREEView {
         this.render(lmA, lmB);
     }
 
-    render = (lmA, lmB) => {
+    render = (lmA: Landmark, lmB: Landmark) => {
         const shouldBeVisible = lmA.point !== null && lmB.point !== null;
         if (this.symbol !== null) {
             // this landmark already has an allocated representation..
@@ -52,10 +58,10 @@ export class LandmarkConnectionTHREEView {
         }
     };
 
-    updateSymbol = (lmA, lmB) => {
-        // this.symbol.geometry.vertices[0].copy(lmA.point);
-        // this.symbol.geometry.vertices[1].copy(lmB.point);
-        // this.symbol.geometry.verticesNeedUpdate = true;
+    updateSymbol = (lmA: Landmark, lmB: Landmark) => {
+        this.symbol.geometry.vertices[0].copy(lmA.point);
+        this.symbol.geometry.vertices[1].copy(lmB.point);
+        this.symbol.geometry.verticesNeedUpdate = true;
     };
 
     dispose = () => {

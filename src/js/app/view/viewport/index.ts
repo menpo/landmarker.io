@@ -11,6 +11,7 @@ import { CameraController } from './camera';
 import Handler from './handler';
 import { LandmarkConnectionTHREEView } from './elements/connection'
 import { LandmarkTHREEView } from './elements/landmark'
+import { Landmark } from './types'
 
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE;
@@ -83,8 +84,8 @@ export class Viewport {
     
     cameraController: any
     
-    _landmarkViews: any[]
-    _connectivityViews: any[]
+    _landmarkViews: LandmarkTHREEView[]
+    _connectivityViews: LandmarkConnectionTHREEView[]
     _ray: THREE.Raycaster
 
     _handler: Handler

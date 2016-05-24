@@ -1,13 +1,7 @@
-import * as THREE from 'three';
-import * as $ from 'jquery';
-
-import atomic from '../../model/atomic';
-
-interface Landmark {
-    point: THREE.Vector,
-    index: number,
-    isSelected: boolean
-}
+import * as THREE from 'three'
+import * as $ from 'jquery'
+import { Landmark } from './types' 
+import atomic from '../../model/atomic'
 
 // Helpers
 // ------------------------------------------------------------------------

@@ -52,6 +52,3 @@ class AtomicOperationTracker extends Backbone.Model {
 const atomicTracker = new AtomicOperationTracker()
 
 export default atomicTracker
-// export const atomicOperation = f => atomicTracker.atomicOperation(f);
-// export const on = atomicTracker.on;
-// export const atomicOperationUnderway = () => atomicTracker.atomicOperationUnderway()

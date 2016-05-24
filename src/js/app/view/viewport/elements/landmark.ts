@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Landmark } from '../types'
 
 const LM_SCALE = 0.01;  // the default scale for 1.0
 const LM_SPHERE_PARTS = 10;
@@ -19,7 +20,7 @@ const UNSELECTED_LM_MATERIAL = new THREE.MeshBasicMaterial({color: LM_SPHERE_UNS
 const lmMaterialForSelected = (selected: boolean) : THREE.Material => 
 selected ? SELECTED_LM_MATERIAL : UNSELECTED_LM_MATERIAL
 
-function createSphere(index) {
+function createSphere(index: number) {
     const landmark = new THREE.Mesh(LM_GEOMETRY, lmMaterialForSelected(false))
     landmark.name = 'Landmark ' + index;
     landmark.userData.index = index;
@@ -45,7 +46,7 @@ export class LandmarkTHREEView {
         this.render(lm);
     }
 
-    render = (lm) => {
+    render = (lm: Landmark) => {
         if (this.symbol) {
             // this landmark already has an allocated representation..
             if (lm.point === null) {
@@ -67,7 +68,7 @@ export class LandmarkTHREEView {
         }
     };
 
-    updateSymbol = (lm) => {
+    updateSymbol = (lm: Landmark) => {
         this.symbol.position.copy(lm.point);
         this.symbol.material = lmMaterialForSelected(lm.isSelected);
     };
