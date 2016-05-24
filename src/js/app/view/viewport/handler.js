@@ -1,3 +1,5 @@
+'use strict';
+
 import THREE from 'three';
 import $ from 'jquery';
 
@@ -367,7 +369,7 @@ export default class Handler {
 
         this.intersectsWithMesh = this.viewport._getIntersectsFromEvent(evt, this.viewport.mesh);
 
-        if (this.intersectsWithMesh.length == 0) {
+        if (this.intersectsWithMesh.length === 0) {
             // moving the mouse off the mesh does nothing.
             return null;
         }
@@ -377,7 +379,7 @@ export default class Handler {
         // lock only works once we have an existing target landmark
         const lockEnabled = (evt.ctrlKey || evt.metaKey) && this.currentTargetLm;
 
-        let newTarget = undefined, nextClosest = [];
+        let newTarget, nextClosest = [];
         if (lockEnabled) {
             // we will not change the existing target
             newTarget = this.currentTargetLm;

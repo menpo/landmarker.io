@@ -1,3 +1,5 @@
+'use strict';
+
 import THREE from 'three';
 
 const LINE_COLOR = 0xffff00;

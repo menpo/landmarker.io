@@ -28,7 +28,6 @@ function _initialBoundingBox() {
     return {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
 }
 
-
 // We are trying to move towards the whole viewport module being a standalone black box that
 // has no dependencies beyond THREE and our octree. As part of this effort, we refactor out
 // the Viewport core code into a standalone class with minimal interaction with Backbone.

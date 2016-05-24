@@ -1,5 +1,6 @@
-import { Viewport } from './viewport'
+'use strict';
 
+import { Viewport } from './viewport';
 
 const landmarkForBBLandmark = bbLm => ({
     point: bbLm.point(),
@@ -17,7 +18,6 @@ export class BackboneViewport {
 
         this.model.onBudgeLandmarks = vector => this.viewport.budgeLandmarks(vector);
 
-
         const on = {
             selectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].select()),
             deselectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].deselect()),
@@ -34,7 +34,6 @@ export class BackboneViewport {
             insertNewLandmark: point => this.model.landmarks().insertNew(point)
         };
         this.viewport = new Viewport(app.meshMode(), on);
-
 
         this.model.on('newMeshAvailable', this.setMesh);
         this.model.on("change:landmarks", this.setLandmarks);

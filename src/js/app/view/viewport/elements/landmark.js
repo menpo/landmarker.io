@@ -1,3 +1,5 @@
+'use strict';
+
 import THREE from 'three';
 
 const LM_SCALE = 0.01;  // the default scale for 1.0
