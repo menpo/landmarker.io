@@ -1,6 +1,6 @@
 'use strict';
 
-import _ from 'underscore';
+import * as _ from 'underscore';
 import * as Backbone from 'backbone';
 import * as $ from 'jquery';
 

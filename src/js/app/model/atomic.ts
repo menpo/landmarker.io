@@ -1,8 +1,6 @@
 'use strict';
 
-import Backbone from 'backbone';
-
-let atomicTracker;
+import * as Backbone from 'backbone';
 
 const AtomicOperationTracker = Backbone.Model.extend({
 
@@ -49,4 +47,5 @@ const AtomicOperationTracker = Backbone.Model.extend({
 
 });
 
-export default atomicTracker = new AtomicOperationTracker();
+const atomicTracker = new AtomicOperationTracker();
+export const atomicOperation = atomicTracker.atomicOperation;

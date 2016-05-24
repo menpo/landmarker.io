@@ -1,11 +1,11 @@
 'use strict';
 
-import _ from 'underscore';
-import Backbone from 'backbone';
-import $ from 'jquery';
+import * as _ from 'underscore';
+import * as Backbone from 'backbone';
+import * as $ from 'jquery';
 
 import download from '../lib/download';
-import atomic from '../model/atomic';
+import { atomicOperation } from '../model/atomic';
 import TemplatePanel from './templates';
 
 // Renders a single Landmark. Should update when constituent landmark
@@ -55,7 +55,7 @@ export const LandmarkView = Backbone.View.extend({
         }
     },
 
-    select: atomic.atomicOperation(function (event) {
+    select: atomicOperation(function (event) {
         if (event.shiftKey) {
             this.selectAll(event);
         } else if (this.model.isSelected()) {

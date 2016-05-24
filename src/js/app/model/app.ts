@@ -1,9 +1,9 @@
 'use strict';
 
-import _ from 'underscore';
-import $ from 'jquery';
+import * as _ from 'underscore';
+import * as $ from 'jquery';
 import { Promise } from 'es6-promise';
-import Backbone from 'backbone';
+import * as Backbone from 'backbone';
 
 import Tracker from '../lib/tracker';
 import * as AssetSource from './assetsource';

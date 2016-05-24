@@ -1,8 +1,8 @@
 'use strict';
 
-import Backbone from 'backbone';
-import _ from 'underscore';
-import $ from 'jquery';
+import * as Backbone from 'backbone';
+import * as _ from 'underscore';
+import * as $ from 'jquery';
 
 const _modals = {};
 let _activeModal;

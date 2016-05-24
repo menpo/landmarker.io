@@ -1,7 +1,7 @@
 
 'use strict';
 
-import THREE from 'three';
+import * as THREE from 'three';
 
 // once a node gets this full it subdivides.
 const MAX_NODE_ITEMS = 75;

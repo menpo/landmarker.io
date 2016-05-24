@@ -5,7 +5,7 @@
  */
 'use strict';
 
-import _ from 'underscore';
+import * as _ from 'underscore';
 
 import * as support from '../lib/support';
 

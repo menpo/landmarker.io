@@ -1,10 +1,10 @@
 'use strict';
 
-import _ from 'underscore';
-import $ from 'jquery';
-import THREE from 'three';
+import * as _ from 'underscore';
+import * as $ from 'jquery';
+import * as THREE from 'three';
 
-import atomic from '../../model/atomic';
+import { atomicOperation } from '../../model/atomic';
 import * as octree from './octree';
 
 import { CameraController } from './camera';
@@ -318,7 +318,7 @@ export class Viewport {
         });
     }
 
-    setLandmarksAndConnectivity = atomic.atomicOperation((landmarks, connectivity) => {
+    setLandmarksAndConnectivity = atomicOperation((landmarks, connectivity) => {
         console.log('Viewport: landmarks have changed');
         this._landmarks = landmarks;
         this._connectivity = connectivity;
@@ -348,7 +348,7 @@ export class Viewport {
 
     });
 
-    updateLandmarks = atomic.atomicOperation(landmarks => {
+    updateLandmarks = atomicOperation(landmarks => {
         landmarks.forEach(lm => {
             this._landmarks[lm.index] = lm;
             this._landmarkViews[lm.index].render(lm);
@@ -448,7 +448,7 @@ export class Viewport {
         this._update();
     };
 
-    updateEditingDisplay = atomic.atomicOperation(isEditModeOn => {
+    updateEditingDisplay = atomicOperation(isEditModeOn => {
         this._editingOn = isEditModeOn;
         this._clearCanvas();
         this.on.deselectAllLandmarks();
@@ -461,7 +461,7 @@ export class Viewport {
         }
     });
 
-    budgeLandmarks = atomic.atomicOperation(vector => {
+    budgeLandmarks = atomicOperation(vector => {
 
         // Set a movement of 0.5% of the screen in the suitable direction
         const [x, y] = vector,
@@ -520,7 +520,7 @@ export class Viewport {
             return;
         }
         // if in batch mode - dont render unnecessarily
-        if (atomic.atomicOperationUnderway()) {
+        if (atomicOperationUnderway()) {
             return;
         }
 

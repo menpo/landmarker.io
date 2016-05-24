@@ -1,7 +1,7 @@
 'use strict';
 
 import yaml from 'js-yaml';
-import _ from 'underscore';
+import * as _ from 'underscore';
 
 import defaults from './defaults';
 

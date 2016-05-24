@@ -1,7 +1,7 @@
-import THREE from 'three';
-import $ from 'jquery';
+import * as THREE from 'three';
+import * as $ from 'jquery';
 
-import atomic from '../../model/atomic';
+import { atomicOperation } from '../../model/atomic';
 
 interface Landmark {
     point: THREE.Vector,
@@ -207,7 +207,7 @@ export default class Handler {
 
     // Drag Handlers
     // ------------------------------------------------------------------------
-    landmarkOnDrag = atomic.atomicOperation((event) => {
+    landmarkOnDrag = atomicOperation((event) => {
         console.log("drag");
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
@@ -257,7 +257,7 @@ export default class Handler {
     // Up handlers
     // ------------------------------------------------------------------------
 
-    shiftOnMouseUp = atomic.atomicOperation((event) => {
+    shiftOnMouseUp = atomicOperation((event) => {
         this.viewport.cameraController.enable();
         console.log("shift:up");
         $(document).off('mousemove.shiftDrag', this.shiftOnDrag);
@@ -325,7 +325,7 @@ export default class Handler {
         this.viewport._clearCanvas();
     };
 
-    landmarkOnMouseUp = atomic.atomicOperation((event) => {
+    landmarkOnMouseUp = atomicOperation((event) => {
         const ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey;
         this.viewport.cameraController.enable();
         console.log("landmarkPress:up");
@@ -357,7 +357,7 @@ export default class Handler {
 
     // Move handlers
     // ------------------------------------------------------------------------
-    onMouseMove = atomic.atomicOperation((evt) => {
+    onMouseMove = atomicOperation((evt) => {
 
         this.viewport._clearCanvas();
 

@@ -1,5 +1,5 @@
-import THREE from 'three';
-import $ from 'jquery';
+import * as THREE from 'three';
+import * as $ from 'jquery';
 
 const MOUSE_WHEEL_SENSITIVITY = 0.5;
 const ROTATION_SENSITIVITY = 3.5;

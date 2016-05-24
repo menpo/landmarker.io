@@ -3,9 +3,9 @@
 // include all our style information
 require('../scss/main.scss');
 
-import $ from 'jquery';
-import THREE from 'three';
-import url from 'url';
+import * as $ from 'jquery';
+import * as THREE from 'three';
+import * as url from 'url';
 import { Promise } from 'es6-promise';
 
 import * as utils from './app/lib/utils';

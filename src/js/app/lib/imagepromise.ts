@@ -1,7 +1,7 @@
 'use strict';
 
 import { Promise } from 'es6-promise';
-import THREE from 'three';
+import * as THREE from 'three';
 
 import { loading } from '../view/notification';
 

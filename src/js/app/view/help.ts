@@ -1,7 +1,7 @@
 'use strict';
 
-import Backbone from 'backbone';
-import $ from 'jquery';
+import * as Backbone from 'backbone';
+import * as $ from 'jquery';
 
 const HELP_CONTENTS = [
     ['j', 'go to next asset in collection'],

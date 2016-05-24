@@ -1,7 +1,7 @@
 'use strict';
 
-import _ from 'underscore';
-import $ from 'jquery';
+import * as _ from 'underscore';
+import * as $ from 'jquery';
 import { Promise } from 'es6-promise';
 
 import { basename, extname } from '../lib/utils';

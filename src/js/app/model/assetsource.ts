@@ -1,7 +1,7 @@
 'use strict';
 
-import Backbone from 'backbone';
-import _ from 'underscore';
+import * as Backbone from 'backbone';
+import * as _ from 'underscore';
 
 import * as Asset from './asset';
 import {loading} from '../view/notification';

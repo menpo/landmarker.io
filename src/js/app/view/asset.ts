@@ -1,8 +1,8 @@
 'use strict';
 
-import _ from 'underscore';
-import Backbone from 'backbone';
-import $ from 'jquery';
+import * as _ from 'underscore';
+import * as Backbone from 'backbone';
+import * as $ from 'jquery';
 
 import * as Notification from './notification';
 import Intro from './intro';

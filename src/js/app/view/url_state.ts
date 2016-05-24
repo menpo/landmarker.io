@@ -1,7 +1,7 @@
 'use strict';
 
 import url from 'url';
-import Backbone from 'backbone';
+import * as Backbone from 'backbone';
 
 export default Backbone.View.extend({
 

@@ -1,8 +1,8 @@
 'use strict';
 
-import _ from 'underscore';
-import Backbone from 'backbone';
-import $ from 'jquery';
+import * as _ from 'underscore';
+import * as Backbone from 'backbone';
+import * as $ from 'jquery';
 import { notify } from './notification';
 import Server from '../backend/server';
 // import ListPicker from './list_picker';
