@@ -5,7 +5,7 @@ import * as Backbone from 'backbone';
 import * as $ from 'jquery';
 
 import download from '../lib/download';
-import { atomicOperation } from '../model/atomic';
+import atomic from '../model/atomic';
 import TemplatePanel from './templates';
 
 // Renders a single Landmark. Should update when constituent landmark
@@ -55,7 +55,7 @@ export const LandmarkView = Backbone.View.extend({
         }
     },
 
-    select: atomicOperation(function (event) {
+    select: atomic.atomicOperation(function (event) {
         if (event.shiftKey) {
             this.selectAll(event);
         } else if (this.model.isSelected()) {

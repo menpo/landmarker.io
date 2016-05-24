@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { maskedArray } from '../lib/utils';
 import { notify } from '../view/notification';
 import Tracker from '../lib/tracker';
-import { atomicOperation } from './atomic';
+import atomic from './atomic';
 
 import Landmark from './landmark';
 
@@ -24,11 +24,11 @@ LandmarkCollectionPrototype.hasEmpty = function () {
     return this.landmarks.some(lm => lm.isEmpty());
 };
 
-LandmarkCollectionPrototype.deselectAll = atomicOperation(function () {
+LandmarkCollectionPrototype.deselectAll = atomic.atomicOperation(function () {
     this.landmarks.forEach(lm => lm.deselect());
 });
 
-LandmarkCollectionPrototype.selectAll = atomicOperation(function () {
+LandmarkCollectionPrototype.selectAll = atomic.atomicOperation(function () {
     this.landmarks.forEach(lm => lm.select());
 });
 
@@ -119,7 +119,7 @@ LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
 
 // Restor landmarks from json saved, should be of the same template so
 // no hard checking ot resetting the labels
-LandmarkGroup.prototype.restore = atomicOperation(function ({
+LandmarkGroup.prototype.restore = atomic.atomicOperation(function ({
     landmarks,
     labels
 }) {
@@ -188,7 +188,7 @@ LandmarkGroup.prototype.resetNextAvailable = function (originLm) {
     return next;
 };
 
-LandmarkGroup.prototype.deleteSelected = atomicOperation(function () {
+LandmarkGroup.prototype.deleteSelected = atomic.atomicOperation(function () {
     const ops = [];
     this.selected().forEach(function (lm) {
         ops.push([lm.index(), lm.point().clone(), undefined]);
@@ -199,7 +199,7 @@ LandmarkGroup.prototype.deleteSelected = atomicOperation(function () {
     this.tracker.record(ops);
 });
 
-LandmarkGroup.prototype.insertNew = atomicOperation(function (v) {
+LandmarkGroup.prototype.insertNew = atomic.atomicOperation(function (v) {
     const lm = this.nextAvailable();
     if (lm === null) {
         return null;    // nothing left to insert!
@@ -210,7 +210,7 @@ LandmarkGroup.prototype.insertNew = atomicOperation(function (v) {
     this.resetNextAvailable(lm);
 });
 
-LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
+LandmarkGroup.prototype.setLmAt = atomic.atomicOperation(function (lm, v) {
 
     if (!v) {
         return;

@@ -2,7 +2,7 @@
 
 import * as _ from 'underscore';
 import * as Backbone from 'backbone';
-import { atomicOperation } from '../model/atomic';
+import atomic from '../model/atomic';
 
 export const LandmarkSizeSlider = Backbone.View.extend({
 
@@ -24,7 +24,7 @@ export const LandmarkSizeSlider = Backbone.View.extend({
         return this;
     },
 
-    changeLandmarkSize: atomicOperation(function (event) {
+    changeLandmarkSize: atomic.atomicOperation(function (event) {
         this.model.set(
             "landmarkSize",
             Math.max(Number(event.target.value) / 100, 0.05));

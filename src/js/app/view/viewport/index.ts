@@ -4,7 +4,7 @@ import * as _ from 'underscore';
 import * as $ from 'jquery';
 import * as THREE from 'three';
 
-import { atomicOperation, on as atomicOn, atomicOperationUnderway } from '../../model/atomic';
+import atomic from '../../model/atomic';
 import * as octree from './octree';
 
 import { CameraController } from './camera';
@@ -302,7 +302,7 @@ export class Viewport {
         this._resize();
 
         // TODO this probably goes away once we remove Backbone from the view
-        atomicOn("change:ATOMIC_OPERATION", this._batchHandler);
+        atomic.on("change:ATOMIC_OPERATION", this._batchHandler);
 
         // register for the animation loop
         animate();
@@ -318,7 +318,7 @@ export class Viewport {
         });
     }
 
-    setLandmarksAndConnectivity = atomicOperation((landmarks, connectivity) => {
+    setLandmarksAndConnectivity = atomic.atomicOperation((landmarks, connectivity) => {
         console.log('Viewport: landmarks have changed');
         this._landmarks = landmarks;
         this._connectivity = connectivity;
@@ -348,7 +348,7 @@ export class Viewport {
 
     });
 
-    updateLandmarks = atomicOperation(landmarks => {
+    updateLandmarks = atomic.atomicOperation(landmarks => {
         landmarks.forEach(lm => {
             this._landmarks[lm.index] = lm;
             this._landmarkViews[lm.index].render(lm);
@@ -448,7 +448,7 @@ export class Viewport {
         this._update();
     };
 
-    updateEditingDisplay = atomicOperation(isEditModeOn => {
+    updateEditingDisplay = atomic.atomicOperation(isEditModeOn => {
         this._editingOn = isEditModeOn;
         this._clearCanvas();
         this.on.deselectAllLandmarks();
@@ -461,7 +461,7 @@ export class Viewport {
         }
     });
 
-    budgeLandmarks = atomicOperation(vector => {
+    budgeLandmarks = atomic.atomicOperation(vector => {
 
         // Set a movement of 0.5% of the screen in the suitable direction
         const [x, y] = vector,
@@ -520,7 +520,7 @@ export class Viewport {
             return;
         }
         // if in batch mode - dont render unnecessarily
-        if (atomicOperationUnderway()) {
+        if (atomic.atomicOperationUnderway()) {
             return;
         }
 

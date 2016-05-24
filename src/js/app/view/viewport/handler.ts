@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as $ from 'jquery';
 
-import { atomicOperation } from '../../model/atomic';
+import atomic from '../../model/atomic';
 
 interface Landmark {
     point: THREE.Vector,
@@ -15,7 +15,7 @@ interface Landmark {
 const findClosestLandmarks = (lms: Landmark[], point: THREE.Vector, n = 4) =>
     lms
         .map(lm => ({ landmark: lm, distance: point.distanceTo(lm.point) }))
-        .sort((a, b) => Math.abs(a.distance - b.distance))
+        .sort((a, b) => a.distance - b.distance)
         .slice(0, n)
         .map(lmd => lmd.landmark);
 
@@ -140,7 +140,7 @@ export default class Handler {
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
-    onMouseDown = atomicOperation(event => {
+    onMouseDown = atomic.atomicOperation(event => {
         event.preventDefault();
         this.viewport.$el.focus();
 
@@ -207,7 +207,7 @@ export default class Handler {
 
     // Drag Handlers
     // ------------------------------------------------------------------------
-    landmarkOnDrag = atomicOperation((event) => {
+    landmarkOnDrag = atomic.atomicOperation((event) => {
         console.log("drag");
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
@@ -257,7 +257,7 @@ export default class Handler {
     // Up handlers
     // ------------------------------------------------------------------------
 
-    shiftOnMouseUp = atomicOperation((event) => {
+    shiftOnMouseUp = atomic.atomicOperation((event) => {
         this.viewport.cameraController.enable();
         console.log("shift:up");
         $(document).off('mousemove.shiftDrag', this.shiftOnDrag);
@@ -325,7 +325,7 @@ export default class Handler {
         this.viewport._clearCanvas();
     };
 
-    landmarkOnMouseUp = atomicOperation((event) => {
+    landmarkOnMouseUp = atomic.atomicOperation((event) => {
         const ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey;
         this.viewport.cameraController.enable();
         console.log("landmarkPress:up");
@@ -357,7 +357,7 @@ export default class Handler {
 
     // Move handlers
     // ------------------------------------------------------------------------
-    onMouseMove = atomicOperation((evt) => {
+    onMouseMove = atomic.atomicOperation((evt) => {
 
         this.viewport._clearCanvas();
 
