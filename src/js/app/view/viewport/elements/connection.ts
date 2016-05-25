@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Landmark } from '../types'
+import { Landmark } from '../base'
 
 const LINE_COLOR = 0xffff00;
 

@@ -2,7 +2,7 @@
 
 import { loading } from '../view/notification';
 
-export default function download (str, filename, type='json') {
+export default function download (str: string, filename: string, type='json') {
     const spinner = loading.start();
 
     const previous = document.getElementById('localDownloadLink');

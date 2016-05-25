@@ -1,5 +1,4 @@
 'use strict';
-
 import * as Backbone from 'backbone';
 
 class AtomicOperationTracker extends Backbone.Model {

@@ -11,7 +11,7 @@ import { CameraController } from './camera';
 import Handler from './handler';
 import { LandmarkConnectionTHREEView } from './elements/connection'
 import { LandmarkTHREEView } from './elements/landmark'
-import { Landmark } from './types'
+import { Landmark } from './base'
 
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE;
@@ -45,10 +45,10 @@ export class Viewport {
     _editingOn: boolean
 
     el: HTMLElement
-    $el: any
+    $el: JQuery
     
-    $container: any
-    $webglel: any
+    $container: JQuery
+    $webglel: JQuery
     
     _canvas: HTMLCanvasElement
     _pipCanvas: HTMLCanvasElement
@@ -82,7 +82,7 @@ export class Viewport {
     _sHTranslate: THREE.Object3D
     _shMeshAndLms: THREE.Object3D   
     
-    cameraController: any
+    cameraController: CameraController
     
     _landmarkViews: LandmarkTHREEView[]
     _connectivityViews: LandmarkConnectionTHREEView[]
@@ -90,8 +90,8 @@ export class Viewport {
 
     _handler: Handler
     
-    _landmarks: any[]
-    _connectivity: any[]
+    _landmarks: Landmark[]
+    _connectivity: [number, number][]
     
     mesh: THREE.Mesh
     octree: any
@@ -226,7 +226,7 @@ export class Viewport {
         this._sCamera = this._sPCam;
 
         // create the cameraController to look after all camera state.
-        this.cameraController = CameraController(
+        this.cameraController = new CameraController(
             this._sPCam, this._sOCam, this._sOCamZoom,
             this.el);
 
@@ -319,10 +319,11 @@ export class Viewport {
         });
     }
 
-    setLandmarksAndConnectivity = atomic.atomicOperation((landmarks, connectivity) => {
+    setLandmarksAndConnectivity = atomic.atomicOperation((landmarks: Landmark[], 
+                                                          connectivity: [number, number][]) => {
         console.log('Viewport: landmarks have changed');
         this._landmarks = landmarks;
-        this._connectivity = connectivity;
+        this._connectivity = connectivity; 
 
         // 1. Dispose of all landmark and connectivity views
         this._landmarkViews.forEach(lmView => lmView.dispose());
@@ -349,11 +350,11 @@ export class Viewport {
 
     });
 
-    updateLandmarks = atomic.atomicOperation(landmarks => {
+    updateLandmarks = atomic.atomicOperation((landmarks: Landmark[]) => {
         landmarks.forEach(lm => {
-            this._landmarks[lm.index] = lm;
-            this._landmarkViews[lm.index].render(lm);
-        });
+            this._landmarks[lm.index] = lm
+            this._landmarkViews[lm.index].render(lm)
+        })
 
         // Finally go through all connectivity views and update them
         this._connectivityViews.forEach((view, i) => {
@@ -364,7 +365,7 @@ export class Viewport {
         this._update()
     });
 
-    setMesh = (mesh, up, front) => {
+    setMesh = (mesh: THREE.Mesh, up: THREE.Vector3, front: THREE.Vector3) => {
         console.log('Viewport:setMesh - memory before: ' + this.memoryString());
         // firstly, remove any existing mesh
         this.removeMeshIfPresent();
@@ -396,22 +397,22 @@ export class Viewport {
         this._update();
     };
 
-    setLandmarkSize = (lmSize) => {
-        this._lmSize = lmSize;
-    };
+    setLandmarkSize = (lmSize: number) => {
+        this._lmSize = lmSize
+    }
 
     removeMeshIfPresent = () => {
         if (this.mesh !== null) {
-            this._sMesh.remove(this.mesh);
-            this.mesh = null;
-            this.octree = null;
+            this._sMesh.remove(this.mesh)
+            this.mesh = null
+            this.octree = null
         }
-    };
+    }
 
     memoryString = () => {
         return 'geo:' + this._renderer.info.memory.geometries +
                ' tex:' + this._renderer.info.memory.textures + ''
-            //    ' prog:' + this._renderer.info.memory.programs;
+               ' prog:' + this._renderer.info.memory.programs;
     };
 
     toggleCamera = () => {
@@ -444,15 +445,15 @@ export class Viewport {
         this._update();
     };
 
-    updateConnectivityDisplay = (isConnectivityOn) => {
+    updateConnectivityDisplay = (isConnectivityOn: boolean) => {
         this.connectivityOn = isConnectivityOn;
         this._update();
     };
 
-    updateEditingDisplay = atomic.atomicOperation(isEditModeOn => {
-        this._editingOn = isEditModeOn;
-        this._clearCanvas();
-        this.on.deselectAllLandmarks();
+    updateEditingDisplay = atomic.atomicOperation((isEditModeOn: boolean) => {
+        this._editingOn = isEditModeOn
+        this._clearCanvas()
+        this.on.deselectAllLandmarks()
 
         // Manually bind to avoid useless function call (even with no effect)
         if (this._editingOn) {
@@ -473,10 +474,10 @@ export class Viewport {
 
         const ops = [];
         this._selectedLandmarks.forEach((lm) => {
-            const lmScreen = this._localToScreen(lm.point);
-            lmScreen.add(move);
+            const lmScreen = this._localToScreen(lm.point)
+            lmScreen.add(move)
 
-            const intersectsWithMesh = this._getIntersects(lmScreen.x, lmScreen.y, this.mesh);
+            const intersectsWithMesh = this._getIntersects(lmScreen.x, lmScreen.y, this.mesh)
 
             if (intersectsWithMesh.length > 0) {
                 const pt = this._worldToLocal(intersectsWithMesh[0].point);

@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 import * as $ from 'jquery'
-import { Landmark } from './types' 
+import { Landmark } from './base' 
 import atomic from '../../model/atomic'
-
+import { Viewport } from './index'
 // Helpers
 // ------------------------------------------------------------------------
 
@@ -19,7 +19,7 @@ const findClosestLandmarks = (lms: Landmark[], point: THREE.Vector, n = 4) =>
  */
 export default class Handler {
     
-    viewport: any
+    viewport: Viewport
     currentTargetLm: any
     downEvent: any
     lmPressed: Landmark
@@ -32,7 +32,7 @@ export default class Handler {
     intersectsWithLms: any[]
     intersectsWithMesh: any[]
     
-    constructor(viewport) {
+    constructor(viewport: Viewport) {
 
         this.viewport = viewport;
 

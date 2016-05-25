@@ -21,6 +21,15 @@ const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
     2: 1.0 // The delta values are specified in pages.
 };
 
+interface Origin {
+    target: THREE.Vector3,
+    pCamPosition: THREE.Vector3,
+    pCamUp: THREE.Vector3,
+    oCamPosition: THREE.Vector3,
+    oCamUp: THREE.Vector3,
+    oCamZoomPosition: THREE.Vector3,
+}
+
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -44,159 +53,184 @@ const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
  * for instance) can disable the Controller temporarily with the enabled
  * property.
  */
-export function CameraController (pCam, oCam, oCamZoom, domElement) {
+export class CameraController {
+    
+    onChange: () => any = null
+    onChangePip: () => any = null
+    
+    pCam: THREE.PerspectiveCamera
+    oCam: THREE.OrthographicCamera 
+    oCamZoom: THREE.OrthographicCamera 
+    domElement: HTMLElement
+    state = STATE.NONE
+    enabled = false
+    canRotate = true // note that we will enable on creation below!
+    target = new THREE.Vector3()
+    origin: Origin
+    height = 0
+    width = 0
+    
+    normalMatrix = new THREE.Matrix3()
+    
+    // Rotation specific values
+    lastAngle: number
+    lastAxis = new THREE.Vector3()
+    
+    // mouse tracking variables
+    mousePrevPosition = new THREE.Vector2()
+    // Mouses position hovering over the surface
+    mouseHoverPosition = new THREE.Vector2()
+       
+    // touch
+    touch = new THREE.Vector3();
+    prevTouch = new THREE.Vector3();
+    prevDistance = null;
+        
+    constructor(pCam: THREE.PerspectiveCamera, 
+                oCam: THREE.OrthographicCamera, 
+                oCamZoom: THREE.OrthographicCamera, 
+                domElement: HTMLElement) {
+        this.pCam = pCam
+        this.oCam = oCam
+        this.oCamZoom = oCamZoom
+        this.domElement = domElement
 
-    const controller = {};
+        this.origin = {
+            target: this.target.clone(),
+            pCamPosition: pCam.position.clone(),
+            pCamUp: pCam.up.clone(),
+            oCamPosition: oCam.position.clone(),
+            oCamUp: oCam.up.clone(),
+            oCamZoomPosition: oCamZoom.position.clone()
+        }
+        
+        //TODO should this always be enabled?
+        domElement.addEventListener('touchstart', this.touchStart, false)
+        domElement.addEventListener('touchmove', this.touchMove, false)
 
-    let state = STATE.NONE; // the current state of the Camera
-    let canRotate = true;
-    let enabled = false; // note that we will enable on creation below!
+        // enable everything on creation
+        this.enable()
+        $(domElement).on('mousemove.pip', this.onMouseMoveHover)
+    }
 
-    const target = new THREE.Vector3(); // where the camera is looking
-
-    const origin = {
-        target: target.clone(),
-        pCamPosition: pCam.position.clone(),
-        pCamUp: pCam.up.clone(),
-        oCamPosition: oCam.position.clone(),
-        oCamUp: oCam.up.clone(),
-        oCamZoomPosition: oCamZoom.position.clone()
-    };
-
-    let height = 0, width = 0;
-
-    function focus (newTarget) {
+    focus = (newTarget: THREE.Vector3) => {
         // focus all cameras at a new target.
-        target.copy(newTarget || origin.target);
-        pCam.lookAt(target);
-        oCam.lookAt(target);
-        oCamZoom.lookAt(target);
+        this.target.copy(newTarget || this.origin.target)
+        this.pCam.lookAt(this.target)
+        this.oCam.lookAt(this.target)
+        this.oCamZoom.lookAt(this.target)
     }
 
-    function reset (newPosition, newTarget, newCanRotate) {
-        state = STATE.NONE;
-        allowRotation(newCanRotate);
-        position(newPosition);
-        pCam.up.copy(origin.pCamUp);
-        oCam.up.copy(origin.oCamUp);
-        focus(newTarget);
+    reset = (newPosition: THREE.Vector3, newTarget: THREE.Vector3, 
+             newCanRotate: boolean) => {
+        this.state = STATE.NONE
+        this.allowRotation(newCanRotate)
+        this.position(newPosition)
+        this.pCam.up.copy(this.origin.pCamUp)
+        this.oCam.up.copy(this.origin.oCamUp)
+        this.focus(newTarget)
     }
 
-    function position (v) {
+    position = (v: THREE.Vector3) => {
         // position all cameras at a new location.
-        pCam.position.copy(v || origin.pCamPosition);
-        oCam.position.copy(v || origin.oCamPosition);
-        oCamZoom.position.copy(v || origin.oCamZoomPosition);
+        this.pCam.position.copy(v || this.origin.pCamPosition);
+        this.oCam.position.copy(v || this.origin.oCamPosition);
+        this.oCamZoom.position.copy(v || this.origin.oCamZoomPosition);
     }
 
-    function allowRotation (allowed=true) {
-        canRotate = allowed;
+    allowRotation = (allowed=true) => {
+        this.canRotate = allowed
     }
 
-    function disable () {
+    disable = () => {
         console.log('camera: disable');
-        enabled = false;
-        $(domElement).off('mousedown.camera');
-        $(domElement).off('wheel.camera');
+        this.enabled = false;
+        $(this.domElement).off('mousedown.camera');
+        $(this.domElement).off('wheel.camera');
         $(document).off('mousemove.camera');
     }
 
-    function enable () {
-        if (!enabled) {
+    enable = () => {
+        if (!this.enabled) {
             console.log('camera: enable');
-            enabled = true;
-            $(domElement).on('mousedown.camera', onMouseDown);
-            $(domElement).on('wheel.camera', onMouseWheel);
+            this.enabled = true;
+            $(this.domElement).on('mousedown.camera', this.onMouseDown);
+            $(this.domElement).on('wheel.camera', this.onMouseWheel);
         }
     }
 
-    function resize (w, h) {
+    resize (w: number, h: number) {
         const aspect = w / h;
-        height = h;
-        width = w;
+        this.height = h;
+        this.width = w;
 
         // 1. Update the orthographic camera
         if (aspect > 1) {
             // w > h
-            oCam.left = -aspect;
-            oCam.right = aspect;
-            oCam.top = 1;
-            oCam.bottom = -1;
+            this.oCam.left = -aspect;
+            this.oCam.right = aspect;
+            this.oCam.top = 1;
+            this.oCam.bottom = -1;
         } else {
             // h > w
-            oCam.left = -1;
-            oCam.right = 1;
-            oCam.top = 1 / aspect;
-            oCam.bottom = -1 / aspect;
+            this.oCam.left = -1;
+            this.oCam.right = 1;
+            this.oCam.top = 1 / aspect;
+            this.oCam.bottom = -1 / aspect;
         }
-        oCam.updateProjectionMatrix();
+        this.oCam.updateProjectionMatrix();
 
         // 2. Update the perceptive camera
-        pCam.aspect = aspect;
-        pCam.updateProjectionMatrix();
+        this.pCam.aspect = aspect;
+        this.pCam.updateProjectionMatrix();
     }
-
-    // temporary vectors for efficient maths
-    const tvec = new THREE.Vector3();
-    const tinput = new THREE.Vector3();
-
-    const normalMatrix = new THREE.Matrix3();
-
-    // mouse tracking variables
-    const mouseDownPosition = new THREE.Vector2();
-    const mousePrevPosition = new THREE.Vector2();
-
-    // Mouses position when in the middle of a click operation.
-    const mouseCurrentPosition = new THREE.Vector2();
-
-    // Mouses position hovering over the surface
-    const mouseHoverPosition = new THREE.Vector2();
-    const mouseMoveDelta = new THREE.Vector2();
-
-    function pan (distance) {
+    
+    pan = (distance) => {
         // first, handle the pCam...
         const oDist = distance.clone();
-        normalMatrix.getNormalMatrix(pCam.matrix);
-        distance.applyMatrix3(normalMatrix);
-        distance.multiplyScalar(distanceToTarget() * 0.001);
-        pCam.position.add(distance);
+        this.normalMatrix.getNormalMatrix(this.pCam.matrix);
+        distance.applyMatrix3(this.normalMatrix);
+        distance.multiplyScalar(this.distanceToTarget() * 0.001);
+        this.pCam.position.add(distance);
         // TODO should the target change as this?!
-        target.add(distance);
+        this.target.add(distance);
 
         // second, the othoCam
-        const o = mousePositionInOrthographicView(oDist);
+        const o = this.mousePositionInOrthographicView(oDist);
         // relative x movement * otho width = how much to change horiz
         const deltaH = o.xR * o.width;
-        oCam.left += deltaH;
-        oCam.right += deltaH;
+        this.oCam.left += deltaH;
+        this.oCam.right += deltaH;
         // relative y movement * otho height = how much to change vert
         const deltaV = o.yR * o.height;
-        oCam.top += deltaV;
-        oCam.bottom += deltaV;
-        oCam.updateProjectionMatrix();
-        _change();
+        this.oCam.top += deltaV;
+        this.oCam.bottom += deltaV;
+        this.oCam.updateProjectionMatrix();
+        this._change();
     }
 
-    function zoom (distance) {
-        const scalar = distance.z * 0.0007;
+    zoom = (distance: THREE.Vector3) => {
+        const scalar = distance.z * 0.0007
         // First, handling the perspective matrix
-        normalMatrix.getNormalMatrix(pCam.matrix);
-        distance.applyMatrix3(normalMatrix);
-        distance.multiplyScalar(distanceToTarget() * 0.001);
-        pCam.position.add(distance);
+        this.normalMatrix.getNormalMatrix(this.pCam.matrix)
+        distance.applyMatrix3(this.normalMatrix)
+        distance.multiplyScalar(this.distanceToTarget() * 0.001)
+        this.pCam.position.add(distance)
+
 
         // Then, the orthographic. In general, we are just going to squeeze in
         // the bounds of the orthographic frustum to zoom.
+        const oCam = this.oCam
         if (oCam.right - oCam.left < 0.001 && scalar < 0) {
             // trying to zoom in and we are already tight. return.
-            return;
+            return
         }
 
         // Difference must respect aspect ratio, otherwise we will distort
-        const a = ((oCam.top - oCam.bottom)) / (oCam.right - oCam.left);
+        const a = ((oCam.top - oCam.bottom)) / (oCam.right - oCam.left)
 
         // find out where the mouse currently is in the view.
-        const oM = mousePositionInOrthographicView(mouseHoverPosition);
+        const oM = this.mousePositionInOrthographicView(this.mouseHoverPosition)
 
         // overall difference in height scale is scalar * 2, but we weight
         // where this comes off based on mouse position
@@ -213,102 +247,80 @@ export function CameraController (pCam, oCam, oCamZoom, domElement) {
         oCam.updateProjectionMatrix();
         // call the mouse hover callback manually, he will trigger a change
         // for us. Little nasty, but we mock the event...
-        onMouseMoveHover({
-            pageX: mouseHoverPosition.x,
-            pageY: mouseHoverPosition.y
+        this.onMouseMoveHover({
+            pageX: this.mouseHoverPosition.x,
+            pageY: this.mouseHoverPosition.y
         });
-        _change();
+        this._change();
     }
 
-    function distanceToTarget () {
-        return tvec.subVectors(target, pCam.position).length();
+    distanceToTarget = (): number => {
+        const v = new THREE.Vector3()
+        return v.subVectors(this.target, this.pCam.position).length()
+    }
+    
+    projectMouseOnSphere = (px: number, py: number): THREE.Vector2 => {
+        const v = new THREE.Vector2()
+        v.set(
+            (px - this.width / 2) / (this.width / 2),
+            (this.height - 2 * py) / screen.width
+        )
+
+        return v
     }
 
-    const pVec = new THREE.Vector3();
-    // const sVec = new THREE.Vector3();
+    _rotateOneCamera = (delta: THREE.Vector3, camera: THREE.Camera, singleDir=false) => {
+        const quaternion = new THREE.Quaternion()
+        const _delta = singleDir ? deltaForSingleDir(delta) : delta
+        const angle = _delta.length()
+        
+        const targetDirection = new THREE.Vector3()
+        const upDirection = new THREE.Vector3()
+        const sidewaysDirection = new THREE.Vector3()
+        const moveDirection = new THREE.Vector3()
+        const axis = new THREE.Vector3()
+        const targetToCamera = new THREE.Vector3()
 
-    function projectMouseOnSphere (px, py) {
-        pVec.set(
-            (px - width / 2) / (width / 2),
-            (height - 2 * py) / screen.width,
-            0
-        );
+        targetToCamera.copy(camera.position).sub(this.target)
 
-        return pVec;
-    }
+        if (angle !== 0) {
 
-    // function projectMouseOnScreen (px, py) {
-    //
-    // }
-
-    // Rotation specific values
-    let lastAngle, angle;
-    const lastAxis = new THREE.Vector3();
-    const quaternion = new THREE.Quaternion();
-    const targetDirection = new THREE.Vector3();
-    const axis = new THREE.Vector3();
-    const upDirection = new THREE.Vector3();
-    const sidewaysDirection = new THREE.Vector3();
-    const moveDirection = new THREE.Vector3();
-
-    function rotateCamera (delta, camera, singleDir=false) {
-
-        let _delta;
-        if (singleDir) {
-            if (Math.abs(delta.x) >= Math.abs(delta.y)) {
-                _delta = new THREE.Vector3(delta.x, 0, 0);
-            } else {
-                _delta = new THREE.Vector3(0, delta.y, 0);
-            }
-        } else {
-            _delta = delta;
-        }
-
-        angle = _delta.length();
-        tvec.copy(camera.position).sub(target);
-
-        if (angle) {
-
-            targetDirection.copy(tvec).normalize();
-
-            upDirection.copy(camera.up).normalize();
+            targetDirection.copy(targetToCamera).normalize()
+            upDirection.copy(camera.up).normalize()
             sidewaysDirection.crossVectors(upDirection, targetDirection)
-                             .normalize();
+                             .normalize()
 
-            upDirection.setLength(_delta.y);
-            sidewaysDirection.setLength(_delta.x);
+            upDirection.setLength(_delta.y)
+            sidewaysDirection.setLength(_delta.x)
 
-            moveDirection.copy(upDirection.add(sidewaysDirection));
-            axis.crossVectors(moveDirection, tvec).normalize();
+            moveDirection.copy(upDirection.add(sidewaysDirection))
+            axis.crossVectors(moveDirection, targetToCamera).normalize()
 
-            quaternion.setFromAxisAngle(axis, angle);
-            tvec.applyQuaternion(quaternion);
-            camera.up.applyQuaternion(quaternion);
-
-            lastAxis.copy(axis);
-            lastAngle = angle;
-        } else if (lastAngle) {
-            lastAngle *= Math.sqrt(1.0 - DAMPING_FACTOR);
-            quaternion.setFromAxisAngle(lastAxis, lastAngle);
-            tvec.applyQuaternion(quaternion);
-            camera.up.applyQuaternion(quaternion);
+            quaternion.setFromAxisAngle(axis, angle)
+            this.lastAxis.copy(axis)
+            this.lastAngle = angle
+        } else if (this.lastAngle) {
+            this.lastAngle *= Math.sqrt(1.0 - DAMPING_FACTOR)
+            quaternion.setFromAxisAngle(this.lastAxis, this.lastAngle)
         }
+        
+        targetToCamera.applyQuaternion(quaternion)
+        camera.up.applyQuaternion(quaternion)
 
-        camera.position.copy(target).add(tvec);
-        camera.lookAt(target);
+        camera.position.copy(this.target).add(targetToCamera)
+        camera.lookAt(this.target)
     }
 
-    function rotate (delta, singleDir=false) {
-        rotateCamera(delta, pCam, singleDir);
-        rotateCamera(delta, oCam, singleDir);
-        rotateCamera(delta, oCamZoom, singleDir);
-        _change();
+    rotate = (delta: THREE.Vector3, singleDir=false) => {
+        this._rotateOneCamera(delta, this.pCam, singleDir)
+        this._rotateOneCamera(delta, this.oCam, singleDir)
+        this._rotateOneCamera(delta, this.oCamZoom, singleDir)
+        this._change()
     }
 
-    // mouse
-    function onMouseDown (event) {
+    onMouseDown = (event) => {
         console.log('camera: mousedown');
-        if (!enabled) {
+        if (!this.enabled) {
             return;
         }
 
@@ -316,79 +328,76 @@ export function CameraController (pCam, oCam, oCamZoom, domElement) {
 
         switch (event.button) {
             case 0:
-                if (!canRotate) {
-                    state = STATE.PAN;
+                if (!this.canRotate) {
+                    this.state = STATE.PAN;
                 } else {
-                    state = STATE.ROTATE;
+                    this.state = STATE.ROTATE;
                 }
                 break;
             case 1:
-                state = STATE.ZOOM;
+                this.state = STATE.ZOOM;
                 break;
             case 2:
-                state = STATE.PAN;
+                this.state = STATE.PAN;
                 break;
         }
 
-        if (state === STATE.ROTATE) {
-            mouseDownPosition.copy(projectMouseOnSphere(event.pageX,
+        if (this.state === STATE.ROTATE) {
+            this.mousePrevPosition.copy(this.projectMouseOnSphere(event.pageX,
                                                         event.pageY));
         } else {
-            mouseDownPosition.set(event.pageX, event.pageY);
+            this.mousePrevPosition.set(event.pageX, event.pageY);
         }
 
-        mousePrevPosition.copy(mouseDownPosition);
-        mouseCurrentPosition.copy(mousePrevPosition);
-
-        $(document).on('mousemove.camera', onMouseMove);
+        $(document).on('mousemove.camera', this.onMouseMove);
         // listen once for the mouse up
-        $(document).one('mouseup.camera', onMouseUp);
+        $(document).one('mouseup.camera', this.onMouseUp);
     }
 
-    function onMouseMove (event) {
+    onMouseMove = (event) => {
+        event.preventDefault()   
+        const v = new THREE.Vector3
+        const mousePosition = new THREE.Vector2()
+        const mouseMoveDelta = new THREE.Vector2()
 
-        event.preventDefault();
-
-        if (state === STATE.ROTATE) {
-            mouseCurrentPosition.copy(
-                projectMouseOnSphere(event.pageX, event.pageY));
+        if (this.state === STATE.ROTATE) {
+            mousePosition.copy(
+                this.projectMouseOnSphere(event.pageX, event.pageY));
         } else {
-            mouseCurrentPosition.set(event.pageX, event.pageY);
+            mousePosition.set(event.pageX, event.pageY);
         }
+        mouseMoveDelta.subVectors(mousePosition, this.mousePrevPosition);
 
-        mouseMoveDelta.subVectors(mouseCurrentPosition, mousePrevPosition);
-
-        switch (state) {
+        switch (this.state) {
             case STATE.ROTATE:
-                tinput.copy(mouseMoveDelta);
-                tinput.z = 0;
-                tinput.multiplyScalar(ROTATION_SENSITIVITY);
-                rotate(tinput, event.ctrlKey);
+                v.set(mouseMoveDelta.x, mouseMoveDelta.y, 0)
+                v.multiplyScalar(ROTATION_SENSITIVITY);
+                this.rotate(v, event.ctrlKey);
                 break;
             case STATE.ZOOM:
-                tinput.set(0, 0, mouseMoveDelta.y);
-                zoom(tinput);
+                v.set(0, 0, mouseMoveDelta.y);
+                this.zoom(v);
                 break;
             case STATE.PAN:
-                tinput.set(-mouseMoveDelta.x, mouseMoveDelta.y, 0);
-                pan(tinput);
+                v.set(-mouseMoveDelta.x, mouseMoveDelta.y, 0);
+                this.pan(v);
                 break;
         }
 
-        mousePrevPosition.copy(mouseCurrentPosition);
+        this.mousePrevPosition.copy(mousePosition);
     }
 
-    function mousePositionInOrthographicView (v) {
+    mousePositionInOrthographicView = (v) => {
         // convert into relative coordinates (0-1)
-        var x = v.x / domElement.offsetWidth;
-        var y = v.y / domElement.offsetHeight;
+        const x = v.x / this.domElement.offsetWidth
+        const y = v.y / this.domElement.offsetHeight
         // get the current height and width of the orthographic
-        var oWidth = oCam.right - oCam.left;
-        var oHeight = oCam.top - oCam.bottom;
+        const oWidth = this.oCam.right - this.oCam.left
+        const oHeight = this.oCam.top - this.oCam.bottom
 
         // so in this coordinate ortho matrix is focused around
-        var oX = oCam.left + x * oWidth;
-        var oY = oCam.bottom + (1 - y) * oHeight;
+        const oX = this.oCam.left + x * oWidth
+        const oY = this.oCam.bottom + (1 - y) * oHeight
 
         return {
             x: oX,
@@ -397,12 +406,12 @@ export function CameraController (pCam, oCam, oCamZoom, domElement) {
             yR: y,
             width: oWidth,
             height: oHeight
-        };
+        }
     }
 
-    function onMouseMoveHover (event) {
-        mouseHoverPosition.set(event.pageX, event.pageY);
-        var oM = mousePositionInOrthographicView(mouseHoverPosition);
+    onMouseMoveHover = (event) => {
+        this.mouseHoverPosition.set(event.pageX, event.pageY);
+        var oM = this.mousePositionInOrthographicView(this.mouseHoverPosition);
 
         // and new bounds are
         var zH = oM.height / PIP_ZOOM_FACTOR;
@@ -411,54 +420,49 @@ export function CameraController (pCam, oCam, oCamZoom, domElement) {
         // reconstructing bounds is easy...
         const zHm = zH / 2,
             zVm = zV / 2;
-        oCamZoom.left = oM.x - (zHm);
-        oCamZoom.right = oM.x + (zHm);
-        oCamZoom.top = oM.y + (zVm);
-        oCamZoom.bottom = oM.y - (zVm);
-        oCamZoom.updateProjectionMatrix();
+        this.oCamZoom.left = oM.x - (zHm);
+        this.oCamZoom.right = oM.x + (zHm);
+        this.oCamZoom.top = oM.y + (zVm);
+        this.oCamZoom.bottom = oM.y - (zVm);
+        this.oCamZoom.updateProjectionMatrix();
         // emit a special change event. If the viewport is
         // interested (i.e. we are in PIP mode) it can update
-        _changePip();
+        this._changePip();
     }
 
-    function _changePip() {
-        if (controller.onChangePip !== null) {
-            controller.onChangePip();
+    _changePip = () => {
+        if (this.onChangePip !== null) {
+            this.onChangePip();
         }
     }
 
-    function _change() {
-        if (controller.onChange !== null) {
-            controller.onChange();
+    _change = () => {
+        if (this.onChange !== null) {
+            this.onChange();
         }
     }
 
-    function onMouseUp (event) {
+    onMouseUp = (event) => {
         console.log('camera: up');
         event.preventDefault();
         $(document).off('mousemove.camera');
-        state = STATE.NONE;
+        this.state = STATE.NONE;
     }
 
-    function onMouseWheel (event) {
+    onMouseWheel = (event) => {
         //console.log('camera: mousewheel');
-        if (!enabled) {
+        if (!this.enabled) {
             return;
         }
         // we need to check the deltaMode to determine the scale of the mouse
         // wheel reading.
-        var scale = UNITS_FOR_MOUSE_WHEEL_DELTA_MODE[event.originalEvent.deltaMode];
-        tinput.set(0, 0, (-event.originalEvent.deltaY * MOUSE_WHEEL_SENSITIVITY * scale));
-        zoom(tinput);
+        var scale = UNITS_FOR_MOUSE_WHEEL_DELTA_MODE[event.originalEvent.deltaMode]
+        const v = new THREE.Vector3(0, 0, -event.originalEvent.deltaY * MOUSE_WHEEL_SENSITIVITY * scale)
+        this.zoom(v)
     }
 
-    // touch
-    const touch = new THREE.Vector3();
-    const prevTouch = new THREE.Vector3();
-    let prevDistance = null;
-
-    function touchStart (event) {
-        if (!enabled) {
+    touchStart = (event) => {
+        if (!this.enabled) {
             return;
         }
         const touches = event.touches;
@@ -466,57 +470,46 @@ export function CameraController (pCam, oCam, oCamZoom, domElement) {
             case 2:
                 var dx = touches[0].pageX - touches[1].pageX;
                 var dy = touches[0].pageY - touches[1].pageY;
-                prevDistance = Math.sqrt(dx * dx + dy * dy);
+                this.prevDistance = Math.sqrt(dx * dx + dy * dy);
                 break;
         }
-        prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
+        this.prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
     }
 
-    function touchMove (event) {
-        if (!enabled) {
+    touchMove = (event) => {
+        if (!this.enabled) {
             return;
         }
         event.preventDefault();
         event.stopPropagation();
         var touches = event.touches;
-        touch.set(touches[0].pageX, touches[0].pageY, 0);
+        this.touch.set(touches[0].pageX, touches[0].pageY, 0);
         switch (touches.length) {
             case 1:
-                const delta = touch.sub(prevTouch).multiplyScalar(0.005);
+                const delta = this.touch.sub(this.prevTouch).multiplyScalar(0.005);
                 delta.setY(-1 * delta.y);
-                rotate(delta);
+                this.rotate(delta);
                 break;
             case 2:
                 var dx = touches[0].pageX - touches[1].pageX;
                 var dy = touches[0].pageY - touches[1].pageY;
                 var distance = Math.sqrt(dx * dx + dy * dy);
-                zoom(new THREE.Vector3(0, 0, prevDistance - distance));
-                prevDistance = distance;
+                this.zoom(new THREE.Vector3(0, 0, this.prevDistance - distance));
+                this.prevDistance = distance;
                 break;
             case 3:
-                pan(touch.sub(prevTouch).setX(-touch.x));
+                this.pan(this.touch.sub(this.prevTouch).setX(-this.touch.x));
                 break;
         }
-        prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
+        this.prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
     }
-
-    //TODO should this always be enabled?
-    domElement.addEventListener('touchstart', touchStart, false);
-    domElement.addEventListener('touchmove', touchMove, false);
-
-    // enable everything on creation
-    enable();
-    $(domElement).on('mousemove.pip', onMouseMoveHover);
-
-    controller.allowRotation = allowRotation;
-    controller.enable = enable;
-    controller.disable = disable;
-    controller.resize = resize;
-    controller.focus = focus;
-    controller.position = position;
-    controller.reset = reset;
-    controller.onChange = null;
-    controller.onChangePip = null;
-
-    return controller;
 }
+
+
+// takes a 'desired' delta 3vec (from camera rotation) and clamps
+// it to one direction, x or y.
+const deltaForSingleDir = (delta: THREE.Vector3) : THREE.Vector3 =>
+    (Math.abs(delta.x) >= Math.abs(delta.y)) ? 
+        new THREE.Vector3(delta.x, 0, 0) : 
+        new THREE.Vector3(0, delta.y, 0)
+ 

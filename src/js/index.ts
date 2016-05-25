@@ -126,7 +126,7 @@ function _loadDropbox (u) {
 
         if (urlOk && u.query.state === oAuthState) {
             cfg.delete('OAUTH_STATE', true);
-            dropbox = new Backend.Dropbox(u.query.access_token, cfg);
+            dropbox = new Dropbox(u.query.access_token, cfg);
 
             delete u.query.access_token;
             delete u.query.token_type;
@@ -142,7 +142,7 @@ function _loadDropbox (u) {
             Intro.open();
         }
     } else if (token) {
-        dropbox = new Backend.Dropbox(token, cfg);
+        dropbox = new Dropbox(token, cfg);
     }
 
     if (dropbox) {
