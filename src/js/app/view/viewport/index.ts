@@ -9,8 +9,7 @@ import * as octree from './octree';
 
 import { CameraController } from './camera';
 import Handler from './handler';
-import { LandmarkConnectionTHREEView } from './elements/connection'
-import { LandmarkTHREEView } from './elements/landmark'
+import { LandmarkConnectionTHREEView, LandmarkTHREEView, ViewportElementCallbacks} from './elements'
 import { Landmark } from './base'
 
 // clear colour for both the main view and PictureInPicture
@@ -51,7 +50,7 @@ export interface ViewportCallbacks {
 export class Viewport {
     
     on: ViewportCallbacks
-    meshMode: any
+    meshMode: boolean   // if true, working with 3D meshes. False, 2D images.
     connectivityOn: boolean
     _editingOn: boolean
 
@@ -108,7 +107,7 @@ export class Viewport {
     octree: any
     
     
-    constructor(meshMode, on: ViewportCallbacks) {
+    constructor(meshMode: boolean, on: ViewportCallbacks) {
         // all our callbacks are stored under the on namespace.
         this.on = on;
 
@@ -623,7 +622,7 @@ export class Viewport {
     // 2D Canvas helper functions
     // ========================================================================
 
-    _updateCanvasBoundingBox = (point) => {
+    _updateCanvasBoundingBox = (point: THREE.Vector2) => {
         // update the canvas bounding box to account for this new point
         this._ctxBox.minX = Math.min(this._ctxBox.minX, point.x);
         this._ctxBox.minY = Math.min(this._ctxBox.minY, point.y);
@@ -631,7 +630,7 @@ export class Viewport {
         this._ctxBox.maxY = Math.max(this._ctxBox.maxY, point.y);
     };
 
-    _drawSelectionBox = (mouseDown, mousePosition) => {
+    _drawSelectionBox = (mouseDown: THREE.Vector2, mousePosition: THREE.Vector2) => {
         var x = mouseDown.x;
         var y = mouseDown.y;
         var dx = mousePosition.x - x;
@@ -642,7 +641,7 @@ export class Viewport {
         this._updateCanvasBoundingBox(mousePosition);
     };
 
-    _drawTargetingLines = (point, targetLm, secondaryLms) => {
+    _drawTargetingLines = (point: THREE.Vector2, targetLm: Landmark, secondaryLms: Landmark[]) => {
 
         this._updateCanvasBoundingBox(point);
 
@@ -672,7 +671,7 @@ export class Viewport {
         this._ctx.stroke();
     };
 
-    _clearCanvas = () => {
+    _clearCanvas = (): void => {
         if (_.isEqual(this._ctxBox, _initialBoundingBox())) {
             // there has been no change to the canvas - no need to clear
             return null;
@@ -694,18 +693,18 @@ export class Viewport {
     // Coordinates and intersection helpers
     // =========================================================================
 
-    _getIntersects = (x, y, object) => {
-        if (object === null || object.length === 0) {
-            return [];
+    _getIntersects = (x: number, y: number, object: THREE.Object3D | THREE.Object3D[]) => {
+        if (object === null || (object instanceof Array && object.length === 0)) {
+            return []
         }
         const vector = new THREE.Vector3((x / this._width()) * 2 - 1,
-                                        -(y / this._height()) * 2 + 1, 0.5);
+                                        -(y / this._height()) * 2 + 1, 0.5)
 
         if (this._sCamera === this._sPCam) {
             // perspective selection
-            vector.setZ(0.5);
-            vector.unproject(this._sCamera);
-            this._ray.set(this._sCamera.position, vector.sub(this._sCamera.position).normalize());
+            vector.setZ(0.5)
+            vector.unproject(this._sCamera)
+            this._ray.set(this._sCamera.position, vector.sub(this._sCamera.position).normalize())
         } else {
             // orthographic selection
             vector.setZ(-1);
@@ -725,9 +724,10 @@ export class Viewport {
         }
     };
 
-    _getIntersectsFromEvent = (e, object) => this._getIntersects(e.clientX, e.clientY, object);
+    _getIntersectsFromEvent = (e, object: THREE.Object3D | THREE.Object3D[]) => 
+        this._getIntersects(e.clientX, e.clientY, object);
 
-    _worldToScreen = (vector) => {
+    _worldToScreen = (vector: THREE.Vector3) => {
         const widthHalf = this._width() / 2;
         const heightHalf = this._height() / 2;
         const result = vector.project(this._sCamera);
@@ -736,19 +736,19 @@ export class Viewport {
         return result;
     };
 
-    _localToScreen = (vector) =>
+    _localToScreen = (vector: THREE.Vector3) =>
         this._worldToScreen(
             this._sMeshAndLms.localToWorld(vector.clone()));
 
-    _worldToLocal = (vector, inPlace=false) => {
+    _worldToLocal = (vector: THREE.Vector3, inPlace=false) => {
         return inPlace ? this._sMeshAndLms.worldToLocal(vector) :
                          this._sMeshAndLms.worldToLocal(vector.clone());
     };
 
-    _lmToScreen = (lmSymbol) =>
+    _lmToScreen = (lmSymbol: THREE.Mesh) =>
         this._worldToScreen(this._sMeshAndLms.localToWorld(lmSymbol.position.clone()));
 
-    _lmViewsInSelectionBox = (x1, y1, x2, y2) =>
+    _lmViewsInSelectionBox = (x1: number, y1: number, x2: number, y2: number) =>
         this._landmarkViews.filter(lmv => {
             if (lmv.symbol) {
                 const c = this._lmToScreen(lmv.symbol);
@@ -758,7 +758,7 @@ export class Viewport {
             }
         });
 
-    _lmViewVisible = (lmv) => {
+    _lmViewVisible = (lmv: LandmarkTHREEView) => {
         if (!lmv.symbol) {
             return false;
         }

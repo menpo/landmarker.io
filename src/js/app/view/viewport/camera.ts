@@ -79,9 +79,9 @@ export class CameraController {
     mouseHoverPosition = new THREE.Vector2()
        
     // touch tracking variables
-    prevTouch = new THREE.Vector3();
-    prevDistance = null;
-        
+    prevTouch = new THREE.Vector3()
+    prevDistance: number = null
+    
     constructor(pCam: THREE.PerspectiveCamera, 
                 oCam: THREE.OrthographicCamera, 
                 oCamZoom: THREE.OrthographicCamera, 
@@ -181,7 +181,7 @@ export class CameraController {
         this.pCam.updateProjectionMatrix();
     }
     
-    pan = (distance) => {
+    pan = (distance: THREE.Vector3) => {
         // first, handle the pCam...
         const oDist = distance.clone();
         const normalMatrix = new THREE.Matrix3()
@@ -316,7 +316,7 @@ export class CameraController {
         this._change()
     }
 
-    onMouseDown = (event) => {
+    onMouseDown = (event: MouseEvent) => {
         console.log('camera: mousedown');
         if (!this.enabled) {
             return;
@@ -352,7 +352,7 @@ export class CameraController {
         $(document).one('mouseup.camera', this.onMouseUp);
     }
 
-    onMouseMove = (event) => {
+    onMouseMove = (event: MouseEvent) => {
         event.preventDefault()   
         const v = new THREE.Vector3
         const mousePosition = new THREE.Vector2()
@@ -385,10 +385,10 @@ export class CameraController {
         this.mousePrevPosition.copy(mousePosition);
     }
 
-    mousePositionInOrthographicView = (v) => {
+    mousePositionInOrthographicView = (position: THREE.Vector2) => {
         // convert into relative coordinates (0-1)
-        const x = v.x / this.domElement.offsetWidth
-        const y = v.y / this.domElement.offsetHeight
+        const x = position.x / this.domElement.offsetWidth
+        const y = position.y / this.domElement.offsetHeight
         // get the current height and width of the orthographic
         const oWidth = this.oCam.right - this.oCam.left
         const oHeight = this.oCam.top - this.oCam.bottom
@@ -407,7 +407,7 @@ export class CameraController {
         }
     }
 
-    onMouseMoveHover = (event) => {
+    onMouseMoveHover = (event: MouseEvent) => {
         this.mouseHoverPosition.set(event.pageX, event.pageY);
         var oM = this.mousePositionInOrthographicView(this.mouseHoverPosition);
 
@@ -474,7 +474,7 @@ export class CameraController {
         this.prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
     }
 
-    touchMove = (event) => {
+    touchMove = (event: TouchEvent) => {
         if (!this.enabled) {
             return;
         }

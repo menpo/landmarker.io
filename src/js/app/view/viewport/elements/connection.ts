@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Landmark } from '../base'
+import { ViewportElementCallbacks } from './base'
 
 const LINE_COLOR = 0xffff00;
 
@@ -16,18 +17,13 @@ function createLine(start: THREE.Vector3, end: THREE.Vector3) {
     return new THREE.Line(geometry, LINE_MATERIAL)
 }
 
-interface ConnectionOpts {
-    onCreate: (symbol: THREE.Object3D) => void
-    onDispose: (symbol: THREE.Object3D) => void
-}
-
 export class LandmarkConnectionTHREEView {
 
     onCreate: (symbol: THREE.Object3D) => void
     onDispose: (symbol: THREE.Object3D) => void
     symbol: THREE.Line
 
-    constructor(lmA: Landmark, lmB: Landmark, options: ConnectionOpts) {
+    constructor(lmA: Landmark, lmB: Landmark, options: ViewportElementCallbacks) {
         this.onCreate = options.onCreate;
         this.onDispose = options.onDispose;
         this.symbol = null; // a THREE object that represents this connection.

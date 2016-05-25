@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Landmark } from '../base'
+import { ViewportElementCallbacks } from './base'
 
 const LM_SCALE = 0.01;  // the default scale for 1.0
 const LM_SPHERE_PARTS = 10;
@@ -34,7 +35,7 @@ export class LandmarkTHREEView {
     symbol: THREE.Mesh
     index: number
     
-    constructor (lm, options) {
+    constructor (lm: Landmark, options: ViewportElementCallbacks) {
         this.onCreate = options.onCreate;
         this.onDispose = options.onDispose;
 
