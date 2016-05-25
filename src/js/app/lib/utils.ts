@@ -86,24 +86,7 @@ export function capitalize (str) {
 }
 
 /**
- * Return the elements of array which index are in mask, technically works with
- * objects and string keys as well
- * @param {Array} array
- * @para {Integer[]} mask
- * @return {Array}
- */
-export function maskedArray (array, mask) {
-    const masked = [];
-    for (let i = 0; i < mask.length; i++) {
-        if (mask[i] !== undefined) {
-            masked.push(array[mask[i]]);
-        }
-    }
-    return masked;
-}
-
-/**
- * Restart the applicatioon by clearing the config and reloading the current
+ * Restart the application by clearing the config and reloading the current
  * origin.
  * @param  {String} serverUrl [Server URL to preset before reloading]
  */

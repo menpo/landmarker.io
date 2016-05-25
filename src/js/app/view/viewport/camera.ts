@@ -7,12 +7,12 @@ const DAMPING_FACTOR = 0.2;
 const PIP_ZOOM_FACTOR = 12.0;
 // const EPS = 0.000001;
 
-const STATE = {
-    NONE: -1,
-    ROTATE: 0,
-    ZOOM: 1,
-    PAN: 2
-};
+enum STATE {
+    NONE,
+    ROTATE,
+    ZOOM,
+    PAN
+}
 
 // see https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent.deltaMode
 const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
@@ -65,8 +65,9 @@ export class CameraController {
     oCamZoom: THREE.OrthographicCamera 
     domElement: HTMLElement
     state = STATE.NONE
-    target = new THREE.Vector3()
+
     origin: Origin
+    target = new THREE.Vector3()
     height = 0
     width = 0
 

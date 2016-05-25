@@ -20,41 +20,37 @@ const findClosestLandmarks = (lms: Landmark[], point: THREE.Vector, n = 4) =>
 export default class Handler {
     
     viewport: Viewport
-    currentTargetLm: any
-    downEvent: any
-    lmPressed: Landmark
-    isPressed: boolean
-    onMouseDownPosition: THREE.Vector2
-    onMouseUpPosition: THREE.Vector2
-    positionLmDrag: THREE.Vector2
-    dragStartPositions: any[]
-    dragged: boolean
-    intersectsWithLms: any[]
-    intersectsWithMesh: any[]
+    _currentTargetLmIndex: number = null
+    
+    downEvent = null
+    lmPressed: Landmark = null
+    isPressed = false
+    
+    onMouseDownPosition = new THREE.Vector2()
+    onMouseUpPosition = new THREE.Vector2()
+    positionLmDrag =  new THREE.Vector2()
+    
+    dragStartPositions = []
+    dragged = false
+    intersectsWithLms = []
+    intersectsWithMesh = []
     
     constructor(viewport: Viewport) {
-
-        this.viewport = viewport;
-
-        this.currentTargetLm = undefined;
-        this.downEvent = null;
-
-        this.lmPressed = null;
-        this.isPressed = false;
-
-        // x, y position of mouse on click states
-        this.onMouseDownPosition = new THREE.Vector2();
-        this.onMouseUpPosition = new THREE.Vector2();
-
-        // current screen position when in drag state
-        this.positionLmDrag = new THREE.Vector2();
-
-        this.dragStartPositions = [];
-        this.dragged = false;
-
-        this.intersectsWithLms = [];
-        this.intersectsWithMesh = [];
-
+        this.viewport = viewport
+    }
+    
+    get currentTargetLm (): Landmark {
+      return this._currentTargetLmIndex !== null ? 
+          this.viewport._landmarks[this._currentTargetLmIndex] : 
+          null
+    }
+    
+    set currentTargetLm (targetLm: Landmark) {
+        if (targetLm === null) {
+            this._currentTargetLmIndex = null
+        } else {
+            this._currentTargetLmIndex = targetLm.index
+        }
     }
 
     // High level handlers
@@ -77,7 +73,7 @@ export default class Handler {
 
     // called when the landmarks are changed on the viewport.
     resetLandmarks = () => {
-        this.currentTargetLm = undefined
+        this.currentTargetLm = null
     };
 
     landmarkPressed = () => {
@@ -168,7 +164,7 @@ export default class Handler {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
                         this.shiftPressed();
-                    } else if (this.viewport._editingOn && this.currentTargetLm) {
+                    } else if (this.viewport._editingOn && this.currentTargetLm !== null) {
                         this.meshPressed();
                     } else {
                         this.nothingPressed();
@@ -193,7 +189,7 @@ export default class Handler {
                 this.intersectsWithMesh.length > 0
             ) {
                 this.viewport.on.deselectAllLandmarks();
-                this.currentTargetLm = undefined;
+                this.currentTargetLm = null;
                 this.meshPressed();
             }
         }
@@ -238,11 +234,11 @@ export default class Handler {
         })
     });
 
-    shiftOnDrag = (event) => {
+    shiftOnDrag = (event: MouseEvent) => {
         console.log("shift:drag");
         // note - we use client as we don't want to jump back to zero
         // if user drags into sidebar!
-        var newPosition = { x: event.clientX, y: event.clientY };
+        var newPosition = new THREE.Vector2(event.clientX, event.clientY)
         // clear the canvas and draw a selection rect.
         this.viewport._clearCanvas();
         this.viewport._drawSelectionBox(this.onMouseDownPosition, newPosition);
@@ -251,7 +247,7 @@ export default class Handler {
     // Up handlers
     // ------------------------------------------------------------------------
 
-    shiftOnMouseUp = atomic.atomicOperation((event) => {
+    shiftOnMouseUp = atomic.atomicOperation((event: MouseEvent) => {
         this.viewport.cameraController.enable();
         console.log("shift:up");
         $(document).off('mousemove.shiftDrag', this.shiftOnDrag);
@@ -259,7 +255,7 @@ export default class Handler {
         var y1 = this.onMouseDownPosition.y;
         var x2 = event.clientX;
         var y2 = event.clientY;
-        var minX, maxX, minY, maxY;
+        let minX: number, maxX: number, minY: number, maxY: number
         if (x1 < x2) {
             [minX, maxX] = [x1, x2];
         } else {
@@ -282,7 +278,7 @@ export default class Handler {
         this.isPressed = false;
     });
 
-    meshOnMouseUp = (event) => {
+    meshOnMouseUp = (event: MouseEvent) => {
         console.log("meshPress:up");
         var p;
         this.onMouseUpPosition.set(event.clientX, event.clientY);
@@ -294,7 +290,7 @@ export default class Handler {
 
             if (
                 this.viewport._editingOn &&
-                this.currentTargetLm &&
+                this.currentTargetLm !== null &&
                 this.currentTargetLm.point !== null
             ) {
                 // we are in edit mode - adjust the target point
@@ -308,7 +304,7 @@ export default class Handler {
         this.viewport._clearCanvas();
     };
 
-    nothingOnMouseUp = (event) => {
+    nothingOnMouseUp = (event: MouseEvent) => {
         console.log("nothingPress:up");
         this.onMouseUpPosition.set(event.clientX, event.clientY);
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
@@ -319,7 +315,7 @@ export default class Handler {
         this.viewport._clearCanvas();
     };
 
-    landmarkOnMouseUp = atomic.atomicOperation((event) => {
+    landmarkOnMouseUp = atomic.atomicOperation((event: MouseEvent) => {
         const ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey;
         this.viewport.cameraController.enable();
         console.log("landmarkPress:up");
@@ -351,7 +347,7 @@ export default class Handler {
 
     // Move handlers
     // ------------------------------------------------------------------------
-    onMouseMove = atomic.atomicOperation((evt) => {
+    onMouseMove = atomic.atomicOperation((event: MouseEvent) => {
 
         this.viewport._clearCanvas();
 
@@ -368,14 +364,14 @@ export default class Handler {
         // 2. No group selection is made
         // 3. There is at least one landmark
 
-        if (this.currentTargetLm && this.currentTargetLm.point === null)
+        if (this.currentTargetLm !== null && this.currentTargetLm.point === null)
         {
             // the target point has been deleted - reset it.
             // TODO decide on reset state for target landmark
-            this.currentTargetLm = undefined;
+            this.currentTargetLm = null
         }
 
-        this.intersectsWithMesh = this.viewport._getIntersectsFromEvent(evt, this.viewport.mesh);
+        this.intersectsWithMesh = this.viewport._getIntersectsFromEvent(event, this.viewport.mesh);
 
         if (this.intersectsWithMesh.length == 0) {
             // moving the mouse off the mesh does nothing.
@@ -385,12 +381,12 @@ export default class Handler {
         const mouseLoc = this.viewport._worldToLocal(this.intersectsWithMesh[0].point);
 
         // lock only works once we have an existing target landmark
-        const lockEnabled = (evt.ctrlKey || evt.metaKey) && this.currentTargetLm;
+        const lockEnabled = (event.ctrlKey || event.metaKey) && this.currentTargetLm !== null;
 
-        let newTarget = undefined, nextClosest = [];
+        let newTarget: Landmark, nextClosest: Landmark[] = [];
         if (lockEnabled) {
             // we will not change the existing target
-            newTarget = this.currentTargetLm;
+            newTarget = this.currentTargetLm
 
             // only pick from the remaining landmarks
             const candidateLandmarks = this.viewport._nonEmptyLandmarks
@@ -404,16 +400,16 @@ export default class Handler {
 
         // Remember, we know there are >= 1 landmarks, so we always have a newTarget.
         // Draw it and the next closest on the UI....
-        this.viewport._drawTargetingLines({x: evt.clientX, y: evt.clientY},
+        this.viewport._drawTargetingLines(new THREE.Vector2(event.clientX, event.clientY),
             newTarget, nextClosest);
 
         // and if we have a change of new target, update the selection
-        if (!this.currentTargetLm || newTarget.index !== this.currentTargetLm.index) {
+        if (!this.currentTargetLm !== null || newTarget.index !== this.currentTargetLm.index) {
             // target has changed, which triggers a change in selection
             this.viewport.on.selectLandmarkAndDeselectRest(newTarget.index)
 
             // finally, update the current target lm for next time around.
-            this.currentTargetLm = newTarget;
+            this.currentTargetLm = newTarget
         }
     });
 

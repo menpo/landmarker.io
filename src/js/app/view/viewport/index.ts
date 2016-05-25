@@ -745,7 +745,7 @@ export class Viewport {
                          this._sMeshAndLms.worldToLocal(vector.clone());
     };
 
-    _lmToScreen = (lmSymbol: THREE.Mesh) =>
+    _lmToScreen = (lmSymbol: THREE.Object3D) =>
         this._worldToScreen(this._sMeshAndLms.localToWorld(lmSymbol.position.clone()));
 
     _lmViewsInSelectionBox = (x1: number, y1: number, x2: number, y2: number) =>

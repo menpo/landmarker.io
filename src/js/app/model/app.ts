@@ -6,7 +6,7 @@ import * as Backbone from 'backbone';
 
 import Tracker from '../lib/tracker';
 import * as AssetSource from './assetsource';
-import LandmarkGroup from './landmark_group';
+import { LandmarkGroup } from './landmark';
 import Modal from '../view/modal';
 
 export default Backbone.Model.extend({

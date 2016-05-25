@@ -1,0 +1,266 @@
+'use strict';
+
+import * as THREE from 'three';
+import { notify } from '../../view/notification';
+import Tracker from '../../lib/tracker';
+import atomic from '../atomic';
+
+import { Landmark } from './landmark';
+import { LandmarkCollection }  from './collection'
+import { LandmarkLabel } from './label'
+
+type LabelAndMask = {
+    label: string,
+    mask: number[]
+}
+
+function _validateConnectivity (nLandmarks: number, 
+                                connectivity: [number, number][]): [number, number][] {
+    if (!connectivity) {
+        return [];
+    }
+    connectivity.forEach(([a, b]) => {
+        if (a < 0 || a >= nLandmarks || b < 0 || b >= nLandmarks) {
+            // we have bad connectivity!
+            throw new Error(
+                "Illegal connectivity encountered - [" + a + ", " + b +
+                "] not permitted in group of " + nLandmarks + " landmarks");
+        }        
+    })
+    
+    return connectivity;
+}
+
+function _pointToVector ([x, y, z]) : [THREE.Vector3, number] {
+    const n = z === undefined ? 2 : 3;
+    
+    if (n === 2) {
+        z = 0;
+    }
+    
+    const allNonNull = (x !== null && y !== null && z !== null)
+    const v = allNonNull ? new THREE.Vector3(x, y, z) : null
+    
+    return [v, n]
+}
+
+// LandmarkGroup is the container for all the landmarks for a single asset.
+export class LandmarkGroup extends LandmarkCollection {
+    
+    connectivity: [number, number][]
+    id
+    type
+    server
+    tracker
+    labels: LandmarkLabel[]
+    
+    constructor(points: any[], connectivity: [number, number][], 
+                labels: LabelAndMask, id, type, server, tracker: Tracker) {
+                    
+        // 1. Build landmarks from points
+        super(points.map((p, index) => {
+            const [point, nDims] = _pointToVector(p);
+            return new Landmark(this, index, nDims, point);
+        }))
+        
+        this.id = id;
+        this.type = type;
+        this.server = server;
+        this.tracker = tracker || new Tracker()
+
+        // 2. Validate and assign connectivity (if there is any, it's not mandatory)
+        this.connectivity = _validateConnectivity(this.landmarks.length,
+                                                connectivity);
+
+        // 3. Build labels
+        this.labels = labels.map((label) => {
+            return new LandmarkLabel(label.label, this.landmarks, label.mask);
+        });
+
+        // make sure we start with a sensible insertion configuration.
+        this.resetNextAvailable();
+        this.tracker.recordState(this.toJSON(), true);
+    }
+    
+    static parse(json, id, type, server, tracker) {
+        return new LandmarkGroup(
+            json.landmarks.points,
+            json.landmarks.connectivity,
+            json.labels,
+            id,
+            type,
+            server,
+            tracker
+        )
+    }
+
+    // Restore landmarks from json saved, should be of the same template so
+    // no hard checking ot resetting the labels
+    restore = atomic.atomicOperation(({ landmarks, labels }) => {
+        const {points, connectivity} = landmarks;
+
+        this.landmarks.forEach(lm => lm.clear());
+        points.forEach((p, i) => {
+            const [v] = _pointToVector(p);
+            if (v) {
+                this.landmarks[i].setPoint(v);
+            }
+        });
+
+        this.connectivity = _validateConnectivity(this.landmarks.length,
+                                                connectivity);
+
+        delete this.labels;
+        this.labels = labels.map((label) => {
+            return new LandmarkLabel(label.label, this.landmarks, label.mask);
+        });
+
+        this.resetNextAvailable();
+    });
+
+    nextAvailable = (): Landmark => {
+        for (let i = 0; i < this.landmarks.length; i++) {
+            if (this.landmarks[i].isNextAvailable()) {
+                return this.landmarks[i];
+            }
+        }
+        return null;
+    };
+
+    clearAllNextAvailable = () => {
+        this.landmarks.forEach(function (l) {
+            l.clearNextAvailable();
+        });
+    };
+
+    // Sets the next available landmark to be either the first empty one,
+    // or if originLm is provided from the set, the first empty on after
+    // the originLm in storage order which is assumed to be logical order
+    // (Loop over all lms to clear the next available flag)
+    resetNextAvailable = (originLm: Landmark) => {
+
+        let first, next, pastOrigin = !originLm;
+
+        this.landmarks.forEach((lm) => {
+            lm.clearNextAvailable();
+            pastOrigin = pastOrigin || lm === originLm;
+
+            if (lm.isEmpty() && (!next || !first)) {
+                if (!next && pastOrigin) {
+                    next = lm;
+                } else if (!first && !pastOrigin) {
+                    first = lm;
+                }
+            }
+        });
+
+        next = !next ? first : next;          // Nothing was found after the origin
+        if (next) {
+            next.setNextAvailable();
+        }
+
+        return next;
+    }
+
+    deleteSelected = atomic.atomicOperation(() => {
+        const ops = [];
+        this.selected().forEach(function (lm) {
+            ops.push([lm.index(), lm.point().clone(), undefined]);
+            lm.clear();
+        });
+        // reactivate the group to reset next available.
+        this.resetNextAvailable();
+        this.tracker.record(ops);
+    })
+
+    insertNew = atomic.atomicOperation((v) => {
+        const lm = this.nextAvailable();
+        if (lm === null) {
+            return null;    // nothing left to insert!
+        }
+        // we are definitely inserting.
+        this.deselectAll();
+        this.setLmAt(lm, v);
+        this.resetNextAvailable(lm);
+    })
+
+   setLmAt = atomic.atomicOperation((lm, v) => {
+
+        if (!v) {
+            return;
+        }
+        this.tracker.record([
+            [lm.index(),
+            lm.point() ? lm.point().clone() : undefined,
+            v.clone() ]
+        ]);
+
+        lm.set({
+            point: v.clone(),
+            selected: true,
+            isEmpty: false,
+            nextAvailable: false
+        });
+    });
+
+    toJSON = () => {
+        return {
+            landmarks: {
+                points: this.landmarks.map(lm => lm.toJSON()),
+                connectivity: this.connectivity
+            },
+            labels: this.labels.map(label => label.toJSON()),
+            version: 2
+        };
+    };
+
+    save = () => {
+        return this.server
+            .saveLandmarkGroup(this.id, this.type, this.toJSON())
+            .then(() => {
+                this.tracker.recordState(this.toJSON(), true);
+                notify({type: 'success', msg: 'Save Completed'});
+            }, () => {
+                notify({type: 'error', msg: 'Save Failed'});
+            });
+    };
+
+    undo = () => {
+        this.tracker.undo((ops) => {
+            ops.forEach(([index, start]) => {
+                if (!start) {
+                    this.landmarks[index].clear();
+                } else {
+                    this.landmarks[index].setPoint(start.clone());
+                }
+            });
+            this.resetNextAvailable();
+        }, (json) => {
+            this.restore(json);
+        });
+    };
+
+    redo = () => {
+        this.tracker.redo((ops) => {
+            ops.forEach(([index, , end]) => {
+                if (!end) {
+                    this.landmarks[index].clear();
+                } else {
+                    this.landmarks[index].setPoint(end.clone());
+                }
+            });
+            this.resetNextAvailable();
+        }, (json) => {
+            this.restore(json);
+        });
+    };
+
+    completeGroups = () => {
+        this.labels.forEach((label) => {
+            // May be a way to review the structure as this is n^2 worse
+            if (label.landmarks.some(lm => lm.isSelected())) {
+                label.selectAll();
+            }
+        });
+    }
+}

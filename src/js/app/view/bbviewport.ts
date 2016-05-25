@@ -1,7 +1,7 @@
 import { Viewport, ViewportCallbacks } from './viewport'
+import BBLandmark from '../model/landmark' 
 
-
-const landmarkForBBLandmark = bbLm => ({
+const landmarkForBBLandmark = (bbLm: BBLandmark) => ({
     point: bbLm.point(),
     isSelected: bbLm.isSelected(),
     index: bbLm.index()
@@ -34,7 +34,7 @@ export class BackboneViewport {
             setLandmarkPoint: (i, point) => this.model.landmarks().setLmAt(this.model.landmarks().landmarks[i], point),
             setLandmarkPointWithHistory: (i, point) => this.model.landmarks().landmarks[i].setPoint(point),
             addLandmarkHistory: points => this.model.landmarks().tracker.record(points),
-            insertNewLandmark: point => this.model.landmarks().insertNew(point)
+            insertNewLandmark: point => this.model.landmarks().insertNew(point),
         };
         this.viewport = new Viewport(app.meshMode(), on);
         // window.vp = this.viewport
