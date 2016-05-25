@@ -39,8 +39,8 @@ interface Origin {
  * interactions, the camera is rotated, zoomed, and panned around some sort of
  * target. This class encapsulates this behavior.
  *
- * Takes a camera object as it's first parameter, and optionally a domElement to
- * attach to (if none provided, the document is used).
+ * Takes a camera object as it's first parameter, and a domElement to
+ * attach to
  *
  * Hooks up the following callbacks to the domElement:
  *
@@ -57,32 +57,28 @@ export class CameraController {
     
     onChange: () => any = null
     onChangePip: () => any = null
-    
+    enabled = false
+    canRotate = true // note that we will enable on creation below!
+        
     pCam: THREE.PerspectiveCamera
     oCam: THREE.OrthographicCamera 
     oCamZoom: THREE.OrthographicCamera 
     domElement: HTMLElement
     state = STATE.NONE
-    enabled = false
-    canRotate = true // note that we will enable on creation below!
     target = new THREE.Vector3()
     origin: Origin
     height = 0
     width = 0
-    
-    normalMatrix = new THREE.Matrix3()
-    
-    // Rotation specific values
+
+    // rotation tracking variables
     lastAngle: number
     lastAxis = new THREE.Vector3()
     
     // mouse tracking variables
     mousePrevPosition = new THREE.Vector2()
-    // Mouses position hovering over the surface
     mouseHoverPosition = new THREE.Vector2()
        
-    // touch
-    touch = new THREE.Vector3();
+    // touch tracking variables
     prevTouch = new THREE.Vector3();
     prevDistance = null;
         
@@ -188,8 +184,9 @@ export class CameraController {
     pan = (distance) => {
         // first, handle the pCam...
         const oDist = distance.clone();
-        this.normalMatrix.getNormalMatrix(this.pCam.matrix);
-        distance.applyMatrix3(this.normalMatrix);
+        const normalMatrix = new THREE.Matrix3()
+        normalMatrix.getNormalMatrix(this.pCam.matrix);
+        distance.applyMatrix3(normalMatrix);
         distance.multiplyScalar(this.distanceToTarget() * 0.001);
         this.pCam.position.add(distance);
         // TODO should the target change as this?!
@@ -212,8 +209,9 @@ export class CameraController {
     zoom = (distance: THREE.Vector3) => {
         const scalar = distance.z * 0.0007
         // First, handling the perspective matrix
-        this.normalMatrix.getNormalMatrix(this.pCam.matrix)
-        distance.applyMatrix3(this.normalMatrix)
+        const normalMatrix = new THREE.Matrix3()
+        normalMatrix.getNormalMatrix(this.pCam.matrix)
+        distance.applyMatrix3(normalMatrix)
         distance.multiplyScalar(this.distanceToTarget() * 0.001)
         this.pCam.position.add(distance)
 
@@ -480,28 +478,31 @@ export class CameraController {
         if (!this.enabled) {
             return;
         }
-        event.preventDefault();
-        event.stopPropagation();
-        var touches = event.touches;
-        this.touch.set(touches[0].pageX, touches[0].pageY, 0);
+        event.preventDefault()
+        event.stopPropagation()
+        
+        const touches = event.touches
+        const touch = new THREE.Vector3()
+        touch.set(touches[0].pageX, touches[0].pageY, 0)
+        
         switch (touches.length) {
             case 1:
-                const delta = this.touch.sub(this.prevTouch).multiplyScalar(0.005);
-                delta.setY(-1 * delta.y);
-                this.rotate(delta);
-                break;
+                const delta = touch.sub(this.prevTouch).multiplyScalar(0.005)
+                delta.setY(-1 * delta.y)
+                this.rotate(delta)
+                break
             case 2:
-                var dx = touches[0].pageX - touches[1].pageX;
-                var dy = touches[0].pageY - touches[1].pageY;
-                var distance = Math.sqrt(dx * dx + dy * dy);
-                this.zoom(new THREE.Vector3(0, 0, this.prevDistance - distance));
-                this.prevDistance = distance;
-                break;
+                var dx = touches[0].pageX - touches[1].pageX
+                var dy = touches[0].pageY - touches[1].pageY
+                var distance = Math.sqrt(dx * dx + dy * dy)
+                this.zoom(new THREE.Vector3(0, 0, this.prevDistance - distance))
+                this.prevDistance = distance
+                break
             case 3:
-                this.pan(this.touch.sub(this.prevTouch).setX(-this.touch.x));
-                break;
+                this.pan(touch.sub(this.prevTouch).setX(-touch.x))
+                break
         }
-        this.prevTouch.set(touches[0].pageX, touches[0].pageY, 0);
+        this.prevTouch.set(touches[0].pageX, touches[0].pageY, 0)
     }
 }
 
