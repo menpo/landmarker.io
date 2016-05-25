@@ -14,7 +14,7 @@ import Config from '../model/config';
  * @param  {boolean} useTime=true
  * @return {string}
  */
-export function randomString (length, useTime=true) {
+export function randomString (length: number, useTime=true): string {
     var result = '',
         ch = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -35,7 +35,7 @@ export function randomString (length, useTime=true) {
  * @param  {boolean} removeExt=false
  * @return {string}
  */
-export function basename (path, removeExt=false) {
+export function basename(path: string, removeExt=false) {
     const bn = path.split('/').pop();
     return removeExt ? bn.split('.').slice(0, -1).join('.') : bn;
 }
@@ -45,25 +45,25 @@ export function basename (path, removeExt=false) {
  * @param  {string} path
  * @return {string}
  */
-export function extname (path) {
-    const parts = path.split('.');
-    return parts.length > 1 ? parts.pop().toLowerCase() : undefined;
+export function extname(path: string): string {
+    const parts = path.split('.')
+    return parts.length > 1 ? parts.pop().toLowerCase() : undefined
 }
 
 /**
  * Return a path without its extension
  * @return {string}
  */
-export function stripExtension (path) {
+export function stripExtension(path: string): string {
     const parts = path.split('.');
     return parts.length > 1 ? parts.slice(0, -1).join('.') : path;
 }
 
-export function stripTrailingSlash (str) {
+export function stripTrailingSlash(str: string): string {
     return str.substr(-1) === '/' ? str.substr(0, str.length - 1) : str;
 }
 
-export function addTrailingSlash (str) {
+export function addTrailingSlash(str: string): string {
     return str.substr(-1) === '/' ? str : str + '/';
 }
 
@@ -74,15 +74,15 @@ export function baseUrl () {
     return addTrailingSlash(window.location.origin + window.location.pathname);
 }
 
-export function pad (n, width, z) {
+export function pad(n, width, z) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n :
         new Array(width - n.length + 1).join(z) + n;
 }
 
-export function capitalize (str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+export function capitalize(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
 /**
@@ -90,7 +90,7 @@ export function capitalize (str) {
  * origin.
  * @param  {String} serverUrl [Server URL to preset before reloading]
  */
-export function restart (serverUrl) {
+export function restart(serverUrl: string): void {
     Config().clear();
     const restartUrl = (
         baseUrl() + (serverUrl ? `?server=${serverUrl}` : '')
@@ -98,7 +98,7 @@ export function restart (serverUrl) {
     window.location.replace(restartUrl);
 }
 
-export function truncate (str, max, right=false, ellipsis=true) {
+export function truncate(str: string, max: number, right=false, ellipsis=true): string {
     if (str.length > max) {
         let _str = !right ? str.slice(0, max - str.length) : // Keep left
                             str.slice(str.length - max);     // Keep right

@@ -6,8 +6,15 @@ import * as THREE from 'three';
 // once a node gets this full it subdivides.
 const MAX_NODE_ITEMS = 75;
 
+interface Intersection {
+    distance: number,
+    point: THREE.Vector3
+    indices: [number, number, number]
+    object: THREE.Mesh
+}
+
 // return an octree suitable for use with a buffer geometry instance.
-export function octreeForBufferGeometry(geometry) {
+export function octreeForBufferGeometry(geometry: THREE.BufferGeometry) {
     if (geometry.boundingBox === null) {
         geometry.computeBoundingBox();
     }
@@ -39,27 +46,28 @@ export function octreeForBufferGeometry(geometry) {
 }
 
 // reused for mesh intersections.
-var inverseMatrix = new THREE.Matrix4();
-var _ray = new THREE.Ray();
+var inverseMatrix = new THREE.Matrix4()
+var _ray = new THREE.Ray()
 
-var vA = new THREE.Vector3();
-var vB = new THREE.Vector3();
-var vC = new THREE.Vector3();
-
-function descSort (a, b) {
-    return a.distance - b.distance;
-}
+var vA = new THREE.Vector3()
+var vB = new THREE.Vector3()
+var vC = new THREE.Vector3()
 
 // this code is largely adapted from THREE.Mesh.prototype.raycast
 // (particularly the geometry instanceof THREE.BufferGeometry branch)
-function intersectTrianglesAtIndices (ray, raycaster, mesh, indices) {
+function intersectTrianglesAtIndices(ray: THREE.Ray, 
+                                     raycaster: THREE.Raycaster, 
+                                     mesh: THREE.Mesh, 
+                                     indices: number[]): Intersection[] {
 
-    var intersects = [];
-    var material = mesh.material;
-    var attributes = mesh.geometry.attributes;
-    var a, b, c, j, intersectionPoint;
-    var precision = raycaster.precision;
-    var p = attributes.position.array;
+    const intersects: Intersection[] = []
+    const material = mesh.material
+    const attributes = mesh.geometry.attributes
+    const precision = raycaster.precision
+    const p = attributes.position.array
+    
+    let a: number, b: number, c: number, j: number, distance: number
+    let intersectionPoint: THREE.Vector3
 
     for (var i = 0; i < indices.length; i++) {
         j = indices[i] * 9;
@@ -78,11 +86,11 @@ function intersectTrianglesAtIndices (ray, raycaster, mesh, indices) {
         }
 
         if (intersectionPoint === null) {
-            continue;
+            continue
         }
 
-        intersectionPoint.applyMatrix4(mesh.matrixWorld);
-        var distance = raycaster.ray.origin.distanceTo(intersectionPoint);
+        intersectionPoint.applyMatrix4(mesh.matrixWorld)
+        distance = raycaster.ray.origin.distanceTo(intersectionPoint)
 
         if (distance < precision || distance < raycaster.near || distance > raycaster.far) {
             continue;
@@ -92,16 +100,14 @@ function intersectTrianglesAtIndices (ray, raycaster, mesh, indices) {
             distance: distance,
             point: intersectionPoint,
             indices: [a, b, c],
-            face: null,
-            faceIndex: null,
             object: mesh
-        });
+        })
     }
-    intersects.sort(descSort);
-    return intersects;
+    intersects.sort((a, b) => a.distance - b.distance)
+    return intersects
 }
 
-export function intersectMesh(raycaster, mesh, octree) {
+export function intersectMesh(raycaster: THREE.Raycaster, mesh: THREE.Mesh, octree) {
     // 1. Bring the ray into model space to intersect (remember, that's where
     // our octree was constructed)
     inverseMatrix.getInverse(mesh.matrixWorld);
@@ -126,77 +132,77 @@ export function OctreeNode(min, max) {
     this.items = [];
 }
 
-// by extending Box we save memory - no need to have our node have a box - it
+// by extending Box we save memory - no need for our node have a box - it
 // *is* one!
-OctreeNode.prototype = Object.create(THREE.Box3.prototype);
+OctreeNode.prototype = Object.create(THREE.Box3.prototype)
 
 // when all is said and done, we have a lot of boxes that are redundant on leaf
 // nodes. Go though and prune them all from the tree.
 OctreeNode.prototype.finalize = function () {
     if (this.isInteriorNode()) {
         for(var i = 0; i < 8; i++) {
-            this.children[i].finalize();
+            this.children[i].finalize()
         }
     } else {
         for(i = 0; i < this.nItems(); i++) {
             this.items[i] = this.items[i].payload;
         }
-        this.children = null;
+        this.children = null
     }
-};
+}
 
 OctreeNode.prototype.nItems = function () {
-    return this.items.length;
-};
+    return this.items.length
+}
 
 OctreeNode.prototype.nSubNodes = function () {
-    var count = 1;
+    var count = 1
     if (this.isInteriorNode()) {
         for(var i = 0; i < 8; i++) {
-            count += this.children[i].nSubNodes();
+            count += this.children[i].nSubNodes()
         }
     }
-    return count;
-};
+    return count
+}
 
 OctreeNode.prototype.nSubItems = function () {
-    var count = 0;
+    var count = 0
     if (this.isInteriorNode()) {
         for(var i = 0; i < 8; i++) {
-            count += this.children[i].nSubItems();
+            count += this.children[i].nSubItems()
         }
     } else {
-        count = this.nItems();
+        count = this.nItems()
     }
-    return count;
-};
+    return count
+}
 
 OctreeNode.prototype.isInteriorNode = function () {
     return this.items === null;
-};
+}
 
-OctreeNode.prototype.add = function(item) {
+OctreeNode.prototype.add = function(item: any) {
     if (this.isInteriorNode()) {
         for (var i = 0; i < 8; i++) {
             if (this.children[i].isIntersectionBox(item.box)) {
-                this.children[i].add(item);
+                this.children[i].add(item)
             }
         }
     } else if (this.nItems() === MAX_NODE_ITEMS) {
         // we've reached capacity and we are trying to add more! Time to split.
-        this.subdivide();
+        this.subdivide()
         // re-add the item.
-        this.add(item);
+        this.add(item)
     } else {
         // boring case of a leaf node - add the item until we are full.
-        this.items.push(item);
+        this.items.push(item)
     }
 
-};
+}
 
 // retrieve a list of items from this node and all subnodes that can intersect.
-OctreeNode.prototype.itemsWhichCouldIntersect = function(ray) {
-    var items = [];
+OctreeNode.prototype.itemsWhichCouldIntersect = function(ray: THREE.Ray) {
+    var items: any = [];
     if (ray.isIntersectionBox(this)) {
         if (this.isInteriorNode()) {
             for (var i = 0; i < this.children.length; i++) {
@@ -212,16 +218,16 @@ OctreeNode.prototype.itemsWhichCouldIntersect = function(ray) {
 // Split this node into 8 subnodes.
 OctreeNode.prototype.subdivide = function () {
 
-    var newMin, newMax, toAdd;
-    var a = this.min;
-    var c = this.center();
+    let newMin: THREE.Vector3, newMax: THREE.Vector3
+    const a = this.min
+    const c = this.center()
 
     // all subnodes will have this vector from min to max
-    var displacement = new THREE.Vector3();
+    const displacement = new THREE.Vector3();
     displacement.subVectors(this.center(), this.min);
 
     // declare the min value of each new box
-    var mins = [
+    const mins = [
         // bottom level
         this.min,
         new THREE.Vector3(c.x, a.y, a.z),
@@ -231,22 +237,23 @@ OctreeNode.prototype.subdivide = function () {
         new THREE.Vector3(a.x, a.y, c.z),
         new THREE.Vector3(c.x, a.y, c.z),
         new THREE.Vector3(a.x, c.y, c.z),
-        c];
+        c]
 
     // create the 8 children
-    for (var i = 0; i < mins.length; i++) {
-        newMin = mins[i];
-        newMax = new THREE.Vector3();
-        newMax.addVectors(newMin, displacement);
-        this.children.push(new OctreeNode(newMin, newMax));
-    }
+    this.children = mins.map(newMin => {
+        const newMax = new THREE.Vector3()
+        newMax.addVectors(newMin, displacement)
+        return new OctreeNode(newMin, newMax)   
+    })
 
     // we're an interior node now.
-    toAdd = this.items;
-    this.items = null;
-
+    const toAdd = this.items
+    this.items = null
+ 
     // go through all our points and add them to our new lovely children
-    for (i = 0; i < toAdd.length; i++) {
+    for (let i = 0; i < toAdd.length; i++) {
         this.add(toAdd[i]);
     }
+    
+    // this.items.forEach(item => this.add(item))
 };
