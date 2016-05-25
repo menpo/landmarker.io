@@ -1,4 +1,4 @@
-import { Viewport } from './viewport'
+import { Viewport, ViewportCallbacks } from './viewport'
 
 
 const landmarkForBBLandmark = bbLm => ({
@@ -20,8 +20,8 @@ export class BackboneViewport {
 
         this.model.onBudgeLandmarks = vector => this.viewport.budgeLandmarks(vector);
 
-
-        const on = {
+        // Construct the callback object to be provided to the viewport
+        const on: ViewportCallbacks = {
             selectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].select()),
             deselectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].deselect()),
             deselectAllLandmarks: () => {

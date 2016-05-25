@@ -34,12 +34,23 @@ function _initialBoundingBox() {
 }
 
 
+export interface ViewportCallbacks {
+    selectLandmarks: (indicies: number[]) => void
+    deselectLandmarks: (indicies: number[]) => void
+    deselectAllLandmarks: () => void
+    selectLandmarkAndDeselectRest: (index: number) => void
+    setLandmarkPoint: (index: number, point: THREE.Vector) => void
+    setLandmarkPointWithHistory: (index: number, point: THREE.Vector) => void
+    addLandmarkHistory: (points: THREE.Vector[]) => void
+    insertNewLandmark: (point: THREE.Vector) => void
+}
+
 // We are trying to move towards the whole viewport module being a standalone black box that
 // has no dependencies beyond THREE and our octree. As part of this effort, we refactor out
 // the Viewport core code into a standalone class with minimal interaction with Backbone.
 export class Viewport {
     
-    on: any
+    on: ViewportCallbacks
     meshMode: any
     connectivityOn: boolean
     _editingOn: boolean
@@ -97,7 +108,7 @@ export class Viewport {
     octree: any
     
     
-    constructor(meshMode, on) {
+    constructor(meshMode, on: ViewportCallbacks) {
         // all our callbacks are stored under the on namespace.
         this.on = on;
 
