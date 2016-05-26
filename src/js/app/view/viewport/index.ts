@@ -715,7 +715,7 @@ export class Viewport {
 
         if (object === this.mesh && this.octree) {
             // we can use the octree to intersect the mesh efficiently.
-            return octree.intersectMesh(this._ray, this.mesh, this.octree);
+            return this.octree.intersectMesh(this._ray, this.mesh)
         } else if (object instanceof Array) {
             return this._ray.intersectObjects(object, true);
         } else {
