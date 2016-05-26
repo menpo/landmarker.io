@@ -5,15 +5,17 @@ import * as THREE from 'three'
 import { atomic, AtomicOperationTracker } from '../../model/atomic'
 import { octreeForBufferGeometry, Octree, Intersection } from './octree'
 
-// import { CameraController } from './camera'
-import { Camera, CamerasManger } from './camera/camera'
-import { TouchCameraController } from './camera/touch'
-import { MouseCameraController } from './camera/mouse'
+import { Camera, MultCamManger,
+         TouchCameraController,
+         MouseCameraController } from './camera'
 
 import Handler from './handler'
 import TouchHandler from './touchHandler'
-import { LandmarkConnectionTHREEView, LandmarkTHREEView, ViewportElementCallbacks} from './elements'
+
 import { Landmark } from './base'
+import { LandmarkConnectionTHREEView,
+         LandmarkTHREEView,
+         ViewportElementCallbacks} from './elements'
 
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE
@@ -97,7 +99,7 @@ export class Viewport {
     _sHTranslate: THREE.Object3D
     _shMeshAndLms: THREE.Object3D
 
-    cameraController: Camera
+    camera: Camera
     cameraTouchController: TouchCameraController
     cameraMouseController: MouseCameraController
 
@@ -232,13 +234,13 @@ export class Viewport {
         // start with the perspective camera as the main one
         this._sCamera = this._sPCam;
 
-        // create the cameraController to look after all camera state.
-        this.cameraController = new CamerasManger(this._width(), this._height(),
-                                                  this._sPCam, this._sOCam, this._sOCamZoom)
+        // create the camera to look after all camera state.
+        this.camera = new MultCamManger(this._width(), this._height(),
+                                        this._sPCam, this._sOCam, this._sOCamZoom)
 
-        this.cameraController.onChange = this._update
-        this.cameraTouchController = new TouchCameraController(this.cameraController, this.el)
-        this.cameraMouseController = new MouseCameraController(this.cameraController, this.el)
+        this.camera.onChange = this._update
+        this.cameraTouchController = new TouchCameraController(this.camera, this.el)
+        this.cameraMouseController = new MouseCameraController(this.camera, this.el)
 
         if (!this.meshMode) {
             // for images, default to orthographic camera
@@ -429,13 +431,13 @@ export class Viewport {
         var currentlyPerspective = (this._sCamera === this._sPCam);
         if (currentlyPerspective) {
             // going to orthographic - start listening for pip updates
-            this.cameraController.onChangePip = this._update;
+            this.camera.onChangePip = this._update;
             this._sCamera = this._sOCam;
             // hide the pip decoration
             this._pipCanvas.style.display = null;
         } else {
             // leaving orthographic - stop listening to pip calls.
-            this.cameraController.onChangePip = null;
+            this.camera.onChangePip = null;
             this._sCamera = this._sPCam;
             // show the pip decoration
             this._pipCanvas.style.display = 'none';
@@ -449,7 +451,7 @@ export class Viewport {
         // reposition the cameras and focus back to the starting point.
         const v = this.meshMode ? MESH_MODE_STARTING_POSITION :
             IMAGE_MODE_STARTING_POSITION;
-        this.cameraController.reset(
+        this.camera.reset(
             v, this._scene.position, this.meshMode);
         this._update();
     };
@@ -591,7 +593,7 @@ export class Viewport {
         const h = this._height()
 
         // ask the camera controller to update the cameras appropriately
-        this.cameraController.resize(w, h)
+        this.camera.resize(w, h)
         // update the size of the renderer and the canvas
         this._renderer.setSize(w, h)
 
