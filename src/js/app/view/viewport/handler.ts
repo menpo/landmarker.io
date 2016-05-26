@@ -282,14 +282,11 @@ export default class Handler {
 
     meshOnMouseUp = (event: MouseEvent) => {
         console.log("meshPress:up");
-        var p;
         this.onMouseUpPosition.set(event.clientX, event.clientY);
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
             //  a click on the mesh
-            p = this.intersectsWithMesh[0].point.clone();
             // Convert the point back into the mesh space
-            this.viewport._worldToLocal(p, true);
-
+            const p = this.viewport._worldToLocal(this.intersectsWithMesh[0].point)
             if (
                 this.viewport._editingOn &&
                 this.currentTargetLm !== null &&
@@ -330,8 +327,7 @@ export default class Handler {
             } else if (!ctrl && !this.lmPressed.isSelected) {
                 this.viewport.on.selectLandmarkAndDeselectRest(this.lmPressed.index);
             } else if (this.lmPressed.isSelected) {
-                const p = this.intersectsWithMesh[0].point.clone();
-                this.viewport._worldToLocal(p, true);
+                const p = this.viewport._worldToLocal(this.intersectsWithMesh[0].point)
                 this.viewport.on.setLandmarkPoint(this.lmPressed.index, p)
             }
         } else if (this.dragged) {

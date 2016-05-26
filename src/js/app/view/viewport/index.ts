@@ -1,35 +1,35 @@
-'use strict';
+import * as _ from 'underscore'
+import * as $ from 'jquery'
+import * as THREE from 'three'
 
-import * as _ from 'underscore';
-import * as $ from 'jquery';
-import * as THREE from 'three';
+import atomic from '../../model/atomic'
+import { octreeForBufferGeometry, Octree, Intersection } from './octree'
 
-import atomic from '../../model/atomic';
-import { octreeForBufferGeometry, Octree, Intersection } from './octree';
-
-import { CameraController } from './camera';
-import Handler from './handler';
+import { CameraController } from './camera'
+import Handler from './handler'
 import { LandmarkConnectionTHREEView, LandmarkTHREEView, ViewportElementCallbacks} from './elements'
 import { Landmark } from './base'
 
 // clear colour for both the main view and PictureInPicture
-const CLEAR_COLOUR = 0xEEEEEE;
-const CLEAR_COLOUR_PIP = 0xCCCCCC;
+const CLEAR_COLOUR = 0xEEEEEE
+const CLEAR_COLOUR_PIP = 0xCCCCCC
 
-const MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5);
-const IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0);
+const MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5)
+const IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0)
 
-const PIP_WIDTH = 300;
-const PIP_HEIGHT = 300;
+const PIP_WIDTH = 300
+const PIP_HEIGHT = 300
 
-const MESH_SCALE = 1.0;
+const MESH_SCALE = 1.0
 
 interface BoundingBox {
     minX: number, minY: number, maxX: number, maxY: number
 }
 
+type Intersectable = THREE.Object3D | THREE.Object3D[]
+
 function _initialBoundingBox() {
-    return {minX: 999999, minY: 999999, maxX: 0, maxY: 0};
+    return { minX: 999999, minY: 999999, maxX: 0, maxY: 0 }
 }
 
 
@@ -388,11 +388,11 @@ export class Viewport {
             this.octree = octreeForBufferGeometry(geometry)
         }
 
-        this._sMesh.add(mesh);
+        this._sMesh.add(mesh)
         // Now we need to rescale the _sMeshAndLms to fit in the unit sphere
         // First, the scale
         this._meshScale = mesh.geometry.boundingSphere.radius;
-        var s = 1.0 / this._meshScale;
+        var s = 1.0 / this._meshScale
         this._sScaleRotate.scale.set(s, s, s);
         this._shScaleRotate.scale.set(s, s, s);
         this._sScaleRotate.up.copy(up);
@@ -692,7 +692,7 @@ export class Viewport {
     // Coordinates and intersection helpers
     // =========================================================================
 
-    _getIntersects = (x: number, y: number, object: THREE.Object3D | THREE.Object3D[]) => {
+    _getIntersects = (x: number, y: number, object: Intersectable): Intersection[] =>  {
         if (object === null || (object instanceof Array && object.length === 0)) {
             return []
         }
@@ -717,58 +717,47 @@ export class Viewport {
             // we can use the octree to intersect the mesh efficiently.
             return this.octree.intersectMesh(this._ray, this.mesh)
         } else if (object instanceof Array) {
-            return this._ray.intersectObjects(object, true);
+            return this._ray.intersectObjects(object, true)
         } else {
             return this._ray.intersectObject(object, true);
         }
     };
 
-    _getIntersectsFromEvent = (e, object: THREE.Object3D | THREE.Object3D[]) => 
-        this._getIntersects(e.clientX, e.clientY, object);
+    _getIntersectsFromEvent = (e: MouseEvent, object: Intersectable) => this._getIntersects(e.clientX, e.clientY, object);
 
-    _worldToScreen = (vector: THREE.Vector3) => {
-        const widthHalf = this._width() / 2;
-        const heightHalf = this._height() / 2;
-        const result = vector.project(this._sCamera);
-        result.x = (result.x * widthHalf) + widthHalf;
-        result.y = -(result.y * heightHalf) + heightHalf;
-        return result;
-    };
+    _worldToScreen = (v: THREE.Vector3) => {
+        const halfW = this._width() / 2
+        const halfH = this._height() / 2
+        const p = v.clone().project(this._sCamera)
+        return new THREE.Vector2((p.x * halfW) + halfW, -(p.y * halfH) + halfH)
+    }
 
-    _localToScreen = (vector: THREE.Vector3) =>
-        this._worldToScreen(
-            this._sMeshAndLms.localToWorld(vector.clone()));
-
-    _worldToLocal = (vector: THREE.Vector3, inPlace=false) => {
-        return inPlace ? this._sMeshAndLms.worldToLocal(vector) :
-                         this._sMeshAndLms.worldToLocal(vector.clone());
-    };
-
-    _lmToScreen = (lmSymbol: THREE.Object3D) =>
-        this._worldToScreen(this._sMeshAndLms.localToWorld(lmSymbol.position.clone()));
+    _worldToLocal = (v: THREE.Vector3) => this._sMeshAndLms.worldToLocal(v.clone())
+    _localToScreen = (v: THREE.Vector3) => this._worldToScreen(this._sMeshAndLms.localToWorld(v.clone()))
 
     _lmViewsInSelectionBox = (x1: number, y1: number, x2: number, y2: number) =>
         this._landmarkViews.filter(lmv => {
             if (lmv.symbol) {
-                const c = this._lmToScreen(lmv.symbol);
+                const c = this._localToScreen(lmv.symbol.position)
                 return c.x > x1 && c.x < x2 && c.y > y1 && c.y < y2
             } else {
                 return false
             }
-        });
+        })
 
     _lmViewVisible = (lmv: LandmarkTHREEView) => {
-        if (!lmv.symbol) {
-            return false;
+        if (lmv.symbol === null) {
+            return false
         }
-        const screenCoords = this._lmToScreen(lmv.symbol);
+        const screenCoords = this._localToScreen(lmv.symbol.position)
         // intersect the mesh and the landmarks
         const iMesh = this._getIntersects(
-            screenCoords.x, screenCoords.y, this.mesh);
+            screenCoords.x, screenCoords.y, this.mesh)
         const iLm = this._getIntersects(
-            screenCoords.x, screenCoords.y, lmv.symbol);
+            screenCoords.x, screenCoords.y, lmv.symbol)
         // is there no mesh here (pretty rare as landmarks have to be on mesh)
         // or is the mesh behind the landmarks?
-        return iMesh.length === 0 || iMesh[0].distance > iLm[0].distance;
-    };
+        return iMesh.length === 0 || iMesh[0].distance > iLm[0].distance
+    }
+
 }
