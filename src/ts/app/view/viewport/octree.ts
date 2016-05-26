@@ -19,7 +19,7 @@ export function octreeForBufferGeometry(geometry: THREE.BufferGeometry): Octree 
     const octree = new ExtendableOctree(geometry.boundingBox.min,
                                               geometry.boundingBox.max)
     const pointsAttribute = geometry.getAttribute('position') as THREE.BufferAttribute
-    const nTris = pointsAttribute.count / 9
+    const nTris = pointsAttribute.count / 3
     const p = pointsAttribute.array
     const tmp = new THREE.Vector3()
     let box: THREE.Box3
