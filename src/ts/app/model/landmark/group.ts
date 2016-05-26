@@ -19,7 +19,7 @@ type JSONPoint = [number, number, number] | [number, number]
 type LJSON = {
     landmarks: {
         points: JSONPoint[]
-        connectivity: [number, number][]    
+        connectivity: [number, number][]
     }
     labels: {
         label: string,
@@ -27,7 +27,7 @@ type LJSON = {
     }[]
 }
 
-function _validateConnectivity (nLandmarks: number, 
+function _validateConnectivity (nLandmarks: number,
                                 connectivity: [number, number][]): [number, number][] {
     if (!connectivity) {
         return [];
@@ -38,16 +38,16 @@ function _validateConnectivity (nLandmarks: number,
             throw new Error(
                 "Illegal connectivity encountered - [" + a + ", " + b +
                 "] not permitted in group of " + nLandmarks + " landmarks");
-        }        
+        }
     })
-    
+
     return connectivity;
 }
 
 function _pointToVector (p: JSONPoint) : [THREE.Vector3, number] {
     const n = p.length
-    const [x, y, ...other] = p
-    const z = (n === 3) ?  p[2] : 0    
+    const [x, y] = p
+    const z = (n === 3) ?  p[2] : 0
     const allNonNull = (x !== null && y !== null && z !== null)
     const v = allNonNull ? new THREE.Vector3(x, y, z) : null
     return [v, n]
@@ -55,23 +55,23 @@ function _pointToVector (p: JSONPoint) : [THREE.Vector3, number] {
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
 export class LandmarkGroup extends LandmarkCollection {
-    
+
     connectivity: [number, number][]
     id
     type
     server
     tracker: Tracker
     labels: LandmarkLabel[]
-    
-    constructor(points: any[], connectivity: [number, number][], 
+
+    constructor(points: any[], connectivity: [number, number][],
                 labels: LabelAndMask[], id, type, server, tracker: Tracker) {
-                    
+
         // 1. Build landmarks from points
         super(points.map((p, index) => {
             const [point, nDims] = _pointToVector(p);
             return new Landmark(this, index, nDims, point);
         }))
-        
+
         this.id = id;
         this.type = type;
         this.server = server;
@@ -90,7 +90,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.resetNextAvailable();
         this.tracker.recordState(this.toJSON(), true);
     }
-    
+
     static parse(json, id, type, server, tracker) {
         return new LandmarkGroup(
             json.landmarks.points,

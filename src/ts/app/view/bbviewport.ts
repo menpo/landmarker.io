@@ -1,5 +1,5 @@
 import { Viewport, ViewportCallbacks } from './viewport'
-import BBLandmark from '../model/landmark' 
+import BBLandmark from '../model/landmark'
 
 const landmarkForBBLandmark = (bbLm: BBLandmark) => ({
     point: bbLm.point(),
@@ -14,7 +14,7 @@ export class BackboneViewport {
 
     model: any
     viewport: Viewport
-    
+
     constructor(app) {
         this.model = app;
 

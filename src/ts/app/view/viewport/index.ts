@@ -51,7 +51,7 @@ export class Viewport {
 
     on: ViewportCallbacks
     meshMode: boolean   // if true, working with 3D meshes. False, 2D images.
-    connectivityOn: boolean
+    connectivityOn = true
     _editingOn: boolean
 
     el: HTMLElement
@@ -65,9 +65,9 @@ export class Viewport {
     _ctx: CanvasRenderingContext2D
     _pipCtx: CanvasRenderingContext2D
 
-    _pixelRatio: number
-    _meshScale: number
-    _lmSize: number
+    _pixelRatio = window.devicePixelRatio || 1  // 2/3 if on a HIDPI/retina display
+    _meshScale = MESH_SCALE  // The radius of the mesh's bounding sphere
+    _lmSize = 1
 
     _ctxBox: BoundingBox
 
@@ -110,16 +110,9 @@ export class Viewport {
     constructor(meshMode: boolean, on: ViewportCallbacks) {
         // all our callbacks are stored under the on namespace.
         this.on = on;
-
         this.meshMode = meshMode;
-        this.connectivityOn = true;
-
         this.el = document.getElementById('canvas');
         this.$el = $('#canvas');
-
-        // ----- CONFIGURATION ----- //
-        this._meshScale = MESH_SCALE;  // The radius of the mesh's bounding sphere
-        this._lmSize = 1;
 
         // Disable context menu on viewport related elements
         $('canvas').on("contextmenu", function(e){
@@ -143,10 +136,6 @@ export class Viewport {
         this.$container = $('#viewportContainer');
         // and grab the viewport div
         this.$webglel = $('#viewport');
-
-        // we need to track the pixel ratio of this device (i.e. is it a
-        // HIDPI/retina display?)
-        this._pixelRatio = window.devicePixelRatio || 1;
 
         // Get a hold on the overlay canvas and its context (note we use the
         // id - the Viewport should be passed the canvas element on
@@ -265,10 +254,9 @@ export class Viewport {
         this._sLights.add(new THREE.AmbientLight(0x404040));
 
         this._renderer = new THREE.WebGLRenderer(
-            { antialias: false, alpha: false });
-        this._renderer.setPixelRatio(window.devicePixelRatio || 1);
-        this._renderer.setClearColor(CLEAR_COLOUR, 1);
-        this._renderer.autoClear = false;
+            { antialias: false, alpha: false })
+        this._renderer.setPixelRatio(this._pixelRatio)
+        this._renderer.autoClear = false
         // attach the render on the element we picked out earlier
         this.$webglel.html(this._renderer.domElement);
 
@@ -392,7 +380,7 @@ export class Viewport {
         // Now we need to rescale the _sMeshAndLms to fit in the unit sphere
         // First, the scale
         this._meshScale = mesh.geometry.boundingSphere.radius;
-        var s = 1.0 / this._meshScale
+        const s = 1.0 / this._meshScale
         this._sScaleRotate.scale.set(s, s, s);
         this._shScaleRotate.scale.set(s, s, s);
         this._sScaleRotate.up.copy(up);
@@ -400,7 +388,7 @@ export class Viewport {
         this._sScaleRotate.lookAt(front.clone());
         this._shScaleRotate.lookAt(front.clone());
         // translation
-        var t = mesh.geometry.boundingSphere.center.clone();
+        const t = mesh.geometry.boundingBox.center().clone();
         t.multiplyScalar(-1.0);
         this._sTranslate.position.copy(t);
         this._sHTranslate.position.copy(t);
@@ -541,13 +529,13 @@ export class Viewport {
         this._sLms.children.forEach(v => v.scale.x !== s ? v.scale.set(s, s, s) : null);
 
         // 2. Render the main viewport...
-        const w = this._width();
-        const h = this._height();
-        this._renderer.setViewport(0, 0, w, h);
-        this._renderer.setScissor(0, 0, w, h);
-        this._renderer.enableScissorTest(true);
-        this._renderer.clear();
-        this._renderer.render(this._scene, this._sCamera);
+        const w = this._width()
+        const h = this._height()
+        this._renderer.setViewport(0, 0, w, h)
+        this._renderer.setScissorTest(false)
+        this._renderer.setClearColor(CLEAR_COLOUR)
+        this._renderer.clear()
+        this._renderer.render(this._scene, this._sCamera)
 
         if (this.connectivityOn) {
             // clear depth buffer
@@ -558,12 +546,15 @@ export class Viewport {
 
         // 3. Render the PIP image if in orthographic mode
         if (this._sCamera === this._sOCam) {
-            var b = this._pipBounds();
-            this._renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
+            var b = this._pipBounds()
+            this._renderer.setScissor(b.x * this._pixelRatio, b.y * 2, b.width * 2, b.height * 2)
+            this._renderer.setScissorTest(true)
+            this._renderer.setClearColor(CLEAR_COLOUR_PIP)
+            this._renderer.clear()
+            this._renderer.setScissorTest(false)
+
             this._renderer.setViewport(b.x, b.y, b.width, b.height);
-            this._renderer.setScissor(b.x, b.y, b.width, b.height);
-            this._renderer.enableScissorTest(true);
-            this._renderer.clear();
+
             // render the PIP image
             this._renderer.render(this._scene, this._sOCamZoom);
             if (this.connectivityOn) {
@@ -571,7 +562,6 @@ export class Viewport {
                 // and render the connectivity
                 this._renderer.render(this._sceneHelpers, this._sOCamZoom);
             }
-            this._renderer.setClearColor(CLEAR_COLOUR, 1);
         }
     };
 

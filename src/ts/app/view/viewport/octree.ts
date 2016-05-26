@@ -19,7 +19,7 @@ export function octreeForBufferGeometry(geometry: THREE.BufferGeometry): Octree 
     const octree = new ExtendableOctree(geometry.boundingBox.min,
                                               geometry.boundingBox.max)
     const pointsAttribute = geometry.getAttribute('position') as THREE.BufferAttribute
-    const nTris = pointsAttribute.length / 9
+    const nTris = pointsAttribute.count / 9
     const p = pointsAttribute.array
     const tmp = new THREE.Vector3()
     let box: THREE.Box3
@@ -136,7 +136,7 @@ class OctreeNode<T extends OctreeNode<T> > extends THREE.Box3 {
     // retrieve a list of items from this node and all subnodes that can intersect.
     itemsWhichCouldIntersect(ray: THREE.Ray): number[] {
         let items: number[] = []
-        if (ray.isIntersectionBox(this)) {
+        if (ray.intersectsBox(this)) {
             if (this.isInteriorNode) {
                 for (let i = 0; i < this.children.length; i++) {
                     items = items.concat(this.children[i].itemsWhichCouldIntersect(ray))
@@ -159,7 +159,7 @@ class ExtendableOctree extends OctreeNode<ExtendableOctree> {
     add(item: number, box: THREE.Box3) {
         if (this.isInteriorNode) {
             for (var i = 0; i < 8; i++) {
-                if (this.children[i].isIntersectionBox(box)) {
+                if (this.children[i].intersectsBox(box)) {
                     this.children[i].add(item, box)
                 }
             }
