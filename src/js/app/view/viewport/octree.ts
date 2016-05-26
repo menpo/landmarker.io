@@ -133,6 +133,10 @@ class OctreeNode extends THREE.Box3 {
     children: OctreeNode[] = []
     items: OctreeItem[] = []
 
+    get isInteriorNode() {
+        return this.items === null
+    }
+
     get nItems() {
         return this.items.length
     }
@@ -157,10 +161,6 @@ class OctreeNode extends THREE.Box3 {
             count = this.nItems
         }
         return count
-    }
-
-    get isInteriorNode() {
-        return this.items === null
     }
 
     add(item: OctreeItem) {
@@ -198,8 +198,6 @@ class OctreeNode extends THREE.Box3 {
 
     // Split this node into 8 subnodes.
     subdivide() {
-
-        let newMin: THREE.Vector3, newMax: THREE.Vector3
         const m = this.min
         const c = this.center()
 
