@@ -6,6 +6,7 @@ const ROTATION_SENSITIVITY = 3.5;
 const DAMPING_FACTOR = 0.2;
 const PIP_ZOOM_FACTOR = 12.0;
 // const EPS = 0.000001;
+const PINCH_GEUSTURE_DEBOUNCE_MS = 200
 
 enum STATE {
     NONE,
@@ -54,15 +55,17 @@ interface Origin {
  * property.
  */
 export class CameraController {
-    
+
     onChange: () => any = null
     onChangePip: () => any = null
     enabled = false
     canRotate = true // note that we will enable on creation below!
-        
+
+    timeOfLastPinchTouch: number = 0
+
     pCam: THREE.PerspectiveCamera
-    oCam: THREE.OrthographicCamera 
-    oCamZoom: THREE.OrthographicCamera 
+    oCam: THREE.OrthographicCamera
+    oCamZoom: THREE.OrthographicCamera
     domElement: HTMLElement
     state = STATE.NONE
 
@@ -74,18 +77,18 @@ export class CameraController {
     // rotation tracking variables
     lastAngle: number
     lastAxis = new THREE.Vector3()
-    
+
     // mouse tracking variables
     mousePrevPosition = new THREE.Vector2()
     mouseHoverPosition = new THREE.Vector2()
-       
+
     // touch tracking variables
     prevTouch = new THREE.Vector3()
     prevDistance: number = null
-    
-    constructor(pCam: THREE.PerspectiveCamera, 
-                oCam: THREE.OrthographicCamera, 
-                oCamZoom: THREE.OrthographicCamera, 
+
+    constructor(pCam: THREE.PerspectiveCamera,
+                oCam: THREE.OrthographicCamera,
+                oCamZoom: THREE.OrthographicCamera,
                 domElement: HTMLElement) {
         this.pCam = pCam
         this.oCam = oCam
@@ -100,7 +103,7 @@ export class CameraController {
             oCamUp: oCam.up.clone(),
             oCamZoomPosition: oCamZoom.position.clone()
         }
-        
+
         //TODO should this always be enabled?
         domElement.addEventListener('touchstart', this.touchStart, false)
         domElement.addEventListener('touchmove', this.touchMove, false)
@@ -118,7 +121,7 @@ export class CameraController {
         this.oCamZoom.lookAt(this.target)
     }
 
-    reset = (newPosition: THREE.Vector3, newTarget: THREE.Vector3, 
+    reset = (newPosition: THREE.Vector3, newTarget: THREE.Vector3,
              newCanRotate: boolean) => {
         this.state = STATE.NONE
         this.allowRotation(newCanRotate)
@@ -181,7 +184,7 @@ export class CameraController {
         this.pCam.aspect = aspect;
         this.pCam.updateProjectionMatrix();
     }
-    
+
     pan = (distance: THREE.Vector3) => {
         // first, handle the pCam...
         const oDist = distance.clone();
@@ -257,7 +260,7 @@ export class CameraController {
         const v = new THREE.Vector3()
         return v.subVectors(this.target, this.pCam.position).length()
     }
-    
+
     projectMouseOnSphere = (px: number, py: number): THREE.Vector2 => {
         const v = new THREE.Vector2()
         v.set(
@@ -272,7 +275,7 @@ export class CameraController {
         const quaternion = new THREE.Quaternion()
         const _delta = singleDir ? deltaForSingleDir(delta) : delta
         const angle = _delta.length()
-        
+
         const targetDirection = new THREE.Vector3()
         const upDirection = new THREE.Vector3()
         const sidewaysDirection = new THREE.Vector3()
@@ -302,7 +305,7 @@ export class CameraController {
             this.lastAngle *= Math.sqrt(1.0 - DAMPING_FACTOR)
             quaternion.setFromAxisAngle(this.lastAxis, this.lastAngle)
         }
-        
+
         targetToCamera.applyQuaternion(quaternion)
         camera.up.applyQuaternion(quaternion)
 
@@ -354,7 +357,7 @@ export class CameraController {
     }
 
     onMouseMove = (event: MouseEvent) => {
-        event.preventDefault()   
+        event.preventDefault()
         const v = new THREE.Vector3
         const mousePosition = new THREE.Vector2()
         const mouseMoveDelta = new THREE.Vector2()
@@ -481,13 +484,19 @@ export class CameraController {
         }
         event.preventDefault()
         event.stopPropagation()
-        
+
         const touches = event.touches
         const touch = new THREE.Vector3()
         touch.set(touches[0].pageX, touches[0].pageY, 0)
-        
+
         switch (touches.length) {
             case 1:
+                if (event.timeStamp - this.timeOfLastPinchTouch < PINCH_GEUSTURE_DEBOUNCE_MS) {
+                    // we are suspiciously soon after a pinch guesture for a single
+                    // touch - this is just a human not releasing both digits perfectly
+                    // simultaneously!
+                    break
+                }
                 const delta = touch.sub(this.prevTouch).multiplyScalar(0.005)
                 delta.setY(-1 * delta.y)
                 this.rotate(delta)
@@ -498,6 +507,7 @@ export class CameraController {
                 var distance = Math.sqrt(dx * dx + dy * dy)
                 this.zoom(new THREE.Vector3(0, 0, this.prevDistance - distance))
                 this.prevDistance = distance
+                this.timeOfLastPinchTouch = event.timeStamp
                 break
             case 3:
                 this.pan(touch.sub(this.prevTouch).setX(-touch.x))
@@ -511,7 +521,6 @@ export class CameraController {
 // takes a 'desired' delta 3vec (from camera rotation) and clamps
 // it to one direction, x or y.
 const deltaForSingleDir = (delta: THREE.Vector3) : THREE.Vector3 =>
-    (Math.abs(delta.x) >= Math.abs(delta.y)) ? 
-        new THREE.Vector3(delta.x, 0, 0) : 
+    (Math.abs(delta.x) >= Math.abs(delta.y)) ?
+        new THREE.Vector3(delta.x, 0, 0) :
         new THREE.Vector3(0, delta.y, 0)
- 
