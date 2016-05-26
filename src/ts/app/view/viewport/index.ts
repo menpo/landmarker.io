@@ -5,8 +5,13 @@ import * as THREE from 'three'
 import { atomic, AtomicOperationTracker } from '../../model/atomic'
 import { octreeForBufferGeometry, Octree, Intersection } from './octree'
 
-import { CameraController } from './camera'
+// import { CameraController } from './camera'
+import { Camera, CamerasManger } from './camera/camera'
+import { TouchCameraController } from './camera/touch'
+import { MouseCameraController } from './camera/mouse'
+
 import Handler from './handler'
+import TouchHandler from './touchHandler'
 import { LandmarkConnectionTHREEView, LandmarkTHREEView, ViewportElementCallbacks} from './elements'
 import { Landmark } from './base'
 
@@ -92,13 +97,16 @@ export class Viewport {
     _sHTranslate: THREE.Object3D
     _shMeshAndLms: THREE.Object3D
 
-    cameraController: CameraController
+    cameraController: Camera
+    cameraTouchController: TouchCameraController
+    cameraMouseController: MouseCameraController
 
     _landmarkViews: LandmarkTHREEView[]
     _connectivityViews: LandmarkConnectionTHREEView[]
     _ray: THREE.Raycaster
 
     _handler: Handler
+    touchHandler: TouchHandler
 
     _landmarks: Landmark[]
     _connectivity: [number, number][]
@@ -225,11 +233,12 @@ export class Viewport {
         this._sCamera = this._sPCam;
 
         // create the cameraController to look after all camera state.
-        this.cameraController = new CameraController(
-            this._sPCam, this._sOCam, this._sOCamZoom,
-            this.el);
+        this.cameraController = new CamerasManger(this._width(), this._height(),
+                                                  this._sPCam, this._sOCam, this._sOCamZoom)
 
-        this.cameraController.onChange = this._update;
+        this.cameraController.onChange = this._update
+        this.cameraTouchController = new TouchCameraController(this.cameraController, this.el)
+        this.cameraMouseController = new MouseCameraController(this.cameraController, this.el)
 
         if (!this.meshMode) {
             // for images, default to orthographic camera
@@ -293,6 +302,10 @@ export class Viewport {
         // the place.
         this._handler = new Handler(this);
         this.el.addEventListener('mousedown', this._handler.onMouseDown);
+
+        this.touchHandler = new TouchHandler(this)
+        this.el.addEventListener('touchstart', this.touchHandler.onTouchStart, false)
+        this.el.addEventListener('touchmove', this.touchHandler.onTouchMove, false)
 
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this._resize, false);
@@ -408,9 +421,8 @@ export class Viewport {
 
     memoryString = () => {
         return 'geo:' + this._renderer.info.memory.geometries +
-               ' tex:' + this._renderer.info.memory.textures +
-               ' prog:' + this._renderer.info.memory.programs;
-    };
+               ' tex:' + this._renderer.info.memory.textures
+    }
 
     toggleCamera = () => {
         // check what the current setting is
