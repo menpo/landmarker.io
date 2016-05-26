@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { notify } from '../../view/notification';
 import Tracker from '../../lib/tracker';
-import atomic from '../atomic';
+import { atomic } from '../atomic';
 
 import { Landmark } from './landmark';
 import { LandmarkCollection }  from './collection'

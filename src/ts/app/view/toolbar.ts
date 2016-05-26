@@ -2,7 +2,7 @@
 
 import * as _ from 'underscore';
 import * as Backbone from 'backbone';
-import atomic from '../model/atomic';
+import { atomic } from '../model/atomic';
 
 export const LandmarkSizeSlider = Backbone.View.extend({
 

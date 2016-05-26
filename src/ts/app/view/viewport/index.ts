@@ -2,7 +2,7 @@ import * as _ from 'underscore'
 import * as $ from 'jquery'
 import * as THREE from 'three'
 
-import atomic from '../../model/atomic'
+import { atomic, AtomicOperationTracker } from '../../model/atomic'
 import { octreeForBufferGeometry, Octree, Intersection } from './octree'
 
 import { CameraController } from './camera'
@@ -302,7 +302,6 @@ export class Viewport {
 
         // TODO this probably goes away once we remove Backbone from the view
         atomic.on("change:ATOMIC_OPERATION", this._batchHandler);
-
         // register for the animation loop
         animate();
 
@@ -599,14 +598,14 @@ export class Viewport {
         // move the _pipCanvas to the right place
         this._pipCanvas.style.left = this._pipBounds().x + 'px'
         this._update()
-    };
+    }
 
-    _batchHandler = (dispatcher) => {
-        if (dispatcher.atomicOperationFinished()) {
+    _batchHandler = (tracker: AtomicOperationTracker) => {
+        if (tracker.atomicOperationFinished()) {
             // just been turned off - trigger an update.
-            this._update();
+            this._update()
         }
-    };
+    }
 
     // 2D Canvas helper functions
     // ========================================================================

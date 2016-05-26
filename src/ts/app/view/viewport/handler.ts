@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import * as $ from 'jquery'
-import { Landmark } from './base' 
-import atomic from '../../model/atomic'
+import { Landmark } from './base'
+import { atomic } from '../../model/atomic'
 import { Viewport } from './index'
 import { Intersection } from './octree'
 
@@ -20,33 +20,33 @@ const findClosestLandmarks = (lms: Landmark[], point: THREE.Vector, n = 4) =>
  * Viewport view instance.
  */
 export default class Handler {
-    
+
     viewport: Viewport
     _currentTargetLmIndex: number = null
-    
+
     downEvent = null
     lmPressed: Landmark = null
     isPressed = false
-    
+
     onMouseDownPosition = new THREE.Vector2()
     onMouseUpPosition = new THREE.Vector2()
     positionLmDrag =  new THREE.Vector2()
-    
+
     dragStartPositions = []
     dragged = false
     intersectsWithLms: Intersection[] = []
     intersectsWithMesh: Intersection[] = []
-    
+
     constructor(viewport: Viewport) {
         this.viewport = viewport
     }
-    
+
     get currentTargetLm (): Landmark {
-      return this._currentTargetLmIndex !== null ? 
-          this.viewport._landmarks[this._currentTargetLmIndex] : 
+      return this._currentTargetLmIndex !== null ?
+          this.viewport._landmarks[this._currentTargetLmIndex] :
           null
     }
-    
+
     set currentTargetLm (targetLm: Landmark) {
         if (targetLm === null) {
             this._currentTargetLmIndex = null
