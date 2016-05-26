@@ -42,6 +42,7 @@
     "style-loader": "^0.13.1",
     "three": "^0.77.1",
     "ts-loader": "^0.8.2",
+    "tslint": "^3.10.2",
     "typescript": "^1.8.10",
     "underscore": "^1.8.3",
     "url-loader": "^0.5.7",

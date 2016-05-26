@@ -41,6 +41,21 @@ export function octreeForBufferGeometry(geometry: THREE.BufferGeometry): Octree 
     return octree.finalize()
 }
 
+function extractPositionBuffer(mesh: THREE.Mesh): THREE.BufferAttribute {
+    const geometry = mesh.geometry
+    if (!(geometry instanceof THREE.BufferGeometry)) {
+        throw Error('Octree can only be used on meshes BufferGeometry')
+    } else {
+
+        const positionAttribute = geometry.getAttribute('position')
+        if (!(positionAttribute instanceof THREE.BufferAttribute)) {
+            throw Error('Octree can only be used on meshes with non-interleaved BufferGeomery attributes')
+        } else {
+            return positionAttribute
+        }
+    }
+}
+
 const vA = new THREE.Vector3()
 const vB = new THREE.Vector3()
 const vC = new THREE.Vector3()
@@ -51,20 +66,14 @@ function intersectTrianglesAtIndices(ray: THREE.Ray,
                                      raycaster: THREE.Raycaster,
                                      mesh: THREE.Mesh,
                                      indices: number[]): Intersection[] {
-
     const intersects: Intersection[] = []
     const material = mesh.material
-    const attributes = (mesh.geometry as THREE.BufferGeometry).attributes as THREE.BufferAttribute
-    const precision = raycaster.precision
-    const p = attributes.position.array
-    let a: number, b: number, c: number, j: number, distance: number
+    const p = extractPositionBuffer(mesh).array
+    let j: number, distance: number
     let intersectionPoint: THREE.Vector3
 
     for (let i = 0; i < indices.length; i++) {
         j = indices[i] * 9
-        a = indices[i]
-        b = indices[i] + 1
-        c = indices[i] + 2
 
         vA.set(p[j], p[j + 1], p[j + 2])
         vB.set(p[j + 3], p[j + 4], p[j + 5])
@@ -83,7 +92,7 @@ function intersectTrianglesAtIndices(ray: THREE.Ray,
         intersectionPoint.applyMatrix4(mesh.matrixWorld)
         distance = raycaster.ray.origin.distanceTo(intersectionPoint)
 
-        if (distance < precision || distance < raycaster.near || distance > raycaster.far) {
+        if (distance < raycaster.precision || distance < raycaster.near || distance > raycaster.far) {
             continue
         }
 
