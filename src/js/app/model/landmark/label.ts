@@ -5,7 +5,7 @@ import { LandmarkCollection } from './collection'
 export class LandmarkLabel extends LandmarkCollection {
     
     label: string
-    mask
+    mask: number[]
     
     constructor(label: string, landmarks: Landmark[], mask: number[]) {
         super(mask.map(m => landmarks[m]))

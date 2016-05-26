@@ -3,6 +3,8 @@ import * as $ from 'jquery'
 import { Landmark } from './base' 
 import atomic from '../../model/atomic'
 import { Viewport } from './index'
+import { Intersection } from './octree'
+
 // Helpers
 // ------------------------------------------------------------------------
 
@@ -32,8 +34,8 @@ export default class Handler {
     
     dragStartPositions = []
     dragged = false
-    intersectsWithLms = []
-    intersectsWithMesh = []
+    intersectsWithLms: Intersection[] = []
+    intersectsWithMesh: Intersection[] = []
     
     constructor(viewport: Viewport) {
         this.viewport = viewport

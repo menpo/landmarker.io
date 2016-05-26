@@ -5,7 +5,7 @@ import * as $ from 'jquery';
 import * as THREE from 'three';
 
 import atomic from '../../model/atomic';
-import * as octree from './octree';
+import { octreeForBufferGeometry, Octree, Intersection } from './octree';
 
 import { CameraController } from './camera';
 import Handler from './handler';
@@ -48,7 +48,7 @@ export interface ViewportCallbacks {
 // has no dependencies beyond THREE and our octree. As part of this effort, we refactor out
 // the Viewport core code into a standalone class with minimal interaction with Backbone.
 export class Viewport {
-    
+
     on: ViewportCallbacks
     meshMode: boolean   // if true, working with 3D meshes. False, 2D images.
     connectivityOn: boolean
@@ -56,57 +56,57 @@ export class Viewport {
 
     el: HTMLElement
     $el: JQuery
-    
+
     $container: JQuery
     $webglel: JQuery
-    
+
     _canvas: HTMLCanvasElement
     _pipCanvas: HTMLCanvasElement
     _ctx: CanvasRenderingContext2D
     _pipCtx: CanvasRenderingContext2D
-    
+
     _pixelRatio: number
     _meshScale: number
     _lmSize: number
-    
+
     _ctxBox: BoundingBox
-    
+
     _scene: THREE.Scene
     _sScaleRotate: THREE.Object3D
     _sTranslate: THREE.Object3D
     _sMeshAndLms: THREE.Object3D
     _sLms: THREE.Object3D
     _sMesh: THREE.Object3D
-    
+
     _sOCam: THREE.OrthographicCamera
     _sOCamZoom: THREE.OrthographicCamera
     _sPCam: THREE.PerspectiveCamera
     _sCamera: THREE.Camera
-    
+
     _sLights: THREE.Object3D
     _renderer: THREE.WebGLRenderer
-    
-    _sceneHelpers: THREE.Scene    
+
+    _sceneHelpers: THREE.Scene
     _sLmsConnectivity: THREE.Object3D
     _shScaleRotate: THREE.Object3D
     _sHTranslate: THREE.Object3D
-    _shMeshAndLms: THREE.Object3D   
-    
+    _shMeshAndLms: THREE.Object3D
+
     cameraController: CameraController
-    
+
     _landmarkViews: LandmarkTHREEView[]
     _connectivityViews: LandmarkConnectionTHREEView[]
     _ray: THREE.Raycaster
 
     _handler: Handler
-    
+
     _landmarks: Landmark[]
     _connectivity: [number, number][]
-    
+
     mesh: THREE.Mesh
-    octree: any
-    
-    
+    octree: Octree
+
+
     constructor(meshMode: boolean, on: ViewportCallbacks) {
         // all our callbacks are stored under the on namespace.
         this.on = on;
@@ -329,11 +329,11 @@ export class Viewport {
         });
     }
 
-    setLandmarksAndConnectivity = atomic.atomicOperation((landmarks: Landmark[], 
+    setLandmarksAndConnectivity = atomic.atomicOperation((landmarks: Landmark[],
                                                           connectivity: [number, number][]) => {
         console.log('Viewport: landmarks have changed');
         this._landmarks = landmarks;
-        this._connectivity = connectivity; 
+        this._connectivity = connectivity;
 
         // 1. Dispose of all landmark and connectivity views
         this._landmarkViews.forEach(lmView => lmView.dispose());
@@ -378,14 +378,14 @@ export class Viewport {
     setMesh = (mesh: THREE.Mesh, up: THREE.Vector3, front: THREE.Vector3) => {
         console.log('Viewport:setMesh - memory before: ' + this.memoryString());
         // firstly, remove any existing mesh
-        this.removeMeshIfPresent();
+        this.removeMeshIfPresent()
+        this.mesh = mesh
 
-        this.mesh = mesh;
-
-        if (mesh.geometry instanceof THREE.BufferGeometry) {
+        const geometry = mesh.geometry
+        if (geometry instanceof THREE.BufferGeometry) {
             // octree only makes sense if we are dealing with a true mesh
             // (not images). Such meshes are always BufferGeometry instances.
-            this.octree = octree.octreeForBufferGeometry(mesh.geometry);
+            this.octree = octreeForBufferGeometry(geometry)
         }
 
         this._sMesh.add(mesh);
@@ -421,7 +421,7 @@ export class Viewport {
 
     memoryString = () => {
         return 'geo:' + this._renderer.info.memory.geometries +
-               ' tex:' + this._renderer.info.memory.textures + ''
+               ' tex:' + this._renderer.info.memory.textures +
                ' prog:' + this._renderer.info.memory.programs;
     };
 
@@ -586,30 +586,29 @@ export class Viewport {
     };
 
     _resize = () => {
-        var w, h;
-        w = this._width();
-        h = this._height();
+        const w = this._width()
+        const h = this._height()
 
         // ask the camera controller to update the cameras appropriately
-        this.cameraController.resize(w, h);
+        this.cameraController.resize(w, h)
         // update the size of the renderer and the canvas
-        this._renderer.setSize(w, h);
+        this._renderer.setSize(w, h)
 
         // scale the canvas and change its CSS width/height to make it high res.
         // note that this means the canvas will be 2x the size of the screen
         // with 2x displays - that's OK though, we know this is a FullScreen
         // CSS class and so will be made to fit in the existing window by other
         // constraints.
-        this._canvas.width = w * this._pixelRatio;
-        this._canvas.height = h * this._pixelRatio;
+        this._canvas.width = w * this._pixelRatio
+        this._canvas.height = h * this._pixelRatio
 
         // make sure our global transform for the general context accounts for
         // the pixelRatio
-        this._ctx.setTransform(this._pixelRatio, 0, 0, this._pixelRatio, 0, 0);
+        this._ctx.setTransform(this._pixelRatio, 0, 0, this._pixelRatio, 0, 0)
 
         // move the _pipCanvas to the right place
-        this._pipCanvas.style.left = this._pipBounds().x + 'px';
-        this._update();
+        this._pipCanvas.style.left = this._pipBounds().x + 'px'
+        this._update()
     };
 
     _batchHandler = (dispatcher) => {
@@ -624,10 +623,10 @@ export class Viewport {
 
     _updateCanvasBoundingBox = (point: THREE.Vector2) => {
         // update the canvas bounding box to account for this new point
-        this._ctxBox.minX = Math.min(this._ctxBox.minX, point.x);
-        this._ctxBox.minY = Math.min(this._ctxBox.minY, point.y);
-        this._ctxBox.maxX = Math.max(this._ctxBox.maxX, point.x);
-        this._ctxBox.maxY = Math.max(this._ctxBox.maxY, point.y);
+        this._ctxBox.minX = Math.min(this._ctxBox.minX, point.x)
+        this._ctxBox.minY = Math.min(this._ctxBox.minY, point.y)
+        this._ctxBox.maxX = Math.max(this._ctxBox.maxX, point.x)
+        this._ctxBox.maxY = Math.max(this._ctxBox.maxY, point.y)
     };
 
     _drawSelectionBox = (mouseDown: THREE.Vector2, mousePosition: THREE.Vector2) => {
