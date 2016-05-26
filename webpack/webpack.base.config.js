@@ -1,4 +1,5 @@
 var path = require('path');
+var autoprefixer = require('autoprefixer');
 
 module.exports = {
     entry: "./src/ts/index.ts",
@@ -23,13 +24,16 @@ module.exports = {
             },
             {
                 test: /\.scss$/,
-                loaders: ["style", "css?sourceMap", "resolve-url", "sass?sourceMap", "autoprefixer"]
+                loaders: ["style", "css?sourceMap", "resolve-url", "sass?sourceMap", "postcss"]
             },
             {
                 test: /\.(png|jpg|svg)$/,
                 loader: 'url?limit=8192'  // inline base64 URLs for <=8k images, direct URLs for the rest
             }
         ]
+    },
+    postcss: function () {
+        return [autoprefixer];
     },
     plugins: []
 };

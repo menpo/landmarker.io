@@ -1,11 +1,11 @@
 {
   "name": "landmarker-io",
   "version": "2.3.4",
-  "description": "3D mesh annotation in your browser.",
+  "description": "3D and 2D mesh annotation in your browser.",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git://github.com/menpo/landmarker.git"
+    "url": "git://github.com/menpo/landmarker.io.git"
   },
   "scripts": {
     "build:clean": "rm -rf ./build",
@@ -17,9 +17,7 @@
     "watch:webpack-dev-server": "webpack-dev-server --config ./webpack/webpack.dev.config.js --colours --content-base ./build --port 4000 --host 0.0.0.0",
     "watch": "npm run build:prep && npm run watch:webpack-dev-server",
     "test": "mocha --compilers js:babel/register -R spec --recursive ./test",
-    "coverage": "istanbul cover _mocha -- --compilers js:babel/register -R dot --recursive ./test",
-    "lint": "eslint -c .eslintrc src/js",
-    "lint:errors": "eslint -c .eslintrc --quiet src/js"
+    "coverage": "istanbul cover _mocha -- --compilers js:babel/register -R dot --recursive ./test"
   },
   "keywords": [
     "webgl",
@@ -28,32 +26,33 @@
   "author": "James Booth <jabooth@gmail.com> (github.com/jabooth)",
   "license": "BSD-3-Clause",
   "dependencies": {
-    "appcache-webpack-plugin": "^1.2.0",
-    "autoprefixer": "^5.0.0",
-    "autoprefixer-loader": "^3.1.0",
+    "appcache-webpack-plugin": "^1.2.1",
+    "autoprefixer": "^6.3.6",
     "backbone": "^1.3.3",
-    "css-loader": "^0.21.0",
+    "css-loader": "^0.23.0",
     "es6-promise": "^3.2.1",
-    "jquery": "^2.1.3",
-    "js-yaml": "^3.3.1",
-    "json-loader": "^0.5.3",
-    "node-sass": "^3.4.0",
-    "resolve-url-loader": "^1.3.0",
-    "sass-loader": "^3.0.0",
-    "style-loader": "^0.13.0",
+    "file-loader": "^0.8.5",
+    "jquery": "^2.2.4",
+    "js-yaml": "^3.6.1",
+    "json-loader": "^0.5.4",
+    "node-sass": "^3.7.0",
+    "postcss-loader": "^0.9.1",
+    "resolve-url-loader": "^1.4.3",
+    "sass-loader": "^3.2.0",
+    "style-loader": "^0.13.1",
     "three": "^0.77.1",
     "ts-loader": "^0.8.2",
     "typescript": "^1.8.10",
-    "underscore": "^1.6.0",
-    "url-loader": "^0.5.6",
-    "webpack": "^1.12.2"
+    "underscore": "^1.8.3",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.13.1"
   },
   "devDependencies": {
     "chai": "^3.0.0",
     "colors": "^1.1.2",
     "istanbul": "^0.3.17",
     "mocha": "^2.2.5",
-    "webpack-dev-server": "^1.12.1",
+    "webpack-dev-server": "^1.14.1",
     "yargs": "^3.15.0"
   }
 }

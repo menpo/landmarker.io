@@ -254,7 +254,7 @@ export class Viewport {
         this._sLights.add(new THREE.AmbientLight(0x404040));
 
         this._renderer = new THREE.WebGLRenderer(
-            { antialias: false, alpha: false })
+            { antialias: true, alpha: false })
         this._renderer.setPixelRatio(this._pixelRatio)
         this._renderer.autoClear = false
         // attach the render on the element we picked out earlier
