@@ -5,7 +5,7 @@
 		"allowSyntheticDefaultImports": true,
 		"sourceMap": true,
         "noImplicitAny": true,
-		"allowJs": true
+		"noImplicitReturns": true
 	},
 	"exclude": [
 		"node_modules",

@@ -3,7 +3,7 @@ import * as $ from 'jquery'
 import { Landmark } from './base'
 import { atomic } from '../../model/atomic'
 import { Viewport } from './index'
-
+import { touchListByType } from './lib/touch'
 
 export default class TouchHandler {
 
@@ -15,11 +15,13 @@ export default class TouchHandler {
 
     onTouchStart = (event: TouchEvent) => {
         event.preventDefault()
-        console.log('a touch for our touch handler!')
+        const { finger, stylus } = touchListByType(event.touches)
+        console.log(`touchStart: ${finger.length} fingers, ${stylus.length} stylus (id ${stylus[0].identifier})`)
     }
 
     onTouchMove = (event: TouchEvent) => {
         event.preventDefault()
-        console.log('a touch move for our touch handler!')
+        const { finger, stylus } = touchListByType(event.touches)
+        console.log(`touchMove: ${finger.length} fingers, ${stylus.length} stylus (id ${stylus[0].identifier})`)
     }
 }

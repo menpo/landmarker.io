@@ -29,7 +29,7 @@ interface Origin {
     oCamZoomPosition: THREE.Vector3,
 }
 
-export class CamerasManger implements Camera {
+export class MultiCamManger implements Camera {
 
     onChange: () => any = null
     onChangePip: () => any = null

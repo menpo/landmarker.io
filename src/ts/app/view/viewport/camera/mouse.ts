@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import * as $ from 'jquery'
-import { Camera } from './camera'
+import { Camera } from './base'
 
 const MOUSE_WHEEL_SENSITIVITY = 0.5
 const ROTATION_SENSITIVITY = 3.5

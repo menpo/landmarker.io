@@ -24,7 +24,7 @@ export default class Handler {
     viewport: Viewport
     _currentTargetLmIndex: number = null
 
-    downEvent = null
+    downEvent: JQueryEventObject = null
     lmPressed: Landmark = null
     isPressed = false
 
@@ -82,7 +82,7 @@ export default class Handler {
         var ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey;
         console.log('Viewport: landmark pressed');
         // before anything else, disable the camera
-        this.viewport.cameraController.disable();
+        this.viewport.camera.disable()
         // the clicked on landmark
         var landmarkSymbol = this.intersectsWithLms[0].object;
         // hunt through the landmarkViews for the right symbol
@@ -120,7 +120,7 @@ export default class Handler {
     shiftPressed = () => {
         console.log('shift pressed!');
         // before anything else, disable the camera
-        this.viewport.cameraController.disable();
+        this.viewport.camera.disable();
 
         if (!(this.downEvent.ctrlKey || this.downEvent.metaKey)) {
             this.viewport.on.deselectAllLandmarks();
@@ -132,7 +132,7 @@ export default class Handler {
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
-    onMouseDown = atomic.atomicOperation(event => {
+    onMouseDown = atomic.atomicOperation((event: JQueryEventObject) => {
         event.preventDefault();
         this.viewport.$el.focus();
 
@@ -199,7 +199,7 @@ export default class Handler {
 
     // Drag Handlers
     // ------------------------------------------------------------------------
-    landmarkOnDrag = atomic.atomicOperation((event) => {
+    landmarkOnDrag = atomic.atomicOperation((event: JQueryEventObject) => {
         console.log("drag");
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
@@ -236,7 +236,7 @@ export default class Handler {
         })
     });
 
-    shiftOnDrag = (event: MouseEvent) => {
+    shiftOnDrag = (event: JQueryEventObject) => {
         console.log("shift:drag");
         // note - we use client as we don't want to jump back to zero
         // if user drags into sidebar!
@@ -249,8 +249,8 @@ export default class Handler {
     // Up handlers
     // ------------------------------------------------------------------------
 
-    shiftOnMouseUp = atomic.atomicOperation((event: MouseEvent) => {
-        this.viewport.cameraController.enable();
+    shiftOnMouseUp = atomic.atomicOperation((event: JQueryEventObject) => {
+        this.viewport.camera.enable();
         console.log("shift:up");
         $(document).off('mousemove.shiftDrag', this.shiftOnDrag);
         var x1 = this.onMouseDownPosition.x;
@@ -280,7 +280,7 @@ export default class Handler {
         this.isPressed = false;
     });
 
-    meshOnMouseUp = (event: MouseEvent) => {
+    meshOnMouseUp = (event: JQueryEventObject) => {
         console.log("meshPress:up");
         this.onMouseUpPosition.set(event.clientX, event.clientY);
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
@@ -303,7 +303,7 @@ export default class Handler {
         this.viewport._clearCanvas();
     };
 
-    nothingOnMouseUp = (event: MouseEvent) => {
+    nothingOnMouseUp = (event: JQueryEventObject) => {
         console.log("nothingPress:up");
         this.onMouseUpPosition.set(event.clientX, event.clientY);
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
@@ -314,9 +314,9 @@ export default class Handler {
         this.viewport._clearCanvas();
     };
 
-    landmarkOnMouseUp = atomic.atomicOperation((event: MouseEvent) => {
+    landmarkOnMouseUp = atomic.atomicOperation((event: JQueryEventObject) => {
         const ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey;
-        this.viewport.cameraController.enable();
+        this.viewport.camera.enable()
         console.log("landmarkPress:up");
         $(document).off('mousemove.landmarkDrag');
         this.onMouseUpPosition.set(event.clientX, event.clientY);
@@ -345,7 +345,7 @@ export default class Handler {
 
     // Move handlers
     // ------------------------------------------------------------------------
-    onMouseMove = atomic.atomicOperation((event: MouseEvent) => {
+    onMouseMove = atomic.atomicOperation((event: JQueryEventObject) => {
 
         this.viewport._clearCanvas();
 
