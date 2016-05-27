@@ -100,7 +100,7 @@ export default class Handler {
         }
 
         // record the position of where the drag started.
-        this.positionLmDrag.copy(this.viewport._localToScreen(this.lmPressed.point))
+        this.positionLmDrag.copy(this.viewport.localToScreen(this.lmPressed.point))
         this.dragStartPositions = this.viewport.selectedLandmarks
             .map(lm => [lm.index, lm.point.clone()])
 
@@ -142,12 +142,12 @@ export default class Handler {
         this.onMouseDownPosition.set(event.clientX, event.clientY)
 
         // All interactions require intersections to distinguish
-        this.intersectsWithLms = this.viewport._getIntersectsFromEvent(
+        this.intersectsWithLms = this.viewport.getIntersectsFromEvent(
             event, this.viewport.sLms)
         // note that we explicitly ask for intersects with the mesh
         // object as we know get intersects will use an octree if
         // present.
-        this.intersectsWithMesh = this.viewport._getIntersectsFromEvent(event, this.viewport.mesh)
+        this.intersectsWithMesh = this.viewport.getIntersectsFromEvent(event, this.viewport.mesh)
 
         // Click type, we use MouseEvent.button which is the vanilla JS way
         // jQuery also exposes event.which which has different bindings
@@ -211,20 +211,20 @@ export default class Handler {
         this.positionLmDrag.copy(newPositionLmDrag)
         this.viewport.selectedLandmarks.forEach(lm => {
             // convert to screen coordinates
-            const vScreen = this.viewport._localToScreen(lm.point)
+            const vScreen = this.viewport.localToScreen(lm.point)
 
             // budge the screen coordinate
             vScreen.add(deltaLmDrag)
 
             // use the standard machinery to find intersections
             // note that we intersect the mesh to use the octree
-            this.intersectsWithMesh = this.viewport._getIntersects(
+            this.intersectsWithMesh = this.viewport.getIntersects(
                 vScreen.x, vScreen.y, this.viewport.mesh)
             if (this.intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
                 this.dragged = !!this.dragged || true
                 this.viewport.on.setLandmarkPointWithHistory(lm.index,
-                    this.viewport._worldToLocal(this.intersectsWithMesh[0].point))
+                    this.viewport.worldToLocal(this.intersectsWithMesh[0].point))
             } else {
                 // don't update point - it would fall off the surface.
                 console.log("fallen off mesh")
@@ -238,8 +238,8 @@ export default class Handler {
         // if user drags into sidebar!
         var newPosition = new THREE.Vector2(event.clientX, event.clientY)
         // clear the canvas and draw a selection rect.
-        this.viewport._clearCanvas()
-        this.viewport._drawSelectionBox(this.onMouseDownPosition, newPosition)
+        this.viewport.clearCanvas()
+        this.viewport.drawSelectionBox(this.onMouseDownPosition, newPosition)
     }
 
     // Up handlers
@@ -266,13 +266,13 @@ export default class Handler {
         }
         // First, let's just find all the landmarks in screen space that
         // are within our selection.
-        var lms = this.viewport._lmViewsInSelectionBox(minX, minY, maxX, maxY)
+        var lms = this.viewport.lmViewsInSelectionBox(minX, minY, maxX, maxY)
 
         // Of these, filter out the ones which are visible (not
         // obscured) and select the rest
-        const indexesToSelect = lms.filter(this.viewport._lmViewVisible).map(lm => lm.index)
+        const indexesToSelect = lms.filter(this.viewport.lmViewVisible).map(lm => lm.index)
         this.viewport.on.selectLandmarks(indexesToSelect)
-        this.viewport._clearCanvas()
+        this.viewport.clearCanvas()
         this.isPressed = false
     })
 
@@ -282,7 +282,7 @@ export default class Handler {
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
             //  a click on the mesh
             // Convert the point back into the mesh space
-            const p = this.viewport._worldToLocal(this.intersectsWithMesh[0].point)
+            const p = this.viewport.worldToLocal(this.intersectsWithMesh[0].point)
             if (
                 this.viewport.snapModeEnabled &&
                 this.currentTargetLm !== null &&
@@ -296,7 +296,7 @@ export default class Handler {
             }
         }
         this.isPressed = false
-        this.viewport._clearCanvas()
+        this.viewport.clearCanvas()
     }
 
     nothingOnMouseUp = (event: MouseEvent) => {
@@ -307,7 +307,7 @@ export default class Handler {
             this.viewport.on.deselectAllLandmarks()
         }
         this.isPressed = false
-        this.viewport._clearCanvas()
+        this.viewport.clearCanvas()
     }
 
     landmarkOnMouseUp = atomic.atomicOperation((event: MouseEvent) => {
@@ -323,7 +323,7 @@ export default class Handler {
             } else if (!ctrl && !this.lmPressed.isSelected) {
                 this.viewport.on.selectLandmarkAndDeselectRest(this.lmPressed.index)
             } else if (this.lmPressed.isSelected) {
-                const p = this.viewport._worldToLocal(this.intersectsWithMesh[0].point)
+                const p = this.viewport.worldToLocal(this.intersectsWithMesh[0].point)
                 this.viewport.on.setLandmarkPoint(this.lmPressed.index, p)
             }
         } else if (this.dragged) {
@@ -333,7 +333,7 @@ export default class Handler {
             this.viewport.on.addLandmarkHistory(this.dragStartPositions)
         }
 
-        this.viewport._clearCanvas()
+        this.viewport.clearCanvas()
         this.dragged = false
         this.dragStartPositions = []
         this.isPressed = false
@@ -343,7 +343,7 @@ export default class Handler {
     // ------------------------------------------------------------------------
     onMouseMove = atomic.atomicOperation((event: MouseEvent) => {
 
-        this.viewport._clearCanvas()
+        this.viewport.clearCanvas()
 
         if (this.isPressed ||
             !this.viewport.snapModeEnabled ||
@@ -365,14 +365,14 @@ export default class Handler {
             this.currentTargetLm = null
         }
 
-        this.intersectsWithMesh = this.viewport._getIntersectsFromEvent(event, this.viewport.mesh)
+        this.intersectsWithMesh = this.viewport.getIntersectsFromEvent(event, this.viewport.mesh)
 
         if (this.intersectsWithMesh.length == 0) {
             // moving the mouse off the mesh does nothing.
             return null
         }
 
-        const mouseLoc = this.viewport._worldToLocal(this.intersectsWithMesh[0].point)
+        const mouseLoc = this.viewport.worldToLocal(this.intersectsWithMesh[0].point)
 
         // lock only works once we have an existing target landmark
         const lockEnabled = (event.ctrlKey || event.metaKey) && this.currentTargetLm !== null
@@ -394,7 +394,7 @@ export default class Handler {
 
         // Remember, we know there are >= 1 landmarks, so we always have a newTarget.
         // Draw it and the next closest on the UI....
-        this.viewport._drawTargetingLines(new THREE.Vector2(event.clientX, event.clientY),
+        this.viewport.drawTargetingLines(new THREE.Vector2(event.clientX, event.clientY),
             newTarget, nextClosest)
 
         // and if we have a change of new target, update the selection
