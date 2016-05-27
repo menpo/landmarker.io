@@ -3,7 +3,7 @@ import * as THREE from 'three'
 
 import { atomic, AtomicOperationTracker } from '../../model/atomic'
 import { octreeForBufferGeometry, Octree, Intersection } from './octree'
-
+import { DomElements } from './dom'
 import { Camera, MultiCamManger,
          TouchCameraController,
          MouseCameraController } from './camera'
@@ -49,56 +49,6 @@ export interface ViewportCallbacks {
     addLandmarkHistory: (points: THREE.Vector[]) => void
     insertNewLandmark: (point: THREE.Vector) => void
 }
-
-function cssOverlayChild(s: CSSStyleDeclaration) {
-        s.position = 'absolute'
-        s.width = '100%'
-        s.height = '100%'
-}
-
-class DomElements {
-    viewport: HTMLDivElement
-    webgl: HTMLCanvasElement
-    canvas: HTMLCanvasElement
-    pipCanvas: HTMLCanvasElement
-
-    constructor() {
-        this.viewport = document.createElement('div')
-        this.viewport.className = 'Viewport'
-        this.viewport.style.position = 'relative'
-        this.viewport.style.width = '100%'
-        this.viewport.style.height = '100%'
-
-        this.webgl = document.createElement('canvas')
-        this.webgl.className = 'Viewport:WebGL'
-        cssOverlayChild(this.webgl.style)
-
-        this.canvas = document.createElement('canvas')
-        this.canvas.className = 'Viewport:CanvasOverlay'
-        cssOverlayChild(this.canvas.style)
-
-        this.pipCanvas = document.createElement('canvas')
-        this.pipCanvas.className = 'Viewport:PIPCanvasOverlay'
-
-        this.viewport.appendChild(this.webgl)
-        this.viewport.appendChild(this.canvas)
-        this.viewport.appendChild(this.pipCanvas)
-
-        // by default hide the PIP window.
-        this.pipVisable = false
-    }
-
-    get pipVisable() {
-        return this.pipCanvas.style.display === 'none'
-
-    }
-
-    set pipVisable(isVisable) {
-        this.pipCanvas.style.display = isVisable ? 'none' : null
-    }
-
-}
-
 
 // We are trying to move towards the whole viewport module being a standalone black box that
 // has no dependencies beyond THREE and our octree. As part of this effort, we refactor out
