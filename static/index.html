@@ -57,19 +57,11 @@
 </script>
 <body>
 
-<!-- MAIN LANDMARKER.IO APP -->
-<div class="Viewport" id="viewportContainer">
-    <!-- WebGL canvas (the actual assets and landmarks) -->
-    <div class="FullScreen" id="viewport"></div>
+<!-- Viewport content -->
+<div id="viewportContainer"></div>
 
-    <!-- HTML5 canvas for 2D overlays, e.g. selection box, snap-mode hints -->
-    <canvas class="FullScreen" id="canvas"></canvas>
-    <!-- HTML5 canvas for Picture-in-Picture (PIP) view decoration -->
-    <canvas id="pipCanvas"></canvas>
-</div>
-
+<!-- HTML UI -->
 <div class="Chrome">
-    <!-- HTML UI -->
     <div class="App-Flex-Vert">
         <div class='TopBar' id='newVersionPrompt'></div>
         <div class="App-Flex-Horiz">

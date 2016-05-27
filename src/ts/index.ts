@@ -245,8 +245,8 @@ function initLandmarker(server, mode, u) {
     new ToolbarView({model: app});
     new HelpOverlay({model: app});
 
-    var bbviewport = new BackboneViewport(app);
-    var viewport = bbviewport.viewport;
+    var bbviewport = new BackboneViewport(document.getElementById('viewportContainer'), app)
+    var viewport = bbviewport.viewport
 
     var prevAsset = null;
 

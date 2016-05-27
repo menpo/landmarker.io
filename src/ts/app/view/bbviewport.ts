@@ -15,10 +15,10 @@ export class BackboneViewport {
     model: any
     viewport: Viewport
 
-    constructor(app) {
+    constructor(element: HTMLElement, app) {
         this.model = app;
 
-        this.model.onBudgeLandmarks = vector => this.viewport.budgeLandmarks(vector);
+        this.model.onBudgeLandmarks = (vector:  [number, number]) => this.viewport.budgeLandmarks(vector);
 
         // Construct the callback object to be provided to the viewport
         const on: ViewportCallbacks = {
@@ -36,7 +36,7 @@ export class BackboneViewport {
             addLandmarkHistory: points => this.model.landmarks().tracker.record(points),
             insertNewLandmark: point => this.model.landmarks().insertNew(point),
         };
-        this.viewport = new Viewport(app.meshMode(), on);
+        this.viewport = new Viewport(element, app.meshMode(), on);
         // window.vp = this.viewport
 
         this.model.on('newMeshAvailable', this.setMesh);

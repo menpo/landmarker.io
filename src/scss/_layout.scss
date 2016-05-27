@@ -8,15 +8,11 @@
     min-height: 100%;
 }
 
-.Viewport {
+#viewportContainer {
     @extend %fullSize;
     position: absolute;
     top: 0;
     -webkit-overflow-scrolling: touch;  /* prevent scrolling on mobile safari */
-}
-
-.Viewport > canvas {
-    z-index: $zIndexCanvas;
 }
 
 .FullScreen {

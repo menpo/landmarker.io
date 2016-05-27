@@ -1,5 +1,4 @@
 import * as _ from 'underscore'
-import * as $ from 'jquery'
 import * as THREE from 'three'
 
 import { atomic, AtomicOperationTracker } from '../../model/atomic'
@@ -51,32 +50,82 @@ export interface ViewportCallbacks {
     insertNewLandmark: (point: THREE.Vector) => void
 }
 
+function cssOverlayChild(s: CSSStyleDeclaration) {
+        s.position = 'absolute'
+        s.width = '100%'
+        s.height = '100%'
+}
+
+class DomElements {
+    viewport: HTMLDivElement
+    webgl: HTMLCanvasElement
+    canvas: HTMLCanvasElement
+    pipCanvas: HTMLCanvasElement
+
+    constructor() {
+        this.viewport = document.createElement('div')
+        this.viewport.className = 'Viewport'
+        this.viewport.style.position = 'relative'
+        this.viewport.style.width = '100%'
+        this.viewport.style.height = '100%'
+
+        this.webgl = document.createElement('canvas')
+        this.webgl.className = 'Viewport:WebGL'
+        cssOverlayChild(this.webgl.style)
+
+        this.canvas = document.createElement('canvas')
+        this.canvas.className = 'Viewport:CanvasOverlay'
+        cssOverlayChild(this.canvas.style)
+
+        this.pipCanvas = document.createElement('canvas')
+        this.pipCanvas.className = 'Viewport:PIPCanvasOverlay'
+
+        this.viewport.appendChild(this.webgl)
+        this.viewport.appendChild(this.canvas)
+        this.viewport.appendChild(this.pipCanvas)
+
+        // by default hide the PIP window.
+        this.pipVisable = false
+    }
+
+    get pipVisable() {
+        return this.pipCanvas.style.display === 'none'
+
+    }
+
+    set pipVisable(isVisable) {
+        this.pipCanvas.style.display = isVisable ? 'none' : null
+    }
+
+}
+
+
 // We are trying to move towards the whole viewport module being a standalone black box that
 // has no dependencies beyond THREE and our octree. As part of this effort, we refactor out
 // the Viewport core code into a standalone class with minimal interaction with Backbone.
 export class Viewport {
 
-    on: ViewportCallbacks
     meshMode: boolean   // if true, working with 3D meshes. False, 2D images.
-    connectivityOn = true
-    _editingOn: boolean
 
-    el: HTMLElement
-    $el: JQuery
+    landmarks: Landmark[]
+    connectivity: [number, number][]
+    mesh: THREE.Mesh
 
-    $container: JQuery
-    $webglel: JQuery
+    on: ViewportCallbacks
 
-    canvas: HTMLCanvasElement
-    pipCanvas: HTMLCanvasElement
+    connectivityVisable = true
+    snapModeEnabled: boolean
+
+    parent: HTMLElement
+    elements = new DomElements()
+
     ctx: CanvasRenderingContext2D
     pipCtx: CanvasRenderingContext2D
+    ctxBox: BoundingBox
 
     pixelRatio = window.devicePixelRatio || 1  // 2/3 if on a HIDPI/retina display
     meshScale = MESH_SCALE  // The radius of the mesh's bounding sphere
     lmScale = 1
-
-    ctxBox: BoundingBox
 
     renderer: THREE.WebGLRenderer
 
@@ -84,15 +133,8 @@ export class Viewport {
     sScaleRotate: THREE.Object3D
     sTranslate: THREE.Object3D
     sMeshAndLms: THREE.Object3D
-    _sLms: THREE.Object3D
+    sLms: THREE.Object3D
     sMesh: THREE.Object3D
-
-    sOCam: THREE.OrthographicCamera
-    sOCamZoom: THREE.OrthographicCamera
-    sPCam: THREE.PerspectiveCamera
-    sCamera: THREE.Camera
-
-    sLights: THREE.Object3D
 
     sceneHelpers: THREE.Scene
     sLmsConnectivity: THREE.Object3D
@@ -100,72 +142,51 @@ export class Viewport {
     shTranslate: THREE.Object3D
     shMeshAndLms: THREE.Object3D
 
+    sLights: THREE.Object3D
+
+    sOCam: THREE.OrthographicCamera
+    sOCamZoom: THREE.OrthographicCamera
+    sPCam: THREE.PerspectiveCamera
+    sCamera: THREE.Camera
+
     camera: Camera
+
     cameraTouchController: TouchCameraController
     cameraMouseController: MouseCameraController
 
-    _landmarkViews: LandmarkTHREEView[]
-    connectivityViews: LandmarkConnectionTHREEView[]
-    ray: THREE.Raycaster
+    landmarkViews: LandmarkTHREEView[] = []
+    connectivityViews: LandmarkConnectionTHREEView[] = []
+
+    ray = new THREE.Raycaster()
 
     handler: Handler
     touchHandler: TouchHandler
 
-    _landmarks: Landmark[]
-    connectivity: [number, number][]
-
-    mesh: THREE.Mesh
     octree: Octree
 
+    constructor(parent: HTMLElement, meshMode: boolean, on: ViewportCallbacks) {
 
-    constructor(meshMode: boolean, on: ViewportCallbacks) {
         // all our callbacks are stored under the on namespace.
-        this.on = on;
-        this.meshMode = meshMode;
-        this.el = document.getElementById('canvas');
-        this.$el = $('#canvas');
+        this.on = on
+        this.meshMode = meshMode
+
+        this.parent = parent
+        this.parent.appendChild(this.elements.viewport)
 
         // Disable context menu on viewport related elements
-        $('canvas').on("contextmenu", function(e){
-            e.preventDefault();
-        });
+        this.elements.viewport.addEventListener('contextmenu', e => e.preventDefault())
 
-        $('#viewportContainer').on("contextmenu", function(e){
-            e.preventDefault();
-        });
-
-        // ----- DOM ----- //
-        // We have three DOM concerns:
-        //
-        //  viewportContainer: a flexbox container for general UI sizing
-        //    - vpoverlay: a Canvas overlay for 2D UI drawing
-        //    - viewport: our THREE managed WebGL view
-        //
-        // The viewport and vpoverlay need to be position:fixed for WebGL
-        // reasons. we listen for document resize and keep the size of these
-        // two children in sync with the viewportContainer parent.
-        this.$container = $('#viewportContainer');
-        // and grab the viewport div
-        this.$webglel = $('#viewport');
-
-        // Get a hold on the overlay canvas and its context (note we use the
-        // id - the Viewport should be passed the canvas element on
-        // construction)
-        this.canvas = <HTMLCanvasElement> document.getElementById('canvas');
-        this.ctx = this.canvas.getContext('2d');
-
-        // we hold a separate canvas for the PIP decoration - grab it
-        this.pipCanvas = <HTMLCanvasElement> document.getElementById('pipCanvas');
-        this.pipCtx = this.pipCanvas.getContext('2d');
+        this.ctx = this.elements.canvas.getContext('2d')
+        this.pipCtx = this.elements.pipCanvas.getContext('2d')
 
         // style the PIP canvas on initialization
-        this.pipCanvas.style.position = 'fixed';
-        this.pipCanvas.style.zIndex = '0';
-        this.pipCanvas.style.width = PIP_WIDTH + 'px';
-        this.pipCanvas.style.height = PIP_HEIGHT + 'px';
-        this.pipCanvas.width = PIP_WIDTH * this.pixelRatio;
-        this.pipCanvas.height = PIP_HEIGHT * this.pixelRatio;
-        this.pipCanvas.style.left = this.pipBounds().x + 'px';
+        this.elements.pipCanvas.style.position = 'fixed';
+        this.elements.pipCanvas.style.zIndex = '0';
+        this.elements.pipCanvas.style.width = PIP_WIDTH + 'px';
+        this.elements.pipCanvas.style.height = PIP_HEIGHT + 'px';
+        this.elements.pipCanvas.width = PIP_WIDTH * this.pixelRatio;
+        this.elements.pipCanvas.height = PIP_HEIGHT * this.pixelRatio;
+        this.elements.pipCanvas.style.left = this.pipBounds().x + 'px';
 
         // To compensate for retina displays we have to manually
         // scale our contexts up by the pixel ratio. To counteract this (so we
@@ -191,7 +212,7 @@ export class Viewport {
 
         // hide the pip decoration - should only be shown when in orthgraphic
         // mode.
-        this.pipCanvas.style.display = 'none';
+        this.elements.pipCanvas.style.display = 'none';
 
         // to be efficient we want to track what parts of the canvas we are
         // drawing into each frame. This way we only need clear the relevant
@@ -199,119 +220,118 @@ export class Viewport {
         // see this._updateCanvasBoundingBox() for usage.
         this.ctxBox = _initialBoundingBox();
 
+
+
+
         // ------ SCENE GRAPH CONSTRUCTION ----- //
-        this.scene = new THREE.Scene();
+        this.scene = new THREE.Scene()
 
         // we use an initial top level to handle the absolute positioning of
         // the mesh and landmarks. Rotation and scale are applied to the
         // _sMeshAndLms node directly.
-        this.sScaleRotate = new THREE.Object3D();
-        this.sTranslate = new THREE.Object3D();
+        this.sScaleRotate = new THREE.Object3D()
+        this.sTranslate = new THREE.Object3D()
 
         // ----- SCENE: MODEL AND LANDMARKS ----- //
         // _sMeshAndLms stores the mesh and landmarks in the meshes original
         // coordinates. This is always transformed to the unit sphere for
         // consistency of camera.
-        this.sMeshAndLms = new THREE.Object3D();
+        this.sMeshAndLms = new THREE.Object3D()
         // _sLms stores the scene landmarks. This is a useful container to
         // get at all landmarks in one go, and is a child of _sMeshAndLms
-        this._sLms = new THREE.Object3D();
-        this.sMeshAndLms.add(this._sLms);
+        this.sLms = new THREE.Object3D()
+        this.sMeshAndLms.add(this.sLms)
         // _sMesh is the parent of the mesh itself in the THREE scene.
         // This will only ever have one child (the mesh).
         // Child of _sMeshAndLms
-        this.sMesh = new THREE.Object3D();
-        this.sMeshAndLms.add(this.sMesh);
-        this.sTranslate.add(this.sMeshAndLms);
-        this.sScaleRotate.add(this.sTranslate);
-        this.scene.add(this.sScaleRotate);
+        this.sMesh = new THREE.Object3D()
+        this.sMeshAndLms.add(this.sMesh)
+        this.sTranslate.add(this.sMeshAndLms)
+        this.sScaleRotate.add(this.sTranslate)
+        this.scene.add(this.sScaleRotate)
+
+        // ----- SCENE: HELPERS (intersection/connectivity) ----- //
+        // we  build a second scene for various helpers we may need
+        // (intersection planes) and for connectivity information (so it
+        // shows through)
+        this.sceneHelpers = new THREE.Scene()
+
+        // _sLmsConnectivity is used to store the connectivity representation
+        // of the mesh. Note that we want
+        this.sLmsConnectivity = new THREE.Object3D()
+        // we want to replicate the mesh scene graph in the scene helpers, so we can
+        // have show-though connectivity..
+        this.shScaleRotate = new THREE.Object3D()
+        this.shTranslate = new THREE.Object3D()
+        this.shMeshAndLms = new THREE.Object3D()
+        this.shMeshAndLms.add(this.sLmsConnectivity)
+        this.shTranslate.add(this.shMeshAndLms)
+        this.shScaleRotate.add(this.shTranslate)
+        this.sceneHelpers.add(this.shScaleRotate)
 
         // ----- SCENE: CAMERA AND DIRECTED LIGHTS ----- //
         // _sCamera holds the camera, and (optionally) any
         // lights that track with the camera as children
-        this.sOCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
-        this.sOCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20);
+        this.sOCam = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20)
+        this.sOCamZoom = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 20)
         this.sPCam = new THREE.PerspectiveCamera(50, 1, 0.02, 20);
         // start with the perspective camera as the main one
-        this.sCamera = this.sPCam;
+        this.sCamera = this.sPCam
+
+        // ----- SCENE: GENERAL LIGHTING ----- //
+        // TODO make lighting customizable
+        // TODO no spot light for images
+        this.sLights = new THREE.Object3D()
+        const pointLightLeft = new THREE.PointLight(0x404040, 1, 0)
+        pointLightLeft.position.set(-100, 0, 100)
+        this.sLights.add(pointLightLeft)
+        const pointLightRight = new THREE.PointLight(0x404040, 1, 0)
+        pointLightRight.position.set(100, 0, 100)
+        this.sLights.add(pointLightRight)
+        this.scene.add(this.sLights)
+        // add a soft white ambient light
+        this.sLights.add(new THREE.AmbientLight(0x404040))
+
 
         // create the camera to look after all camera state.
         this.camera = new MultiCamManger(this.width, this.height,
                                          this.sPCam, this.sOCam, this.sOCamZoom)
 
         this.camera.onChange = this.update
-        this.cameraTouchController = new TouchCameraController(this.camera, this.el)
-        this.cameraMouseController = new MouseCameraController(this.camera, this.el)
+        this.cameraTouchController = new TouchCameraController(this.camera, this.elements.viewport)
+        this.cameraMouseController = new MouseCameraController(this.camera, this.elements.viewport)
 
         if (!this.meshMode) {
             // for images, default to orthographic camera
             // (note that we use toggle to make sure the UI gets updated)
-            this.toggleCamera();
+            this.toggleCamera()
         }
 
-        this.resetCamera();
-
-        // ----- SCENE: GENERAL LIGHTING ----- //
-        // TODO make lighting customizable
-        // TODO no spot light for images
-        this.sLights = new THREE.Object3D();
-        const pointLightLeft = new THREE.PointLight(0x404040, 1, 0);
-        pointLightLeft.position.set(-100, 0, 100);
-        this.sLights.add(pointLightLeft);
-        const pointLightRight = new THREE.PointLight(0x404040, 1, 0);
-        pointLightRight.position.set(100, 0, 100);
-        this.sLights.add(pointLightRight);
-        this.scene.add(this.sLights);
-        // add a soft white ambient light
-        this.sLights.add(new THREE.AmbientLight(0x404040));
+        this.resetCamera()
 
         this.renderer = new THREE.WebGLRenderer(
-            { antialias: true, alpha: false })
-        this.renderer.setPixelRatio(this.pixelRatio)
+            {
+                antialias: true,
+                alpha: false,
+                devicePixelRatio: this.pixelRatio,
+                canvas: this.elements.webgl
+            }
+        )
         this.renderer.autoClear = false
-        // attach the render on the element we picked out earlier
-        this.$webglel.html(this.renderer.domElement);
+        this.renderer.setPixelRatio(this.pixelRatio)
 
-        // we  build a second scene for various helpers we may need
-        // (intersection planes) and for connectivity information (so it
-        // shows through)
-        this.sceneHelpers = new THREE.Scene();
-
-        // _sLmsConnectivity is used to store the connectivity representation
-        // of the mesh. Note that we want
-        this.sLmsConnectivity = new THREE.Object3D();
-        // we want to replicate the mesh scene graph in the scene helpers, so we can
-        // have show-though connectivity..
-        this.shScaleRotate = new THREE.Object3D();
-        this.shTranslate = new THREE.Object3D();
-        this.shMeshAndLms = new THREE.Object3D();
-        this.shMeshAndLms.add(this.sLmsConnectivity);
-        this.shTranslate.add(this.shMeshAndLms);
-        this.shScaleRotate.add(this.shTranslate);
-        this.sceneHelpers.add(this.shScaleRotate);
-
-        // store the views that we will later create
-        this._landmarkViews = [];
-        this.connectivityViews = [];
-
-        // Tools for moving between screen and world coordinates
-        this.ray = new THREE.Raycaster();
-
-        // ----- MOUSE HANDLER ----- //
-        // There is quite a lot of finicky state in handling the mouse
+        // ----- INPUT HANDLERS ----- //
+        // There is quite a lot of finicky state in handling the mouse/touch
         // interaction which is of no concern to the rest of the viewport.
-        // We wrap all this complexity up in a closure so it can enjoy access
-        // to the general viewport state without leaking it's state all over
-        // the place.
         this.handler = new Handler(this);
-        this.el.addEventListener('mousedown', this.handler.onMouseDown);
-
         this.touchHandler = new TouchHandler(this)
-        this.el.addEventListener('touchstart', this.touchHandler.onTouchStart, false)
-        this.el.addEventListener('touchmove', this.touchHandler.onTouchMove, false)
 
         // ----- BIND HANDLERS ----- //
-        window.addEventListener('resize', this.resize, false)
+        this.elements.viewport.addEventListener('mousedown', this.handler.onMouseDown);
+        this.elements.viewport.addEventListener('touchstart', this.touchHandler.onTouchStart)
+        this.elements.viewport.addEventListener('touchmove', this.touchHandler.onTouchMove)
+        window.addEventListener('resize', this.resize)
+
         // trigger resize to initially size the viewport
         // this will also clearCanvas (will draw context box if needed)
         this.resize()
@@ -327,54 +347,59 @@ export class Viewport {
         }
     }
 
-    get _hasLandmarks() {
-        return this._landmarks !== null && this._landmarks !== undefined
-    }
-
-    get _nonEmptyLandmarks() {
-        return this._landmarks.filter(lm => lm.point !== null)
-    }
-
-    get _selectedLandmarks() {
-        return this._landmarks.filter(lm => lm.isSelected)
-    }
-
-    get _groupModeActive() {
-        return this._selectedLandmarks.length > 1
-    }
-
-    get _allLandmarksEmpty() {
-        return this._nonEmptyLandmarks.length === 0
-    }
-
     get width() {
-        return this.$container[0].offsetWidth;
+        return this.elements.viewport.offsetWidth
     }
 
     get height() {
-        return this.$container[0].offsetHeight;
+        return this.elements.viewport.offsetHeight
+    }
+
+    get hasLandmarks() {
+        return this.landmarks !== null && this.landmarks !== undefined
+    }
+
+    get nonEmptyLandmarks() {
+        return this.landmarks.filter(lm => lm.point !== null)
+    }
+
+    get selectedLandmarks() {
+        return this.landmarks.filter(lm => lm.isSelected)
+    }
+
+    get groupModeActive() {
+        return this.selectedLandmarks.length > 1
+    }
+
+    get allLandmarksEmpty() {
+        return this.nonEmptyLandmarks.length === 0
+    }
+
+    // Bring the viewport DOM into focus
+    focus = () => {
+        this.elements.viewport.focus()
     }
 
     setLandmarksAndConnectivity = atomic.atomicOperation((landmarks: Landmark[],
                                                           connectivity: [number, number][]) => {
         console.log('Viewport: landmarks have changed');
-        this._landmarks = landmarks;
+        this.landmarks = landmarks;
         this.connectivity = connectivity;
 
         // 1. Dispose of all landmark and connectivity views
-        this._landmarkViews.forEach(lmView => lmView.dispose());
+        this.landmarkViews.forEach(lmView => lmView.dispose());
         this.connectivityViews.forEach(connView => connView.dispose());
 
         // 2. Build a fresh set of views
-        this._landmarkViews = this._landmarks.map(lm =>
+        this.landmarkViews = this.landmarks.map(lm =>
             new LandmarkTHREEView(lm,
                 {
-                    onCreate: symbol => this._sLms.add(symbol),
-                    onDispose: symbol => this._sLms.remove(symbol)
+                    onCreate: symbol => this.sLms.add(symbol),
+                    onDispose: symbol => this.sLms.remove(symbol)
                 })
         );
         this.connectivityViews = this.connectivity.map(([a, b]) =>
-            new LandmarkConnectionTHREEView(this._landmarks[a], this._landmarks[b],
+            new LandmarkConnectionTHREEView(this.landmarks[a], this.landmarks[b],
                 {
                     onCreate: symbol => this.sLmsConnectivity.add(symbol),
                     onDispose: symbol => this.sLmsConnectivity.remove(symbol)
@@ -388,14 +413,14 @@ export class Viewport {
 
     updateLandmarks = atomic.atomicOperation((landmarks: Landmark[]) => {
         landmarks.forEach(lm => {
-            this._landmarks[lm.index] = lm
-            this._landmarkViews[lm.index].render(lm)
+            this.landmarks[lm.index] = lm
+            this.landmarkViews[lm.index].render(lm)
         })
 
         // Finally go through all connectivity views and update them
         this.connectivityViews.forEach((view, i) => {
             const [a, b] = this.connectivity[i];
-            view.render(this._landmarks[a], this._landmarks[b])
+            view.render(this.landmarks[a], this.landmarks[b])
         });
 
         this.update()
@@ -457,14 +482,12 @@ export class Viewport {
             // going to orthographic - start listening for pip updates
             this.camera.onChangePip = this.update;
             this.sCamera = this.sOCam;
-            // hide the pip decoration
-            this.pipCanvas.style.display = null;
+            this.elements.pipVisable = false
         } else {
             // leaving orthographic - stop listening to pip calls.
             this.camera.onChangePip = null;
             this.sCamera = this.sPCam;
-            // show the pip decoration
-            this.pipCanvas.style.display = 'none';
+            this.elements.pipVisable = true
         }
         // clear the canvas and re-render our state
         this._clearCanvas();
@@ -481,24 +504,22 @@ export class Viewport {
     };
 
     updateConnectivityDisplay = (isConnectivityOn: boolean) => {
-        this.connectivityOn = isConnectivityOn;
+        this.connectivityVisable = isConnectivityOn;
         this.update();
     };
 
     updateEditingDisplay = atomic.atomicOperation((isEditModeOn: boolean) => {
-        this._editingOn = isEditModeOn
+        this.snapModeEnabled = isEditModeOn
         this._clearCanvas()
         this.on.deselectAllLandmarks()
-
-        // Manually bind to avoid useless function call (even with no effect)
-        if (this._editingOn) {
-            this.$el.on('mousemove', this.handler.onMouseMove);
+        if (this.snapModeEnabled) {
+            this.elements.viewport.addEventListener('mousemove', this.handler.onMouseMove)
         } else {
-            this.$el.off('mousemove', this.handler.onMouseMove);
+            this.elements.viewport.removeEventListener('mousemove', this.handler.onMouseMove)
         }
-    });
+    })
 
-    budgeLandmarks = atomic.atomicOperation((vector: number[]) => {
+    budgeLandmarks = atomic.atomicOperation((vector: [number, number]) => {
 
         // Set a movement of 0.5% of the screen in the suitable direction
         const [x, y] = vector,
@@ -508,7 +529,7 @@ export class Viewport {
         move.set(x * dx, y * dy);
 
         const ops = [];
-        this._selectedLandmarks.forEach((lm) => {
+        this.selectedLandmarks.forEach((lm) => {
             const lmScreen = this._localToScreen(lm.point)
             lmScreen.add(move)
 
@@ -535,7 +556,7 @@ export class Viewport {
 
         // 1. Before we do any rendering ensure the landmarks are the right size
         const s = this.lmScale * this.meshScale;
-        this._sLms.children.forEach(v => v.scale.x !== s ? v.scale.set(s, s, s) : null);
+        this.sLms.children.forEach(v => v.scale.x !== s ? v.scale.set(s, s, s) : null);
 
         // 2. Render the main viewport...
         this.renderer.setViewport(0, 0, this.width, this.height)
@@ -544,7 +565,7 @@ export class Viewport {
         this.renderer.clear()
         this.renderer.render(this.scene, this.sCamera)
 
-        if (this.connectivityOn) {
+        if (this.connectivityVisable) {
             // clear depth buffer
             this.renderer.clearDepth();
             // and render the connectivity
@@ -564,22 +585,22 @@ export class Viewport {
 
             // render the PIP image
             this.renderer.render(this.scene, this.sOCamZoom);
-            if (this.connectivityOn) {
+            if (this.connectivityVisable) {
                 this.renderer.clearDepth(); // clear depth buffer
                 // and render the connectivity
                 this.renderer.render(this.sceneHelpers, this.sOCamZoom);
             }
         }
-    };
+    }
 
     pipBounds = () => {
-        var w = this.width;
-        var h = this.height;
-        var maxX = w;
-        var maxY = h;
-        var minX = maxX - PIP_WIDTH;
-        var minY = maxY - PIP_HEIGHT;
-        return {x: minX, y: minY, width: PIP_WIDTH, height: PIP_HEIGHT};
+        var w = this.width
+        var h = this.height
+        var maxX = w
+        var maxY = h
+        var minX = maxX - PIP_WIDTH
+        var minY = maxY - PIP_HEIGHT
+        return {x: minX, y: minY, width: PIP_WIDTH, height: PIP_HEIGHT}
     }
 
     resize = () => {
@@ -596,15 +617,15 @@ export class Viewport {
         // with 2x displays - that's OK though, we know this is a FullScreen
         // CSS class and so will be made to fit in the existing window by other
         // constraints.
-        this.canvas.width = w * this.pixelRatio
-        this.canvas.height = h * this.pixelRatio
+        this.elements.canvas.width = w * this.pixelRatio
+        this.elements.canvas.height = h * this.pixelRatio
+
+        this.elements.pipCanvas.style.left = this.pipBounds().x + 'px'
 
         // make sure our global transform for the general context accounts for
         // the pixelRatio
         this.ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0)
 
-        // move the _pipCanvas to the right place
-        this.pipCanvas.style.left = this.pipBounds().x + 'px'
         this.update()
     }
 
@@ -624,18 +645,18 @@ export class Viewport {
         this.ctxBox.minY = Math.min(this.ctxBox.minY, point.y)
         this.ctxBox.maxX = Math.max(this.ctxBox.maxX, point.x)
         this.ctxBox.maxY = Math.max(this.ctxBox.maxY, point.y)
-    };
+    }
 
     _drawSelectionBox = (mouseDown: THREE.Vector2, mousePosition: THREE.Vector2) => {
-        var x = mouseDown.x;
-        var y = mouseDown.y;
-        var dx = mousePosition.x - x;
-        var dy = mousePosition.y - y;
-        this.ctx.strokeRect(x, y, dx, dy);
+        var x = mouseDown.x
+        var y = mouseDown.y
+        var dx = mousePosition.x - x
+        var dy = mousePosition.y - y
+        this.ctx.strokeRect(x, y, dx, dy)
         // update the bounding box
         this.updateCanvasBoundingBox(mouseDown);
-        this.updateCanvasBoundingBox(mousePosition);
-    };
+        this.updateCanvasBoundingBox(mousePosition)
+    }
 
     _drawTargetingLines = (point: THREE.Vector2, targetLm: Landmark, secondaryLms: Landmark[]) => {
 
@@ -733,7 +754,7 @@ export class Viewport {
     _localToScreen = (v: THREE.Vector3) => this.worldToScreen(this.sMeshAndLms.localToWorld(v.clone()))
 
     _lmViewsInSelectionBox = (x1: number, y1: number, x2: number, y2: number) =>
-        this._landmarkViews.filter(lmv => {
+        this.landmarkViews.filter(lmv => {
             if (lmv.symbol) {
                 const c = this._localToScreen(lmv.symbol.position)
                 return c.x > x1 && c.x < x2 && c.y > y1 && c.y < y2

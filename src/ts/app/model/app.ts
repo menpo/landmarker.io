@@ -146,7 +146,7 @@ export default Backbone.Model.extend({
         this._initCollections();
     },
 
-    budgeLandmarks: function(vector) {
+    budgeLandmarks: function(vector:  [number, number]) {
         // call our onBudgeLandmarks callback
         this.onBudgeLandmarks(vector)
     },

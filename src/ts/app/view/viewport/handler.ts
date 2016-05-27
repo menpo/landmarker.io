@@ -40,7 +40,7 @@ export default class Handler {
 
     get currentTargetLm (): Landmark {
       return this._currentTargetLmIndex !== null ?
-          this.viewport._landmarks[this._currentTargetLmIndex] :
+          this.viewport.landmarks[this._currentTargetLmIndex] :
           null
     }
 
@@ -61,7 +61,7 @@ export default class Handler {
 
     meshPressed = () => {
         console.log('mesh pressed!')
-        if (this.viewport._groupModeActive) {
+        if (this.viewport.groupModeActive) {
             this.nothingPressed()
         } else if (this.downEvent.button === 0 && this.downEvent.shiftKey) {
             this.shiftPressed()  // LMB + SHIFT
@@ -85,9 +85,9 @@ export default class Handler {
         // hunt through the landmarkViews for the right symbol
         console.log(landmarkSymbol)
 
-        this.viewport._landmarkViews
+        this.viewport.landmarkViews
             .filter(lmv => lmv.symbol === landmarkSymbol)
-            .forEach(lmv => this.lmPressed = this.viewport._landmarks[lmv.index])
+            .forEach(lmv => this.lmPressed = this.viewport.landmarks[lmv.index])
         console.log('Viewport: finding the selected points')
 
         if (!this.lmPressed.isSelected && !ctrl) {
@@ -101,7 +101,7 @@ export default class Handler {
 
         // record the position of where the drag started.
         this.positionLmDrag.copy(this.viewport._localToScreen(this.lmPressed.point))
-        this.dragStartPositions = this.viewport._selectedLandmarks
+        this.dragStartPositions = this.viewport.selectedLandmarks
             .map(lm => [lm.index, lm.point.clone()])
 
         // start listening for dragging landmarks
@@ -130,9 +130,9 @@ export default class Handler {
     // has been figured out
     onMouseDown = atomic.atomicOperation((event: MouseEvent) => {
         event.preventDefault()
-        this.viewport.el.focus()
+        this.viewport.focus()
 
-        if (!this.viewport._hasLandmarks) {
+        if (!this.viewport.hasLandmarks) {
             return
         }
 
@@ -143,7 +143,7 @@ export default class Handler {
 
         // All interactions require intersections to distinguish
         this.intersectsWithLms = this.viewport._getIntersectsFromEvent(
-            event, this.viewport._sLms)
+            event, this.viewport.sLms)
         // note that we explicitly ask for intersects with the mesh
         // object as we know get intersects will use an octree if
         // present.
@@ -162,7 +162,7 @@ export default class Handler {
                     // the mesh was pressed. Check for shift first.
                     if (event.shiftKey) {
                         this.shiftPressed()
-                    } else if (this.viewport._editingOn && this.currentTargetLm !== null) {
+                    } else if (this.viewport.snapModeEnabled && this.currentTargetLm !== null) {
                         this.meshPressed()
                     } else {
                         this.nothingPressed()
@@ -175,7 +175,7 @@ export default class Handler {
                 this.shiftPressed()
             } else if (
                 this.intersectsWithMesh.length > 0 &&
-                this.viewport._editingOn
+                this.viewport.snapModeEnabled
             ) {
                 this.meshPressed()
             } else {
@@ -209,7 +209,7 @@ export default class Handler {
         deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag)
         // update the position
         this.positionLmDrag.copy(newPositionLmDrag)
-        this.viewport._selectedLandmarks.forEach(lm => {
+        this.viewport.selectedLandmarks.forEach(lm => {
             // convert to screen coordinates
             const vScreen = this.viewport._localToScreen(lm.point)
 
@@ -284,7 +284,7 @@ export default class Handler {
             // Convert the point back into the mesh space
             const p = this.viewport._worldToLocal(this.intersectsWithMesh[0].point)
             if (
-                this.viewport._editingOn &&
+                this.viewport.snapModeEnabled &&
                 this.currentTargetLm !== null &&
                 this.currentTargetLm.point !== null
             ) {
@@ -327,7 +327,7 @@ export default class Handler {
                 this.viewport.on.setLandmarkPoint(this.lmPressed.index, p)
             }
         } else if (this.dragged) {
-            this.viewport._selectedLandmarks.forEach((lm, i) => {
+            this.viewport.selectedLandmarks.forEach((lm, i) => {
                 this.dragStartPositions[i].push(lm.point.clone())
             })
             this.viewport.on.addLandmarkHistory(this.dragStartPositions)
@@ -346,10 +346,10 @@ export default class Handler {
         this.viewport._clearCanvas()
 
         if (this.isPressed ||
-            !this.viewport._editingOn ||
-            !this.viewport._hasLandmarks ||
-            this.viewport._allLandmarksEmpty ||
-            this.viewport._groupModeActive
+            !this.viewport.snapModeEnabled ||
+            !this.viewport.hasLandmarks ||
+            this.viewport.allLandmarksEmpty ||
+            this.viewport.groupModeActive
         ) {
             return null
         }
@@ -383,13 +383,13 @@ export default class Handler {
             newTarget = this.currentTargetLm
 
             // only pick from the remaining landmarks
-            const candidateLandmarks = this.viewport._nonEmptyLandmarks
+            const candidateLandmarks = this.viewport.nonEmptyLandmarks
                 .filter(lm => lm.index !== this.currentTargetLm.index)
             nextClosest = findClosestLandmarks(candidateLandmarks, mouseLoc, 3)
 
         } else {
             // need to chose a new target landmark and new next closest
-            [newTarget, ...nextClosest] = findClosestLandmarks(this.viewport._nonEmptyLandmarks, mouseLoc, 4)
+            [newTarget, ...nextClosest] = findClosestLandmarks(this.viewport.nonEmptyLandmarks, mouseLoc, 4)
         }
 
         // Remember, we know there are >= 1 landmarks, so we always have a newTarget.
