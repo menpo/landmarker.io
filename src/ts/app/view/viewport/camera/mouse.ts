@@ -1,6 +1,6 @@
 import * as THREE from 'three'
-import * as $ from 'jquery'
 import { Camera } from './base'
+import { listenOnce } from '../lib/event'
 
 const MOUSE_WHEEL_SENSITIVITY = 0.5
 const ROTATION_SENSITIVITY = 3.5
@@ -14,11 +14,11 @@ enum STATE {
 }
 
 // see https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent.deltaMode
-const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
-    0: 1.0, // The delta values are specified in pixels.
-    1: 34.0, // The delta values are specified in lines.
-    2: 1.0 // The delta values are specified in pages.
-}
+const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = [
+    1.0, // 0: The delta values are specified in pixels.
+    34.0, // 1: The delta values are specified in lines.
+    1.0 // 2: The delta values are specified in pages.
+]
 
 export class MouseCameraController {
     camera: Camera
@@ -33,9 +33,9 @@ export class MouseCameraController {
                 domElement: HTMLElement) {
         this.camera = camera
         this.domElement = domElement
-        $(this.domElement).on('mousemove.camera_hover', this.onMouseHover)
-        $(this.domElement).on('mousedown.camera', this.onMouseDown)
-        $(this.domElement).on('wheel.camera', this.onMouseWheel)
+        this.domElement.addEventListener('mousemove', this.onMouseHover, false)
+        this.domElement.addEventListener('mousedown', this.onMouseDown, false)
+        this.domElement.addEventListener('wheel', this.onMouseWheel, false)
     }
 
     onMouseHover = (event: MouseEvent) => {
@@ -66,9 +66,8 @@ export class MouseCameraController {
             this.mousePrevPosition.set(event.pageX, event.pageY)
         }
 
-        $(document).on('mousemove.camera_move', this.onMouseMove)
-        // listen once for the mouse up
-        $(document).one('mouseup.camera', this.onMouseUp)
+        document.addEventListener('mousemove', this.onMouseMove)
+        listenOnce(document, 'mouseup', this.onMouseUp)
     }
 
     onMouseMove = (event: MouseEvent) => {
@@ -107,15 +106,15 @@ export class MouseCameraController {
 
     onMouseUp = (event: MouseEvent) => {
         event.preventDefault()
-        $(document).off('mousemove.camera')
+        document.removeEventListener('mousemove', this.onMouseMove)
         this.state = STATE.NONE
     }
 
-    onMouseWheel = (event: JQueryMouseEventObject) => {
+    onMouseWheel = (event: WheelEvent) => {
         // we need to check the deltaMode to determine the scale of the mouse
         // wheel reading.
-        var scale = UNITS_FOR_MOUSE_WHEEL_DELTA_MODE[event.originalEvent.deltaMode]
-        const v = new THREE.Vector3(0, 0, -event.originalEvent.deltaY * MOUSE_WHEEL_SENSITIVITY * scale)
+        const scale = UNITS_FOR_MOUSE_WHEEL_DELTA_MODE[event.deltaMode]
+        const v = new THREE.Vector3(0, 0, -event.deltaY * MOUSE_WHEEL_SENSITIVITY * scale)
         this.camera.zoom(v, this.mousePosition)
     }
 
