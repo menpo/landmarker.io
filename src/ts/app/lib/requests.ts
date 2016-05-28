@@ -82,7 +82,7 @@ export const Request = XMLHttpRequestPromise
 
 // Below are some shortcuts around the basic Request object for common
 // network calls
-export function getArrayBuffer (url, {headers={}, auth=false}={}) {
+export function getArrayBuffer(url: string, {headers={}, auth=false}={}): Promise<ArrayBuffer> {
     return XMLHttpRequestPromise(
         url, {responseType: 'arraybuffer', headers, auth})
 }

@@ -1,11 +1,74 @@
-'use strict'
+import * as THREE from 'three'
 
 import { getJSON, putJSON, getArrayBuffer } from '../lib/requests'
 import { capitalize } from '../lib/utils'
+
 import * as support from '../lib/support'
 import ImagePromise from '../lib/imagepromise'
 
 import { Backend } from './base'
+
+
+function bufferGeometryFromArrays(points: Float32Array, normals: Float32Array, tcoords: Float32Array) {
+    const geometry = new THREE.BufferGeometry()
+    geometry.addAttribute('position', new THREE.BufferAttribute(points, 3))
+    if (normals) {
+        geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3))
+    } else {
+        geometry.computeVertexNormals()
+    }
+    if (tcoords) {
+        geometry.addAttribute('uv', new THREE.BufferAttribute(tcoords, 2))
+    }
+    geometry.computeBoundingSphere()
+    return geometry
+}
+
+
+function serverBufferToGeometry(buffer: ArrayBuffer) {
+    const lenMeta = 4
+    const bytes = 4
+    const meta = new Uint32Array(buffer, 0, lenMeta)
+    const nTris = meta[0]
+    const isTextured = Boolean(meta[1])
+    const hasNormals = Boolean(meta[2])
+    const hasBinning = Boolean(meta[2])  // used for efficient lookup
+    const stride = nTris * 3
+
+    // Points
+    const pointsOffset = lenMeta * bytes
+    const points = new Float32Array(buffer, pointsOffset, stride * 3)
+    const normalOffset = pointsOffset + stride * 3 * bytes
+
+    // Normals (optional)
+    let normals: Float32Array = null  // initialize for no normals
+    let tcoordsOffset = normalOffset  // no normals -> tcoords next
+    if (hasNormals) {
+        // correct if has normals
+        normals = new Float32Array(
+            buffer, normalOffset, stride * 3)
+        // need to advance the pointer on tcoords offset
+        tcoordsOffset = normalOffset + stride * 3 * bytes
+    }
+
+    // Tcoords (optional)
+    let tcoords: Float32Array = null  // initialize for no tcoords
+    let binningOffset = tcoordsOffset  // no tcoords -> binning next
+    if (isTextured) {
+        tcoords = new Float32Array(
+            buffer, tcoordsOffset, stride * 2)
+        binningOffset = tcoordsOffset + stride * 2 * bytes
+    }
+
+    // Binning (optional)
+    if (hasBinning) {
+        console.log(
+            'ready to read from binning file at ',
+            binningOffset
+        )
+    }
+    return bufferGeometryFromArrays(points, normals, tcoords)
+}
 
 export default class Server implements Backend {
 
@@ -103,7 +166,7 @@ export default class Server implements Backend {
     fetchGeometry(assetId: string) {
         return getArrayBuffer(this.map(`meshes/${assetId}`), {
             auth: this.httpAuth
-        })
+        }).then(buffer => serverBufferToGeometry(buffer))
     }
 
 }

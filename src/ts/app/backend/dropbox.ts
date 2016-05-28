@@ -484,7 +484,6 @@ export default class Dropbox implements Backend {
         })
 
         geometry.xhr = () => dl.xhr() // compatibility
-        geometry.isGeometry = true
         return geometry
     }
 

@@ -44,21 +44,6 @@ function mappedPlane(w: number, h: number) {
     return geometry
 }
 
-function bufferGeometryFromArrays(points: Float32Array, normals: Float32Array, tcoords: Float32Array) {
-    const geometry = new THREE.BufferGeometry()
-    geometry.addAttribute('position', new THREE.BufferAttribute(points, 3))
-    if (normals) {
-        geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3))
-    } else {
-        geometry.computeVertexNormals()
-    }
-    if (tcoords) {
-        geometry.addAttribute('uv', new THREE.BufferAttribute(tcoords, 2))
-    }
-    geometry.computeBoundingSphere()
-    return geometry
-}
-
 const UNTEXTURED_MESH_MATERIAL = new THREE.MeshPhongMaterial()
 UNTEXTURED_MESH_MATERIAL.transparent = true
 
@@ -81,7 +66,7 @@ export class Image extends Backbone.Model {
     texture: THREE.Material = null
 
     _thumbnailPromise: Promise<THREE.Material> = null
-    _geometryPromise = null
+    _geometryPromise: Promise<THREE.BufferGeometry> = null
     _texturePromise: Promise<THREE.Material> = null
 
     constructor(id: string, server: Backend) {
@@ -270,10 +255,6 @@ export class Image extends Backbone.Model {
 
 export class Mesh extends Image {
 
-    geometryUrl() {
-        return this.server().map('meshes/' + this.id)
-    }
-
     loadGeometry() {
         if (this.hasGeometryPromise) {
             // already loading this geometry
@@ -281,78 +262,20 @@ export class Mesh extends Image {
         }
         const arrayPromise = this.server().fetchGeometry(this.id)
 
-        if (arrayPromise.isGeometry) { // Backend says it parses the geometry
-            this._geometryPromise = arrayPromise.then((geometry) => {
-                delete this._geometryPromise
-                geometry.computeBoundingSphere()
-                geometry.computeFaceNormals()
-                geometry.computeVertexNormals()
+        this._geometryPromise = arrayPromise.then((geometry) => {
+            delete this._geometryPromise
+            geometry.computeBoundingSphere()
+            geometry.computeFaceNormals()
+            geometry.computeVertexNormals()
 
-                this.geometry = geometry
-                this.trigger('change:geometry')
+            this.geometry = geometry
+            this.trigger('change:geometry')
 
-                return geometry
-            }, (err) => {
-                console.log('failed to load geometry (OBJ) for ' + this.id)
-                console.log(err)
-            })
-        } else { // Backend sends raw optimised ArrayBuffer through > build 3D
-            this._geometryPromise = arrayPromise.then((buffer: ArrayBuffer) => {
-                // now the promise is fullfilled, delete the promise.
-                delete this._geometryPromise
-
-                const lenMeta = 4
-                const bytes = 4
-                const meta = new Uint32Array(buffer, 0, lenMeta)
-                const nTris = meta[0]
-                const isTextured = Boolean(meta[1])
-                const hasNormals = Boolean(meta[2])
-                const hasBinning = Boolean(meta[2])  // used for efficient lookup
-                const stride = nTris * 3
-
-                // Points
-                const pointsOffset = lenMeta * bytes
-                const points = new Float32Array(buffer, pointsOffset, stride * 3)
-                const normalOffset = pointsOffset + stride * 3 * bytes
-
-                // Normals (optional)
-                let normals: Float32Array = null  // initialize for no normals
-                let tcoordsOffset = normalOffset  // no normals -> tcoords next
-                if (hasNormals) {
-                    // correct if has normals
-                    normals = new Float32Array(
-                        buffer, normalOffset, stride * 3)
-                    // need to advance the pointer on tcoords offset
-                    tcoordsOffset = normalOffset + stride * 3 * bytes
-                }
-
-                // Tcoords (optional)
-                let tcoords: Float32Array = null  // initialize for no tcoords
-                let binningOffset = tcoordsOffset  // no tcoords -> binning next
-                if (isTextured) {
-                    tcoords = new Float32Array(
-                        buffer, tcoordsOffset, stride * 2)
-                    binningOffset = tcoordsOffset + stride * 2 * bytes
-                }
-
-                // Binning (optional)
-                if (hasBinning) {
-                    console.log(
-                        'ready to read from binning file at ',
-                        binningOffset
-                    )
-                }
-                const geometry = bufferGeometryFromArrays(points, normals, tcoords)
-                console.log('Asset: loaded Geometry for ' + this.id)
-                this.geometry = geometry
-                this.trigger('change:geometry')
-
-                return geometry
-            }, (err) => {
-                console.log('failed to load geometry (AB) for ' + this.id)
-                console.log(err)
-            })
-        }
+            return geometry
+        }, (err) => {
+            console.log('failed to load geometry (OBJ) for ' + this.id)
+            console.log(err)
+        })
 
         // mirror the arrayPromise xhr() API
         this._geometryPromise.xhr = () => {

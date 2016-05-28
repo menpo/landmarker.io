@@ -3,6 +3,7 @@ import * as _ from 'underscore'
 
 import * as Asset from './asset'
 import {loading} from '../view/notification'
+import { Backend } from '../backend'
 
 function abortAllObj (obj) {
     _.values(obj).forEach(function (x) {
@@ -13,7 +14,9 @@ function abortAllObj (obj) {
 // Holds a list of available assets.
 abstract class AssetSource extends Backbone.Model {
 
-    constructor(server, id: string) {
+    pending: { [id: string]: string }
+
+    constructor(server: Backend, id: string) {
         super({
             assets: new Backbone.Collection(),
             assetIsLoading: false,
@@ -24,7 +27,7 @@ abstract class AssetSource extends Backbone.Model {
 
     abstract setAsset(asset: Asset.Image): void
 
-    server() {
+    server(): Backend {
         return this.get('server')
     }
 
@@ -85,7 +88,7 @@ abstract class AssetSource extends Backbone.Model {
         return this.setAsset(this.assets()[this.assetIndex() - 1])
     }
 
-    setIndex(newIndex) {
+    setIndex(newIndex: number) {
         if (newIndex < 0 || newIndex >= this.nAssets()) {
             console.log(`Can't go to asset with index ${newIndex + 1}`)
             return null

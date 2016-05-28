@@ -64,7 +64,7 @@ export interface Backend {
      * @return {Promise}
      * @resolve {THREE.Geometry}
      */
-    fetchGeometry(assetId: string): Promise<THREE.Geometry>
+    fetchGeometry(assetId: string): Promise<THREE.BufferGeometry>
 
     /**
      * Return the remote data for landmarks for an asset/template combination
