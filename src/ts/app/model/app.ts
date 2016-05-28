@@ -13,7 +13,7 @@ export default Backbone.Model.extend({
 
     defaults: function () {
         return {
-            landmarkSize: 0.5,
+            landmarkSize: 0.2,
             mode: 'mesh',
             connectivityOn: true,
             editingOn: true,

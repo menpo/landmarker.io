@@ -8,9 +8,26 @@ export const touchListToArray = (touches: TouchList): Touch[] => {
     return result
 }
 
-const stylusTouchIdentifiers = new Set<number>()
+interface IOSTouch extends Touch {
+    force: number // some iOS devices have a force entry.
+    identifier: number // keep a track on IDS
+}
 
-export const isStylusTouch = (touch: Touch): boolean => touch.force !== undefined && touch.force > 0
+const STYLUS_IDS: { [s: number]: boolean } = {}
+
+export const isStylusTouch = (touch: IOSTouch): boolean => {
+    if (touch.identifier === undefined) {
+        return false
+    }
+    if(touch.force !== undefined && touch.force > 0) {
+        STYLUS_IDS[touch.identifier] = true
+    }
+    if (STYLUS_IDS[touch.identifier]) {
+        return true
+    } else {
+        return false
+    }
+}
 
 export type TouchByType = {
     finger: Touch[]
@@ -21,7 +38,7 @@ export const touchListByType = (touches: TouchList): TouchByType => {
     const touchArray = touchListToArray(touches)
     return {
         stylus: touchArray.filter(isStylusTouch),
-        finger: touchArray.filter((t => !isStylusTouch(t)))
+        finger: touchArray.filter((t => !isStylusTouch(t as IOSTouch)))
     }
 }
 

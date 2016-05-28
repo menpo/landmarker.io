@@ -7,6 +7,5 @@ export interface Landmark {
 export interface Intersection {
     distance: number
     point: THREE.Vector3,
-    object: THREE.Object3D,
-    [propName: string]: any  // and other stuff...
+    object: THREE.Object3D
 }
