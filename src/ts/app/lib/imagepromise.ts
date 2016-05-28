@@ -1,69 +1,64 @@
-'use strict';
+import * as THREE from 'three'
+import { loading } from '../view/notification'
 
-import * as THREE from 'three';
-
-import { loading } from '../view/notification';
-
-export function ImagePromise (url, auth=false) {
+export function ImagePromise (url: string, auth=false) {
 
     return new Promise(function (resolve, reject) {
 
-        var xhr = new XMLHttpRequest();
+        var xhr = new XMLHttpRequest()
 
-        xhr.open('GET', url, true);
-        xhr.responseType = 'blob';
-        var img = new Image();
+        xhr.open('GET', url, true)
+        xhr.responseType = 'blob'
+        var img = new Image()
 
-        xhr.withCredentials = !!auth;
-        var asyncId = loading.start();
+        xhr.withCredentials = !!auth
+        var asyncId = loading.start()
 
         xhr.addEventListener('load', function () {
             if (this.status === 200) {
-                var blob = this.response;
+                var blob = this.response
                 img.addEventListener('load', function () {
-                    loading.stop(asyncId);
-                    window.URL.revokeObjectURL(img.src); // Clean up after ourselves.
-                    resolve(img);
-                });
-                img.src = window.URL.createObjectURL(blob);
+                    loading.stop(asyncId)
+                    window.URL.revokeObjectURL(img.src) // Clean up after ourselves.
+                    resolve(img)
+                })
+                img.src = window.URL.createObjectURL(blob)
             } else {
-                loading.stop(asyncId);
-                reject(Error(xhr.statusText));
+                loading.stop(asyncId)
+                reject(Error(xhr.statusText))
             }
-        });
+        })
 
         xhr.addEventListener('error', function() {
-            loading.stop(asyncId);
-            reject(Error('Network Error'));
-        });
+            loading.stop(asyncId)
+            reject(Error('Network Error'))
+        })
 
         xhr.addEventListener('abort', function() {
-            loading.stop(asyncId);
-            reject(Error('Aborted'));
-        });
+            loading.stop(asyncId)
+            reject(Error('Aborted'))
+        })
 
-        xhr.send();
-    });
+        xhr.send()
+    })
 }
 
-export function TexturePromise (url, auth) {
-    var texture = new THREE.Texture(undefined);
-    texture.sourceFile = url;
+export function TexturePromise (url: string, auth) {
+    const texture = new THREE.Texture(undefined)
+    texture.sourceFile = url
     // in general our textures will not be powers of two size, so we need
     // to set our resampling appropriately.
-    texture.minFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter
 
     return ImagePromise(url, auth).then(function(image) {
-            texture.image = image;
-            texture.needsUpdate = true;
-            return texture;
-    });
+            texture.image = image
+            texture.needsUpdate = true
+            return texture
+    })
 }
 
-export function MaterialPromise (url, auth) {
-    return TexturePromise(url, auth).then(function (texture) {
-        return new THREE.MeshBasicMaterial({map: texture});
-    });
+export function MaterialPromise (url: string, auth) {
+    return TexturePromise(url, auth).then((texture) => new THREE.MeshBasicMaterial({map: texture}))
 }
 
-export default MaterialPromise;
+export default MaterialPromise

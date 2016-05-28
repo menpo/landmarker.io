@@ -13,7 +13,7 @@ const UP = {
 }
 
 function mappedPlane(w: number, h: number) {
-    var geometry = new THREE.Geometry()
+    const geometry = new THREE.Geometry()
     geometry.vertices.push(new THREE.Vector3(0, 0, 0))
     geometry.vertices.push(new THREE.Vector3(h, 0, 0))
     geometry.vertices.push(new THREE.Vector3(h, w, 0))
@@ -44,69 +44,103 @@ function mappedPlane(w: number, h: number) {
     return geometry
 }
 
-const untexturedMeshMaterial = new THREE.MeshPhongMaterial()
-untexturedMeshMaterial.transparent = true
+function bufferGeometryFromArrays(points: Float32Array, normals: Float32Array, tcoords: Float32Array) {
+    const geometry = new THREE.BufferGeometry()
+    geometry.addAttribute('position', new THREE.BufferAttribute(points, 3))
+    if (normals) {
+        geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3))
+    } else {
+        geometry.computeVertexNormals()
+    }
+    if (tcoords) {
+        geometry.addAttribute('uv', new THREE.BufferAttribute(tcoords, 2))
+    }
+    geometry.computeBoundingSphere()
+    return geometry
+}
 
-const imagePlaceholderGeometry = mappedPlane(1, 1)
-const imagePlaceholderTexture = THREE.ImageUtils.loadTexture(placeholderUrl)
+const UNTEXTURED_MESH_MATERIAL = new THREE.MeshPhongMaterial()
+UNTEXTURED_MESH_MATERIAL.transparent = true
+
+const IMAGE_PLACEHOLDER_GEOMETRY = mappedPlane(1, 1)
+const IMAGE_PLACEHOLDER_TEXTURE = THREE.ImageUtils.loadTexture(placeholderUrl)
 // the placeholder texture will not be powers of two size, so we need
 // to set our resampling appropriately.
-imagePlaceholderTexture.minFilter = THREE.LinearFilter
-const imagePlaceholderMaterial = new THREE.MeshPhongMaterial({
-    map: imagePlaceholderTexture
+IMAGE_PLACEHOLDER_TEXTURE.minFilter = THREE.LinearFilter
+const IMAGE_PLACEHOLDER_MATERIAL = new THREE.MeshPhongMaterial({
+    map: IMAGE_PLACEHOLDER_TEXTURE
 })
 
-export const Image = Backbone.Model.extend({
+export class Image extends Backbone.Model {
 
-    defaults: function () {
-        return { textureOn: true }
-    },
+    geometry: THREE.BufferGeometry = null
+    thumbnailGeometry: THREE.Geometry = null
+    textureGeometry: THREE.Geometry = null
 
-    server: function () {
-        return this.get('server')
-    },
+    thumbnail: THREE.Material = null
+    texture: THREE.Material = null
 
-    hasTexture: function() {
-        return this.hasOwnProperty('texture')
-    },
+    _thumbnailPromise = null
+    _geometryPromise = null
+    _texturePromise = null
 
-    hasThumbnail: function() {
-        return this.hasOwnProperty('thumbnail')
-    },
-
-    hasGeometry: function() {
-        return this.hasOwnProperty('geometry')
-    },
-
-    isTextureOn: function () {
-        return this.hasTexture() && this.get('textureOn')
-    },
-
-    initialize: function() {
-        var that = this
-
-        var meshChanged = function () {
-            that.trigger('newMeshAvailable')
-        }
+    constructor(id: string, server) {
+        super()
+        this.set({ id, server, textureOn: true })
+        const meshChanged = () => this.trigger('newMeshAvailable')
         this.listenTo(this, 'change:geometry', meshChanged)
         this.listenTo(this, 'change:thumbnail', meshChanged)
         this.listenTo(this, 'change:texture', meshChanged)
         this.listenTo(this, 'change:textureOn', meshChanged)
-    },
+    }
 
-    mesh: function () {
+    server() {
+        return this.get('server')
+    }
+
+    hasTexture() {
+        return this.texture !== null
+    }
+
+    hasThumbnail() {
+        return this.thumbnail !== null
+    }
+
+    hasGeometry() {
+        return this.geometry !== null
+    }
+
+    isTextureOn () {
+        return this.hasTexture() && this.get('textureOn')
+    }
+
+    get hasGeometryPromise() {
+        return this._geometryPromise !== null
+    }
+
+    get hasTexturePromise() {
+        return this._geometryPromise !== null
+    }
+
+    get hasThumbnailPromise() {
+        return this._geometryPromise !== null
+    }
+
+    mesh() {
         // regenerate a THREE.Mesh from the current state. Note that no
         // texture, geometry or material is created in here - we just
         // wire up buffers that we own.
         // Once this asset is no longer required, dispose() can be called to
         // clear all state back up.
-        var geometry, material, mesh, up, front, hasGeo, hasTex, hasThumb
-        hasGeo = this.hasGeometry()
-        hasTex = this.hasTexture()
-        hasThumb = this.hasThumbnail()
+        let geometry: THREE.Geometry
+        let material: THREE.Material
+        const hasGeo = this.hasGeometry()
+        const hasTex = this.hasTexture()
+        const hasThumb = this.hasThumbnail()
 
-        up = UP.image
-        front = FRONT.image
+        // Start assuming that we have an image
+        let up = UP.image
+        let front = FRONT.image
 
         // 1. Resolve which geometry should be used.
         if (hasGeo) {
@@ -120,26 +154,18 @@ export const Image = Backbone.Model.extend({
             geometry = this.thumbnailGeometry
         } else {
             // no geometry, no image - use the placeholder
-            geometry = imagePlaceholderGeometry
+            geometry = IMAGE_PLACEHOLDER_GEOMETRY
         }
 
         // 2. Resolve material
-        // First set the defaults.
-        if (hasGeo) {
-            material = untexturedMeshMaterial
-        } else {
-            material = imagePlaceholderMaterial
+        // First set the defaults
+        material = hasGeo ? UNTEXTURED_MESH_MATERIAL : IMAGE_PLACEHOLDER_MATERIAL
 
-        }
         if (hasGeo) {
             // MESH
             if (this.isTextureOn()) {
-                // must have either thumbnail or texture.
-                if (hasTex) {
-                    material = this.texture
-                } else {
-                    material = this.thumbnail
-                }
+                // must have either thumbnail or texture
+                material = hasTex ? this.texture : this.thumbnail
             }
         } else {
             if (hasTex) {
@@ -148,39 +174,39 @@ export const Image = Backbone.Model.extend({
                 material = this.thumbnail
             }
         }
-        mesh = new THREE.Mesh(geometry, material)
+        const mesh = new THREE.Mesh(geometry, material)
         mesh.name = this.id
         return {
             mesh: mesh,
             up: up,
             front: front
         }
-    },
+    }
 
-    textureOn: function() {
+    textureOn() {
         if (this.isTextureOn() || !this.hasTexture()) {
             return  // texture already off or no texture
         }
         this.set('textureOn', true)
-    },
+    }
 
-    textureOff: function() {
+    textureOff() {
         if (!this.isTextureOn()) {
             return  // texture already on
         }
         this.set('textureOn', false)
-    },
+    }
 
-    textureToggle: function () {
+    textureToggle() {
         if (this.isTextureOn()) {
             this.textureOff()
         } else {
             this.textureOn()
         }
-    },
+    }
 
-    loadThumbnail: function () {
-        if (!this.hasOwnProperty('_thumbnailPromise')) {
+    loadThumbnail() {
+        if (!this.hasThumbnailPromise) {
             this._thumbnailPromise = this.server().fetchThumbnail(this.id).then((material) => {
                 delete this._thumbnailPromise
                 console.log('Asset: loaded thumbnail for ' + this.id)
@@ -194,10 +220,10 @@ export const Image = Backbone.Model.extend({
             })
         }
         return this._thumbnailPromise
-    },
+    }
 
-    loadTexture: function () {
-        if (!this.hasOwnProperty('_texturePromise')) {
+    loadTexture() {
+        if (!this.hasTexturePromise) {
             this._texturePromise = this.server().fetchTexture(this.id).then((material) => {
                 delete this._texturePromise
                 console.log('Asset: loaded texture for ' + this.id)
@@ -211,10 +237,10 @@ export const Image = Backbone.Model.extend({
             })
         }
         return this._texturePromise
-    },
+    }
 
     // reset this asset back to how it was at fetch time.
-    dispose: function () {
+    dispose() {
         if (this.hasGeometry()) {
             this.geometry.dispose()
         }
@@ -230,41 +256,26 @@ export const Image = Backbone.Model.extend({
             this.thumbnailGeometry.dispose()
 
         }
-        // null and delete everything
+        // null everything
         this.thumbnailGeometry = null
-        delete this.thumbnailGeometry
-
         this.textureGeometry = null
-        delete this.textureGeometry
-
         this.geometry = null
-        delete this.geometry
-
         this.thumbnail = null
-        delete this.thumbnail
-
         this.texture = null
-        delete this.texture
-
         this._thumbnailPromise = null
-        delete this._thumbnailPromise
-
         this._texturePromise = null
-        delete this._texturePromise
-
         this._geometryPromise = null
-        delete this._geometryPromise
     }
-})
+}
 
-export const Mesh = Image.extend({
+export class Mesh extends Image {
 
-    geometryUrl: function () {
+    geometryUrl() {
         return this.server().map('meshes/' + this.id)
-    },
+    }
 
-    loadGeometry: function () {
-        if (this.hasOwnProperty('_geometryPromise')) {
+    loadGeometry() {
+        if (this.hasGeometryPromise) {
             // already loading this geometry
             return this._geometryPromise
         }
@@ -286,28 +297,27 @@ export const Mesh = Image.extend({
                 console.log(err)
             })
         } else { // Backend sends raw optimised ArrayBuffer through > build 3D
-            this._geometryPromise = arrayPromise.then((buffer) => {
+            this._geometryPromise = arrayPromise.then((buffer: ArrayBuffer) => {
                 // now the promise is fullfilled, delete the promise.
                 delete this._geometryPromise
-                var geometry
 
-                var lenMeta = 4
-                var bytes = 4
-                var meta = new Uint32Array(buffer, 0, lenMeta)
-                var nTris = meta[0]
-                var isTextured = Boolean(meta[1])
-                var hasNormals = Boolean(meta[2])
-                var hasBinning = Boolean(meta[2])  // used for efficient lookup
-                var stride = nTris * 3
+                const lenMeta = 4
+                const bytes = 4
+                const meta = new Uint32Array(buffer, 0, lenMeta)
+                const nTris = meta[0]
+                const isTextured = Boolean(meta[1])
+                const hasNormals = Boolean(meta[2])
+                const hasBinning = Boolean(meta[2])  // used for efficient lookup
+                const stride = nTris * 3
 
                 // Points
-                var pointsOffset = lenMeta * bytes
-                var points = new Float32Array(buffer, pointsOffset, stride * 3)
-                var normalOffset = pointsOffset + stride * 3 * bytes
+                const pointsOffset = lenMeta * bytes
+                const points = new Float32Array(buffer, pointsOffset, stride * 3)
+                const normalOffset = pointsOffset + stride * 3 * bytes
 
                 // Normals (optional)
-                var normals = null  // initialize for no normals
-                var tcoordsOffset = normalOffset  // no normals -> tcoords next
+                let normals: Float32Array = null  // initialize for no normals
+                let tcoordsOffset = normalOffset  // no normals -> tcoords next
                 if (hasNormals) {
                     // correct if has normals
                     normals = new Float32Array(
@@ -317,8 +327,8 @@ export const Mesh = Image.extend({
                 }
 
                 // Tcoords (optional)
-                var tcoords = null  // initialize for no tcoords
-                var binningOffset = tcoordsOffset  // no tcoords -> binning next
+                let tcoords: Float32Array = null  // initialize for no tcoords
+                let binningOffset = tcoordsOffset  // no tcoords -> binning next
                 if (isTextured) {
                     tcoords = new Float32Array(
                         buffer, tcoordsOffset, stride * 2)
@@ -332,7 +342,7 @@ export const Mesh = Image.extend({
                         binningOffset
                     )
                 }
-                geometry = this._newBufferGeometry(points, normals, tcoords)
+                const geometry = bufferGeometryFromArrays(points, normals, tcoords)
                 console.log('Asset: loaded Geometry for ' + this.id)
                 this.geometry = geometry
                 this.trigger('change:geometry')
@@ -352,21 +362,5 @@ export const Mesh = Image.extend({
         // configured. Can access the raw underlying xhr request at xhr().
         // Aborting this will cause the promise to fail.
         return this._geometryPromise
-    },
-
-    _newBufferGeometry: function(points, normals, tcoords) {
-        const geometry = new THREE.BufferGeometry()
-        geometry.addAttribute('position', new THREE.BufferAttribute(points, 3))
-        if (normals) {
-            geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3))
-        } else {
-            geometry.computeVertexNormals()
-        }
-        if (tcoords) {
-            geometry.addAttribute('uv', new THREE.BufferAttribute(tcoords, 2))
-        }
-        geometry.computeBoundingSphere()
-        return geometry
     }
-
-})
+}

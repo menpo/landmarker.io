@@ -1,5 +1,3 @@
-'use strict';
-
 import * as Backbone from 'backbone';
 import * as _ from 'underscore';
 
@@ -95,15 +93,9 @@ const AssetSource = Backbone.Model.extend({
 
 export const MeshSource = AssetSource.extend({
 
-    parse: function (response) {
-        const meshes = response.map((assetId) => {
-            return new Asset.Mesh({
-                id: assetId,
-                server: this.server()
-            });
-        });
-
-        return { assets: meshes };
+    parse: function (response: string[]) {
+        const meshes = response.map(assetId => new Asset.Mesh(assetId, this.server()))
+        return { assets: meshes }
     },
 
     setAsset: function (newMesh) {
@@ -167,13 +159,10 @@ export const ImageSource = AssetSource.extend({
 
     parse: function (response) {
         const images = response.map((assetId) => {
-            return new Asset.Image({
-                id: assetId,
-                server: this.server()
-            });
-        });
+            return new Asset.Image(assetId, this.server())
+        })
 
-        return { assets: images };
+        return { assets: images }
     },
 
     setAsset: function (newAsset) {
