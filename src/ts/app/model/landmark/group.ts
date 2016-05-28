@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { notify } from '../../view/notification';
 import Tracker from '../../lib/tracker';
 import { atomic } from '../atomic';
+import { Backend } from '../../backend'
 
 import { Landmark } from './landmark';
 import { LandmarkCollection }  from './collection'
@@ -57,14 +58,15 @@ function _pointToVector (p: JSONPoint) : [THREE.Vector3, number] {
 export class LandmarkGroup extends LandmarkCollection {
 
     connectivity: [number, number][]
-    id
-    type
-    server
+    id: string
+    type: string
+    server: Backend
     tracker: Tracker
     labels: LandmarkLabel[]
 
-    constructor(points: any[], connectivity: [number, number][],
-                labels: LabelAndMask[], id, type, server, tracker: Tracker) {
+    constructor(points: JSONPoint[], connectivity: [number, number][],
+                labels: LabelAndMask[], id: string, type: string,
+                server: Backend, tracker: Tracker) {
 
         // 1. Build landmarks from points
         super(points.map((p, index) => {
@@ -91,7 +93,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.tracker.recordState(this.toJSON(), true);
     }
 
-    static parse(json, id, type, server, tracker) {
+    static parse(json: LJSON, id: string, type: string, server: Backend, tracker: Tracker) {
         return new LandmarkGroup(
             json.landmarks.points,
             json.landmarks.connectivity,

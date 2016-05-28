@@ -1,10 +1,10 @@
 import * as $ from 'jquery'
 import * as Backbone from 'backbone'
-
 import Tracker from '../lib/tracker'
 import * as AssetSource from './assetsource'
 import { LandmarkGroup } from './landmark'
 import Modal from '../view/modal'
+import { Backend } from '../backend'
 
 type AppOptions = {
     _activeTemplate?: string
@@ -92,7 +92,7 @@ export default class App extends Backbone.Model {
         return this.get('mode') === 'mesh'
      }
 
-    server() {
+    server(): Backend {
         return this.get('server')
      }
 
@@ -380,7 +380,7 @@ export default class App extends Backbone.Model {
         }
      }
 
-    goToAssetIndex(newIndex) {
+    goToAssetIndex(newIndex: number) {
         this.autoSaveWrapper(() => {
             this._switchToAsset(this.assetSource().setIndex(newIndex))
         })

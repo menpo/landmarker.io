@@ -1,99 +1,109 @@
-'use strict';
+'use strict'
 
-import { getJSON, putJSON, getArrayBuffer } from '../lib/requests';
-import { capitalize } from '../lib/utils';
-import * as support from '../lib/support';
-import ImagePromise from '../lib/imagepromise';
+import { getJSON, putJSON, getArrayBuffer } from '../lib/requests'
+import { capitalize } from '../lib/utils'
+import * as support from '../lib/support'
+import ImagePromise from '../lib/imagepromise'
 
-import Base from './base';
+import { Backend } from './base'
 
-const Server = Base.extend('LANDMARKER SERVER', function (url) {
+export default class Server implements Backend {
 
-    this.url = url;
-    this.demoMode = false;
-    this.version = 2;
-    this.httpAuth = false;
+    // Used to identify backends in local storage
+    static Type = 'LANDMARKER SERVER'
 
-    if (this.url === 'demo') {
-        this.url = '';
-        this.demoMode = true;
-    } else if (!/^(?:f|ht)tps?\:\/\//.test(url)) {
-        this.url = 'http://' + this.url;
-    }
+    url: string
+    demoMode = false
+    version = 2
+    httpAuth = false
 
-    this.httpAuth = url.indexOf('https://') === 0;
+    constructor(url: string) {
+        this.url = url
 
-    if (!this.demoMode && support.https && url.indexOf('https://') !== 0) {
-        throw new Error('Mixed Content');
-    }
-
-});
-
-export default Server;
-
-Server.prototype.apiHeader = function () {
-    return `/api/v${this.version}/`;
-};
-
-Server.prototype.map = function (url) {
-    var mapping;
-    if (this.demoMode) {
-        // demoMode so we ignore the server url
-        mapping = window.location.pathname.slice(0, -1) +
-                  this.apiHeader() + url;
-        // this just means we map everything to .json..except images
-        // which have to be jpeg and mesh data (.raw)
-        if ((new RegExp('textures/')).test(url)) {
-            return mapping + '.jpg';
-        } else if ((new RegExp('thumbnails/')).test(url)) {
-            return mapping + '.jpg';
-        } else if ((new RegExp('meshes/')).test(url)) {
-            return mapping + '.raw';
-        } else {
-            return mapping + '.json';
+        if (this.url === 'demo') {
+            this.url = ''
+            this.demoMode = true
+        } else if (!/^(?:f|ht)tps?\:\/\//.test(url)) {
+            this.url = 'http://' + this.url
         }
-    } else {
-        return this.url + this.apiHeader() + url;
+
+        this.httpAuth = url.indexOf('https://') === 0
+
+        if (!this.demoMode && support.https && url.indexOf('https://') !== 0) {
+            throw new Error('Mixed Content')
+        }
+
     }
-};
 
-Server.prototype.fetchJSON = function (basepath) {
-    const url = this.map(basepath);
-    return getJSON(url, {auth: this.httpAuth});
-};
+    apiHeader() {
+        return `/api/v${this.version}/`
+    }
 
-['mode', 'templates', 'collections'].forEach(function (path) {
-    const funcName = `fetch${capitalize(path)}`;
-    Server.prototype[funcName] = function () {
-        return this.fetchJSON(path);
-    };
-});
+    map(url: string) {
+        if (this.demoMode) {
+            // demoMode so we ignore the server url
+            const mapping = window.location.pathname.slice(0, -1) +
+                    this.apiHeader() + url
+            // this just means we map everything to .json..except images
+            // which have to be jpeg and mesh data (.raw)
+            if ((new RegExp('textures/')).test(url)) {
+                return mapping + '.jpg'
+            } else if ((new RegExp('thumbnails/')).test(url)) {
+                return mapping + '.jpg'
+            } else if ((new RegExp('meshes/')).test(url)) {
+                return mapping + '.raw'
+            } else {
+                return mapping + '.json'
+            }
+        } else {
+            return this.url + this.apiHeader() + url
+        }
+    }
 
-Server.prototype.fetchCollection = function (collectionId) {
-    return this.fetchJSON(`collections/${collectionId}`);
-};
+    fetchJSON(basepath: string) {
+        const url = this.map(basepath)
+        return getJSON(url, {auth: this.httpAuth})
+    }
 
-Server.prototype.fetchLandmarkGroup = function (id, type) {
-    return getJSON(this.map(`landmarks/${id}/${type}`), {auth: this.httpAuth});
-};
+    fetchMode() {
+        return this.fetchJSON('mode')
+    }
 
-Server.prototype.saveLandmarkGroup = function (id, type, json) {
-    return putJSON(this.map(`landmarks/${id}/${type}`), {
-        data: json,
-        auth: this.httpAuth
-    });
-};
+    fetchTemplates() {
+        return this.fetchJSON('templates')
+    }
 
-Server.prototype.fetchThumbnail = function (assetId) {
-    return ImagePromise(this.map(`thumbnails/${assetId}`), this.httpAuth);
-};
+    fetchCollections() {
+        return this.fetchJSON('collections')
+    }
 
-Server.prototype.fetchTexture = function (assetId) {
-    return ImagePromise(this.map(`textures/${assetId}`), this.httpAuth);
-};
+    fetchCollection(collectionId: string) {
+        return this.fetchJSON(`collections/${collectionId}`)
+    }
 
-Server.prototype.fetchGeometry = function (assetId) {
-    return getArrayBuffer(this.map(`meshes/${assetId}`), {
-        auth: this.httpAuth
-    });
-};
+    fetchLandmarkGroup(id: string, type: string) {
+        return getJSON(this.map(`landmarks/${id}/${type}`), {auth: this.httpAuth})
+    }
+
+    saveLandmarkGroup(id: string, group: string, json: Object) {
+        return putJSON(this.map(`landmarks/${id}/${group}`), {
+            data: json,
+            auth: this.httpAuth
+        })
+    }
+
+    fetchThumbnail(assetId: string) {
+        return ImagePromise(this.map(`thumbnails/${assetId}`), this.httpAuth)
+    }
+
+    fetchTexture(assetId: string) {
+        return ImagePromise(this.map(`textures/${assetId}`), this.httpAuth)
+    }
+
+    fetchGeometry(assetId: string) {
+        return getArrayBuffer(this.map(`meshes/${assetId}`), {
+            auth: this.httpAuth
+        })
+    }
+
+}

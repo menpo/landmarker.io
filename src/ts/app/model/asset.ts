@@ -1,7 +1,7 @@
 import * as Backbone from 'backbone'
 import * as THREE from 'three'
 const placeholderUrl = require("../../../../img/placeholder.jpg")
-
+import { Backend } from '../backend'
 const FRONT = {
     image: new THREE.Vector3(0, 0, 1),
     mesh: new THREE.Vector3(0, 0, 1)
@@ -80,11 +80,11 @@ export class Image extends Backbone.Model {
     thumbnail: THREE.Material = null
     texture: THREE.Material = null
 
-    _thumbnailPromise = null
+    _thumbnailPromise: Promise<THREE.Material> = null
     _geometryPromise = null
-    _texturePromise = null
+    _texturePromise: Promise<THREE.Material> = null
 
-    constructor(id: string, server) {
+    constructor(id: string, server: Backend) {
         super()
         this.set({ id, server, textureOn: true })
         const meshChanged = () => this.trigger('newMeshAvailable')
@@ -94,7 +94,7 @@ export class Image extends Backbone.Model {
         this.listenTo(this, 'change:textureOn', meshChanged)
     }
 
-    server() {
+    server(): Backend {
         return this.get('server')
     }
 
@@ -132,7 +132,7 @@ export class Image extends Backbone.Model {
         // wire up buffers that we own.
         // Once this asset is no longer required, dispose() can be called to
         // clear all state back up.
-        let geometry: THREE.Geometry
+        let geometry: THREE.Geometry | THREE.BufferGeometry
         let material: THREE.Material
         const hasGeo = this.hasGeometry()
         const hasTex = this.hasTexture()
@@ -224,7 +224,7 @@ export class Image extends Backbone.Model {
 
     loadTexture() {
         if (!this.hasTexturePromise) {
-            this._texturePromise = this.server().fetchTexture(this.id).then((material) => {
+            this._texturePromise = this.server().fetchTexture(this.id).then(material => {
                 delete this._texturePromise
                 console.log('Asset: loaded texture for ' + this.id)
                 this.texture = material
