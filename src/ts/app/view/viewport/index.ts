@@ -241,11 +241,11 @@ export class Viewport implements IViewport {
         if (currentMode === CAMERA_MODE.PERSPECTIVE) {
             // going to orthographic - start listening for pip updates
             this.camera.onChangePip = this.update
-            this.canvas.pipVisable = false
+            this.canvas.pipVisable = true
         } else {
             // leaving orthographic - stop listening to pip calls.
             this.camera.onChangePip = null
-            this.canvas.pipVisable = true
+            this.canvas.pipVisable = false
         }
         // clear the canvas and re-render our state
         this.canvas.clear()
