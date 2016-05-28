@@ -38,7 +38,7 @@ export interface IScene {
     localToScreen: (v: THREE.Vector3) => THREE.Vector2
     worldToLocal: (v: THREE.Vector3) => THREE.Vector3
     getIntersects: (x: number, y: number, object: Intersectable) => Intersection[]
-    getIntersectsFromEvent: (e: MouseEvent, object: Intersectable) => Intersection[]
+    getIntersectsFromEvent: (e: MouseEvent | Touch, object: Intersectable) => Intersection[]
     resize: (width: number, height: number) => void
     lmViewsInSelectionBox: (x1: number, y1: number, x2: number, y2: number) => LandmarkTHREEView[]
     lmViewVisible: (lmv: LandmarkTHREEView) => boolean
@@ -267,7 +267,7 @@ export class Scene implements IScene {
     // Coordinates and intersection helpers
     // =========================================================================
 
-    getIntersects = (x: number, y: number, object: Intersectable): Intersection[] =>  {
+    getUnsortedIntersects = (x: number, y: number, object: Intersectable): Intersection[] =>  {
         if (object === null || (object instanceof Array && object.length === 0)) {
             return []
         }
@@ -298,7 +298,11 @@ export class Scene implements IScene {
         }
     }
 
-    getIntersectsFromEvent = (e: MouseEvent, object: Intersectable) => this.getIntersects(e.clientX, e.clientY, object)
+    getIntersects = (x: number, y: number, object: Intersectable): Intersection[] => {
+        return this.getUnsortedIntersects(x, y, object).sort((a, b) => a.distance - b.distance)
+    }
+
+    getIntersectsFromEvent = (e: MouseEvent | Touch, object: Intersectable) => this.getIntersects(e.pageX, e.clientY, object)
 
     worldToScreen = (v: THREE.Vector3) => {
         const halfW = this.width / 2

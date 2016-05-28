@@ -36,6 +36,7 @@ export interface IViewport {
     snapModeEnabled: boolean
     connectivityVisable: boolean
     cameraIsLocked: boolean
+    landmarkSnapPermitted: boolean
 }
 
 // We are trying to move towards the whole viewport module being a standalone black box that
@@ -211,6 +212,12 @@ export class Viewport implements IViewport {
             this.cameraTouchHandler = null
         }
     }
+
+    // is a snap action allowed to take place right now?
+    get landmarkSnapPermitted() {
+        return (this.snapModeEnabled && this.hasLandmarks &&
+                !this.allLandmarksEmpty && !this.groupModeActive)
+   }
 
     // Bring the viewport DOM into focus
     focus = () => {

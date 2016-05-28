@@ -3,14 +3,7 @@ import { Landmark, Intersection } from '../base'
 import { atomic } from '../../../model/atomic'
 import { Viewport } from '../index'
 import { listenOnce } from '../lib/event'
-
-const findClosestLandmarks = (lms: Landmark[], point: THREE.Vector, n = 4) =>
-    lms
-        .map(lm => ({ landmark: lm, distance: point.distanceTo(lm.point) }))
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, n)
-        .map(lmd => lmd.landmark)
-
+import { findClosestLandmarks } from './base'
 /**
  * Holds state usable by all event handlers and should be bound to the
  * Viewport view instance.
@@ -344,12 +337,7 @@ export class MouseHandler {
 
         this.viewport.clearCanvas()
 
-        if (this.isPressed ||
-            !this.viewport.snapModeEnabled ||
-            !this.viewport.hasLandmarks ||
-            this.viewport.allLandmarksEmpty ||
-            this.viewport.groupModeActive
-        ) {
+        if (this.isPressed || !this.viewport.landmarkSnapPermitted) {
             return null
         }
         // only here as:
@@ -360,7 +348,6 @@ export class MouseHandler {
         if (this.currentTargetLm !== null && this.currentTargetLm.point === null)
         {
             // the target point has been deleted - reset it.
-            // TODO decide on reset state for target landmark
             this.currentTargetLm = null
         }
 

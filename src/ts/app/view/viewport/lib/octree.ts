@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { Intersection } from '../base'
+import { uniq } from 'underscore'
 // once a node gets this full it subdivides.
 const MAX_NODE_ITEMS = 75
 
@@ -248,7 +249,7 @@ export class Octree extends OctreeNode<Octree> {
         inverseMatrix.getInverse(mesh.matrixWorld)
         ray.copy(raycaster.ray).applyMatrix4(inverseMatrix)
         // 2. query our octree (which only stores triangle indices) to find potential intersections.
-        const indices = this.itemsWhichCouldIntersect(ray)
+        const indices = uniq(this.itemsWhichCouldIntersect(ray))
         // 3. now we can just whip through the few triangles in question and check for intersections.
         return intersectTrianglesAtIndices(ray, raycaster, mesh, indices)
     }
