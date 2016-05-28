@@ -1,18 +1,18 @@
 import * as THREE from 'three'
-import { Camera } from './base'
+import { ICamera } from './base'
 import { touchToVector3, pinchGapAndCenter, touchListByType} from '../lib/touch'
 
 const PINCH_GEUSTURE_DEBOUNCE_MS = 200
 
-export class TouchCameraController {
-    camera: Camera
+export class TouchCameraHandler {
+    camera: ICamera
     domElement: HTMLElement
 
     prevTouchVector = new THREE.Vector3()
     prevPinchGap: number = null
     timestampOfLastPinch: number = 0
 
-    constructor(camera: Camera, domElement: HTMLElement) {
+    constructor(camera: ICamera, domElement: HTMLElement) {
         this.camera = camera
         this.domElement = domElement
         domElement.addEventListener('touchstart', this.touchStart, false)

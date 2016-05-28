@@ -1,19 +1,12 @@
 import * as THREE from 'three'
-
 import { atomic, AtomicOperationTracker } from '../../model/atomic'
 
 import { Landmark } from './base'
 import { DomElements } from './dom'
-import { Canvas, CanvasManager } from './canvas'
-
-import { Camera, MultiCamManger, TouchCameraController,
-         MouseCameraController } from './camera'
-
-import { Scene, SceneManager, CAMERA_MODE } from './scene'
-
-import Handler from './handler'
-import TouchHandler from './touchHandler'
-
+import { ICanvas, Canvas } from './canvas'
+import { ICamera, Camera, TouchCameraHandler, MouseCameraHandler } from './camera'
+import { MouseHandler, TouchHandler } from './handler'
+import { IScene, Scene, CAMERA_MODE } from './scene'
 
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE
@@ -21,7 +14,6 @@ const CLEAR_COLOUR_PIP = 0xCCCCCC
 
 const MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5)
 const IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0)
-
 
 export interface ViewportCallbacks {
     selectLandmarks: (indicies: number[]) => void
@@ -62,14 +54,14 @@ export class Viewport implements IViewport {
 
     renderer: THREE.WebGLRenderer
 
-    scene: Scene = new SceneManager()
-    canvas: Canvas
-    camera: Camera
+    scene: IScene = new Scene()
+    canvas: ICanvas
+    camera: ICamera
 
-    cameraTouchController: TouchCameraController
-    cameraMouseController: MouseCameraController
+    cameraTouchHandler: TouchCameraHandler
+    cameraMouseHandler: MouseCameraHandler
 
-    handler: Handler
+    mouseHandler: MouseHandler
     touchHandler: TouchHandler
 
     constructor(parent: HTMLElement, meshMode: boolean, on: ViewportCallbacks) {
@@ -84,17 +76,17 @@ export class Viewport implements IViewport {
         // Disable context menu on viewport related elements
         this.elements.viewport.addEventListener('contextmenu', e => e.preventDefault())
 
-        this.canvas = new CanvasManager(this.elements.canvas, this.elements.pipCanvas)
+        this.canvas = new Canvas(this.elements.canvas, this.elements.pipCanvas)
 
         // create the camera to look after all camera state.
-        this.camera = new MultiCamManger(this.width, this.height,
+        this.camera = new Camera(this.width, this.height,
                                          this.scene.sPCam,
                                          this.scene.sOCam,
                                          this.scene.sOCamZoom)
 
         this.camera.onChange = this.update
-        this.cameraTouchController = new TouchCameraController(this.camera, this.elements.viewport)
-        this.cameraMouseController = new MouseCameraController(this.camera, this.elements.viewport)
+        this.cameraTouchHandler = new TouchCameraHandler(this.camera, this.elements.viewport)
+        this.cameraMouseHandler = new MouseCameraHandler(this.camera, this.elements.viewport)
 
         if (!this.meshMode) {
             // for images, default to orthographic camera
@@ -118,9 +110,9 @@ export class Viewport implements IViewport {
         // ----- INPUT HANDLERS ----- //
         // There is quite a lot of finicky state in handling the mouse/touch
         // interaction which is of no concern to the rest of the viewport.
-        this.handler = new Handler(this)
+        this.mouseHandler = new MouseHandler(this)
         this.touchHandler = new TouchHandler(this)
-        this.elements.viewport.addEventListener('mousedown', this.handler.onMouseDown)
+        this.elements.viewport.addEventListener('mousedown', this.mouseHandler.onMouseDown)
         this.elements.viewport.addEventListener('touchstart', this.touchHandler.onTouchStart)
         this.elements.viewport.addEventListener('touchmove', this.touchHandler.onTouchMove)
 
@@ -192,9 +184,9 @@ export class Viewport implements IViewport {
         this.canvas.clear()
         this.on.deselectAllLandmarks()
         if (snapModeEnabled) {
-            this.elements.viewport.addEventListener('mousemove', this.handler.onMouseMove)
+            this.elements.viewport.addEventListener('mousemove', this.mouseHandler.onMouseMove)
         } else {
-            this.elements.viewport.removeEventListener('mousemove', this.handler.onMouseMove)
+            this.elements.viewport.removeEventListener('mousemove', this.mouseHandler.onMouseMove)
         }
     }
 
@@ -206,7 +198,7 @@ export class Viewport implements IViewport {
     setLandmarksAndConnectivity = (landmarks: Landmark[], connectivity: [number, number][]) => {
         console.log('Viewport:setLandmarksAndConnectivity')
         this.scene.setLandmarksAndConnectivity(landmarks, connectivity)
-        this.handler.resetLandmarks()
+        this.mouseHandler.resetLandmarks()
         this.update()
     }
 

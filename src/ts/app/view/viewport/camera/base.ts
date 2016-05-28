@@ -3,7 +3,7 @@ import * as THREE from 'three'
 const DAMPING_FACTOR = 0.2
 const PIP_ZOOM_FACTOR = 12.0
 
-export interface Camera {
+export interface ICamera {
     enabled: boolean
     rotationPermitted: boolean
     width: number
@@ -29,7 +29,7 @@ interface Origin {
     oCamZoomPosition: THREE.Vector3,
 }
 
-export class MultiCamManger implements Camera {
+export class Camera implements ICamera {
 
     enabled = false
     rotationPermitted = true

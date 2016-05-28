@@ -22,7 +22,7 @@ function initialBoundingBox() {
     return { minX: 999999, minY: 999999, maxX: 0, maxY: 0 }
 }
 
-export interface Canvas {
+export interface ICanvas {
     pipVisable: boolean
     resize: (width: number, height: number) => void
     clear: () => void,
@@ -31,7 +31,7 @@ export interface Canvas {
     pipBounds: (width: number, height: number) => Bounds
 }
 
-export class CanvasManager implements Canvas {
+export class Canvas implements ICanvas {
     canvas: HTMLCanvasElement
     pipCanvas: HTMLCanvasElement
 

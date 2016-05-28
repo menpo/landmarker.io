@@ -1,11 +1,11 @@
 import * as THREE from 'three'
 import * as $ from 'jquery'
-import { Landmark } from './base'
-import { atomic } from '../../model/atomic'
-import { Viewport } from './index'
-import { touchListByType } from './lib/touch'
+import { Landmark } from '../base'
+import { atomic } from '../../../model/atomic'
+import { Viewport } from '../index'
+import { touchListByType } from '../lib/touch'
 
-export default class TouchHandler {
+export class TouchHandler {
 
     viewport: Viewport
 

@@ -1,3 +1,3 @@
-export { MouseCameraController } from './mouse'
-export { TouchCameraController } from './touch'
-export { Camera, MultiCamManger } from './base'
+export { MouseCameraHandler } from './mouse'
+export { TouchCameraHandler } from './touch'
+export { ICamera, Camera } from './base'

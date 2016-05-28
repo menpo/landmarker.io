@@ -1,4 +1,4 @@
-// There may be a Promise entity on the Window object...
 interface Window {
-    Promise: any;
+    Promise: any  // There may be a Promise support
+    vp: any // allow attaching the viewport for debugging
 }

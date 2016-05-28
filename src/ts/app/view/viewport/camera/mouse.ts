@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { Camera } from './base'
+import { ICamera } from './base'
 import { listenOnce } from '../lib/event'
 
 const MOUSE_WHEEL_SENSITIVITY = 0.5
@@ -20,8 +20,8 @@ const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = [
     1.0 // 2: The delta values are specified in pages.
 ]
 
-export class MouseCameraController {
-    camera: Camera
+export class MouseCameraHandler {
+    camera: ICamera
     domElement: HTMLElement
     state = STATE.NONE
 
@@ -29,7 +29,7 @@ export class MouseCameraController {
     mousePrevPosition = new THREE.Vector2()
     mousePosition = new THREE.Vector2()
 
-    constructor(camera: Camera,
+    constructor(camera: ICamera,
                 domElement: HTMLElement) {
         this.camera = camera
         this.domElement = domElement

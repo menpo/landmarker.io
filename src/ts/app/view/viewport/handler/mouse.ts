@@ -1,8 +1,8 @@
 import * as THREE from 'three'
-import { Landmark, Intersection } from './base'
-import { atomic } from '../../model/atomic'
-import { Viewport } from './index'
-import { listenOnce } from './lib/event'
+import { Landmark, Intersection } from '../base'
+import { atomic } from '../../../model/atomic'
+import { Viewport } from '../index'
+import { listenOnce } from '../lib/event'
 
 const findClosestLandmarks = (lms: Landmark[], point: THREE.Vector, n = 4) =>
     lms
@@ -15,7 +15,7 @@ const findClosestLandmarks = (lms: Landmark[], point: THREE.Vector, n = 4) =>
  * Holds state usable by all event handlers and should be bound to the
  * Viewport view instance.
  */
-export default class Handler {
+export class MouseHandler {
 
     viewport: Viewport
     _currentTargetLmIndex: number = null

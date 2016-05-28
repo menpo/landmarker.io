@@ -11,7 +11,7 @@ export enum CAMERA_MODE {
     ORTHOGRAPHIC
 }
 
-export interface Scene {
+export interface IScene {
     mesh: THREE.Mesh
     landmarks: Landmark[]
     landmarkViews: LandmarkTHREEView[]
@@ -44,7 +44,7 @@ export interface Scene {
     lmViewVisible: (lmv: LandmarkTHREEView) => boolean
 }
 
-export class SceneManager implements Scene {
+export class Scene implements IScene {
 
     width: number
     height: number
