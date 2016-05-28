@@ -70,7 +70,7 @@ function serverBufferToGeometry(buffer: ArrayBuffer) {
     return bufferGeometryFromArrays(points, normals, tcoords)
 }
 
-export default class Server implements Backend {
+export class Server implements Backend {
 
     // Used to identify backends in local storage
     static Type = 'LANDMARKER SERVER'

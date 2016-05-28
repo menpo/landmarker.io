@@ -34,7 +34,7 @@ import Template from '../template'
 import Picker from '../view/dropbox_picker'
 import { Backend } from './base'
 
-export default class Dropbox implements Backend {
+export class Dropbox implements Backend {
 
     // Used to identify backends in local storage
     static Type = 'DROPBOX'

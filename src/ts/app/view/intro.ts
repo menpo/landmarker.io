@@ -1,11 +1,8 @@
-'use strict';
+import * as $ from 'jquery'
 
-import * as $ from 'jquery';
-
-import Modal from './modal';
-import Dropbox from '../backend/dropbox';
-import Server from '../backend/server';
-import { baseUrl, restart } from '../lib/utils';
+import Modal from './modal'
+import { Dropbox, Server } from '../backend/server'
+import { baseUrl, restart } from '../lib/utils'
 
 import * as support from '../lib/support';
 import { version } from '../../../../package.json';

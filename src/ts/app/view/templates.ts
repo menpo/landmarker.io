@@ -1,10 +1,8 @@
-'use strict';
-
-import * as _ from 'underscore';
-import * as Backbone from 'backbone';
-import * as $ from 'jquery';
-import { notify } from './notification';
-import Server from '../backend/server';
+import * as _ from 'underscore'
+import * as Backbone from 'backbone'
+import * as $ from 'jquery'
+import { notify } from './notification'
+import { Server } from '../backend'
 // import ListPicker from './list_picker';
 
 export const TemplatePicker = Backbone.View.extend({

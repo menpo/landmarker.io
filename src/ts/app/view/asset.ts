@@ -7,8 +7,7 @@ import * as $ from 'jquery';
 import * as Notification from './notification';
 import Intro from './intro';
 import { pad, randomString, truncate } from '../lib/utils';
-import Dropbox from '../backend/dropbox'
-import Server from '../backend/server'
+import { Dropbox, Server } from '../backend'
 
 import Modal from './modal';
 import ListPicker from './list_picker';

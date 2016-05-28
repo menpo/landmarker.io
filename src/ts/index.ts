@@ -29,8 +29,7 @@ import KeyboardShortcutsHandler from './app/view/keyboard';
 import Config from './app/model/config';
 import App from './app/model/app';
 
-import Dropbox from './app/backend/dropbox';
-import Server from './app/backend/server';
+import { Dropbox, Server } from './app/backend'
 
 const cfg = Config();
 
