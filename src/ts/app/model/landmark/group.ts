@@ -194,7 +194,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.resetNextAvailable(lm);
     })
 
-   setLmAt = atomic.atomicOperation((lm: Landmark, v: THREE.Vector3) => {
+   setLmAt = (lm: Landmark, v: THREE.Vector3) => {
 
         if (!v) {
             return;
@@ -211,7 +211,7 @@ export class LandmarkGroup extends LandmarkCollection {
             isEmpty: false,
             nextAvailable: false
         });
-    });
+    }
 
     toJSON = () => {
         return {

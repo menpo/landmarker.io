@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-import { octreeForBufferGeometry, Octree, Intersection } from './octree'
+import { octreeForBufferGeometry, Octree, Intersection } from './lib/octree'
 import { Landmark } from './base'
 import { LandmarkConnectionTHREEView, LandmarkTHREEView } from './elements'
 

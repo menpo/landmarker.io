@@ -52,16 +52,12 @@ export interface IViewport {
 export class Viewport implements IViewport {
 
     meshMode: boolean   // if true, working with 3D meshes. False, 2D images.
-
     on: ViewportCallbacks
-
     _connectivityVisable = true
     _snapModeEnabled: boolean // Note that we need to fire this in the constructor for sideeffects
 
     parent: HTMLElement
     elements = new DomElements()
-
-
 
     pixelRatio = window.devicePixelRatio || 1  // 2/3 if on a HIDPI/retina display
 
@@ -208,17 +204,17 @@ export class Viewport implements IViewport {
         this.elements.viewport.focus()
     }
 
-    setLandmarksAndConnectivity = atomic.atomicOperation((landmarks: Landmark[],
-                                                          connectivity: [number, number][]) => {
+    setLandmarksAndConnectivity = (landmarks: Landmark[], connectivity: [number, number][]) => {
         console.log('Viewport:setLandmarksAndConnectivity')
         this.scene.setLandmarksAndConnectivity(landmarks, connectivity)
         this.handler.resetLandmarks()
-    })
+        this.update()
+    }
 
-    updateLandmarks = atomic.atomicOperation((landmarks: Landmark[]) => {
+    updateLandmarks = (landmarks: Landmark[]) => {
         this.scene.updateLandmarks(landmarks)
         this.update()
-    })
+    }
 
     setMesh = (mesh: THREE.Mesh, up: THREE.Vector3, front: THREE.Vector3) => {
         console.log('Viewport:setMesh - memory before: ' + this.memoryString())

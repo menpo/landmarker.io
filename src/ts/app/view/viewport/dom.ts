@@ -5,6 +5,10 @@ function cssOverlayChild(s: CSSStyleDeclaration) {
         s.height = '100%'
 }
 
+// Dumb bag of DOM Elements that we need for the viewport.
+// Sets the styling on construction, but all further work
+// with the elements stored here is done by other classes
+// within Viewport.
 export class DomElements {
     viewport: HTMLDivElement
     webgl: HTMLCanvasElement
