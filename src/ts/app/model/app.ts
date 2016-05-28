@@ -36,20 +36,28 @@ export default class App extends Backbone.Model {
         this._initCollections()
     }
 
-    isConnectivityOn() {
+    get isConnectivityOn(): boolean {
         return this.get('connectivityOn')
     }
 
-    isAutoSaveOn() {
+    set isConnectivityOn(isConnectivityOn: boolean) {
+        this.set('connectivityOn', isConnectivityOn)
+    }
+
+    get isAutoSaveOn(): boolean {
         return this.get('autoSaveOn')
     }
 
-    toggleAutoSave() {
-        return this.set('autoSaveOn', !this.isAutoSaveOn())
+    set isAutoSaveOn(isAutoSaveOn: boolean) {
+        this.set('autoSaveOn', isAutoSaveOn)
+    }
+
+    toggleAutoSave(): void {
+        this.isAutoSaveOn = !this.isAutoSaveOn
     }
 
     toggleConnectivity() {
-        this.set('connectivityOn', !this.isConnectivityOn())
+        this.isConnectivityOn = !this.isConnectivityOn
      }
 
     isEditingOn() {
@@ -105,8 +113,8 @@ export default class App extends Backbone.Model {
      }
 
     tracker() {
-            return this.get('tracker')
-     }
+        return this.get('tracker')
+    }
 
     hasAssetSource() {
         return this.has('assetSource')
@@ -229,7 +237,7 @@ export default class App extends Backbone.Model {
         this.listenTo(assetSource, 'change:mesh', this.meshChanged)
 
         assetSource.fetch().then(() => {
-            let i
+            let i: number
 
             console.log('assetSource retrieved - setting')
 
@@ -252,7 +260,7 @@ export default class App extends Backbone.Model {
         })
      }
 
-    getTracker(assetId, template) {
+    getTracker(assetId: string, template: string) {
         const tracker = this.tracker()
         if (!tracker[assetId]) {
             tracker[assetId] = {}
@@ -279,7 +287,7 @@ export default class App extends Backbone.Model {
     autoSaveWrapper(fn) {
         const lms = this.landmarks()
         if (lms && !lms.tracker.isUpToDate()) {
-            if (!this.isAutoSaveOn()) {
+            if (!this.isAutoSaveOn) {
                 Modal.confirm('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn)
             } else {
                 lms.save().then(fn)

@@ -92,7 +92,7 @@ export const ConnectivityToggle = Backbone.View.extend({
     },
 
     render: function () {
-        this.$toggle.checked = this.model.isConnectivityOn();
+        this.$toggle.checked = this.model.isConnectivityOn
         return this;
     },
 
@@ -135,19 +135,19 @@ export const AutoSaveToggle = Backbone.View.extend({
     },
 
     initialize: function () {
-        this.$toggle = this.$el.find('#autosaveToggle')[0];
-        _.bindAll(this, 'render', 'toggle');
-        this.listenTo(this.model, 'change:autoSaveOn', this.render);
-        this.render();
+        this.$toggle = this.$el.find('#autosaveToggle')[0]
+        _.bindAll(this, 'render', 'toggle')
+        this.listenTo(this.model, 'change:autoSaveOn', this.render)
+        this.render()
     },
 
     render: function () {
-        this.$toggle.checked = this.model.isAutoSaveOn();
-        return this;
+        this.$toggle.checked = this.model.isAutoSaveOn
+        return this
     },
 
     toggle: function () {
-        this.model.toggleAutoSave();
+        this.model.toggleAutoSave()
     }
 });
 

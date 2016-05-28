@@ -165,17 +165,7 @@ export class Camera implements ICamera {
         this.onChange()
     }
 
-    zoom = (distance: THREE.Vector3, screenPosition: THREE.Vector2) => {
-        console.log('camera: zoom')
-        const scalar = distance.z * 0.0007
-        // First, handling the perspective matrix
-        const normalMatrix = new THREE.Matrix3()
-        normalMatrix.getNormalMatrix(this.pCam.matrix)
-        distance.applyMatrix3(normalMatrix)
-        distance.multiplyScalar(this.distanceToTarget() * 0.001)
-        this.pCam.position.add(distance)
-
-
+    zoomOrthographic = (scalar: number, screenPosition: THREE.Vector2) => {
         // Then, the orthographic. In general, we are just going to squeeze in
         // the bounds of the orthographic frustum to zoom.
         const oCam = this.oCam
@@ -203,6 +193,20 @@ export class Camera implements ICamera {
             oCam.bottom = oCam.top - (0.0001 * a)
         }
         oCam.updateProjectionMatrix()
+    }
+
+    zoom = (distance: THREE.Vector3, screenPosition: THREE.Vector2) => {
+        console.log('camera: zoom')
+
+        // First, handling the perspective matrix
+        const normalMatrix = new THREE.Matrix3()
+        normalMatrix.getNormalMatrix(this.pCam.matrix)
+        distance.applyMatrix3(normalMatrix)
+        distance.multiplyScalar(this.distanceToTarget() * 0.001)
+        this.pCam.position.add(distance)
+
+        const orthoScalar = distance.z * 0.0007
+        this.zoomOrthographic(orthoScalar, screenPosition)
         this.onChange()
     }
 

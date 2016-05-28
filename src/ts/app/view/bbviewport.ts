@@ -1,5 +1,6 @@
 import { Viewport, IViewport, ViewportCallbacks } from './viewport'
 import { Landmark as BBLandmark } from '../model/landmark'
+import App from '../model/app'
 
 const landmarkForBBLandmark = (bbLm: BBLandmark) => ({
     point: bbLm.point(),
@@ -15,7 +16,7 @@ export class BackboneViewport {
     model: any
     viewport: IViewport
 
-    constructor(element: HTMLElement, app) {
+    constructor(element: HTMLElement, app: App) {
         this.model = app
 
         this.model.onBudgeLandmarks = (vector:  [number, number]) => this.viewport.budgeLandmarks(vector)
@@ -81,7 +82,7 @@ export class BackboneViewport {
     }
 
     updateConnectivityDisplay = () => {
-        this.viewport.connectivityVisable = this.model.isConnectivityOn()
+        this.viewport.connectivityVisable = this.model.isConnectivityOn
     }
 
     updateLandmark = (i: number) => {
