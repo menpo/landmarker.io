@@ -32,18 +32,6 @@ export class DomElements {
         this.viewport.appendChild(this.webgl)
         this.viewport.appendChild(this.canvas)
         this.viewport.appendChild(this.pipCanvas)
-
-        // by default hide the PIP window.
-        this.pipVisable = false
-    }
-
-    get pipVisable() {
-        return this.pipCanvas.style.display === 'none'
-
-    }
-
-    set pipVisable(isVisable) {
-        this.pipCanvas.style.display = isVisable ? 'none' : null
     }
 
 }

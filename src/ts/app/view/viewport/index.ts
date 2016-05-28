@@ -1,8 +1,11 @@
-import * as _ from 'underscore'
 import * as THREE from 'three'
 
 import { atomic, AtomicOperationTracker } from '../../model/atomic'
+
 import { DomElements } from './dom'
+import { Scene, SceneManager, CAMERA_MODE } from './scene'
+import { Canvas, CanvasManager } from './canvas'
+
 import { Camera, MultiCamManger,
          TouchCameraController,
          MouseCameraController } from './camera'
@@ -13,8 +16,6 @@ import TouchHandler from './touchHandler'
 import { Landmark } from './base'
 import { ViewportElementCallbacks} from './elements'
 
-import { Scene, SceneManager, CAMERA_MODE } from './scene'
-
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE
 const CLEAR_COLOUR_PIP = 0xCCCCCC
@@ -22,16 +23,6 @@ const CLEAR_COLOUR_PIP = 0xCCCCCC
 const MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5)
 const IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0)
 
-const PIP_WIDTH = 300
-const PIP_HEIGHT = 300
-
-interface BoundingBox {
-    minX: number, minY: number, maxX: number, maxY: number
-}
-
-function _initialBoundingBox() {
-    return { minX: 999999, minY: 999999, maxX: 0, maxY: 0 }
-}
 
 export interface ViewportCallbacks {
     selectLandmarks: (indicies: number[]) => void
@@ -70,15 +61,14 @@ export class Viewport implements IViewport {
     parent: HTMLElement
     elements = new DomElements()
 
-    ctx: CanvasRenderingContext2D
-    pipCtx: CanvasRenderingContext2D
-    ctxBox: BoundingBox
+
 
     pixelRatio = window.devicePixelRatio || 1  // 2/3 if on a HIDPI/retina display
 
     renderer: THREE.WebGLRenderer
 
     scene: Scene = new SceneManager()
+    canvas: Canvas
     camera: Camera
 
     cameraTouchController: TouchCameraController
@@ -99,49 +89,7 @@ export class Viewport implements IViewport {
         // Disable context menu on viewport related elements
         this.elements.viewport.addEventListener('contextmenu', e => e.preventDefault())
 
-        this.ctx = this.elements.canvas.getContext('2d')
-        this.pipCtx = this.elements.pipCanvas.getContext('2d')
-
-        // style the PIP canvas on initialization
-        this.elements.pipCanvas.style.position = 'fixed';
-        this.elements.pipCanvas.style.zIndex = '0';
-        this.elements.pipCanvas.style.width = PIP_WIDTH + 'px';
-        this.elements.pipCanvas.style.height = PIP_HEIGHT + 'px';
-        this.elements.pipCanvas.width = PIP_WIDTH * this.pixelRatio;
-        this.elements.pipCanvas.height = PIP_HEIGHT * this.pixelRatio;
-        this.elements.pipCanvas.style.left = this.pipBounds().x + 'px';
-
-        // To compensate for retina displays we have to manually
-        // scale our contexts up by the pixel ratio. To counteract this (so we
-        // can work in 'normal' pixel units) add a global transform to the
-        // canvas contexts we are holding on to.
-        this.pipCtx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
-        this.ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
-
-        // Draw the PIP window - we only do this once.
-        this.pipCtx.strokeStyle = '#ffffff';
-
-        // vertical line
-        this.pipCtx.beginPath();
-        this.pipCtx.moveTo(PIP_WIDTH / 2, PIP_HEIGHT * 0.4);
-        this.pipCtx.lineTo(PIP_WIDTH / 2, PIP_HEIGHT * 0.6);
-        // horizontal line
-        this.pipCtx.moveTo(PIP_WIDTH * 0.4, PIP_HEIGHT / 2);
-        this.pipCtx.lineTo(PIP_WIDTH * 0.6, PIP_HEIGHT / 2);
-        this.pipCtx.stroke();
-
-        this.pipCtx.setLineDash([2, 2]);
-        this.pipCtx.strokeRect(0, 0, PIP_WIDTH, PIP_HEIGHT);
-
-        // hide the pip decoration - should only be shown when in orthgraphic
-        // mode.
-        this.elements.pipCanvas.style.display = 'none';
-
-        // to be efficient we want to track what parts of the canvas we are
-        // drawing into each frame. This way we only need clear the relevant
-        // area of the canvas which is a big perf win.
-        // see this._updateCanvasBoundingBox() for usage.
-        this.ctxBox = _initialBoundingBox();
+        this.canvas = new CanvasManager(this.elements.canvas, this.elements.pipCanvas)
 
         // create the camera to look after all camera state.
         this.camera = new MultiCamManger(this.width, this.height,
@@ -177,13 +125,11 @@ export class Viewport implements IViewport {
         // interaction which is of no concern to the rest of the viewport.
         this.handler = new Handler(this);
         this.touchHandler = new TouchHandler(this)
-
-        // ----- BIND HANDLERS ----- //
         this.elements.viewport.addEventListener('mousedown', this.handler.onMouseDown);
         this.elements.viewport.addEventListener('touchstart', this.touchHandler.onTouchStart)
         this.elements.viewport.addEventListener('touchmove', this.touchHandler.onTouchMove)
-        window.addEventListener('resize', this.resize)
 
+        window.addEventListener('resize', this.resize)
         // trigger resize to initially size the viewport
         // this will also clearCanvas (will draw context box if needed)
         this.resize()
@@ -248,7 +194,7 @@ export class Viewport implements IViewport {
 
     set snapModeEnabled(snapModeEnabled: boolean) {
         this._snapModeEnabled = snapModeEnabled
-        this.clearCanvas()
+        this.canvas.clearCanvas()
         this.on.deselectAllLandmarks()
         if (snapModeEnabled) {
             this.elements.viewport.addEventListener('mousemove', this.handler.onMouseMove)
@@ -295,14 +241,14 @@ export class Viewport implements IViewport {
         if (currentMode === CAMERA_MODE.PERSPECTIVE) {
             // going to orthographic - start listening for pip updates
             this.camera.onChangePip = this.update
-            this.elements.pipVisable = false
+            this.canvas.pipVisable = false
         } else {
             // leaving orthographic - stop listening to pip calls.
             this.camera.onChangePip = null
-            this.elements.pipVisable = true
+            this.canvas.pipVisable = true
         }
         // clear the canvas and re-render our state
-        this.clearCanvas()
+        this.canvas.clearCanvas()
         this.update()
     }
 
@@ -311,14 +257,14 @@ export class Viewport implements IViewport {
         const v = this.meshMode ? MESH_MODE_STARTING_POSITION : IMAGE_MODE_STARTING_POSITION
         this.camera.reset(v, this.scene.scene.position, this.meshMode)
         this.update()
-    };
+    }
 
     budgeLandmarks = atomic.atomicOperation((vector: [number, number]) => {
 
         // Set a movement of 0.5% of the screen in the suitable direction
         const [x, y] = vector,
             move = new THREE.Vector2(),
-            [dx, dy] = [.005 * window.innerWidth, .005 * window.innerHeight];
+            [dx, dy] = [.005 * window.innerWidth, .005 * window.innerHeight]
 
         move.set(x * dx, y * dy);
 
@@ -331,13 +277,13 @@ export class Viewport implements IViewport {
                                                                 this.scene.mesh)
 
             if (intersectsWithMesh.length > 0) {
-                const pt = this.scene.worldToLocal(intersectsWithMesh[0].point);
-                ops.push([lm.index, lm.point.clone(), pt.clone()]);
-                this.on.setLandmarkPointWithHistory(lm.index, pt);
+                const pt = this.scene.worldToLocal(intersectsWithMesh[0].point)
+                ops.push([lm.index, lm.point.clone(), pt.clone()])
+                this.on.setLandmarkPointWithHistory(lm.index, pt)
             }
-        });
-        this.on.addLandmarkHistory(ops);
-    });
+        })
+        this.on.addLandmarkHistory(ops)
+    })
 
     // this is called whenever there is a state change on the THREE scene
     update = () => {
@@ -366,8 +312,8 @@ export class Viewport implements IViewport {
         }
 
         // 3. Render the PIP image if in orthographic mode
-        if (scene.sCamera === scene.sOCam) {
-            var b = this.pipBounds()
+        if (scene.cameraMode === CAMERA_MODE.ORTHOGRAPHIC) {
+            var b = this.canvas.pipBounds(this.width, this.height)
             this.renderer.setScissor(b.x * this.pixelRatio, b.y * 2, b.width * 2, b.height * 2)
             this.renderer.setScissorTest(true)
             this.renderer.setClearColor(CLEAR_COLOUR_PIP)
@@ -391,41 +337,14 @@ export class Viewport implements IViewport {
                ' tex:' + this.renderer.info.memory.textures
     }
 
-
-    pipBounds = () => {
-        var w = this.width
-        var h = this.height
-        var maxX = w
-        var maxY = h
-        var minX = maxX - PIP_WIDTH
-        var minY = maxY - PIP_HEIGHT
-        return {x: minX, y: minY, width: PIP_WIDTH, height: PIP_HEIGHT}
-    }
-
     resize = () => {
-        const w = this.width
-        const h = this.height
+        const [w, h] = [this.width, this.height]
 
-        // ask the camera controller to update the cameras appropriately
+        // update all our constituent parts
         this.scene.resize(w, h)
         this.camera.resize(w, h)
-        // update the size of the renderer and the canvas
         this.renderer.setSize(w, h)
-
-        // scale the canvas and change its CSS width/height to make it high res.
-        // note that this means the canvas will be 2x the size of the screen
-        // with 2x displays - that's OK though, we know this is a FullScreen
-        // CSS class and so will be made to fit in the existing window by other
-        // constraints.
-        this.elements.canvas.width = w * this.pixelRatio
-        this.elements.canvas.height = h * this.pixelRatio
-
-        this.elements.pipCanvas.style.left = this.pipBounds().x + 'px'
-
-        // make sure our global transform for the general context accounts for
-        // the pixelRatio
-        this.ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0)
-
+        this.canvas.resize(w, h)
         this.update()
     }
 
@@ -436,75 +355,16 @@ export class Viewport implements IViewport {
         }
     }
 
-    // 2D Canvas helper functions
-    // ========================================================================
-
-    updateCanvasBoundingBox = (point: THREE.Vector2) => {
-        // update the canvas bounding box to account for this new point
-        this.ctxBox.minX = Math.min(this.ctxBox.minX, point.x)
-        this.ctxBox.minY = Math.min(this.ctxBox.minY, point.y)
-        this.ctxBox.maxX = Math.max(this.ctxBox.maxX, point.x)
-        this.ctxBox.maxY = Math.max(this.ctxBox.maxY, point.y)
-    }
-
-    drawSelectionBox = (mouseDown: THREE.Vector2, mousePosition: THREE.Vector2) => {
-        var x = mouseDown.x
-        var y = mouseDown.y
-        var dx = mousePosition.x - x
-        var dy = mousePosition.y - y
-        this.ctx.strokeRect(x, y, dx, dy)
-        // update the bounding box
-        this.updateCanvasBoundingBox(mouseDown);
-        this.updateCanvasBoundingBox(mousePosition)
+    clearCanvas = (): void => {
+        this.canvas.clearCanvas()
     }
 
     drawTargetingLines = (point: THREE.Vector2, targetLm: Landmark, secondaryLms: Landmark[]) => {
-
-        this.updateCanvasBoundingBox(point)
-
-        // first, draw the secondary lines
-        this.ctx.save()
-        this.ctx.strokeStyle = "#7ca5fe"
-        this.ctx.setLineDash([5, 15])
-
-        this.ctx.beginPath()
-        secondaryLms.forEach(lm => {
-            var lmPoint = this.scene.localToScreen(lm.point)
-            this.updateCanvasBoundingBox(lmPoint)
-            this.ctx.moveTo(lmPoint.x, lmPoint.y)
-            this.ctx.lineTo(point.x, point.y)
-        });
-        this.ctx.stroke()
-        this.ctx.restore()
-
-        // now, draw the primary line
-        this.ctx.strokeStyle = "#01e6fb"
-
-        this.ctx.beginPath()
-        const targetPoint = this.scene.localToScreen(targetLm.point)
-        this.updateCanvasBoundingBox(targetPoint)
-        this.ctx.moveTo(targetPoint.x, targetPoint.y)
-        this.ctx.lineTo(point.x, point.y)
-        this.ctx.stroke()
-    };
-
-    clearCanvas = (): void => {
-        if (_.isEqual(this.ctxBox, _initialBoundingBox())) {
-            // there has been no change to the canvas - no need to clear
-            return null
-        }
-        // we only want to clear the area of the canvas that we dirtied
-        // since the last clear. The _ctxBox object tracks this
-        const p = 3;  // padding to be added to bounding box
-        const minX = Math.max(Math.floor(this.ctxBox.minX) - p, 0)
-        const minY = Math.max(Math.floor(this.ctxBox.minY) - p, 0)
-        const maxX = Math.ceil(this.ctxBox.maxX) + p
-        const maxY = Math.ceil(this.ctxBox.maxY) + p
-        const width = maxX - minX
-        const height = maxY - minY
-        this.ctx.clearRect(minX, minY, width, height)
-        // reset the tracking of the context bounding box tracking.
-        this.ctxBox = _initialBoundingBox()
+        this.canvas.drawTargetingLines(
+            point,
+            this.scene.localToScreen(targetLm.point),
+            secondaryLms.map(lm => this.scene.localToScreen(lm.point))
+        )
     }
 
 }

@@ -239,7 +239,7 @@ export default class Handler {
         var newPosition = new THREE.Vector2(event.clientX, event.clientY)
         // clear the canvas and draw a selection rect.
         this.viewport.clearCanvas()
-        this.viewport.drawSelectionBox(this.onMouseDownPosition, newPosition)
+        this.viewport.canvas.drawSelectionBox(this.onMouseDownPosition, newPosition)
     }
 
     // Up handlers

@@ -35,6 +35,8 @@ export interface Scene {
     getIntersects: (x: number, y: number, object: Intersectable) => Intersection[]
     getIntersectsFromEvent: (e: MouseEvent, object: Intersectable) => Intersection[]
     resize: (width: number, height: number) => void
+    lmViewsInSelectionBox: (x1: number, y1: number, x2: number, y2: number) => LandmarkTHREEView[]
+    lmViewVisible: (lmv: LandmarkTHREEView) => boolean
 }
 
 export enum CAMERA_MODE {
