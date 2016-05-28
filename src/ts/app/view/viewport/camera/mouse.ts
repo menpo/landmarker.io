@@ -24,6 +24,8 @@ export class MouseCameraHandler {
     camera: ICamera
     domElement: HTMLElement
     state = STATE.NONE
+    _enabled = false
+    mouseUpOnceListener: (event: Event) => void
 
     // mouse tracking variables
     mousePrevPosition = new THREE.Vector2()
@@ -33,9 +35,30 @@ export class MouseCameraHandler {
                 domElement: HTMLElement) {
         this.camera = camera
         this.domElement = domElement
-        this.domElement.addEventListener('mousemove', this.onMouseHover, false)
-        this.domElement.addEventListener('mousedown', this.onMouseDown, false)
-        this.domElement.addEventListener('wheel', this.onMouseWheel, false)
+        // set the enabled flag and trigger the event listeners.
+        this.enabled = true
+    }
+
+    get enabled() {
+        return this._enabled
+    }
+
+    set enabled(enabled: boolean) {
+        if (enabled && !this.enabled) {
+            // changing from off to on:
+            this.domElement.addEventListener('mousemove', this.onMouseHover)
+            this.domElement.addEventListener('mousedown', this.onMouseDown)
+            this.domElement.addEventListener('wheel', this.onMouseWheel)
+        } else if (!enabled) {
+            // should be off.
+            this._enabled = false
+            this.domElement.removeEventListener('mousemove', this.onMouseHover)
+            this.domElement.removeEventListener('mousedown', this.onMouseDown)
+            this.domElement.removeEventListener('wheel', this.onMouseWheel)
+            // in case we are disabled mid-pan!
+            document.removeEventListener('mousemove', this.onMouseMove)
+            document.removeEventListener('mouseup', this.mouseUpOnceListener)
+        }
     }
 
     onMouseHover = (event: MouseEvent) => {
@@ -67,7 +90,8 @@ export class MouseCameraHandler {
         }
 
         document.addEventListener('mousemove', this.onMouseMove)
-        listenOnce(document, 'mouseup', this.onMouseUp)
+        // track the listen and forget listener in case we need to be disabled mid-action!
+        this.mouseUpOnceListener = listenOnce(document, 'mouseup', this.onMouseUp)
     }
 
     onMouseMove = (event: MouseEvent) => {

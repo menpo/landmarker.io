@@ -78,7 +78,7 @@ export class MouseHandler {
         var ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey
         console.log('Viewport: landmark pressed')
         // before anything else, disable the camera
-        this.viewport.camera.disable()
+        this.viewport.cameraIsLocked = true
         // the clicked on landmark
         var landmarkSymbol = this.intersectsWithLms[0].object
         // hunt through the landmarkViews for the right symbol
@@ -116,7 +116,7 @@ export class MouseHandler {
     shiftPressed = () => {
         console.log('shift pressed!')
         // before anything else, disable the camera
-        this.viewport.camera.disable()
+        this.viewport.cameraIsLocked = true
 
         if (!(this.downEvent.ctrlKey || this.downEvent.metaKey)) {
             this.viewport.on.deselectAllLandmarks()
@@ -245,7 +245,7 @@ export class MouseHandler {
     // ------------------------------------------------------------------------
 
     shiftOnMouseUp = atomic.atomicOperation((event: MouseEvent) => {
-        this.viewport.camera.enable()
+        this.viewport.cameraIsLocked = false
         console.log("shift:up")
         document.removeEventListener('mousemove', this.shiftOnDrag)
         var x1 = this.onMouseDownPosition.x
@@ -311,7 +311,7 @@ export class MouseHandler {
 
     landmarkOnMouseUp = atomic.atomicOperation((event: MouseEvent) => {
         const ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey
-        this.viewport.camera.enable()
+        this.viewport.cameraIsLocked = false
         console.log("landmarkPress:up")
         document.removeEventListener('mousemove', this.landmarkOnDrag)
         this.onMouseUpPosition.set(event.clientX, event.clientY)

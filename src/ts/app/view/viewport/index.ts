@@ -35,6 +35,7 @@ export interface IViewport {
     setLandmarkSize: (lmSize: number) => void
     snapModeEnabled: boolean
     connectivityVisable: boolean
+    cameraIsLocked: boolean
 }
 
 // We are trying to move towards the whole viewport module being a standalone black box that
@@ -58,8 +59,9 @@ export class Viewport implements IViewport {
     canvas: ICanvas
     camera: ICamera
 
-    cameraTouchHandler: TouchCameraHandler
-    cameraMouseHandler: MouseCameraHandler
+    // null signifies no handler present.
+    cameraTouchHandler: TouchCameraHandler = null
+    cameraMouseHandler: MouseCameraHandler = null
 
     mouseHandler: MouseHandler
     touchHandler: TouchHandler
@@ -85,8 +87,8 @@ export class Viewport implements IViewport {
                                          this.scene.sOCamZoom)
 
         this.camera.onChange = this.update
-        this.cameraTouchHandler = new TouchCameraHandler(this.camera, this.elements.viewport)
-        this.cameraMouseHandler = new MouseCameraHandler(this.camera, this.elements.viewport)
+        // set the cameera lock status to false, which will wire up the handlers.
+        this.cameraIsLocked = false
 
         if (!this.meshMode) {
             // for images, default to orthographic camera
@@ -187,6 +189,26 @@ export class Viewport implements IViewport {
             this.elements.viewport.addEventListener('mousemove', this.mouseHandler.onMouseMove)
         } else {
             this.elements.viewport.removeEventListener('mousemove', this.mouseHandler.onMouseMove)
+        }
+    }
+
+    get cameraIsLocked() {
+        // If there is no camera handler, the camera ain't moving.
+        return this.cameraMouseHandler === null
+    }
+
+    set cameraIsLocked(cameraIsLocked: boolean) {
+        if (this.cameraIsLocked && !cameraIsLocked) {
+            // changing from locked to not - add the handlers!
+            this.cameraMouseHandler = new MouseCameraHandler(this.camera, this.elements.viewport)
+            this.cameraTouchHandler = new TouchCameraHandler(this.camera, this.elements.viewport)
+        } else if (cameraIsLocked && !this.cameraIsLocked) {
+            // Transition from not lockeed to locked! Unbind the handlers
+            this.cameraMouseHandler.enabled = false
+            this.cameraTouchHandler.enabled = false
+            // and delete them.
+            this.cameraMouseHandler = null
+            this.cameraTouchHandler = null
         }
     }
 

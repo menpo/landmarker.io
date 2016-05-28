@@ -4,7 +4,6 @@ const DAMPING_FACTOR = 0.2
 const PIP_ZOOM_FACTOR = 12.0
 
 export interface ICamera {
-    enabled: boolean
     rotationPermitted: boolean
     width: number
     height: number
@@ -31,7 +30,6 @@ interface Origin {
 
 export class Camera implements ICamera {
 
-    enabled = false
     rotationPermitted = true
 
     _onChange: () => void = null
@@ -60,6 +58,7 @@ export class Camera implements ICamera {
         this.oCam = oCam
         this.oCamZoom = oCamZoom
 
+        // save out the original position so we can reset if needed.
         this.origin = {
             target: this.target.clone(),
             pCamPosition: pCam.position.clone(),
@@ -68,8 +67,7 @@ export class Camera implements ICamera {
             oCamUp: oCam.up.clone(),
             oCamZoomPosition: oCamZoom.position.clone()
         }
-        // enable everything on creation
-        this.enable()
+
     }
 
     get onChange() {
@@ -112,18 +110,6 @@ export class Camera implements ICamera {
         this.pCam.position.copy(v || this.origin.pCamPosition)
         this.oCam.position.copy(v || this.origin.oCamPosition)
         this.oCamZoom.position.copy(v || this.origin.oCamZoomPosition)
-    }
-
-    disable = () => {
-        console.log('camera: disable')
-        this.enabled = false
-    }
-
-    enable = () => {
-        if (!this.enabled) {
-            console.log('camera: enable')
-            this.enabled = true
-        }
     }
 
     resize = (w: number, h: number) => {

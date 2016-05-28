@@ -7,6 +7,7 @@ const PINCH_GEUSTURE_DEBOUNCE_MS = 200
 export class TouchCameraHandler {
     camera: ICamera
     domElement: HTMLElement
+    _enabled = false
 
     prevTouchVector = new THREE.Vector3()
     prevPinchGap: number = null
@@ -15,8 +16,25 @@ export class TouchCameraHandler {
     constructor(camera: ICamera, domElement: HTMLElement) {
         this.camera = camera
         this.domElement = domElement
-        domElement.addEventListener('touchstart', this.touchStart, false)
-        domElement.addEventListener('touchmove', this.touchMove, false)
+        // set the enabled flag and trigger the event listeners.
+        this.enabled = true
+    }
+
+    get enabled() {
+        return this._enabled
+    }
+
+    set enabled(enabled: boolean) {
+        if (enabled && !this.enabled) {
+            // changing from off to on:
+            this.domElement.addEventListener('touchstart', this.touchStart)
+            this.domElement.addEventListener('touchmove', this.touchMove)
+        } else if (!enabled) {
+            // should be off.
+            this._enabled = false
+            this.domElement.removeEventListener('touchstart', this.touchStart)
+            this.domElement.removeEventListener('touchmove', this.touchMove)
+        }
     }
 
     touchStart = (event: TouchEvent) => {
