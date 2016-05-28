@@ -194,7 +194,7 @@ export class Viewport implements IViewport {
 
     set snapModeEnabled(snapModeEnabled: boolean) {
         this._snapModeEnabled = snapModeEnabled
-        this.canvas.clearCanvas()
+        this.canvas.clear()
         this.on.deselectAllLandmarks()
         if (snapModeEnabled) {
             this.elements.viewport.addEventListener('mousemove', this.handler.onMouseMove)
@@ -248,7 +248,7 @@ export class Viewport implements IViewport {
             this.canvas.pipVisable = true
         }
         // clear the canvas and re-render our state
-        this.canvas.clearCanvas()
+        this.canvas.clear()
         this.update()
     }
 
@@ -356,7 +356,7 @@ export class Viewport implements IViewport {
     }
 
     clearCanvas = (): void => {
-        this.canvas.clearCanvas()
+        this.canvas.clear()
     }
 
     drawTargetingLines = (point: THREE.Vector2, targetLm: Landmark, secondaryLms: Landmark[]) => {

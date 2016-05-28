@@ -23,12 +23,12 @@ function _initialBoundingBox() {
 }
 
 export interface Canvas {
+    pipVisable: boolean
     resize: (width: number, height: number) => void
-    clearCanvas: () => void,
+    clear: () => void,
     drawTargetingLines: (point: THREE.Vector2, targetPoint: THREE.Vector2, secondaryPoints: THREE.Vector2[]) => void
     drawSelectionBox: (mouseDown: THREE.Vector2, mousePosition: THREE.Vector2) => void,
     pipBounds: (width: number, height: number) => Bounds
-    pipVisable: boolean
 }
 
 export class CanvasManager implements Canvas {
@@ -166,7 +166,7 @@ export class CanvasManager implements Canvas {
         this.ctx.stroke()
     }
 
-    clearCanvas = () => {
+    clear = () => {
         if (_.isEqual(this.ctxBox, _initialBoundingBox())) {
             // there has been no change to the canvas - no need to clear
             return null
