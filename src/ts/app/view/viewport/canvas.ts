@@ -18,7 +18,7 @@ interface Bounds {
     height: number
 }
 
-function _initialBoundingBox() {
+function initialBoundingBox() {
     return { minX: 999999, minY: 999999, maxX: 0, maxY: 0 }
 }
 
@@ -42,7 +42,7 @@ export class CanvasManager implements Canvas {
     // drawing into each frame. This way we only need clear the relevant
     // area of the canvas which is a big perf win.
     // see this._updateCanvasBoundingBox() for usage.
-    ctxBox = _initialBoundingBox()
+    ctxBox = initialBoundingBox()
     pixelRatio = window.devicePixelRatio || 1  // 2/3 if on a HIDPI/retina display
 
     constructor(canvas: HTMLCanvasElement, pipCanvas: HTMLCanvasElement) {
@@ -167,9 +167,9 @@ export class CanvasManager implements Canvas {
     }
 
     clear = () => {
-        if (_.isEqual(this.ctxBox, _initialBoundingBox())) {
+        if (_.isEqual(this.ctxBox, initialBoundingBox())) {
             // there has been no change to the canvas - no need to clear
-            return null
+            return
         }
         // we only want to clear the area of the canvas that we dirtied
         // since the last clear. The _ctxBox object tracks this
@@ -182,6 +182,6 @@ export class CanvasManager implements Canvas {
         const height = maxY - minY
         this.ctx.clearRect(minX, minY, width, height)
         // reset the tracking of the context bounding box tracking.
-        this.ctxBox = _initialBoundingBox()
+        this.ctxBox = initialBoundingBox()
     }
 }
