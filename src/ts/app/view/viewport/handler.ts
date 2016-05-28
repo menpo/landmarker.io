@@ -85,7 +85,7 @@ export default class Handler {
         // hunt through the landmarkViews for the right symbol
         console.log(landmarkSymbol)
 
-        this.viewport.landmarkViews
+        this.viewport.scene.landmarkViews
             .filter(lmv => lmv.symbol === landmarkSymbol)
             .forEach(lmv => this.lmPressed = this.viewport.landmarks[lmv.index])
         console.log('Viewport: finding the selected points')
@@ -100,7 +100,7 @@ export default class Handler {
         }
 
         // record the position of where the drag started.
-        this.positionLmDrag.copy(this.viewport.localToScreen(this.lmPressed.point))
+        this.positionLmDrag.copy(this.viewport.scene.localToScreen(this.lmPressed.point))
         this.dragStartPositions = this.viewport.selectedLandmarks
             .map(lm => [lm.index, lm.point.clone()])
 
@@ -142,12 +142,12 @@ export default class Handler {
         this.onMouseDownPosition.set(event.clientX, event.clientY)
 
         // All interactions require intersections to distinguish
-        this.intersectsWithLms = this.viewport.getIntersectsFromEvent(
-            event, this.viewport.sLms)
+        this.intersectsWithLms = this.viewport.scene.getIntersectsFromEvent(
+            event, this.viewport.scene.sLms)
         // note that we explicitly ask for intersects with the mesh
         // object as we know get intersects will use an octree if
         // present.
-        this.intersectsWithMesh = this.viewport.getIntersectsFromEvent(event, this.viewport.mesh)
+        this.intersectsWithMesh = this.viewport.scene.getIntersectsFromEvent(event, this.viewport.scene.mesh)
 
         // Click type, we use MouseEvent.button which is the vanilla JS way
         // jQuery also exposes event.which which has different bindings
@@ -211,20 +211,20 @@ export default class Handler {
         this.positionLmDrag.copy(newPositionLmDrag)
         this.viewport.selectedLandmarks.forEach(lm => {
             // convert to screen coordinates
-            const vScreen = this.viewport.localToScreen(lm.point)
+            const vScreen = this.viewport.scene.localToScreen(lm.point)
 
             // budge the screen coordinate
             vScreen.add(deltaLmDrag)
 
             // use the standard machinery to find intersections
             // note that we intersect the mesh to use the octree
-            this.intersectsWithMesh = this.viewport.getIntersects(
-                vScreen.x, vScreen.y, this.viewport.mesh)
+            this.intersectsWithMesh = this.viewport.scene.getIntersects(
+                vScreen.x, vScreen.y, this.viewport.scene.mesh)
             if (this.intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
                 this.dragged = !!this.dragged || true
                 this.viewport.on.setLandmarkPointWithHistory(lm.index,
-                    this.viewport.worldToLocal(this.intersectsWithMesh[0].point))
+                    this.viewport.scene.worldToLocal(this.intersectsWithMesh[0].point))
             } else {
                 // don't update point - it would fall off the surface.
                 console.log("fallen off mesh")
@@ -266,11 +266,11 @@ export default class Handler {
         }
         // First, let's just find all the landmarks in screen space that
         // are within our selection.
-        var lms = this.viewport.lmViewsInSelectionBox(minX, minY, maxX, maxY)
+        var lms = this.viewport.scene.lmViewsInSelectionBox(minX, minY, maxX, maxY)
 
         // Of these, filter out the ones which are visible (not
         // obscured) and select the rest
-        const indexesToSelect = lms.filter(this.viewport.lmViewVisible).map(lm => lm.index)
+        const indexesToSelect = lms.filter(this.viewport.scene.lmViewVisible).map(lm => lm.index)
         this.viewport.on.selectLandmarks(indexesToSelect)
         this.viewport.clearCanvas()
         this.isPressed = false
@@ -282,7 +282,7 @@ export default class Handler {
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
             //  a click on the mesh
             // Convert the point back into the mesh space
-            const p = this.viewport.worldToLocal(this.intersectsWithMesh[0].point)
+            const p = this.viewport.scene.worldToLocal(this.intersectsWithMesh[0].point)
             if (
                 this.viewport.snapModeEnabled &&
                 this.currentTargetLm !== null &&
@@ -323,7 +323,7 @@ export default class Handler {
             } else if (!ctrl && !this.lmPressed.isSelected) {
                 this.viewport.on.selectLandmarkAndDeselectRest(this.lmPressed.index)
             } else if (this.lmPressed.isSelected) {
-                const p = this.viewport.worldToLocal(this.intersectsWithMesh[0].point)
+                const p = this.viewport.scene.worldToLocal(this.intersectsWithMesh[0].point)
                 this.viewport.on.setLandmarkPoint(this.lmPressed.index, p)
             }
         } else if (this.dragged) {
@@ -365,14 +365,14 @@ export default class Handler {
             this.currentTargetLm = null
         }
 
-        this.intersectsWithMesh = this.viewport.getIntersectsFromEvent(event, this.viewport.mesh)
+        this.intersectsWithMesh = this.viewport.scene.getIntersectsFromEvent(event, this.viewport.scene.mesh)
 
         if (this.intersectsWithMesh.length == 0) {
             // moving the mouse off the mesh does nothing.
             return null
         }
 
-        const mouseLoc = this.viewport.worldToLocal(this.intersectsWithMesh[0].point)
+        const mouseLoc = this.viewport.scene.worldToLocal(this.intersectsWithMesh[0].point)
 
         // lock only works once we have an existing target landmark
         const lockEnabled = (event.ctrlKey || event.metaKey) && this.currentTargetLm !== null
