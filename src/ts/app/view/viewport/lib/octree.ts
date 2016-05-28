@@ -1,14 +1,7 @@
 import * as THREE from 'three'
-
+import { Intersection } from '../base'
 // once a node gets this full it subdivides.
 const MAX_NODE_ITEMS = 75
-
-export interface Intersection {
-    distance: number
-    point: THREE.Vector3,
-    object: THREE.Object3D,
-    [propName: string]: any  // and other stuff...
-}
 
 // return an octree suitable for use with a buffer geometry instance.
 export function octreeForBufferGeometry(geometry: THREE.BufferGeometry): Octree {

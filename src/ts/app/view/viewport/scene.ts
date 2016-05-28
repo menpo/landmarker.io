@@ -1,10 +1,15 @@
 import * as THREE from 'three'
 
-import { octreeForBufferGeometry, Octree, Intersection } from './lib/octree'
-import { Landmark } from './base'
+import { octreeForBufferGeometry, Octree } from './lib/octree'
+import { Landmark, Intersection } from './base'
 import { LandmarkConnectionTHREEView, LandmarkTHREEView } from './elements'
 
 type Intersectable = THREE.Object3D | THREE.Object3D[]
+
+export enum CAMERA_MODE {
+    PERSPECTIVE,
+    ORTHOGRAPHIC
+}
 
 export interface Scene {
     mesh: THREE.Mesh
@@ -37,11 +42,6 @@ export interface Scene {
     resize: (width: number, height: number) => void
     lmViewsInSelectionBox: (x1: number, y1: number, x2: number, y2: number) => LandmarkTHREEView[]
     lmViewVisible: (lmv: LandmarkTHREEView) => boolean
-}
-
-export enum CAMERA_MODE {
-    PERSPECTIVE,
-    ORTHOGRAPHIC
 }
 
 export class SceneManager implements Scene {

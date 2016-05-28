@@ -49,7 +49,7 @@ export class MouseCameraController {
 
         switch (event.button) {
             case 0:
-                this.state = this.camera.canRotate ? STATE.ROTATE : STATE.PAN
+                this.state = this.camera.rotationPermitted ? STATE.ROTATE : STATE.PAN
                 break
             case 1:
                 this.state = STATE.ZOOM

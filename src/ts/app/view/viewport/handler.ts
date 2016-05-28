@@ -1,8 +1,7 @@
 import * as THREE from 'three'
-import { Landmark } from './base'
+import { Landmark, Intersection } from './base'
 import { atomic } from '../../model/atomic'
 import { Viewport } from './index'
-import { Intersection } from './octree'
 import { listenOnce } from './lib/event'
 
 const findClosestLandmarks = (lms: Landmark[], point: THREE.Vector, n = 4) =>

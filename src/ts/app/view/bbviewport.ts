@@ -67,7 +67,7 @@ export class BackboneViewport {
                                                       landmarks.connectivity)
 
             // TODO will this be collected properly?
-            landmarks.landmarks.forEach(lm => lm.on('change', () => this.updateLandmark(lm.index())))
+            landmarks.landmarks.forEach((lm: BBLandmark) => lm.on('change', () => this.updateLandmark(lm.index())))
         }
 
     }
@@ -84,7 +84,7 @@ export class BackboneViewport {
         this.viewport.connectivityVisable = this.model.isConnectivityOn()
     }
 
-    updateLandmark = i => {
+    updateLandmark = (i: number) => {
         console.log(`updating landmark ${i}`)
         this.viewport.updateLandmarks([
                 landmarkForBBLandmark(this.model.landmarks().landmarks[i])

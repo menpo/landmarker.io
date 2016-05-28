@@ -5,7 +5,7 @@ const PIP_ZOOM_FACTOR = 12.0
 
 export interface Camera {
     enabled: boolean
-    canRotate: boolean
+    rotationPermitted: boolean
     width: number
     height: number
     pan: (distance: THREE.Vector3) => void
@@ -31,10 +31,11 @@ interface Origin {
 
 export class MultiCamManger implements Camera {
 
-    onChange: () => any = null
-    onChangePip: () => any = null
     enabled = false
-    canRotate = true // note that we will enable on creation below!
+    rotationPermitted = true
+
+    _onChange: () => void = null
+    _onChangePip: () => void = null
 
     pCam: THREE.PerspectiveCamera
     oCam: THREE.OrthographicCamera
@@ -71,6 +72,22 @@ export class MultiCamManger implements Camera {
         this.enable()
     }
 
+    get onChange() {
+        return this._onChange !== null ? this._onChange : () => {}
+    }
+
+    set onChange(onChange: () => void) {
+        this._onChange = onChange
+    }
+
+    get onChangePip() {
+        return this._onChangePip !== null ? this._onChangePip : () => {}
+    }
+
+    set onChangePip(onChangePip: () => void) {
+        this._onChangePip = onChangePip
+    }
+
     focus = (newTarget: THREE.Vector3) => {
         // focus all cameras at a new target.
         this.target.copy(newTarget || this.origin.target)
@@ -79,14 +96,14 @@ export class MultiCamManger implements Camera {
         this.oCamZoom.lookAt(this.target)
     }
 
-    reset = (newPosition: THREE.Vector3, newTarget: THREE.Vector3,
-             newCanRotate: boolean) => {
+    reset = (position: THREE.Vector3, target: THREE.Vector3,
+             rotationPermitted: boolean) => {
         console.log('camera: reset')
-        this.allowRotation(newCanRotate)
-        this.position(newPosition)
+        this.rotationPermitted = rotationPermitted
+        this.position(position)
         this.pCam.up.copy(this.origin.pCamUp)
         this.oCam.up.copy(this.origin.oCamUp)
-        this.focus(newTarget)
+        this.focus(target)
     }
 
     position = (v: THREE.Vector3) => {
@@ -95,10 +112,6 @@ export class MultiCamManger implements Camera {
         this.pCam.position.copy(v || this.origin.pCamPosition)
         this.oCam.position.copy(v || this.origin.oCamPosition)
         this.oCamZoom.position.copy(v || this.origin.oCamZoomPosition)
-    }
-
-    allowRotation = (allowed=true) => {
-        this.canRotate = allowed
     }
 
     disable = () => {
@@ -163,7 +176,7 @@ export class MultiCamManger implements Camera {
         this.oCam.top += deltaV
         this.oCam.bottom += deltaV
         this.oCam.updateProjectionMatrix()
-        this._change()
+        this.onChange()
     }
 
     zoom = (distance: THREE.Vector3, screenPosition: THREE.Vector2) => {
@@ -204,7 +217,7 @@ export class MultiCamManger implements Camera {
             oCam.bottom = oCam.top - (0.0001 * a)
         }
         oCam.updateProjectionMatrix()
-        this._change()
+        this.onChange()
     }
 
     distanceToTarget = (): number => {
@@ -266,10 +279,10 @@ export class MultiCamManger implements Camera {
 
     rotate = (delta: THREE.Vector3, singleDir=false) => {
         console.log(delta)
-        if (this.canRotate) {
+        if (this.rotationPermitted) {
             [this.pCam, this.oCam, this.oCamZoom].map(
                 c => this.rotateOneCamera(delta, c, singleDir))
-            this._change()
+            this.onChange()
         } else {
             console.log('not allowed')
         }
@@ -314,21 +327,9 @@ export class MultiCamManger implements Camera {
         this.oCamZoom.updateProjectionMatrix()
         // emit a special change event. If the viewport is
         // interested (i.e. we are in PIP mode) it can update
-        this._changePip()
+        this.onChangePip()
     }
 
-    _changePip = () => {
-        if (this.onChangePip !== null) {
-            this.onChangePip()
-        }
-    }
-
-    _change = () => {
-        if (this.onChange !== null) {
-            console.log('camera: _change')
-            this.onChange()
-        }
-    }
 }
 
 // takes a 'desired' delta 3vec (from camera rotation) and clamps
