@@ -3,9 +3,7 @@
  * Collection of utility functions not present in underscore and useful
  * throughout the application
  */
-'use strict';
-
-import Config from '../model/config';
+import Config from '../model/config'
 
 /**
  * Generate a random alphanumeric string
@@ -16,17 +14,17 @@ import Config from '../model/config';
  */
 export function randomString (length: number, useTime=true): string {
     var result = '',
-        ch = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        ch = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
     for (var i = length; i > 0; --i) {
-        result += ch[Math.round(Math.random() * (ch.length - 1))];
+        result += ch[Math.round(Math.random() * (ch.length - 1))]
     }
 
     if (useTime) {
-        return result + (new Date()).getTime();
+        return result + (new Date()).getTime()
     }
 
-    return result;
+    return result
 }
 
 /**
@@ -36,8 +34,8 @@ export function randomString (length: number, useTime=true): string {
  * @return {string}
  */
 export function basename(path: string, removeExt=false) {
-    const bn = path.split('/').pop();
-    return removeExt ? bn.split('.').slice(0, -1).join('.') : bn;
+    const bn = path.split('/').pop()
+    return removeExt ? bn.split('.').slice(0, -1).join('.') : bn
 }
 
 /**
@@ -55,30 +53,28 @@ export function extname(path: string): string {
  * @return {string}
  */
 export function stripExtension(path: string): string {
-    const parts = path.split('.');
-    return parts.length > 1 ? parts.slice(0, -1).join('.') : path;
+    const parts = path.split('.')
+    return parts.length > 1 ? parts.slice(0, -1).join('.') : path
 }
 
 export function stripTrailingSlash(str: string): string {
-    return str.substr(-1) === '/' ? str.substr(0, str.length - 1) : str;
+    return str.substr(-1) === '/' ? str.substr(0, str.length - 1) : str
 }
 
 export function addTrailingSlash(str: string): string {
-    return str.substr(-1) === '/' ? str : str + '/';
+    return str.substr(-1) === '/' ? str : str + '/'
 }
 
 /**
  * The base url of the current window with trailing slash addedd
  */
 export function baseUrl () {
-    return addTrailingSlash(window.location.origin + window.location.pathname);
+    return addTrailingSlash(window.location.origin + window.location.pathname)
 }
 
-export function pad(n, width, z) {
-    z = z || '0';
-    n = n + '';
+export function pad(n: string, width: number, z='0') {
     return n.length >= width ? n :
-        new Array(width - n.length + 1).join(z) + n;
+        new Array(width - n.length + 1).join(z) + n
 }
 
 export function capitalize(str: string): string {
@@ -91,22 +87,22 @@ export function capitalize(str: string): string {
  * @param  {String} serverUrl [Server URL to preset before reloading]
  */
 export function restart(serverUrl: string): void {
-    Config().clear();
+    Config().clear()
     const restartUrl = (
         baseUrl() + (serverUrl ? `?server=${serverUrl}` : '')
-    );
-    window.location.replace(restartUrl);
+    )
+    window.location.replace(restartUrl)
 }
 
 export function truncate(str: string, max: number, right=false, ellipsis=true): string {
     if (str.length > max) {
         let _str = !right ? str.slice(0, max - str.length) : // Keep left
-                            str.slice(str.length - max);     // Keep right
+                            str.slice(str.length - max)     // Keep right
         if (ellipsis) {
-            _str = !right ? _str.slice(0, -3) + '...' : '...' + _str.slice(3);
+            _str = !right ? _str.slice(0, -3) + '...' : '...' + _str.slice(3)
         }
-        return _str;
+        return _str
     } else {
-        return str;
+        return str
     }
 }

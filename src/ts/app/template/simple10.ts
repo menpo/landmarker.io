@@ -3,4 +3,4 @@ export default {
         'label': 'all',
         'points': 10
     }]
-};
+}

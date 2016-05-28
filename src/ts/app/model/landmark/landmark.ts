@@ -1,7 +1,5 @@
-'use strict';
-
-import * as _ from 'underscore';
-import * as Backbone from 'backbone';
+import * as _ from 'underscore'
+import * as Backbone from 'backbone'
 import { LandmarkGroup } from './group'
 
 const DEFAULTS = {
@@ -12,15 +10,15 @@ const DEFAULTS = {
 type JSONLandmark = [number, number, number] | [number, number]
 
 export class Landmark extends Backbone.Model {
-    
+
     nDims: number
-    
+
     constructor (group: LandmarkGroup, index: number, nDims: number, point: THREE.Vector3) {
         super(DEFAULTS)
         this.set({ group, index, point })
         this.nDims = nDims
     }
-   
+
     point = () : THREE.Vector3 => {
         return this.get('point')
     }
@@ -73,15 +71,15 @@ export class Landmark extends Backbone.Model {
         }
     }
 
-    clear = () : void => {
+    clear() {
         this.set({ point: null, selected: false })
     }
 
     group = () : LandmarkGroup => {
-        return this.get('group');
+        return this.get('group')
     }
 
-    toJSON = () : JSONLandmark => {
+    toJSON(): JSONLandmark {
         let pointJSON: JSONLandmark
         if (!this.isEmpty()) {
             const point = this.point()

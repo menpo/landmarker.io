@@ -18,4 +18,4 @@ export default {
         'label': 'chin',
         'points': 1
     }]
-};
+}
