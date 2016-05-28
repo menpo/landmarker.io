@@ -72,9 +72,10 @@ export function baseUrl () {
     return addTrailingSlash(window.location.origin + window.location.pathname)
 }
 
-export function pad(n: string, width: number, z='0') {
-    return n.length >= width ? n :
-        new Array(width - n.length + 1).join(z) + n
+export function pad(n: number, width: number, z='0') {
+    const nStr = n.toString()
+    return nStr.length >= width ? nStr :
+        new Array(width - nStr.length + 1).join(z) + nStr
 }
 
 export function capitalize(str: string): string {
