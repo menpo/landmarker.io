@@ -216,20 +216,17 @@ export default Backbone.Model.extend({
         // from the server). Of course, we must pass the server in. The
         // asset source will ensure that the assets produced also get
         // attached to this server.
-        const ASC = this._assetSourceConstructor();
-        const assetSource = new ASC({
-            server: this.server(),
-            id: this.activeCollection()
-        });
+        const ASC = this._assetSourceConstructor()
+        const assetSource = new ASC(this.server(), this.activeCollection())
         if (this.has('assetSource')) {
-            this.stopListening(this.get('assetSource'));
+            this.stopListening(this.get('assetSource'))
         }
-        this.set('assetSource', assetSource);
-        this.set('tracker', {});
+        this.set('assetSource', assetSource)
+        this.set('tracker', {})
         // whenever our asset source changes it's current asset and mesh we need
         // to update the app state.
-        this.listenTo(assetSource, 'change:asset', this.assetChanged);
-        this.listenTo(assetSource, 'change:mesh', this.meshChanged);
+        this.listenTo(assetSource, 'change:asset', this.assetChanged)
+        this.listenTo(assetSource, 'change:mesh', this.meshChanged)
 
         assetSource.fetch().then(() => {
             let i;
