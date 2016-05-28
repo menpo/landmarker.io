@@ -11,10 +11,15 @@ export interface Scene {
     landmarks: Landmark[]
     landmarkViews: LandmarkTHREEView[]
     connectivity: [number, number][]
+
+    cameraMode: CAMERA_MODE
+    toggleCamera: () => void,
+
     setMesh: (mesh: THREE.Mesh, up: THREE.Vector3, front: THREE.Vector3) => void
     removeMeshIfPresent: () => void
     setLandmarksAndConnectivity: (landmarks: Landmark[], connectivity: [number, number][]) => void
     updateLandmarks: (landmarks: Landmark[]) => void,
+
     sCamera: THREE.Camera
     sPCam: THREE.PerspectiveCamera
     sOCam: THREE.OrthographicCamera
@@ -22,9 +27,9 @@ export interface Scene {
     scene: THREE.Scene,
     sceneHelpers: THREE.Scene,
     sLms: THREE.Object3D
-    cameraMode: CAMERA_MODE
-    toggleCamera: () => void,
     lmScale: number
+
+    // Intersection related
     localToScreen: (v: THREE.Vector3) => THREE.Vector2
     worldToLocal: (v: THREE.Vector3) => THREE.Vector3
     getIntersects: (x: number, y: number, object: Intersectable) => Intersection[]
@@ -267,7 +272,7 @@ export class SceneManager implements Scene {
         const vector = new THREE.Vector3((x / this.width) * 2 - 1,
                                         -(y / this.height) * 2 + 1, 0.5)
 
-        if (this.sCamera === this.sPCam) {
+        if (this.cameraMode == CAMERA_MODE.PERSPECTIVE) {
             // perspective selection
             vector.setZ(0.5)
             vector.unproject(this.sCamera)

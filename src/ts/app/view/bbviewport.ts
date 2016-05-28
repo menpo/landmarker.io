@@ -1,5 +1,5 @@
-import { Viewport, ViewportCallbacks } from './viewport'
-import BBLandmark from '../model/landmark'
+import { Viewport, IViewport, ViewportCallbacks } from './viewport'
+import { Landmark as BBLandmark } from '../model/landmark'
 
 const landmarkForBBLandmark = (bbLm: BBLandmark) => ({
     point: bbLm.point(),
@@ -13,7 +13,7 @@ const landmarkForBBLandmark = (bbLm: BBLandmark) => ({
 export class BackboneViewport {
 
     model: any
-    viewport: Viewport
+    viewport: IViewport
 
     constructor(element: HTMLElement, app) {
         this.model = app;
@@ -77,11 +77,11 @@ export class BackboneViewport {
     };
 
     updateEditingDisplay = () => {
-        this.viewport.updateEditingDisplay(this.model.isEditingOn());
+        this.viewport.snapModeEnabled = this.model.isEditingOn()
     };
 
     updateConnectivityDisplay = () => {
-        this.viewport.updateConnectivityDisplay(this.model.isConnectivityOn());
+        this.viewport.connectivityVisable = this.model.isConnectivityOn()
     };
 
     updateLandmark = i => {

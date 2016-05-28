@@ -51,6 +51,8 @@ export interface IViewport {
     removeMeshIfPresent: () => void
     budgeLandmarks: (vector: [number, number]) => void
     setLandmarkSize: (lmSize: number) => void
+    snapModeEnabled: boolean
+    connectivityVisable: boolean
 }
 
 // We are trying to move towards the whole viewport module being a standalone black box that
@@ -62,8 +64,8 @@ export class Viewport implements IViewport {
 
     on: ViewportCallbacks
 
-    connectivityVisable = true
-    snapModeEnabled: boolean
+    _connectivityVisable = true
+    _snapModeEnabled: boolean // Note that we need to fire this in the constructor for sideeffects
 
     parent: HTMLElement
     elements = new DomElements()
@@ -195,6 +197,8 @@ export class Viewport implements IViewport {
         function animate() {
             requestAnimationFrame(animate)
         }
+
+        this.snapModeEnabled = true
     }
 
     get width() {
@@ -229,6 +233,30 @@ export class Viewport implements IViewport {
         return this.nonEmptyLandmarks.length === 0
     }
 
+    get connectivityVisable() {
+        return this._connectivityVisable
+    }
+
+    set connectivityVisable (connectivityVisable: boolean) {
+        this._connectivityVisable = connectivityVisable
+        this.update()
+    }
+
+    get snapModeEnabled () {
+        return this._snapModeEnabled
+    }
+
+    set snapModeEnabled(snapModeEnabled: boolean) {
+        this._snapModeEnabled = snapModeEnabled
+        this.clearCanvas()
+        this.on.deselectAllLandmarks()
+        if (snapModeEnabled) {
+            this.elements.viewport.addEventListener('mousemove', this.handler.onMouseMove)
+        } else {
+            this.elements.viewport.removeEventListener('mousemove', this.handler.onMouseMove)
+        }
+    }
+
     // Bring the viewport DOM into focus
     focus = () => {
         this.elements.viewport.focus()
@@ -260,11 +288,6 @@ export class Viewport implements IViewport {
         this.update()
     }
 
-    memoryString = () => {
-        return 'geo:' + this.renderer.info.memory.geometries +
-               ' tex:' + this.renderer.info.memory.textures
-    }
-
     toggleCamera = () => {
         const currentMode = this.scene.cameraMode
         // trigger the changeover of the primary camera
@@ -289,22 +312,6 @@ export class Viewport implements IViewport {
         this.camera.reset(v, this.scene.scene.position, this.meshMode)
         this.update()
     };
-
-    updateConnectivityDisplay = (isConnectivityOn: boolean) => {
-        this.connectivityVisable = isConnectivityOn;
-        this.update();
-    };
-
-    updateEditingDisplay = atomic.atomicOperation((isEditModeOn: boolean) => {
-        this.snapModeEnabled = isEditModeOn
-        this.clearCanvas()
-        this.on.deselectAllLandmarks()
-        if (this.snapModeEnabled) {
-            this.elements.viewport.addEventListener('mousemove', this.handler.onMouseMove)
-        } else {
-            this.elements.viewport.removeEventListener('mousemove', this.handler.onMouseMove)
-        }
-    })
 
     budgeLandmarks = atomic.atomicOperation((vector: [number, number]) => {
 
@@ -378,6 +385,12 @@ export class Viewport implements IViewport {
             }
         }
     }
+
+    memoryString = () => {
+        return 'geo:' + this.renderer.info.memory.geometries +
+               ' tex:' + this.renderer.info.memory.textures
+    }
+
 
     pipBounds = () => {
         var w = this.width
