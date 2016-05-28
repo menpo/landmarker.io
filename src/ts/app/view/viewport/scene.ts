@@ -225,8 +225,8 @@ export class SceneManager implements Scene {
     }
 
     setLandmarksAndConnectivity = (landmarks: Landmark[], connectivity: [number, number][]) => {
-        this.landmarks = landmarks;
-        this.connectivity = connectivity;
+        this.landmarks = landmarks
+        this.connectivity = connectivity
         // 1. Dispose of all landmark and connectivity views
         this.landmarkViews.forEach(lmView => lmView.dispose())
         this.connectivityViews.forEach(connView => connView.dispose())
@@ -238,7 +238,7 @@ export class SceneManager implements Scene {
                     onCreate: symbol => this.sLms.add(symbol),
                     onDispose: symbol => this.sLms.remove(symbol)
                 })
-        );
+        )
         this.connectivityViews = connectivity.map(([a, b]) =>
             new LandmarkConnectionTHREEView(landmarks[a], landmarks[b],
                 {
@@ -258,7 +258,7 @@ export class SceneManager implements Scene {
 
         // Finally go through all connectivity views and update them
         this.connectivityViews.forEach((view, i) => {
-            const [a, b] = this.connectivity[i];
+            const [a, b] = this.connectivity[i]
             view.render(this.landmarks[a], this.landmarks[b])
         })
 
@@ -281,11 +281,11 @@ export class SceneManager implements Scene {
             this.ray.set(this.sCamera.position, vector.sub(this.sCamera.position).normalize())
         } else {
             // orthographic selection
-            vector.setZ(-1);
-            vector.unproject(this.sCamera);
+            vector.setZ(-1)
+            vector.unproject(this.sCamera)
             var dir = new THREE.Vector3(0, 0, -1)
-                .transformDirection(this.sCamera.matrixWorld);
-            this.ray.set(vector, dir);
+                .transformDirection(this.sCamera.matrixWorld)
+            this.ray.set(vector, dir)
         }
 
         if (object === this.mesh && this.octree) {
@@ -294,11 +294,11 @@ export class SceneManager implements Scene {
         } else if (object instanceof Array) {
             return this.ray.intersectObjects(object, true)
         } else {
-            return this.ray.intersectObject(object, true);
+            return this.ray.intersectObject(object, true)
         }
     }
 
-    getIntersectsFromEvent = (e: MouseEvent, object: Intersectable) => this.getIntersects(e.clientX, e.clientY, object);
+    getIntersectsFromEvent = (e: MouseEvent, object: Intersectable) => this.getIntersects(e.clientX, e.clientY, object)
 
     worldToScreen = (v: THREE.Vector3) => {
         const halfW = this.width / 2

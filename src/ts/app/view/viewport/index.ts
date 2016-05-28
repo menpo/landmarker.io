@@ -123,9 +123,9 @@ export class Viewport implements IViewport {
         // ----- INPUT HANDLERS ----- //
         // There is quite a lot of finicky state in handling the mouse/touch
         // interaction which is of no concern to the rest of the viewport.
-        this.handler = new Handler(this);
+        this.handler = new Handler(this)
         this.touchHandler = new TouchHandler(this)
-        this.elements.viewport.addEventListener('mousedown', this.handler.onMouseDown);
+        this.elements.viewport.addEventListener('mousedown', this.handler.onMouseDown)
         this.elements.viewport.addEventListener('touchstart', this.touchHandler.onTouchStart)
         this.elements.viewport.addEventListener('touchmove', this.touchHandler.onTouchMove)
 
@@ -221,7 +221,7 @@ export class Viewport implements IViewport {
     })
 
     setMesh = (mesh: THREE.Mesh, up: THREE.Vector3, front: THREE.Vector3) => {
-        console.log('Viewport:setMesh - memory before: ' + this.memoryString());
+        console.log('Viewport:setMesh - memory before: ' + this.memoryString())
         this.scene.setMesh(mesh, up, front)
         this.update()
     }
@@ -266,9 +266,9 @@ export class Viewport implements IViewport {
             move = new THREE.Vector2(),
             [dx, dy] = [.005 * window.innerWidth, .005 * window.innerHeight]
 
-        move.set(x * dx, y * dy);
+        move.set(x * dx, y * dy)
 
-        const ops = [];
+        const ops = []
         this.selectedLandmarks.forEach((lm) => {
             const lmScreen = this.scene.localToScreen(lm.point)
             lmScreen.add(move)
@@ -288,11 +288,11 @@ export class Viewport implements IViewport {
     // this is called whenever there is a state change on the THREE scene
     update = () => {
         if (!this.renderer) {
-            return;
+            return
         }
         // if in batch mode - dont render unnecessarily
         if (atomic.atomicOperationUnderway()) {
-            return;
+            return
         }
 
         const scene = this.scene
@@ -306,9 +306,9 @@ export class Viewport implements IViewport {
 
         if (this.connectivityVisable) {
             // clear depth buffer
-            this.renderer.clearDepth();
+            this.renderer.clearDepth()
             // and render the connectivity
-            this.renderer.render(scene.sceneHelpers, scene.sCamera);
+            this.renderer.render(scene.sceneHelpers, scene.sCamera)
         }
 
         // 3. Render the PIP image if in orthographic mode
@@ -320,14 +320,14 @@ export class Viewport implements IViewport {
             this.renderer.clear()
             this.renderer.setScissorTest(false)
 
-            this.renderer.setViewport(b.x, b.y, b.width, b.height);
+            this.renderer.setViewport(b.x, b.y, b.width, b.height)
 
             // render the PIP image
-            this.renderer.render(scene.scene, scene.sOCamZoom);
+            this.renderer.render(scene.scene, scene.sOCamZoom)
             if (this.connectivityVisable) {
-                this.renderer.clearDepth(); // clear depth buffer
+                this.renderer.clearDepth() // clear depth buffer
                 // and render the connectivity
-                this.renderer.render(scene.sceneHelpers, scene.sOCamZoom);
+                this.renderer.render(scene.sceneHelpers, scene.sOCamZoom)
             }
         }
     }

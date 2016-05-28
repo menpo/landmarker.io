@@ -52,12 +52,12 @@ export class CanvasManager implements Canvas {
         this.pipCtx = pipCanvas.getContext('2d')
 
         // style the PIP canvas on initialization
-        this.pipCanvas.style.position = 'fixed';
-        this.pipCanvas.style.zIndex = '0';
-        this.pipCanvas.style.width = PIP_WIDTH + 'px';
-        this.pipCanvas.style.height = PIP_HEIGHT + 'px';
-        this.pipCanvas.width = PIP_WIDTH * this.pixelRatio;
-        this.pipCanvas.height = PIP_HEIGHT * this.pixelRatio;
+        this.pipCanvas.style.position = 'fixed'
+        this.pipCanvas.style.zIndex = '0'
+        this.pipCanvas.style.width = PIP_WIDTH + 'px'
+        this.pipCanvas.style.height = PIP_HEIGHT + 'px'
+        this.pipCanvas.width = PIP_WIDTH * this.pixelRatio
+        this.pipCanvas.height = PIP_HEIGHT * this.pixelRatio
         // note that the left style is left unset until the first resize
         // as we don't know the screen size at this time.
 
