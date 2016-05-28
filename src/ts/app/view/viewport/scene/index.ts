@@ -1,9 +1,9 @@
 import * as THREE from 'three'
 
-import { octreeForBufferGeometry, Octree } from './lib/octree'
-import { Landmark, Intersection } from './base'
-import { LandmarkConnectionTHREEView, LandmarkTHREEView } from './elements'
+import { octreeForBufferGeometry, Octree } from '../lib/octree'
+import { Landmark, Intersection } from '../base'
 
+import { LandmarkConnectionTHREEView, LandmarkTHREEView } from './elements'
 type Intersectable = THREE.Object3D | THREE.Object3D[]
 
 export enum CAMERA_MODE {

@@ -2,19 +2,18 @@ import * as THREE from 'three'
 
 import { atomic, AtomicOperationTracker } from '../../model/atomic'
 
+import { Landmark } from './base'
 import { DomElements } from './dom'
-import { Scene, SceneManager, CAMERA_MODE } from './scene'
 import { Canvas, CanvasManager } from './canvas'
 
-import { Camera, MultiCamManger,
-         TouchCameraController,
+import { Camera, MultiCamManger, TouchCameraController,
          MouseCameraController } from './camera'
+
+import { Scene, SceneManager, CAMERA_MODE } from './scene'
 
 import Handler from './handler'
 import TouchHandler from './touchHandler'
 
-import { Landmark } from './base'
-import { ViewportElementCallbacks} from './elements'
 
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE
@@ -283,6 +282,7 @@ export class Viewport implements IViewport {
 
     // this is called whenever there is a state change on the THREE scene
     update = () => {
+        // console.log('Viewport:update()')
         if (!this.renderer) {
             return
         }

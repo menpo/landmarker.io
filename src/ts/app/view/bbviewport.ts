@@ -37,7 +37,7 @@ export class BackboneViewport {
             insertNewLandmark: point => this.model.landmarks().insertNew(point),
         }
         this.viewport = new Viewport(element, app.meshMode(), on)
-        // window.vp = this.viewport
+        window.vp = this.viewport
 
         this.model.on('newMeshAvailable', this.setMesh)
         this.model.on("change:landmarks", this.setLandmarks)
