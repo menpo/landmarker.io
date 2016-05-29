@@ -69,9 +69,9 @@ export class Image extends Backbone.Model {
     _geometryPromise: Promise<THREE.BufferGeometry> = null
     _texturePromise: Promise<THREE.Material> = null
 
-    constructor(id: string, server: Backend) {
+    constructor(id: string, backend: Backend) {
         super()
-        this.set({ id, server, textureOn: true })
+        this.set({ id, backend, textureOn: true })
         const meshChanged = () => this.trigger('newMeshAvailable')
         this.listenTo(this, 'change:geometry', meshChanged)
         this.listenTo(this, 'change:thumbnail', meshChanged)
@@ -79,8 +79,8 @@ export class Image extends Backbone.Model {
         this.listenTo(this, 'change:textureOn', meshChanged)
     }
 
-    server(): Backend {
-        return this.get('server')
+    backend(): Backend {
+        return this.get('backend')
     }
 
     hasTexture() {
@@ -192,7 +192,7 @@ export class Image extends Backbone.Model {
 
     loadThumbnail() {
         if (!this.hasThumbnailPromise) {
-            this._thumbnailPromise = this.server().fetchThumbnail(this.id).then((material) => {
+            this._thumbnailPromise = this.backend().fetchThumbnail(this.id).then((material) => {
                 delete this._thumbnailPromise
                 console.log('Asset: loaded thumbnail for ' + this.id)
                 this.thumbnail = material
@@ -209,7 +209,7 @@ export class Image extends Backbone.Model {
 
     loadTexture() {
         if (!this.hasTexturePromise) {
-            this._texturePromise = this.server().fetchTexture(this.id).then(material => {
+            this._texturePromise = this.backend().fetchTexture(this.id).then(material => {
                 delete this._texturePromise
                 console.log('Asset: loaded texture for ' + this.id)
                 this.texture = material
@@ -260,7 +260,7 @@ export class Mesh extends Image {
             // already loading this geometry
             return this._geometryPromise
         }
-        const arrayPromise = this.server().fetchGeometry(this.id)
+        const arrayPromise = this.backend().fetchGeometry(this.id)
 
         this._geometryPromise = arrayPromise.then((geometry) => {
             delete this._geometryPromise

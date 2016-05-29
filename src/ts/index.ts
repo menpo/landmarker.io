@@ -27,7 +27,7 @@ import KeyboardShortcutsHandler from './app/view/keyboard'
 import Config from './app/model/config'
 import App from './app/model/app'
 
-import { Dropbox, Server } from './app/backend'
+import { Dropbox, Server, Backend } from './app/backend'
 
 const cfg = Config()
 
@@ -36,12 +36,12 @@ const mixedContentWarning = `
 You can visit <a href='http://insecure.landmarker.io${window.location.search}'>insecure.landmarker.io</a> to disable this warning.</p>
 `
 
-function resolveBackend (u) {
+function resolveBackend(u: url.Url) {
     console.log(
         'Resolving which backend to use for url:', window.location.href, u,
         'and config:', cfg.get())
 
-    // Found a server parameter >> override to traditionnal mode
+    // Found a server parameter >> override to traditional mode
     if (u.query.server) {
         const serverUrl = utils.stripTrailingSlash(u.query.server)
         cfg.clear() // Reset all stored data, we use the url
@@ -90,7 +90,7 @@ function resolveBackend (u) {
 
 var goToDemo = utils.restart.bind(undefined, 'demo')
 
-function retry (msg) {
+function retry(msg: string) {
     notify({
         msg,
         type: 'error',
@@ -102,14 +102,14 @@ function retry (msg) {
     })
 }
 
-function _loadServer (u) {
+function _loadServer(u: url.Url) {
     const server = new Server(cfg.get('BACKEND_SERVER_URL'))
     u.query.server = cfg.get('BACKEND_SERVER_URL')
     history.replaceState(null, null, url.format(u).replace('?', '#'))
     resolveMode(server, u)
 }
 
-function _loadDropbox (u) {
+function _loadDropbox (u: url.Url) {
 
     let dropbox
     const oAuthState = cfg.get('OAUTH_STATE'),
@@ -158,7 +158,7 @@ function _loadDropbox (u) {
     }
 }
 
-function _loadDropboxAssets (dropbox, u) {
+function _loadDropboxAssets (dropbox, u: url.Url) {
     const assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH')
 
     function _pick () {
@@ -178,7 +178,7 @@ function _loadDropboxAssets (dropbox, u) {
     }
 }
 
-function _loadDropboxTemplates (dropbox, u) {
+function _loadDropboxTemplates (dropbox, u: url.Url) {
 
     const templatesPaths = cfg.get('BACKEND_DROPBOX_TEMPLATES_PATHS')
 
@@ -198,10 +198,10 @@ function _loadDropboxTemplates (dropbox, u) {
     }
 }
 
-function resolveMode (server, u) {
-    server.fetchMode().then(function (mode) {
+function resolveMode (backend: Backend, u: url.Url) {
+    backend.fetchMode().then(function (mode) {
         if (mode === 'mesh' || mode === 'image') {
-            initLandmarker(server, mode, u)
+            initLandmarker(backend, mode, u)
         } else {
             retry('Received invalid mode', mode)
         }
@@ -211,7 +211,7 @@ function resolveMode (server, u) {
     })
 }
 
-function initLandmarker(server, mode, u) {
+function initLandmarker(backend: Backend, mode: string, u: url.Url) {
 
     console.log('Starting landmarker in ' + mode + ' mode')
 
@@ -219,7 +219,7 @@ function initLandmarker(server, mode, u) {
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = ''
 
-    var appInit = {server: server, mode: mode}
+    const appInit = {backend: backend, mode: mode}
 
     if (u.query.hasOwnProperty('t')) {
         appInit._activeTemplate = u.query.t
@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     cfg.load()
     Intro.init({cfg})
-    var u = url.parse(
+    const u = url.parse(
         utils.stripTrailingSlash(window.location.href.replace('#', '?')), true)
 
     $(window).on('keydown', function (evt) {

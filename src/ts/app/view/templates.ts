@@ -23,7 +23,7 @@ export const TemplatePicker = Backbone.View.extend({
     },
 
     render: function () {
-        const backend = this.model.server()
+        const backend = this.model.backend()
         const $ul = $('<ul></ul>')
         this.model.templates().forEach((tmpl, index) => {
             $ul.prepend($(`
@@ -80,8 +80,8 @@ export const TemplatePicker = Backbone.View.extend({
 
     add: function (evt) {
         evt.stopPropagation()
-        if (typeof this.model.server().pickTemplate === 'function') {
-            this.model.server().pickTemplate((name) => {
+        if (typeof this.model.backend().pickTemplate === 'function') {
+            this.model.backend().pickTemplate((name) => {
                 this.model.set('_activeTemplate', name)
                 this.model._initTemplates()
             }, function (err) {
@@ -131,7 +131,7 @@ export const TemplatePanel = Backbone.View.extend({
 
         this.undelegateEvents()
 
-        const server = this.model.server()
+        const backend = this.model.backend()
         const activeTemplate = this.model.activeTemplate()
 
         const $tn = this.$el.find('.TemplateName')
@@ -140,7 +140,7 @@ export const TemplatePanel = Backbone.View.extend({
         $tn.text(activeTemplate || '-')
 
         if (
-            typeof server.downloadTemplate === 'function' &&
+            typeof backend.downloadTemplate === 'function' &&
             activeTemplate && activeTemplate !== ''
         ) {
             this.$el.append(`<div class='TemplateDownload'><span class="octicon octicon-cloud-download"></span></div>`)
@@ -157,10 +157,10 @@ export const TemplatePanel = Backbone.View.extend({
             return true
         }
 
-        const server = this.model.server()
+        const backend = this.model.backend()
         const templates = this.model.templates()
-        return (templates.length <= 1 && server instanceof Server) &&
-               typeof server.pickTemplate !== 'function'
+        return (templates.length <= 1 && backend instanceof Server) &&
+               typeof backend.pickTemplate !== 'function'
     },
 
     open: function () {
@@ -171,11 +171,11 @@ export const TemplatePanel = Backbone.View.extend({
 
     download: function (evt) {
         evt.stopPropagation()
-        const server = this.model.server()
+        const backend = this.model.backend()
         const tmpl = this.model.activeTemplate()
 
-        if (typeof server.downloadTemplate === 'function' && tmpl) {
-            server.downloadTemplate(tmpl)
+        if (typeof backend.downloadTemplate === 'function' && tmpl) {
+            backend.downloadTemplate(tmpl)
         }
     }
 })

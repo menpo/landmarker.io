@@ -73,13 +73,13 @@ export class LandmarkGroup extends LandmarkCollection {
     connectivity: [number, number][]
     id: string
     type: string
-    server: Backend
+    backend: Backend
     tracker: LandmarkGroupTracker
     labels: LandmarkLabel[]
 
     constructor(points: JSONPoint[], connectivity: [number, number][],
                 labels: LabelAndMask[], id: string, type: string,
-                server: Backend, tracker: LandmarkGroupTracker) {
+                backend: Backend, tracker: LandmarkGroupTracker) {
 
         // 1. Build landmarks from points
         super(points.map((p, index) => {
@@ -89,7 +89,7 @@ export class LandmarkGroup extends LandmarkCollection {
 
         this.id = id
         this.type = type
-        this.server = server
+        this.backend = backend
         this.tracker = tracker || landmarkGroupTrackerFactory()
 
         // 2. Validate and assign connectivity (if there is any, it's not mandatory)
@@ -106,14 +106,14 @@ export class LandmarkGroup extends LandmarkCollection {
         this.tracker.recordState(this.toJSON(), true)
     }
 
-    static parse(json: LJSONFile, id: string, type: string, server: Backend, tracker: LandmarkGroupTracker) {
+    static parse(json: LJSONFile, id: string, type: string, backend: Backend, tracker: LandmarkGroupTracker) {
         return new LandmarkGroup(
             json.landmarks.points,
             json.landmarks.connectivity,
             json.labels,
             id,
             type,
-            server,
+            backend,
             tracker
         )
     }
@@ -238,7 +238,7 @@ export class LandmarkGroup extends LandmarkCollection {
     }
 
     save = () => {
-        return this.server
+        return this.backend
             .saveLandmarkGroup(this.id, this.type, this.toJSON())
             .then(() => {
                 this.tracker.recordState(this.toJSON(), true)

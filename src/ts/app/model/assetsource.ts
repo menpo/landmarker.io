@@ -16,24 +16,24 @@ abstract class AssetSource extends Backbone.Model {
 
     pending: { [id: string]: string }
 
-    constructor(server: Backend, id: string) {
+    constructor(backend: Backend, id: string) {
         super({
             assets: new Backbone.Collection(),
             assetIsLoading: false,
-            server,
+            backend,
             id
          })
     }
 
     abstract setAsset(asset: Asset.Image): void
 
-    server(): Backend {
-        return this.get('server')
+    backend(): Backend {
+        return this.get('backend')
     }
 
     fetch() {
         return (
-            this.server().fetchCollection(this.id).then((response) => {
+            this.backend().fetchCollection(this.id).then((response) => {
                 this.set('assets', this.parse(response).assets)
             })
         )
@@ -105,7 +105,7 @@ abstract class AssetSource extends Backbone.Model {
 export class MeshSource extends AssetSource {
 
     parse(response: string[]) {
-        const meshes = response.map(assetId => new Asset.Mesh(assetId, this.server()))
+        const meshes = response.map(assetId => new Asset.Mesh(assetId, this.backend()))
         return { assets: meshes }
     }
 
@@ -170,7 +170,7 @@ export class ImageSource extends AssetSource {
 
     parse(response) {
         const images = response.map((assetId) => {
-            return new Asset.Image(assetId, this.server())
+            return new Asset.Image(assetId, this.backend())
         })
 
         return { assets: images }

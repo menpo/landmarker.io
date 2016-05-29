@@ -53,21 +53,21 @@ export const BackendNameView = Backbone.View.extend({
     initialize: function () {
         _.bindAll(this, 'render')
         this.render()
-        this.listenTo(this.model, "change:server", this.render)
+        this.listenTo(this.model, "change:backend", this.render)
     },
 
     render: function () {
-        const server = this.model.server()
+        const backend = this.model.backend()
 
         this.$el.find('.octicon-globe').remove()
         this.$el.show()
 
-        if (server instanceof Dropbox) {
+        if (backend instanceof Dropbox) {
             this.$el.find('.content').html('Dropbox')
             this.$el.addClass('BackendName--Dropbox')
-        } else if (server instanceof Server) {
+        } else if (backend instanceof Server) {
             this.$el.find('.content').html(
-                server.demoMode ? 'demo' : server.url)
+                backend.demoMode ? 'demo' : backend.url)
             this.$el.addClass('BackendName--Server')
             this.$el.prepend($('<span class="octicon octicon-globe"></span>'))
         } else {
@@ -78,7 +78,7 @@ export const BackendNameView = Backbone.View.extend({
     },
 
     handleClick: function () {
-        if (this.model.has('server')) {
+        if (this.model.has('backend')) {
             Modal.confirm(
                 'Log out of the current data source and restart the landmarker ?', Intro.open)
         }
@@ -233,20 +233,20 @@ export const CollectionName = Backbone.View.extend({
     },
 
     render: function () {
-        const server = this.model.server()
+        const backend = this.model.backend()
         this.$el.find('.content').html(
             `${this.model.activeCollection()} (${this.model.mode()})`)
         this.$el.toggleClass(
             'Disabled',
             ( this.model.collections().length <= 1 &&
-              !(typeof server.pickAssets === 'function') )
+              !(typeof backend.pickAssets === 'function') )
         )
         return this
     },
 
     chooseCollection: function () {
 
-        const backend = this.model.server()
+        const backend = this.model.backend()
         if (backend && typeof backend.pickAssets === 'function') {
             backend.pickAssets((path) => {
                 this.model.set('mode', backend.mode)

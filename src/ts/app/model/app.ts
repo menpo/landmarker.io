@@ -107,8 +107,8 @@ export default class App extends Backbone.Model {
         return this.get('mode') === 'mesh'
     }
 
-    server(): Backend {
-        return this.get('server')
+    backend(): Backend {
+        return this.get('backend')
     }
 
     templates(): string[] {
@@ -173,7 +173,7 @@ export default class App extends Backbone.Model {
     _initTemplates(override=false) {
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.
-        this.server().fetchTemplates().then((templates) => {
+        this.backend().fetchTemplates().then((templates) => {
             this.set('templates', templates)
             let selected = templates[0]
             if (!override && this.has('_activeTemplate')) {
@@ -186,13 +186,14 @@ export default class App extends Backbone.Model {
             }
             this.set('activeTemplate', selected)
         }, () => {
-            throw new Error('Failed to talk server for templates (is ' +
+            // TODO make this error more generic
+            throw new Error('Failed to talk backend for templates (is ' +
                             'landmarkerio running from your command line?).')
         })
     }
 
     _initCollections(override=false) {
-        this.server().fetchCollections().then((collections) => {
+        this.backend().fetchCollections().then((collections) => {
             this.set('collections', collections)
             let selected = collections[0]
             if (!override && this.has('_activeCollection')) {
@@ -203,7 +204,7 @@ export default class App extends Backbone.Model {
             }
             this.set('activeCollection', selected)
         }, () => {
-            throw new Error('Failed to talk server for collections (is ' +
+            throw new Error('Failed to talk backend for collections (is ' +
                             'landmarkerio running from your command line?).')
         })
     }
@@ -219,7 +220,7 @@ export default class App extends Backbone.Model {
 
         console.log('App: reloading asset source')
 
-        let oldIndex
+        let oldIndex: number
         if (this.has('asset') && this.has('assetSource')) {
             const idx = this.assetSource().assetIndex(this.asset())
             if (idx > -1) {
@@ -232,11 +233,11 @@ export default class App extends Backbone.Model {
         }
 
         // Construct an asset source (which can query for asset information
-        // from the server). Of course, we must pass the server in. The
+        // from the backend). Of course, we must pass the backend in. The
         // asset source will ensure that the assets produced also get
-        // attached to this server.
+        // attached to this backend.
         const ASC = this._assetSourceConstructor()
-        const assetSource = new ASC(this.server(), this.activeCollection())
+        const assetSource = new ASC(this.backend(), this.activeCollection())
         if (this.has('assetSource')) {
             this.stopListening(this.get('assetSource'))
         }
@@ -331,7 +332,7 @@ export default class App extends Backbone.Model {
      }
 
     loadLandmarksPromise() {
-        return this.server().fetchLandmarkGroup(
+        return this.backend().fetchLandmarkGroup(
             this.asset().id,
             this.activeTemplate()
         ).then(json => {
@@ -339,7 +340,7 @@ export default class App extends Backbone.Model {
                 json,
                 this.asset().id,
                 this.activeTemplate(),
-                this.server(),
+                this.backend(),
                 this.landmarkGroupTrackerForAssetAndTemplate(this.asset().id, this.activeTemplate())
             )
         }, () => {
@@ -402,7 +403,7 @@ export default class App extends Backbone.Model {
         if (lms) {
             const as = this.assetSource()
             if (this.assetSource().hasPredecessor()) {
-                this.server().fetchLandmarkGroup(
+                this.backend().fetchLandmarkGroup(
                     as.assets()[as.assetIndex() - 1].id,
                     this.activeTemplate()
                 ).then((json) => {
