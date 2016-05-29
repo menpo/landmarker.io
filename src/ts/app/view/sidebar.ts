@@ -359,7 +359,7 @@ export default Backbone.View.extend({
             this.lmView.cleanup()
         }
 
-        const lms = this.model.landmarks()
+        const lms = this.model.landmarks
 
         if (lms === null) {
             return

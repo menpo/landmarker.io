@@ -153,7 +153,7 @@ export const AssetIndexView = Backbone.View.extend({
     handleClick: function () {
 
         if (
-            !this.model.landmarks() ||
+            !this.model.landmarks ||
             this.model.assetSource.nAssets() <= 1
         ) {
             return null

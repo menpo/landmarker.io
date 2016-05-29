@@ -23,19 +23,19 @@ export class BackboneViewport {
 
         // Construct the callback object to be provided to the viewport
         const on: ViewportCallbacks = {
-            selectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].select()),
-            deselectLandmarks: is => is.forEach(i => this.model.landmarks().landmarks[i].deselect()),
+            selectLandmarks: is => is.forEach(i => this.model.landmarks.landmarks[i].select()),
+            deselectLandmarks: is => is.forEach(i => this.model.landmarks.landmarks[i].deselect()),
             deselectAllLandmarks: () => {
-                const lms = this.model.landmarks()
+                const lms = this.model.landmarks
                 if (lms) {
                     lms.deselectAll()
                 }
             },
-            selectLandmarkAndDeselectRest: i => this.model.landmarks().landmarks[i].selectAndDeselectRest(),
-            setLandmarkPoint: (i, point) => this.model.landmarks().setLmAt(this.model.landmarks().landmarks[i], point),
-            setLandmarkPointWithHistory: (i, point) => this.model.landmarks().landmarks[i].point = point,
-            addLandmarkHistory: points => this.model.landmarks().tracker.record(points),
-            insertNewLandmark: point => this.model.landmarks().insertNew(point),
+            selectLandmarkAndDeselectRest: i => this.model.landmarks.landmarks[i].selectAndDeselectRest(),
+            setLandmarkPoint: (i, point) => this.model.landmarks.setLmAt(this.model.landmarks.landmarks[i], point),
+            setLandmarkPointWithHistory: (i, point) => this.model.landmarks.landmarks[i].point = point,
+            addLandmarkHistory: points => this.model.landmarks.tracker.record(points),
+            insertNewLandmark: point => this.model.landmarks.insertNew(point),
         }
         this.viewport = new Viewport(element, app.meshMode(), on)
         window.vp = this.viewport
@@ -62,7 +62,7 @@ export class BackboneViewport {
     }
 
     setLandmarks = () => {
-        const landmarks = this.model.landmarks()
+        const landmarks = this.model.landmarks
         if (landmarks !== null) {
             this.viewport.setLandmarksAndConnectivity(landmarks.landmarks.map(landmarkForBBLandmark),
                                                       landmarks.connectivity)
@@ -88,7 +88,7 @@ export class BackboneViewport {
     updateLandmark = (i: number) => {
         console.log(`updating landmark ${i}`)
         this.viewport.updateLandmarks([
-                landmarkForBBLandmark(this.model.landmarks().landmarks[i])
+                landmarkForBBLandmark(this.model.landmarks.landmarks[i])
             ]
         )
     }

@@ -71,7 +71,8 @@ export class Image extends Backbone.Model {
 
     constructor(id: string, backend: Backend) {
         super()
-        this.set({ id, backend, textureOn: true })
+        this.set({ id, textureOn: true })
+        this.backend = backend
         const meshChanged = () => this.trigger('newMeshAvailable')
         this.listenTo(this, 'change:geometry', meshChanged)
         this.listenTo(this, 'change:thumbnail', meshChanged)
@@ -81,6 +82,10 @@ export class Image extends Backbone.Model {
 
     get backend(): Backend {
         return this.get('backend')
+    }
+
+    set backend(backend: Backend) {
+        this.set('backend', backend)
     }
 
     hasTexture() {

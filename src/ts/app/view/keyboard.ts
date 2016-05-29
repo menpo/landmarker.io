@@ -25,7 +25,7 @@ const SHORTCUTS = {
     }, false, false],
 
     "a": [function (lms, app) { // a = select [a]ll
-        app.landmarks().selectAll()
+        app.landmarks.selectAll()
     }, false, true],
 
     "g": [function (lms) { // g = complete [g]roup selection
@@ -94,7 +94,7 @@ export default function KeyboardShortcutsHandler (app, viewport) {
             return null
         }
 
-        const lms = app.landmarks()
+        const lms = app.landmarks
 
         const [fn, acceptShift, needLms] = SHORTCUTS[key] || []
         if (
@@ -130,15 +130,15 @@ export default function KeyboardShortcutsHandler (app, viewport) {
                 return null
             }
 
-            lms = app.landmarks()
+            lms = app.landmarks
             if (lms) {
-                app.landmarks().deselectAll()
+                app.landmarks.deselectAll()
                 evt.stopPropagation()
                 return null
             }
         } else if (evt.which === 83 && (evt.metaKey || evt.ctrlKey)) {
             evt.preventDefault()
-            lms = app.landmarks()
+            lms = app.landmarks
             if (lms) {
                 lms.save()
             }

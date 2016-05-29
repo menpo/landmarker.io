@@ -51,6 +51,10 @@ export default class App extends Backbone.Model {
         return this.get('connectivityOn')
     }
 
+    get landmarks(): LandmarkGroup {
+        return this.get('landmarks')
+    }
+
     set isConnectivityOn(isConnectivityOn: boolean) {
         this.set('connectivityOn', isConnectivityOn)
     }
@@ -84,10 +88,10 @@ export default class App extends Backbone.Model {
     }
 
     toggleEditing() {
-        this.isEditingOn = !this.isEditingOn)
-        if (!this.isEditingOn && this.landmarks()) {
-            this.landmarks().deselectAll()
-            this.landmarks().resetNextAvailable()
+        this.isEditingOn = !this.isEditingOn
+        if (!this.isEditingOn && this.landmarks) {
+            this.landmarks.deselectAll()
+            this.landmarks.resetNextAvailable()
         }
     }
 
@@ -161,10 +165,6 @@ export default class App extends Backbone.Model {
         } else {
             return null
         }
-    }
-
-    landmarks = (): LandmarkGroup => {
-        return this.get('landmarks')
     }
 
     landmarkSize(): number {
@@ -296,7 +296,7 @@ export default class App extends Backbone.Model {
      }
 
     reloadLandmarks() {
-        if (this.landmarks() && this.asset()) {
+        if (this.landmarks && this.asset()) {
             this.autoSaveWrapper(() => {
                 this.set('landmarks', null)
                 this.loadLandmarksPromise().then((lms) => {
@@ -307,7 +307,7 @@ export default class App extends Backbone.Model {
      }
 
     autoSaveWrapper(fn) {
-        const lms = this.landmarks()
+        const lms = this.landmarks
         if (lms && !lms.tracker.isUpToDate) {
             if (!this.isAutoSaveOn) {
                 Modal.confirm('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn)
@@ -409,7 +409,7 @@ export default class App extends Backbone.Model {
      }
 
     reloadLandmarksFromPrevious() {
-        const lms = this.landmarks()
+        const lms = this.landmarks
         if (lms) {
             const as = this.assetSource
             if (this.assetSource.hasPredecessor()) {
