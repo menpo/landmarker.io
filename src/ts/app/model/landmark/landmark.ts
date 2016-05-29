@@ -37,7 +37,7 @@ export class Landmark extends Backbone.Model {
         return !this.has('point')
     }
 
-    isSelected = () => {
+    isSelected = (): boolean => {
         return this.get('selected')
     }
 
@@ -58,7 +58,7 @@ export class Landmark extends Backbone.Model {
         }
     }
 
-    isNextAvailable = () => {
+    isNextAvailable = (): boolean => {
         return this.get('nextAvailable')
     }
 

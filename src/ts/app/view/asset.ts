@@ -26,9 +26,9 @@ export const AssetPagerView = Backbone.View.extend({
 
     render: function () {
         this.$el.find('#next').toggleClass('Button--Disabled',
-            !this.model.assetSource().hasSuccessor())
+            !this.model.assetSource.hasSuccessor())
         this.$el.find('#previous').toggleClass('Button--Disabled',
-            !this.model.assetSource().hasPredecessor())
+            !this.model.assetSource.hasPredecessor())
         return this
     },
 
@@ -57,7 +57,7 @@ export const BackendNameView = Backbone.View.extend({
     },
 
     render: function () {
-        const backend = this.model.backend()
+        const backend = this.model.backend
 
         this.$el.find('.octicon-globe').remove()
         this.$el.show()
@@ -102,12 +102,12 @@ export const AssetNameView = Backbone.View.extend({
         this.$el.find('.content').html(
             truncate(this.model.asset().id, 64, true, true))
         this.$el.toggleClass(
-            'Disabled', this.model.assetSource().nAssets() <= 1)
+            'Disabled', this.model.assetSource.nAssets() <= 1)
         return this
     },
 
     chooseAssetName: function () {
-        const source = this.model.assetSource()
+        const source = this.model.assetSource
         const assetsList = source.assets().map(function (asset, index) {
             return [asset.id, index]
         })
@@ -142,11 +142,11 @@ export const AssetIndexView = Backbone.View.extend({
     },
 
     render: function () {
-        const nStr = pad(this.model.assetSource().nAssets(), 2)
-        const iStr = pad(this.model.assetIndex() + 1, 2)
+        const nStr = pad(this.model.assetSource.nAssets(), 2)
+        const iStr = pad(this.model.assetIndex + 1, 2)
         this.$el.find('.content').html(iStr + "/" + nStr)
         this.$el.toggleClass(
-            'Disabled', this.model.assetSource().nAssets() <= 1)
+            'Disabled', this.model.assetSource.nAssets() <= 1)
         return this
     },
 
@@ -154,7 +154,7 @@ export const AssetIndexView = Backbone.View.extend({
 
         if (
             !this.model.landmarks() ||
-            this.model.assetSource().nAssets() <= 1
+            this.model.assetSource.nAssets() <= 1
         ) {
             return null
         }
@@ -204,7 +204,7 @@ export const AssetIndexView = Backbone.View.extend({
 
         newIndex = Number(newIndex)
 
-        if (newIndex <= 0 || newIndex > this.model.assetSource().nAssets() ) {
+        if (newIndex <= 0 || newIndex > this.model.assetSource.nAssets() ) {
             this.$el.find('.content').html(this._oldHtml || '')
             return Notification.notify({
                 msg: 'Cannot select asset ' + newIndex + ' (out of bounds)',
@@ -212,7 +212,7 @@ export const AssetIndexView = Backbone.View.extend({
             })
         }
 
-        if (newIndex - 1 !== this.model.assetSource().assetIndex()) {
+        if (newIndex - 1 !== this.model.assetSource.assetIndex) {
             this.model.goToAssetIndex(Number(newIndex) - 1)
         } else {
             this.$el.find('.content').html(this._oldHtml || '')
@@ -233,9 +233,9 @@ export const CollectionName = Backbone.View.extend({
     },
 
     render: function () {
-        const backend = this.model.backend()
+        const backend = this.model.backend
         this.$el.find('.content').html(
-            `${this.model.activeCollection()} (${this.model.mode()})`)
+            `${this.model.activeCollection} (${this.model.mode()})`)
         this.$el.toggleClass(
             'Disabled',
             ( this.model.collections().length <= 1 &&
@@ -246,11 +246,11 @@ export const CollectionName = Backbone.View.extend({
 
     chooseCollection: function () {
 
-        const backend = this.model.backend()
+        const backend = this.model.backend
         if (backend && typeof backend.pickAssets === 'function') {
             backend.pickAssets((path) => {
                 this.model.set('mode', backend.mode)
-                this.model.set('activeCollection', path)
+                this.model.activeCollection = path
             }, function (err) {
                 Notification.notify({
                     type: 'error',
@@ -272,7 +272,7 @@ export const CollectionName = Backbone.View.extend({
                 useFilter: true,
                 disposeOnClose: true,
                 submit: (collection) => {
-                    this.model.set({'activeCollection': collection})
+                    this.model.activeCollection = collection
                 }
             })
             picker.open()

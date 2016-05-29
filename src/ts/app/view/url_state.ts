@@ -21,12 +21,12 @@ export default Backbone.View.extend({
             u.query.t = this.model.activeTemplate()
         }
 
-        if (this.model.activeCollection()) {
-            u.query.c = this.model.activeCollection()
+        if (this.model.activeCollection) {
+            u.query.c = this.model.activeCollection
         }
 
-        if (this.model.assetIndex() !== undefined) {
-            u.query.i = this.model.assetIndex() + 1
+        if (this.model.assetIndex !== undefined) {
+            u.query.i = this.model.assetIndex + 1
         }
 
         history.replaceState(null, null, url.format(u).replace('?', '#'))

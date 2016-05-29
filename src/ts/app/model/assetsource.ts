@@ -27,23 +27,23 @@ abstract class AssetSource extends Backbone.Model {
 
     abstract setAsset(asset: Asset.Image): void
 
-    backend(): Backend {
+    get backend(): Backend {
         return this.get('backend')
     }
 
     fetch() {
         return (
-            this.backend().fetchCollection(this.id).then((response) => {
+            this.backend.fetchCollection(this.id).then((response) => {
                 this.set('assets', this.parse(response).assets)
             })
         )
     }
 
-    asset() {
+    asset(): Asset.Image {
         return this.get('asset')
     }
 
-    assets() {
+    assets(): Backbone.Collection<Asset.Image> {
         return this.get('assets')
     }
 
@@ -52,25 +52,25 @@ abstract class AssetSource extends Backbone.Model {
         return asset ? asset.mesh() : undefined
     }
 
-    assetIsLoading() {
+    assetIsLoading(): boolean {
         return this.get('assetIsLoading')
     }
 
     nAssets() {
-        return this.get('assets').length
+        return this.assets().length
     }
 
     hasPredecessor() {
-        return this.assetIndex() !== 0
+        return this.assetIndex !== 0
     }
 
     hasSuccessor() {
-        return this.nAssets() - this.assetIndex() !== 1
+        return this.nAssets() - this.assetIndex !== 1
     }
 
     // returns the index of the currently active mesh
-    assetIndex() {
-        return this.assets().indexOf(this.get('asset'))
+    get assetIndex(): number {
+        return this.assets().indexOf(this.asset())
     }
 
 
@@ -78,14 +78,14 @@ abstract class AssetSource extends Backbone.Model {
         if (!this.hasSuccessor()) {
             return undefined
         }
-        return this.setAsset(this.assets()[this.assetIndex() + 1])
+        return this.setAsset(this.assets()[this.assetIndex + 1])
     }
 
     previous() {
         if (!this.hasPredecessor()) {
             return undefined
         }
-        return this.setAsset(this.assets()[this.assetIndex() - 1])
+        return this.setAsset(this.assets()[this.assetIndex - 1])
     }
 
     setIndex(newIndex: number) {
@@ -105,7 +105,7 @@ abstract class AssetSource extends Backbone.Model {
 export class MeshSource extends AssetSource {
 
     parse(response: string[]) {
-        const meshes = response.map(assetId => new Asset.Mesh(assetId, this.backend()))
+        const meshes = response.map(assetId => new Asset.Mesh(assetId, this.backend))
         return { assets: meshes }
     }
 
@@ -170,7 +170,7 @@ export class ImageSource extends AssetSource {
 
     parse(response) {
         const images = response.map((assetId) => {
-            return new Asset.Image(assetId, this.backend())
+            return new Asset.Image(assetId, this.backend)
         })
 
         return { assets: images }

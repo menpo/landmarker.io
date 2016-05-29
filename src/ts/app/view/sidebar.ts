@@ -317,7 +317,7 @@ export const LmLoadView = Backbone.View.extend({
     },
 
     render: function () {
-        const show = this.app.assetSource().hasPredecessor()
+        const show = this.app.assetSource.hasPredecessor()
         this.$el.toggleClass('Hide', !show)
         this.$el.find('button').toggleClass('Button-Danger',
                                             !this.model.isEmpty())

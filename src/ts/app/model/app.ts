@@ -71,7 +71,7 @@ export default class App extends Backbone.Model {
         this.set('editingOn', isEditingOn)
     }
 
-    isHelpOverlayOn() {
+    isHelpOverlayOn(): boolean {
         return this.get('helpOverlayIsDisplayed')
     }
 
@@ -95,7 +95,7 @@ export default class App extends Backbone.Model {
         this.set('helpOverlayIsDisplayed', !this.isHelpOverlayOn())
     }
 
-    mode() {
+    mode(): string {
         return this.get('mode')
     }
 
@@ -107,7 +107,7 @@ export default class App extends Backbone.Model {
         return this.get('mode') === 'mesh'
     }
 
-    backend(): Backend {
+    get backend(): Backend {
         return this.get('backend')
     }
 
@@ -123,21 +123,27 @@ export default class App extends Backbone.Model {
         return this.get('collections')
     }
 
-    activeCollection(): string {
+    get activeCollection(): string {
         return this.get('activeCollection')
     }
 
-    hasAssetSource() {
+    set activeCollection(activeCollection: string) {
+        this.set('activeCollection', activeCollection)
+    }
+
+    get hasAssetSource() {
         return this.has('assetSource')
     }
 
-    assetSource = (): AssetSource.ImageSource => {
+    get assetSource(): AssetSource.ImageSource {
         return this.get('assetSource')
     }
 
-    assetIndex() {
+    get assetIndex(): number {
         if (this.has('assetSource')) {
-            return this.assetSource().assetIndex()
+            return this.assetSource.assetIndex
+        } else {
+            return null
         }
     }
 
@@ -150,18 +156,18 @@ export default class App extends Backbone.Model {
 
     // returns the currently active THREE.Mesh.
     mesh = () => {
-        if (this.hasAssetSource()) {
-            return this.assetSource().mesh()
+        if (this.hasAssetSource) {
+            return this.assetSource.mesh()
         } else {
             return null
         }
     }
 
-    landmarks = () => {
+    landmarks = (): LandmarkGroup => {
         return this.get('landmarks')
     }
 
-    landmarkSize() {
+    landmarkSize(): number {
         return this.get('landmarkSize')
     }
 
@@ -170,16 +176,20 @@ export default class App extends Backbone.Model {
         this.onBudgeLandmarks(vector)
     }
 
+    get _activeTemplate(): string {
+        return this.get('_activeTemplate')
+    }
+
     _initTemplates(override=false) {
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.
-        this.backend().fetchTemplates().then((templates) => {
+        this.backend.fetchTemplates().then((templates) => {
             this.set('templates', templates)
             let selected = templates[0]
             if (!override && this.has('_activeTemplate')) {
                 // user has specified a preset! Use that if we can
                 // TODO should validate here if we can actually use template
-                const preset = this.get('_activeTemplate')
+                const preset = this._activeTemplate
                 if (templates.indexOf(preset) > -1) {
                     selected = preset
                 }
@@ -193,7 +203,7 @@ export default class App extends Backbone.Model {
     }
 
     _initCollections(override=false) {
-        this.backend().fetchCollections().then((collections) => {
+        this.backend.fetchCollections().then((collections) => {
             this.set('collections', collections)
             let selected = collections[0]
             if (!override && this.has('_activeCollection')) {
@@ -202,7 +212,7 @@ export default class App extends Backbone.Model {
                     selected = preset
                 }
             }
-            this.set('activeCollection', selected)
+            this.activeCollection = selected
         }, () => {
             throw new Error('Failed to talk backend for collections (is ' +
                             'landmarkerio running from your command line?).')
@@ -212,7 +222,7 @@ export default class App extends Backbone.Model {
     reloadAssetSource() {
         // needs to have an activeCollection to preceed. AssetSource should be
         // updated every time the active collection is updated.
-        if (!this.get('activeCollection')) {
+        if (!this.activeCollection) {
             // can only proceed with an activeCollection...
             console.log('App:reloadAssetSource with no activeCollection - doing nothing')
             return
@@ -222,7 +232,7 @@ export default class App extends Backbone.Model {
 
         let oldIndex: number
         if (this.has('asset') && this.has('assetSource')) {
-            const idx = this.assetSource().assetIndex(this.asset())
+            const idx = this.assetSource.assetIndex
             if (idx > -1) {
                 oldIndex = idx
             }
@@ -237,7 +247,7 @@ export default class App extends Backbone.Model {
         // asset source will ensure that the assets produced also get
         // attached to this backend.
         const ASC = this._assetSourceConstructor()
-        const assetSource = new ASC(this.backend(), this.activeCollection())
+        const assetSource = new ASC(this.backend, this.activeCollection)
         if (this.has('assetSource')) {
             this.stopListening(this.get('assetSource'))
         }
@@ -323,7 +333,7 @@ export default class App extends Backbone.Model {
     // Mirror the state of the asset source onto the app
     assetChanged = () => {
         console.log('App.assetChanged')
-        this.set('asset', this.assetSource().asset())
+        this.set('asset', this.assetSource.asset())
      }
 
     meshChanged() {
@@ -332,7 +342,7 @@ export default class App extends Backbone.Model {
      }
 
     loadLandmarksPromise() {
-        return this.backend().fetchLandmarkGroup(
+        return this.backend.fetchLandmarkGroup(
             this.asset().id,
             this.activeTemplate()
         ).then(json => {
@@ -340,7 +350,7 @@ export default class App extends Backbone.Model {
                 json,
                 this.asset().id,
                 this.activeTemplate(),
-                this.backend(),
+                this.backend,
                 this.landmarkGroupTrackerForAssetAndTemplate(this.asset().id, this.activeTemplate())
             )
         }, () => {
@@ -377,34 +387,34 @@ export default class App extends Backbone.Model {
      }
 
     nextAsset() {
-        if (this.assetSource().hasSuccessor()) {
+        if (this.assetSource.hasSuccessor()) {
             this.autoSaveWrapper(() => {
-                this._switchToAsset(this.assetSource().next())
+                this._switchToAsset(this.assetSource.next())
             })
         }
      }
 
     previousAsset() {
-        if (this.assetSource().hasPredecessor()) {
+        if (this.assetSource.hasPredecessor()) {
             this.autoSaveWrapper(() => {
-                this._switchToAsset(this.assetSource().previous())
+                this._switchToAsset(this.assetSource.previous())
             })
         }
      }
 
     goToAssetIndex(newIndex: number) {
         this.autoSaveWrapper(() => {
-            this._switchToAsset(this.assetSource().setIndex(newIndex))
+            this._switchToAsset(this.assetSource.setIndex(newIndex))
         })
      }
 
     reloadLandmarksFromPrevious() {
         const lms = this.landmarks()
         if (lms) {
-            const as = this.assetSource()
-            if (this.assetSource().hasPredecessor()) {
-                this.backend().fetchLandmarkGroup(
-                    as.assets()[as.assetIndex() - 1].id,
+            const as = this.assetSource
+            if (this.assetSource.hasPredecessor()) {
+                this.backend.fetchLandmarkGroup(
+                    as.assets()[as.assetIndex - 1].id,
                     this.activeTemplate()
                 ).then((json) => {
                     lms.tracker.recordState(lms.toJSON())
@@ -418,13 +428,13 @@ export default class App extends Backbone.Model {
      }
 
     incrementLandmarkSize() {
-        const size = this.get('landmarkSize')
+        const size = this.landmarkSize()
         const factor = Math.floor(size / 0.25) + 1
         this.set('landmarkSize', Math.min(0.25 * factor, 1))
      }
 
     decrementLandmarkSize() {
-        const size = this.get('landmarkSize')
+        const size = this.landmarkSize()
         const factor = Math.floor(size / 0.25) - 1
         this.set('landmarkSize', Math.max(0.25 * factor, 0.05))
     }
