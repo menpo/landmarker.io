@@ -55,13 +55,13 @@ const SHORTCUTS = {
     }, false, false],
 
     "z": [function (lms) { // z = undo
-        if (lms && lms.tracker.canUndo()) {
+        if (lms && lms.tracker.canUndo) {
             lms.undo()
         }
     }, false, true],
 
     "y": [function (lms) { // y = redo
-        if (lms && lms.tracker.canRedo()) {
+        if (lms && lms.tracker.canRedo) {
             lms.redo()
         }
     }, false, true],

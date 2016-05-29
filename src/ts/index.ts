@@ -264,7 +264,8 @@ function initLandmarker(server, mode, u) {
 
     // ----- KEYBOARD HANDLER ----- //
     $(window).off('keydown')
-    (new KeyboardShortcutsHandler(app, viewport)).enable()
+    const keyboard  = new KeyboardShortcutsHandler(app, viewport)
+    keyboard.enable()
 }
 
 function handleNewVersion () {

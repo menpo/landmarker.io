@@ -227,7 +227,7 @@ export const ActionsView = Backbone.View.extend({
 
     render: function () {
         this.$el.find('#save')
-                .toggleClass('Active', !this.model.tracker.isUpToDate())
+                .toggleClass('Active', !this.model.tracker.isUpToDate)
     },
 
     save: function (evt) {
@@ -282,12 +282,12 @@ export const UndoRedoView = Backbone.View.extend({
     },
 
     render: function () {
-        this.$el.find('.Undo').toggleClass('Disabled', !this.tracker.canUndo())
-        this.$el.find('.Redo').toggleClass('Disabled', !this.tracker.canRedo())
+        this.$el.find('.Undo').toggleClass('Disabled', !this.tracker.canUndo)
+        this.$el.find('.Redo').toggleClass('Disabled', !this.tracker.canRedo)
     },
 
     undo: function () {
-        if (!this.tracker.canUndo()) {
+        if (!this.tracker.canUndo) {
             return
         } else {
             this.model.undo()
@@ -295,7 +295,7 @@ export const UndoRedoView = Backbone.View.extend({
     },
 
     redo: function () {
-        if (!this.tracker.canRedo()) {
+        if (!this.tracker.canRedo) {
             return
         } else {
             this.model.redo()

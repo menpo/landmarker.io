@@ -286,7 +286,7 @@ export default class App extends Backbone.Model {
 
     autoSaveWrapper(fn) {
         const lms = this.landmarks()
-        if (lms && !lms.tracker.isUpToDate()) {
+        if (lms && !lms.tracker.isUpToDate) {
             if (!this.isAutoSaveOn) {
                 Modal.confirm('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn)
             } else {
