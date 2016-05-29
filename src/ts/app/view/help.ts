@@ -1,5 +1,3 @@
-'use strict'
-
 import * as Backbone from 'backbone'
 import * as $ from 'jquery'
 

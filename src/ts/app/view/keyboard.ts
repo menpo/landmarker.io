@@ -1,5 +1,3 @@
-'use strict'
-
 import * as $ from 'jquery'
 
 import Modal from './modal'

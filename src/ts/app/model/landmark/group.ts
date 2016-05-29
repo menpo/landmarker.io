@@ -1,5 +1,3 @@
-'use strict'
-
 import * as THREE from 'three'
 import { notify } from '../../view/notification'
 import Tracker from '../../lib/tracker'

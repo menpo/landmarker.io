@@ -1,5 +1,3 @@
-'use strict'
-
 // include all our style information
 require('../scss/main.scss')
 

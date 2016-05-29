@@ -1,5 +1,3 @@
-'use strict'
-
 import * as url from 'url'
 import * as Backbone from 'backbone'
 

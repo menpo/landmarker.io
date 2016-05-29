@@ -3,8 +3,6 @@
  * Requires localstorage to work properly (throws Error otherwise),
  * serialisation is simple JSON
  */
-'use strict'
-
 import * as _ from 'underscore'
 
 import * as support from '../lib/support'

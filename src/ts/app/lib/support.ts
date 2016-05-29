@@ -1,5 +1,3 @@
-'use strict'
-
 export const ie = (function () {
     return /MSIE (\d+\.\d+);/.test(navigator.userAgent) ||
         !!navigator.userAgent.match(/Trident.*rv[ :]*11\./)

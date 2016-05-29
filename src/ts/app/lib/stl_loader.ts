@@ -5,9 +5,6 @@
  *
  * Only keeps the parsing part, no Loader class
  */
-
-'use strict'
-
 import * as THREE from 'three'
 
 export default function parse (data) {
