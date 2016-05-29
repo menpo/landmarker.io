@@ -127,7 +127,7 @@ export class LandmarkGroup extends LandmarkCollection {
         points.forEach((p, i) => {
             const [v] = _pointToVector(p)
             if (v) {
-                this.landmarks[i].setPoint(v)
+                this.landmarks[i].point = v
             }
         })
 
@@ -188,7 +188,7 @@ export class LandmarkGroup extends LandmarkCollection {
     deleteSelected = atomic.atomicOperation(() => {
         const ops: LGTrackerOperation = []
         this.selected().forEach(function (lm) {
-            ops.push([lm.index(), lm.point().clone(), undefined])
+            ops.push([lm.index, lm.point.clone(), undefined])
             lm.clear()
         })
         // reactivate the group to reset next available.
@@ -213,8 +213,8 @@ export class LandmarkGroup extends LandmarkCollection {
             return
         }
         this.tracker.record([
-            [lm.index(),
-            lm.point() ? lm.point().clone() : undefined,
+            [lm.index,
+            lm.point ? lm.point.clone() : undefined,
             v.clone() ]
         ])
 
@@ -254,7 +254,7 @@ export class LandmarkGroup extends LandmarkCollection {
                 if (!start) {
                     this.landmarks[index].clear()
                 } else {
-                    this.landmarks[index].setPoint(start.clone())
+                    this.landmarks[index].point = start.clone()
                 }
             })
             this.resetNextAvailable()
@@ -269,7 +269,7 @@ export class LandmarkGroup extends LandmarkCollection {
                 if (!end) {
                     this.landmarks[index].clear()
                 } else {
-                    this.landmarks[index].setPoint(end.clone())
+                    this.landmarks[index].point = end.clone()
                 }
             })
             this.resetNextAvailable()

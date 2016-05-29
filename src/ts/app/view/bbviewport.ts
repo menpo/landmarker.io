@@ -3,9 +3,9 @@ import { Landmark as BBLandmark } from '../model/landmark'
 import App from '../model/app'
 
 const landmarkForBBLandmark = (bbLm: BBLandmark) => ({
-    point: bbLm.point(),
+    point: bbLm.point,
     isSelected: bbLm.isSelected(),
-    index: bbLm.index()
+    index: bbLm.index
 })
 
 // A wrapper around the standalone viewport that hooks it into the legacy
@@ -33,7 +33,7 @@ export class BackboneViewport {
             },
             selectLandmarkAndDeselectRest: i => this.model.landmarks().landmarks[i].selectAndDeselectRest(),
             setLandmarkPoint: (i, point) => this.model.landmarks().setLmAt(this.model.landmarks().landmarks[i], point),
-            setLandmarkPointWithHistory: (i, point) => this.model.landmarks().landmarks[i].setPoint(point),
+            setLandmarkPointWithHistory: (i, point) => this.model.landmarks().landmarks[i].point = point,
             addLandmarkHistory: points => this.model.landmarks().tracker.record(points),
             insertNewLandmark: point => this.model.landmarks().insertNew(point),
         }
@@ -68,7 +68,7 @@ export class BackboneViewport {
                                                       landmarks.connectivity)
 
             // TODO will this be collected properly?
-            landmarks.landmarks.forEach((lm: BBLandmark) => lm.on('change', () => this.updateLandmark(lm.index())))
+            landmarks.landmarks.forEach((lm: BBLandmark) => lm.on('change', () => this.updateLandmark(lm.index))
         }
 
     }

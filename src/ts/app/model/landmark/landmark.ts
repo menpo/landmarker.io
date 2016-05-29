@@ -12,23 +12,25 @@ type JSONLandmark = [number, number, number] | [number, number]
 export class Landmark extends Backbone.Model {
 
     nDims: number
+    index: number
 
     constructor (group: LandmarkGroup, index: number, nDims: number, point: THREE.Vector3) {
         super(DEFAULTS)
-        this.set({ group, index, point })
+        this.set({ group, point })
         this.nDims = nDims
+        this.index = index
     }
 
-    point = () : THREE.Vector3 => {
+    get group() : LandmarkGroup {
+        return this.get('group')
+    }
+
+    get point(): THREE.Vector3 {
         return this.get('point')
     }
 
-    index = () => {
-        return this.get('index')
-    }
-
-    setPoint = (p: THREE.Vector3) => {
-        this.set('point', p)
+    set point(point: THREE.Vector3) {
+        this.set('point', point)
     }
 
     isEmpty = (): boolean => {
@@ -46,7 +48,7 @@ export class Landmark extends Backbone.Model {
     }
 
     selectAndDeselectRest = () => {
-        this.group().deselectAll()
+        this.group.deselectAll()
         this.select()
     }
 
@@ -61,7 +63,7 @@ export class Landmark extends Backbone.Model {
     }
 
     setNextAvailable = () : void => {
-        this.group().clearAllNextAvailable()
+        this.group.clearAllNextAvailable()
         this.set('nextAvailable', true)
     }
 
@@ -75,14 +77,10 @@ export class Landmark extends Backbone.Model {
         this.set({ point: null, selected: false })
     }
 
-    group = () : LandmarkGroup => {
-        return this.get('group')
-    }
-
     toJSON(): JSONLandmark {
         let pointJSON: JSONLandmark
         if (!this.isEmpty()) {
-            const point = this.point()
+            const point = this.point
             if (this.nDims === 2) {
                 pointJSON = [point.x, point.y]
             } else {

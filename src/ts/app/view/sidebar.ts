@@ -72,12 +72,12 @@ export const LandmarkView = Backbone.View.extend({
     }),
 
     selectGroup: function () {
-        this.model.group().deselectAll()
-        this.model.group().labels[this.labelIndex].selectAll()
+        this.model.group.deselectAll()
+        this.model.group.labels[this.labelIndex].selectAll()
     },
 
     selectAll: function () {
-        this.model.group().selectAll()
+        this.model.group.selectAll()
     }
 })
 
