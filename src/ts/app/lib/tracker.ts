@@ -25,12 +25,21 @@ import { EventsClass } from './backboneshim'
  * listening.
  *
  */
-export default class Tracker extends EventsClass {
-    _operations = []
-    _states = []
-    _futureOperations = []
-    _futureStates = []
-    _lastSavedState = undefined
+
+type Operation<T> = {
+    rev: number,
+    data: T
+}
+
+type Callback<T> = (state: T, rev: number) => void
+
+
+export default class Tracker<S, O> extends EventsClass {
+    _operations: Operation<O>[] = []
+    _states: Operation<S>[] = []
+    _futureOperations: Operation<O>[] = []
+    _futureStates: Operation<S>[] = []
+    _lastSavedState: number = undefined
 
     _lastRev = 0
 
@@ -69,7 +78,6 @@ export default class Tracker extends EventsClass {
         } else { // We may be in a restoring process (not at the last checkpoint)
             return stateOk
         }
-        this.on()
     }
 
 
@@ -86,7 +94,7 @@ export default class Tracker extends EventsClass {
      * @param {object} data - Any kind of data
      * @fires Tracker#change
      */
-    record(data) {
+    record(data: O) {
         const rev = this.rev()
 
         this._operations.push({rev, data})
@@ -117,10 +125,10 @@ export default class Tracker extends EventsClass {
      *
      * @param  {object} data
      */
-    recordState(data, saved=false, override=false) {
+    recordState(data: S, saved=false, override=false) {
         const state = _.last(this._states),
             op = _.last(this._operations)
-        let rev
+        let rev: number
 
         if (!op && state && _.isEqual(data, state.data)) {
             // No op and we have the same data than before, don't fill twice
@@ -163,7 +171,7 @@ export default class Tracker extends EventsClass {
      * @fires Tracker#noop
      * @return {Boolean} - If there was any change in the data structure
      */
-    undo(process, restore) {
+    undo(process: Callback<O>, restore: Callback<S>) {
         const state = _.last(this._states),
             op = _.last(this._operations)
 
@@ -217,7 +225,7 @@ export default class Tracker extends EventsClass {
      * @fires Tracker#noop
      * @return {Boolean} - If there was any change in the data structure
      */
-    redo(process, restore) {
+    redo(process: Callback<O>, restore: Callback<S>) {
         const state = _.last(this._futureStates),
             op = _.last(this._futureOperations)
 

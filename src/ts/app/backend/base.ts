@@ -1,3 +1,5 @@
+import { LJSONFile } from '../model/landmark'
+
 export interface Backend {
 
     /**
@@ -74,7 +76,7 @@ export interface Backend {
      * @return {Promise}
      * @resolve {Object} [Parsed JSON]
      */
-    fetchLandmarkGroup(assetId: string, group:string): Promise<Object>
+    fetchLandmarkGroup(assetId: string, group:string): Promise<LJSONFile>
 
     /**
      * Saves the json data remotely for landmarks for an asset/template combination,

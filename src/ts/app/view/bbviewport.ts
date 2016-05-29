@@ -13,7 +13,7 @@ const landmarkForBBLandmark = (bbLm: BBLandmark) => ({
 
 export class BackboneViewport {
 
-    model: any
+    model: App
     viewport: IViewport
 
     constructor(element: HTMLElement, app: App) {
@@ -78,7 +78,7 @@ export class BackboneViewport {
     }
 
     updateEditingDisplay = () => {
-        this.viewport.snapModeEnabled = this.model.isEditingOn()
+        this.viewport.snapModeEnabled = this.model.isEditingOn
     }
 
     updateConnectivityDisplay = () => {

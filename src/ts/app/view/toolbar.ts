@@ -115,7 +115,7 @@ export const EditingToggle = Backbone.View.extend({
     },
 
     render: function () {
-        this.$toggle.checked = this.model.isEditingOn()
+        this.$toggle.checked = this.model.isEditingOn
         return this
     },
 

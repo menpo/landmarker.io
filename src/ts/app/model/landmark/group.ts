@@ -15,7 +15,7 @@ type LabelAndMask = {
 
 type JSONPoint = [number, number, number] | [number, number]
 
-type LJSON = {
+interface LJSON {
     landmarks: {
         points: JSONPoint[]
         connectivity: [number, number][]
@@ -25,6 +25,21 @@ type LJSON = {
         mask: number[]
     }[]
 }
+
+export interface LJSONFile extends LJSON {
+    version: number
+}
+
+type LGTrackerOperation = [
+    number,         // Index
+    THREE.Vector3,  // Point before
+    THREE.Vector3   // Point After
+][]
+
+export type LandmarkGroupTracker = Tracker<LJSON, LGTrackerOperation>
+
+// factory function to produce a tracker for use with Landmark Groups.
+export const landmarkGroupTrackerFactory = () => new Tracker<LJSON, LGTrackerOperation>()
 
 function _validateConnectivity (nLandmarks: number,
                                 connectivity: [number, number][]): [number, number][] {
@@ -59,12 +74,12 @@ export class LandmarkGroup extends LandmarkCollection {
     id: string
     type: string
     server: Backend
-    tracker: Tracker
+    tracker: LandmarkGroupTracker
     labels: LandmarkLabel[]
 
     constructor(points: JSONPoint[], connectivity: [number, number][],
                 labels: LabelAndMask[], id: string, type: string,
-                server: Backend, tracker: Tracker) {
+                server: Backend, tracker: LandmarkGroupTracker) {
 
         // 1. Build landmarks from points
         super(points.map((p, index) => {
@@ -75,7 +90,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.id = id
         this.type = type
         this.server = server
-        this.tracker = tracker || new Tracker()
+        this.tracker = tracker || landmarkGroupTrackerFactory()
 
         // 2. Validate and assign connectivity (if there is any, it's not mandatory)
         this.connectivity = _validateConnectivity(this.landmarks.length,
@@ -91,7 +106,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.tracker.recordState(this.toJSON(), true)
     }
 
-    static parse(json: LJSON, id: string, type: string, server: Backend, tracker: Tracker) {
+    static parse(json: LJSONFile, id: string, type: string, server: Backend, tracker: LandmarkGroupTracker) {
         return new LandmarkGroup(
             json.landmarks.points,
             json.landmarks.connectivity,
@@ -105,7 +120,7 @@ export class LandmarkGroup extends LandmarkCollection {
 
     // Restore landmarks from json saved, should be of the same template so
     // no hard checking ot resetting the labels
-    restore = atomic.atomicOperation(({ landmarks, labels }: LJSON) => {
+    restore = atomic.atomicOperation(({ landmarks, labels }: LJSON): void => {
         const {points, connectivity} = landmarks
 
         this.landmarks.forEach(lm => lm.clear())
@@ -117,12 +132,10 @@ export class LandmarkGroup extends LandmarkCollection {
         })
 
         this.connectivity = _validateConnectivity(this.landmarks.length,
-                                                connectivity)
+                                                  connectivity)
 
         delete this.labels
-        this.labels = labels.map(label => {
-            return new LandmarkLabel(label.label, this.landmarks, label.mask)
-        })
+        this.labels = labels.map(label => new LandmarkLabel(label.label, this.landmarks, label.mask))
 
         this.resetNextAvailable()
     })
@@ -173,7 +186,7 @@ export class LandmarkGroup extends LandmarkCollection {
     }
 
     deleteSelected = atomic.atomicOperation(() => {
-        const ops = []
+        const ops: LGTrackerOperation = []
         this.selected().forEach(function (lm) {
             ops.push([lm.index(), lm.point().clone(), undefined])
             lm.clear()
@@ -213,7 +226,7 @@ export class LandmarkGroup extends LandmarkCollection {
         })
     }
 
-    toJSON = () => {
+    toJSON = (): LJSONFile => {
         return {
             landmarks: {
                 points: this.landmarks.map(lm => lm.toJSON()),
@@ -245,13 +258,13 @@ export class LandmarkGroup extends LandmarkCollection {
                 }
             })
             this.resetNextAvailable()
-        }, (json) => {
+        }, json => {
             this.restore(json)
         })
     }
 
     redo = () => {
-        this.tracker.redo((ops) => {
+        this.tracker.redo(ops => {
             ops.forEach(([index, , end]) => {
                 if (!end) {
                     this.landmarks[index].clear()

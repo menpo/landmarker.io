@@ -1,2 +1,2 @@
 export { Landmark } from './landmark'
-export { LandmarkGroup } from './group'
+export { LandmarkGroup, LJSONFile, LandmarkGroupTracker, landmarkGroupTrackerFactory } from './group'

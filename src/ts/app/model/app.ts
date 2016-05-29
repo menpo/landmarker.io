@@ -2,7 +2,8 @@ import * as $ from 'jquery'
 import * as Backbone from 'backbone'
 import Tracker from '../lib/tracker'
 import * as AssetSource from './assetsource'
-import { LandmarkGroup } from './landmark'
+import * as Asset from './asset'
+import { LandmarkGroup, LandmarkGroupTracker, landmarkGroupTrackerFactory } from './landmark'
 import Modal from '../view/modal'
 import { Backend } from '../backend'
 
@@ -12,7 +13,18 @@ type AppOptions = {
     _assetIndex?: number
 }
 
+type LandmarkGroupTrackers = {
+    [assetId: string]: {
+        [template: string]: LandmarkGroupTracker
+    }
+}
+
 export default class App extends Backbone.Model {
+
+    // We store a tracker per landmark group that we use in the app.
+    // This is so we are able to undo/redo even after moving away from
+    // and coming back to an asset.
+    landmarkGroupTrackers: LandmarkGroupTrackers = {}
 
     constructor(opts: AppOptions) {
         super({
@@ -23,8 +35,7 @@ export default class App extends Backbone.Model {
             autoSaveOn: false,
             activeTemplate: undefined,
             activeCollection: undefined,
-            helpOverlayIsDisplayed: false,
-            tracker: {}
+            helpOverlayIsDisplayed: false
         })
         this.set(opts)
 
@@ -52,90 +63,90 @@ export default class App extends Backbone.Model {
         this.set('autoSaveOn', isAutoSaveOn)
     }
 
+    get isEditingOn() {
+        return this.get('editingOn')
+    }
+
+    set isEditingOn(isEditingOn: boolean) {
+        this.set('editingOn', isEditingOn)
+    }
+
+    isHelpOverlayOn() {
+        return this.get('helpOverlayIsDisplayed')
+    }
+
     toggleAutoSave(): void {
         this.isAutoSaveOn = !this.isAutoSaveOn
     }
 
     toggleConnectivity() {
         this.isConnectivityOn = !this.isConnectivityOn
-     }
-
-    isEditingOn() {
-        return this.get('editingOn')
-     }
+    }
 
     toggleEditing() {
-        this.set('editingOn', !this.isEditingOn())
-        if (!this.isEditingOn() && this.landmarks()) {
+        this.isEditingOn = !this.isEditingOn)
+        if (!this.isEditingOn && this.landmarks()) {
             this.landmarks().deselectAll()
             this.landmarks().resetNextAvailable()
         }
-     }
-
-    isHelpOverlayOn() {
-        return this.get('helpOverlayIsDisplayed')
-     }
+    }
 
     toggleHelpOverlay() {
         this.set('helpOverlayIsDisplayed', !this.isHelpOverlayOn())
-     }
+    }
 
     mode() {
         return this.get('mode')
-     }
+    }
 
     imageMode() {
         return this.get('mode') === 'image'
-     }
+    }
 
     meshMode() {
         return this.get('mode') === 'mesh'
-     }
+    }
 
     server(): Backend {
         return this.get('server')
-     }
+    }
 
-    templates() {
+    templates(): string[] {
         return this.get('templates')
-     }
+    }
 
-    activeTemplate() {
+    activeTemplate(): string {
         return this.get('activeTemplate')
-     }
+    }
 
-    collections() {
+    collections(): string[] {
         return this.get('collections')
-     }
+    }
 
-    activeCollection() {
+    activeCollection(): string {
         return this.get('activeCollection')
-     }
-
-    tracker() {
-        return this.get('tracker')
     }
 
     hasAssetSource() {
         return this.has('assetSource')
-     }
+    }
 
-    assetSource = () => {
+    assetSource = (): AssetSource.ImageSource => {
         return this.get('assetSource')
-     }
+    }
 
     assetIndex() {
         if (this.has('assetSource')) {
-            return this.get('assetSource').assetIndex()
+            return this.assetSource().assetIndex()
         }
-     }
+    }
 
     // returns the currently active Asset (Image or Asset).
     // changes independently of mesh() - care should be taken as to which one
     // other objects should listen to.
-    asset() {
+    asset(): Asset.Image {
         return this.get('asset')
-     }
+    }
 
     // returns the currently active THREE.Mesh.
     mesh = () => {
@@ -144,20 +155,20 @@ export default class App extends Backbone.Model {
         } else {
             return null
         }
-     }
+    }
 
     landmarks = () => {
         return this.get('landmarks')
-     }
+    }
 
     landmarkSize() {
         return this.get('landmarkSize')
-     }
+    }
 
     budgeLandmarks(vector:  [number, number]) {
         // call our onBudgeLandmarks callback
         this.onBudgeLandmarks(vector)
-     }
+    }
 
     _initTemplates(override=false) {
         // firstly, we need to find out what template we will use.
@@ -178,7 +189,7 @@ export default class App extends Backbone.Model {
             throw new Error('Failed to talk server for templates (is ' +
                             'landmarkerio running from your command line?).')
         })
-     }
+    }
 
     _initCollections(override=false) {
         this.server().fetchCollections().then((collections) => {
@@ -195,7 +206,7 @@ export default class App extends Backbone.Model {
             throw new Error('Failed to talk server for collections (is ' +
                             'landmarkerio running from your command line?).')
         })
-     }
+    }
 
     reloadAssetSource() {
         // needs to have an activeCollection to preceed. AssetSource should be
@@ -258,19 +269,19 @@ export default class App extends Backbone.Model {
             throw new Error('Failed to fetch assets (is landmarkerio' +
                             'running from your command line?).')
         })
-     }
+    }
 
-    getTracker(assetId: string, template: string) {
-        const tracker = this.tracker()
-        if (!tracker[assetId]) {
-            tracker[assetId] = {}
+    landmarkGroupTrackerForAssetAndTemplate(assetId: string, template: string): LandmarkGroupTracker {
+        const trackers = this.landmarkGroupTrackers
+        if (!trackers[assetId]) {
+            trackers[assetId] = {}
         }
 
-        if (!tracker[assetId][template]) {
-            tracker[assetId][template] = new Tracker()
+        if (!trackers[assetId][template]) {
+            trackers[assetId][template] = landmarkGroupTrackerFactory()
         }
 
-        return tracker[assetId][template]
+        return trackers[assetId][template]
      }
 
     reloadLandmarks() {
@@ -303,8 +314,8 @@ export default class App extends Backbone.Model {
         } else if (this.meshMode()) {
             return AssetSource.MeshSource
         } else {
-            console.error('WARNING - illegal mode setting on app! Must be' +
-                ' mesh or image')
+            throw Error('Error - illegal mode setting on app! Must be' +
+                        ' mesh or image')
         }
      }
 
@@ -323,13 +334,13 @@ export default class App extends Backbone.Model {
         return this.server().fetchLandmarkGroup(
             this.asset().id,
             this.activeTemplate()
-        ).then((json) => {
+        ).then(json => {
             return LandmarkGroup.parse(
                 json,
                 this.asset().id,
                 this.activeTemplate(),
                 this.server(),
-                this.getTracker(this.asset().id, this.activeTemplate())
+                this.landmarkGroupTrackerForAssetAndTemplate(this.asset().id, this.activeTemplate())
             )
         }, () => {
             console.log('Error in fetching landmark JSON file')

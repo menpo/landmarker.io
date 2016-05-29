@@ -43,7 +43,7 @@ export function ImagePromise (url: string, auth=false) {
     })
 }
 
-export function TexturePromise (url: string, auth) {
+export function TexturePromise (url: string, auth: boolean) {
     const texture = new THREE.Texture(undefined)
     texture.sourceFile = url
     // in general our textures will not be powers of two size, so we need
@@ -57,7 +57,7 @@ export function TexturePromise (url: string, auth) {
     })
 }
 
-export function MaterialPromise (url: string, auth) {
+export function MaterialPromise (url: string, auth: boolean) {
     return TexturePromise(url, auth).then((texture) => new THREE.MeshBasicMaterial({map: texture}))
 }
 
