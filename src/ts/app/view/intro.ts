@@ -4,8 +4,8 @@ import Modal from './modal'
 import { Dropbox, Server } from '../backend/server'
 import { baseUrl, restart } from '../lib/utils'
 
-import * as support from '../lib/support';
-import { version } from '../../../../package.json';
+import * as support from '../lib/support'
+import { version } from '../../../../package.json'
 
 
 const contents = `\
@@ -29,18 +29,18 @@ const contents = `\
         More info on Github\
     </a>\
 </div>\
-`;
+`
 
 const lsWarning = `\
 <p class='IntroWarning'>\
     Your browser doesn't support LocalStorage, so Dropbox login has been\
     disabled.\
-</p>`;
+</p>`
 
 const httpsWarning = `\
 <p class='IntroWarning'>\
     You are currently on an non-https connection. For security reasons Dropbox integration has been disabled.
-</p>`;
+</p>`
 
 const Intro = Modal.extend({
 
@@ -54,61 +54,61 @@ const Intro = Modal.extend({
     },
 
     init: function ({cfg}) {
-        this._cfg = cfg;
+        this._cfg = cfg
     },
 
     content: function () {
-        const $contents = $(contents);
+        const $contents = $(contents)
 
         if (!support.localstorage) {
-            $contents.find('.IntroItem--Dropbox').remove();
-            $contents.find('.IntroItems').append($(lsWarning));
+            $contents.find('.IntroItem--Dropbox').remove()
+            $contents.find('.IntroItems').append($(lsWarning))
         }
 
         if (
             !support.https &&
             window.location.origin !== "http://localhost:4000"
         ) {
-            $contents.find('.IntroItem--Dropbox').remove();
-            $contents.find('.IntroItems').append($(httpsWarning));
+            $contents.find('.IntroItem--Dropbox').remove()
+            $contents.find('.IntroItems').append($(httpsWarning))
         }
 
-        return $contents;
+        return $contents
     },
 
     startDropbox: function () {
-        this._cfg.clear();
-        const [dropUrl, state] = Dropbox.authorize();
+        this._cfg.clear()
+        const [dropUrl, state] = Dropbox.authorize()
         this._cfg.set({
             'OAUTH_STATE': state,
             'BACKEND_TYPE': Dropbox.Type
-        }, true);
-        window.location.replace(dropUrl);
+        }, true)
+        window.location.replace(dropUrl)
     },
 
     startDemo: function () {
-        restart('demo');
+        restart('demo')
     },
 
     startServer: function () {
         Modal.prompt('Where is your server located ?', (value) => {
-            restart(value);
+            restart(value)
         }, () => {
-            this.open();
-        });
+            this.open()
+        })
     }
-});
+})
 
-let instance;
+let instance
 export default {
-    init: function (opts) { instance = new Intro(opts); },
+    init: function (opts) { instance = new Intro(opts) },
 
     open: function () {
-        instance._cfg.clear();
-        history.replaceState(null, null, baseUrl());
-        instance.open();
+        instance._cfg.clear()
+        history.replaceState(null, null, baseUrl())
+        instance.open()
     },
 
-    close: function () { instance.close(); },
-    initialized: function () { return !!instance; }
-};
+    close: function () { instance.close() },
+    initialized: function () { return !!instance }
+}

@@ -1,18 +1,18 @@
-'use strict';
+'use strict'
 
-import * as Backbone from 'backbone';
-import * as _ from 'underscore';
-import * as $ from 'jquery';
+import * as Backbone from 'backbone'
+import * as _ from 'underscore'
+import * as $ from 'jquery'
 
-const _modals = {};
-let _activeModal;
+const _modals = {}
+let _activeModal
 
 /**
  * Generate a pseudo-random key
  * @return {Number}
  */
 function _key () {
-    return (new Date()).getTime() + Math.floor(Math.random()) * 1000;
+    return (new Date()).getTime() + Math.floor(Math.random()) * 1000
 }
 
 /**
@@ -39,101 +39,101 @@ export const Modal = Backbone.View.extend({
     className: 'ModalWindow',
 
     initialize: function (opts={}) {
-        this.key = _key();
-        _modals[this.key] = this;
+        this.key = _key()
+        _modals[this.key] = this
 
-        this.id = `modalWindow:${this.key}`;
-        this.isOpen = false;
-        this.closable = !!opts.closable;
-        this.disposeOnClose = !!opts.disposeOnClose;
+        this.id = `modalWindow:${this.key}`
+        this.isOpen = false
+        this.closable = !!opts.closable
+        this.disposeOnClose = !!opts.disposeOnClose
 
         if (opts.title) {
-            this.title = opts.title;
+            this.title = opts.title
         }
 
-        this.init(opts);
+        this.init(opts)
 
         _.bindAll(
             this,
             'render', 'dispose', 'close', 'open', '_close', 'isActive',
             'content', 'init', 'afterRender'
-        );
+        )
 
-        this.render();
-        this.afterRender();
+        this.render()
+        this.afterRender()
     },
 
     render: function () {
-        this.$el.addClass(this.className);
+        this.$el.addClass(this.className)
 
         if (Array.isArray(this.modifiers)) {
             this.modifiers.forEach((mod) => {
-                this.$el.addClass(this.className + '--' + mod);
-            });
+                this.$el.addClass(this.className + '--' + mod)
+            })
         }
-        this.$el.attr('id', this.id);
+        this.$el.attr('id', this.id)
 
         if (this.closable) {
             this.$el.append(
-                $("<div class='ModalWindow__Close'>&times;</div>")
-            );
-            this.$el.find('.ModalWindow__Close').on('click', this.close);
+                $("<div class='ModalWindow__Close'>&times</div>")
+            )
+            this.$el.find('.ModalWindow__Close').on('click', this.close)
         }
 
         if (this.title) {
             this.$el.append(
                 $(`<div class=${this.className}__Title>${this.title}</div>`)
-            );
+            )
         }
 
-        const $content = this.content();
-        $content.addClass(`${this.className}__Content`);
+        const $content = this.content()
+        $content.addClass(`${this.className}__Content`)
         if ($content) {
-            this.$el.append($content);
+            this.$el.append($content)
         }
 
-        this.$el.appendTo(this.container);
+        this.$el.appendTo(this.container)
     },
 
     open: function () {
-        this.isOpen = true;
+        this.isOpen = true
         if (_activeModal) {
-            _modals[_activeModal].close();
+            _modals[_activeModal].close()
         }
-        $(this.container).addClass('ModalsWrapper--Open');
-        this.$el.addClass(`${this.className}--Open`);
-        _activeModal = this.key;
+        $(this.container).addClass('ModalsWrapper--Open')
+        this.$el.addClass(`${this.className}--Open`)
+        _activeModal = this.key
 
         if (this._onOpen) {
-            this._onOpen();
+            this._onOpen()
         }
     },
 
     _close: function () {
         if (this.isOpen) {
-            this.isOpen = false;
-            _activeModal = undefined;
-            this.$el.removeClass(`${this.className}--Open`);
-            $(this.container).removeClass('ModalsWrapper--Open');
+            this.isOpen = false
+            _activeModal = undefined
+            this.$el.removeClass(`${this.className}--Open`)
+            $(this.container).removeClass('ModalsWrapper--Open')
 
             if (this._onClose) {
-                this._onClose();
+                this._onClose()
             }
         }
     },
 
     close: function () {
-        (this.disposeOnClose ? this.dispose : this._close)();
+        (this.disposeOnClose ? this.dispose : this._close)()
     },
 
     dispose: function () {
-        this._close();
-        delete _modals[this];
-        this.remove();
+        this._close()
+        delete _modals[this]
+        this.remove()
     },
 
     isActive: function () {
-        return this.key === _activeModal;
+        return this.key === _activeModal
     },
 
     // Implement these method as well as events in your subclass
@@ -142,7 +142,7 @@ export const Modal = Backbone.View.extend({
     // Generate the jQuey object to be appended as body of the modal
     content: function () {
         throw new Error(
-            'Not implemented, add a content function to your implementation');
+            'Not implemented, add a content function to your implementation')
     },
 
     // Is called before render and passed the object received by initialize
@@ -150,12 +150,12 @@ export const Modal = Backbone.View.extend({
 
     // Called after render with no arguments
     afterRender: function () {}
-});
+})
 
 // Return a handle to the active modal window
 Modal.active = function () {
-    return _modals[_activeModal];
-};
+    return _modals[_activeModal]
+}
 
 // Simple 2 options confirmation window
 // Takes an accept callback and a reject callback which are called without
@@ -169,9 +169,9 @@ const ConfirmDialog = Modal.extend({
     },
 
     init: function ({text, accept, reject}) {
-        this.text = text;
-        this._accept = accept || function () {};
-        this._reject = reject || function () {};
+        this.text = text
+        this._accept = accept || function () {}
+        this._reject = reject || function () {}
     },
 
     content: function () {
@@ -182,20 +182,20 @@ const ConfirmDialog = Modal.extend({
                     <div class='ConfirmAction--Yes'>Yes</div>\
                     <div class='ConfirmAction--No'>No</div>\
                 </div>\
-            </div>`);
+            </div>`)
     },
 
     accept: function () {
-        this._accept();
-        this.close();
+        this._accept()
+        this.close()
     },
 
     reject: function () {
-        this._reject();
-        this.close();
+        this._reject()
+        this.close()
     }
 
-});
+})
 
 // Shortcut for confirm modal
 Modal.confirm = function (text, accept, reject, closable=true) {
@@ -205,8 +205,8 @@ Modal.confirm = function (text, accept, reject, closable=true) {
         reject,
         disposeOnClose: true,
         closable
-    })).open();
-};
+    })).open()
+}
 
 // Custom prompt to replace the traditionnal window.prompt
 // Takes a submit argument as callback which will be called with the entered
@@ -219,33 +219,33 @@ const Prompt = Modal.extend({
     },
 
     init: function ({msg, submit, cancel}) {
-        this._submit = submit;
-        this.msg = msg;
-        this._onClose = cancel || function () {};
+        this._submit = submit
+        this.msg = msg
+        this._onClose = cancel || function () {}
     },
 
     content: function () {
         return $(`<form class='Prompt'>
                     <p>${this.msg}</p>
                     <input type='text'/>
-                  </form>`);
+                  </form>`)
     },
 
     _onOpen: function () {
-        this.$el.find('input').focus();
+        this.$el.find('input').focus()
     },
 
     submit: function (evt) {
-        evt.preventDefault();
-        let value = this.$el.find('input').val();
+        evt.preventDefault()
+        let value = this.$el.find('input').val()
         if (value) {
-            value = value.toLowerCase();
+            value = value.toLowerCase()
         }
-        this._submit(value);
-        this._onClose = undefined;
-        this.close();
+        this._submit(value)
+        this._onClose = undefined
+        this.close()
     }
-});
+})
 
 // Shortcut for prompt modal
 Modal.prompt = function (msg, submit, cancel, closable=true) {
@@ -255,7 +255,7 @@ Modal.prompt = function (msg, submit, cancel, closable=true) {
         cancel,
         disposeOnClose: true,
         closable
-    })).open();
-};
+    })).open()
+}
 
-export default Modal;
+export default Modal

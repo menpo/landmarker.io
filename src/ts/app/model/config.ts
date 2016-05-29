@@ -3,85 +3,85 @@
  * Requires localstorage to work properly (throws Error otherwise),
  * serialisation is simple JSON
  */
-'use strict';
+'use strict'
 
-import * as _ from 'underscore';
+import * as _ from 'underscore'
 
-import * as support from '../lib/support';
+import * as support from '../lib/support'
 
-const LOCALSTORAGE_KEY = 'LMIO#CONFIG';
+const LOCALSTORAGE_KEY = 'LMIO#CONFIG'
 
 export function Config () {
-    this._data = {};
+    this._data = {}
 }
 
 Config.prototype.get = function (key) {
     if (!key) {
-        return _.clone(this._data);
+        return _.clone(this._data)
     } else {
-        return this._data[key];
+        return this._data[key]
     }
-};
+}
 
 Config.prototype.has = function (key) {
-    return this._data.hasOwnProperty(key);
-};
+    return this._data.hasOwnProperty(key)
+}
 
 Config.prototype.delete = function (key, save) {
-    delete this._data[key];
+    delete this._data[key]
     if (save) {
-        this.save();
+        this.save()
     }
-};
+}
 
 Config.prototype.set = function (arg1, arg2, arg3) {
 
-    let save;
+    let save
 
     if (typeof arg1 === 'string') { // Submitted a key/value pair
-        this._data[arg1] = arg2;
-        save = !!arg3;
+        this._data[arg1] = arg2
+        save = !!arg3
     } else if (typeof arg1 === 'object') { // Submitted a set of pairs
         Object.keys(arg1).forEach((k) => {
-            this._data[k] = arg1[k];
-        });
-        save = !!arg2;
+            this._data[k] = arg1[k]
+        })
+        save = !!arg2
     }
 
     if (save) {
-        this.save();
+        this.save()
     }
-};
+}
 
 Config.prototype.save = function () {
     if (support.localstorage) {
-        localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(this._data));
+        localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(this._data))
     }
-};
+}
 
 Config.prototype.load = function () {
     if (support.localstorage) {
-        var data = localStorage.getItem(LOCALSTORAGE_KEY);
+        var data = localStorage.getItem(LOCALSTORAGE_KEY)
         if (data) {
-            this._data = JSON.parse(data);
+            this._data = JSON.parse(data)
         } else {
-            this._data = {};
+            this._data = {}
         }
     }
-};
+}
 
 Config.prototype.clear = function () {
     if (support.localstorage) {
-        localStorage.removeItem(LOCALSTORAGE_KEY);
+        localStorage.removeItem(LOCALSTORAGE_KEY)
     }
-    this._data = {};
-};
+    this._data = {}
+}
 
-let _configInstance;
+let _configInstance
 
 export default function () {
     if (!_configInstance) {
-        _configInstance = new Config();
+        _configInstance = new Config()
     }
-    return _configInstance;
+    return _configInstance
 }

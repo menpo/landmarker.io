@@ -1,9 +1,9 @@
-'use strict';
+'use strict'
 
-import * as _ from 'underscore';
-import * as $ from 'jquery';
+import * as _ from 'underscore'
+import * as $ from 'jquery'
 
-import Modal from './modal';
+import Modal from './modal'
 
 /**
  * List picker modal, takes the following parameters:
@@ -26,68 +26,68 @@ export default Modal.extend({
     },
 
     init: function ({list, submit, useFilter, batchSize = 50}) {
-        this.list = list.map(([c, k], i) => [c, k !== undefined ? k : i]);
-        this._list = this.list;
-        this.submit = submit;
-        this.useFilter = !!useFilter;
+        this.list = list.map(([c, k], i) => [c, k !== undefined ? k : i])
+        this._list = this.list
+        this.submit = submit
+        this.useFilter = !!useFilter
         // only batchSize elements will be displayed at once.
-        this.batchSize = batchSize;
+        this.batchSize = batchSize
         // we increment this every time the user wants to expand the number
         // of visible elements
-        this.batchesVisible = 1;
-        _.bindAll(this, 'filter');
+        this.batchesVisible = 1
+        _.bindAll(this, 'filter')
     },
 
     filter: _.throttle(function (evt) {
-        const value = evt.currentTarget.value.toLowerCase();
+        const value = evt.currentTarget.value.toLowerCase()
         if (!value || value === "") {
-            this._list = this.list;
+            this._list = this.list
         }
 
         this._list = this.list.filter(([content]) => {
-            return content.toLowerCase().indexOf(value) > -1;
-        });
+            return content.toLowerCase().indexOf(value) > -1
+        })
 
-        this.update();
+        this.update()
     }, 50),
 
     makeList: function () {
-        const $ul = $(`<ul></ul>`);
+        const $ul = $(`<ul></ul>`)
         this._list.slice(0, this.batchSize * this.batchesVisible).forEach(function ([content, key, index]) {
             $ul.append($(
-                `<li data-value='${content}' data-key='${key}' data-index='${index}'>${content}</li>`));
-        });
+                `<li data-value='${content}' data-key='${key}' data-index='${index}'>${content}</li>`))
+        })
         if (this._list.length > this.batchSize) {
             $ul.append($(
-                `<li data-value='Load more...' data-key='-1' data-index='-1'>Load more...</li>`));
+                `<li data-value='Load more...' data-key='-1' data-index='-1'>Load more...</li>`))
         }
-        return $ul;
+        return $ul
     },
 
     update: function () {
-        this.$content.find('ul').remove();
-        this.$content.append(this.makeList());
+        this.$content.find('ul').remove()
+        this.$content.append(this.makeList())
     },
 
     content: function () {
-        const $content = $(`<div class='ListPicker'></div>`);
+        const $content = $(`<div class='ListPicker'></div>`)
 
         if (this.useFilter) {
-            $content.append(`<input type="text" placeholder='Search'/>`);
+            $content.append(`<input type="text" placeholder='Search'/>`)
         }
 
-        $content.append(this.makeList());
-        this.$content = $content;
-        return $content;
+        $content.append(this.makeList())
+        this.$content = $content
+        return $content
     },
 
     click: function (evt) {
         if (evt.currentTarget.dataset.index === '-1') {
-            this.batchesVisible += 1;  // load an extra batch
-            this.update();
+            this.batchesVisible += 1  // load an extra batch
+            this.update()
         } else{
-            this.submit(evt.currentTarget.dataset.key);
-            this.close();
+            this.submit(evt.currentTarget.dataset.key)
+            this.close()
         }
     }
-});
+})

@@ -1,12 +1,12 @@
-'use strict';
+'use strict'
 
-import * as _ from 'underscore';
-import * as Backbone from 'backbone';
-import * as $ from 'jquery';
+import * as _ from 'underscore'
+import * as Backbone from 'backbone'
+import * as $ from 'jquery'
 
-import download from '../lib/download';
-import { atomic } from '../model/atomic';
-import TemplatePanel from './templates';
+import download from '../lib/download'
+import { atomic } from '../model/atomic'
+import TemplatePanel from './templates'
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -19,69 +19,69 @@ export const LandmarkView = Backbone.View.extend({
     },
 
     initialize: function ({labelIndex}) {
-        this.listenTo(this.model, 'change', this.render);
-        _.bindAll(this, 'select', 'selectGroup', 'handleClick', 'selectAll');
-        this._clickedTimeout = null;
-        this.labelIndex = labelIndex;
+        this.listenTo(this.model, 'change', this.render)
+        _.bindAll(this, 'select', 'selectGroup', 'handleClick', 'selectAll')
+        this._clickedTimeout = null
+        this.labelIndex = labelIndex
     },
 
     render: function () {
-        const html = $("<div></div>");
-        html.addClass("Lm", this.model.isEmpty());
+        const html = $("<div></div>")
+        html.addClass("Lm", this.model.isEmpty())
 
-        html.toggleClass("Lm-Empty", this.model.isEmpty());
-        html.toggleClass("Lm-Value", !this.model.isEmpty());
-        html.toggleClass("Lm-Selected", this.model.isSelected());
-        html.toggleClass("Lm-NextAvailable", this.model.isNextAvailable());
+        html.toggleClass("Lm-Empty", this.model.isEmpty())
+        html.toggleClass("Lm-Value", !this.model.isEmpty())
+        html.toggleClass("Lm-Selected", this.model.isSelected())
+        html.toggleClass("Lm-NextAvailable", this.model.isNextAvailable())
 
         // in case our element is already live replace the content
-        this.$el.replaceWith(html);
+        this.$el.replaceWith(html)
         // now set the element back so we have a handle. If this is the
         // first time then we have gotten a handle for the future
-        this.setElement(html);
-        return this;
+        this.setElement(html)
+        return this
     },
 
     handleClick: function (event) {
         if (this._clickedTimeout === null) {
             this._clickedTimeout = setTimeout(() => {
-                this._clickedTimeout = null;
-                this.select(event);
-            }, 200);
+                this._clickedTimeout = null
+                this.select(event)
+            }, 200)
         } else {
-            clearTimeout(this._clickedTimeout);
-            this._clickedTimeout = null;
-            this.selectGroup(event);
+            clearTimeout(this._clickedTimeout)
+            this._clickedTimeout = null
+            this.selectGroup(event)
         }
     },
 
     select: atomic.atomicOperation(function (event) {
         if (event.shiftKey) {
-            this.selectAll(event);
+            this.selectAll(event)
         } else if (this.model.isSelected()) {
-            this.model.deselect();
+            this.model.deselect()
         } else if (event.ctrlKey || event.metaKey) {
             if (!this.model.isSelected()) {
-                this.model.select();
+                this.model.select()
             }
         } else if (this.model.isEmpty()) {
             // user is clicking on an empty landmark - mark it as the next for
             // insertion
-            this.model.setNextAvailable();
+            this.model.setNextAvailable()
         } else {
-            this.model.selectAndDeselectRest();
+            this.model.selectAndDeselectRest()
         }
     }),
 
     selectGroup: function () {
-        this.model.group().deselectAll();
-        this.model.group().labels[this.labelIndex].selectAll();
+        this.model.group().deselectAll()
+        this.model.group().labels[this.labelIndex].selectAll()
     },
 
     selectAll: function () {
-        this.model.group().selectAll();
+        this.model.group().selectAll()
     }
-});
+})
 
 // Renders the LandmarkList. Don't think this ListView should ever have to
 // render (as we build a fresh View each time a group is activated
@@ -91,43 +91,43 @@ export const LandmarkListView = Backbone.View.extend({
     tagName: 'div',
 
     initialize: function ({labelIndex}) {
-        _.bindAll(this, 'render', 'renderOne');
-        this.lmViews = [];
-        this.labelIndex = labelIndex;
-        this.render();
+        _.bindAll(this, 'render', 'renderOne')
+        this.lmViews = []
+        this.labelIndex = labelIndex
+        this.render()
     },
 
     render: function() {
-        this.cleanup();
-        this.$el.empty();
-        this.$el.addClass('LmGroup-Flex');
-        this.collection.map(this.renderOne);
-        return this;
+        this.cleanup()
+        this.$el.empty()
+        this.$el.addClass('LmGroup-Flex')
+        this.collection.map(this.renderOne)
+        return this
     },
 
     renderOne: function(model) {
-        const lm = new LandmarkView({model, labelIndex: this.labelIndex});
+        const lm = new LandmarkView({model, labelIndex: this.labelIndex})
         // reset the view's element to it's template
-        this.$el.append(lm.render().$el);
-        this.lmViews.push(lm);
-        return this;
+        this.$el.append(lm.render().$el)
+        this.lmViews.push(lm)
+        return this
     },
 
     cleanup: function () {
-        this.lmViews.forEach(function (lm) { lm.remove(); });
-        this.lmViews = [];
+        this.lmViews.forEach(function (lm) { lm.remove() })
+        this.lmViews = []
     }
 
-});
+})
 
 export const LandmarkGroupLabelView = Backbone.View.extend({
 
     className: "LmGroup-Label",
 
     initialize: function () {
-        this.$el.html(this.model.label);
+        this.$el.html(this.model.label)
     }
-});
+})
 
 // Renders a single LandmarkGroup. Either the view is closed and we just
 // render the header (LandmarkGroupButtonView) or this group is active and
@@ -137,39 +137,39 @@ export const LandmarkGroupView = Backbone.View.extend({
     tagName: 'div',
 
     initialize: function({labelIndex}) {
-        _.bindAll(this, 'render');
-        this.landmarkList = null;
-        this.label = null;
-        this.labelIndex = labelIndex;
-        this.render();
+        _.bindAll(this, 'render')
+        this.landmarkList = null
+        this.label = null
+        this.labelIndex = labelIndex
+        this.render()
     },
 
     render: function () {
-        this.cleanup();
-        this.$el.empty();
-        this.$el.addClass('LmGroup');
+        this.cleanup()
+        this.$el.empty()
+        this.$el.addClass('LmGroup')
         this.landmarkList = new LandmarkListView(
-            {collection: this.model.landmarks, labelIndex: this.labelIndex});
-        this.label = new LandmarkGroupLabelView({model: this.model});
-        this.$el.append(this.label.render().$el);
-        this.$el.append(this.landmarkList.render().$el);
-        return this;
+            {collection: this.model.landmarks, labelIndex: this.labelIndex})
+        this.label = new LandmarkGroupLabelView({model: this.model})
+        this.$el.append(this.label.render().$el)
+        this.$el.append(this.landmarkList.render().$el)
+        return this
     },
 
     cleanup: function () {
         if (this.landmarkList) {
             // already have a list view! clean it up + remove
-            this.landmarkList.cleanup();
-            this.landmarkList.remove();
-            this.landmarkList = null;
+            this.landmarkList.cleanup()
+            this.landmarkList.remove()
+            this.landmarkList = null
         }
         if (this.label) {
             // already have a label view! remove
-            this.label.remove();
-            this.label = null;
+            this.label.remove()
+            this.label = null
         }
     }
-});
+})
 
 // Renders a collection of LandmarkGroups. At any one time one of these
 // will be expanded - the rest closed. This View is indifferent - it just
@@ -177,48 +177,48 @@ export const LandmarkGroupView = Backbone.View.extend({
 export const LandmarkGroupListView = Backbone.View.extend({
 
     initialize: function () {
-        _.bindAll(this, 'render', 'renderOne');
-        this.groups = [];
-        this.render();
+        _.bindAll(this, 'render', 'renderOne')
+        this.groups = []
+        this.render()
     },
 
     render: function() {
-        this.cleanup();
-        this.$el.empty();
-        this.collection.map(this.renderOne);
+        this.cleanup()
+        this.$el.empty()
+        this.collection.map(this.renderOne)
         if (this.collection.length === 1) {
-            this.$el.find('.LmGroup-Flex').addClass('MultiLine');
+            this.$el.find('.LmGroup-Flex').addClass('MultiLine')
         }
-        return this;
+        return this
     },
 
     renderOne: function(label, labelIndex) {
-        const group = new LandmarkGroupView({model: label, labelIndex});
+        const group = new LandmarkGroupView({model: label, labelIndex})
         // reset the view's element to it's template
-        this.$el.append(group.render().$el);
-        this.groups.push(group);
-        return this;
+        this.$el.append(group.render().$el)
+        this.groups.push(group)
+        return this
     },
 
     cleanup: function () {
         this.groups.forEach(function (group) {
-            group.cleanup();
-            group.remove();
-        });
-        this.groups = [];
+            group.cleanup()
+            group.remove()
+        })
+        this.groups = []
     }
 
-});
+})
 
 export const ActionsView = Backbone.View.extend({
 
     el: '#lmActionsPanel',
 
     initialize: function({app}) {
-        _.bindAll(this, 'save', 'help', 'render');
-        this.listenTo(this.model.tracker, "change", this.render);
-        this.app = app;
-        this.render();
+        _.bindAll(this, 'save', 'help', 'render')
+        this.listenTo(this.model.tracker, "change", this.render)
+        this.app = app
+        this.render()
     },
 
     events: {
@@ -229,36 +229,36 @@ export const ActionsView = Backbone.View.extend({
 
     render: function () {
         this.$el.find('#save')
-                .toggleClass('Active', !this.model.tracker.isUpToDate());
+                .toggleClass('Active', !this.model.tracker.isUpToDate())
     },
 
     save: function (evt) {
-        evt.stopPropagation();
-        this.$el.find('#save').addClass('Button--Disabled');
+        evt.stopPropagation()
+        this.$el.find('#save').addClass('Button--Disabled')
         this.model.save().then(() => {
-            this.$el.find('#save').removeClass('Button--Disabled');
+            this.$el.find('#save').removeClass('Button--Disabled')
         }, () => {
-            this.$el.find('#save').removeClass('Button--Disabled');
-        });
+            this.$el.find('#save').removeClass('Button--Disabled')
+        })
     },
 
     help: function (e) {
-        e.stopPropagation();  // prevent the event from trigging the help immediately
-        this.app.toggleHelpOverlay();
+        e.stopPropagation()  // prevent the event from trigging the help immediately
+        this.app.toggleHelpOverlay()
     },
 
     download: function (evt) {
-        evt.stopPropagation();
+        evt.stopPropagation()
         if (this.model) {
-            this.$el.find('#download').addClass('Button--Disabled');
-            const data = JSON.stringify(this.model.toJSON());
-            const filename = `${this.app.asset().id}_${this.app.activeTemplate()}.ljson`;
-            download(data, filename, 'json');
-            this.$el.find('#download').removeClass('Button--Disabled');
+            this.$el.find('#download').addClass('Button--Disabled')
+            const data = JSON.stringify(this.model.toJSON())
+            const filename = `${this.app.asset().id}_${this.app.activeTemplate()}.ljson`
+            download(data, filename, 'json')
+            this.$el.find('#download').removeClass('Button--Disabled')
 
         }
     }
-});
+})
 
 export const UndoRedoView = Backbone.View.extend({
 
@@ -270,40 +270,40 @@ export const UndoRedoView = Backbone.View.extend({
     },
 
     initialize: function ({app}) {
-        this.tracker = this.model.tracker;
-        this.app = app;
-        this.listenTo(this.tracker, "change", this.render);
-        _.bindAll(this, 'render', 'cleanup', 'undo', 'redo');
-        this.render();
+        this.tracker = this.model.tracker
+        this.app = app
+        this.listenTo(this.tracker, "change", this.render)
+        _.bindAll(this, 'render', 'cleanup', 'undo', 'redo')
+        this.render()
     },
 
     cleanup: function () {
-        this.stopListening(this.tracker);
-        this.$el.find('.Undo').addClass('Disabled');
-        this.$el.find('.Redo').addClass('Disabled');
+        this.stopListening(this.tracker)
+        this.$el.find('.Undo').addClass('Disabled')
+        this.$el.find('.Redo').addClass('Disabled')
     },
 
     render: function () {
-        this.$el.find('.Undo').toggleClass('Disabled', !this.tracker.canUndo());
-        this.$el.find('.Redo').toggleClass('Disabled', !this.tracker.canRedo());
+        this.$el.find('.Undo').toggleClass('Disabled', !this.tracker.canUndo())
+        this.$el.find('.Redo').toggleClass('Disabled', !this.tracker.canRedo())
     },
 
     undo: function () {
         if (!this.tracker.canUndo()) {
-            return;
+            return
         } else {
-            this.model.undo();
+            this.model.undo()
         }
     },
 
     redo: function () {
         if (!this.tracker.canRedo()) {
-            return;
+            return
         } else {
-            this.model.redo();
+            this.model.redo()
         }
     }
-});
+})
 
 export const LmLoadView = Backbone.View.extend({
     el: '#lmLoadPanel',
@@ -313,64 +313,64 @@ export const LmLoadView = Backbone.View.extend({
     },
 
     initialize: function ({app}) {
-        _.bindAll(this, 'render', 'loadPrevious');
-        this.app = app;
-        this.render();
+        _.bindAll(this, 'render', 'loadPrevious')
+        this.app = app
+        this.render()
     },
 
     render: function () {
-        const show = this.app.assetSource().hasPredecessor();
-        this.$el.toggleClass('Hide', !show);
+        const show = this.app.assetSource().hasPredecessor()
+        this.$el.toggleClass('Hide', !show)
         this.$el.find('button').toggleClass('Button-Danger',
-                                            !this.model.isEmpty());
+                                            !this.model.isEmpty())
     },
 
     loadPrevious: function () {
-        this.app.reloadLandmarksFromPrevious();
-        this.render();
+        this.app.reloadLandmarksFromPrevious()
+        this.render()
     }
-});
+})
 
 export default Backbone.View.extend({
 
     initialize: function () {
-        _.bindAll(this, "landmarksChange");
-        this.listenTo(this.model, "change:landmarks", this.landmarksChange);
-        this.actionsView = null;
-        this.lmLoadView = null;
-        this.lmView = null;
-        this.undoRedoView = null;
-        this.templatePanel = new TemplatePanel({model: this.model});
+        _.bindAll(this, "landmarksChange")
+        this.listenTo(this.model, "change:landmarks", this.landmarksChange)
+        this.actionsView = null
+        this.lmLoadView = null
+        this.lmView = null
+        this.undoRedoView = null
+        this.templatePanel = new TemplatePanel({model: this.model})
     },
 
     landmarksChange: function () {
-        console.log('Sidebar - rewiring after landmark change');
+        console.log('Sidebar - rewiring after landmark change')
         if (this.actionsView) {
-            this.actionsView.undelegateEvents();
+            this.actionsView.undelegateEvents()
         }
 
         if (this.lmLoadView) {
-            this.lmLoadView.undelegateEvents();
+            this.lmLoadView.undelegateEvents()
         }
 
         if (this.undoRedoView) {
-            this.undoRedoView.undelegateEvents();
+            this.undoRedoView.undelegateEvents()
         }
 
         if (this.lmView) {
-            this.lmView.cleanup();
+            this.lmView.cleanup()
         }
 
-        const lms = this.model.landmarks();
+        const lms = this.model.landmarks()
 
         if (lms === null) {
-            return;
+            return
         }
 
-        this.actionsView = new ActionsView({model: lms, app: this.model});
-        this.lmLoadView = new LmLoadView({model: lms, app: this.model});
-        this.undoRedoView = new UndoRedoView({model: lms});
-        this.lmView = new LandmarkGroupListView({collection: lms.labels});
-        $('#landmarksPanel').html(this.lmView.render().$el);
+        this.actionsView = new ActionsView({model: lms, app: this.model})
+        this.lmLoadView = new LmLoadView({model: lms, app: this.model})
+        this.undoRedoView = new UndoRedoView({model: lms})
+        this.lmView = new LandmarkGroupListView({collection: lms.labels})
+        $('#landmarksPanel').html(this.lmView.render().$el)
     }
-});
+})

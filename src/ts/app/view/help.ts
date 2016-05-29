@@ -1,7 +1,7 @@
-'use strict';
+'use strict'
 
-import * as Backbone from 'backbone';
-import * as $ from 'jquery';
+import * as Backbone from 'backbone'
+import * as $ from 'jquery'
 
 const HELP_CONTENTS = [
     ['j', 'go to next asset in collection'],
@@ -35,7 +35,7 @@ const HELP_CONTENTS = [
     ['right click + drag', 'pan the camera'],
     [''],
     ['?', 'display this help']
-];
+]
 
 export default Backbone.View.extend({
 
@@ -44,23 +44,23 @@ export default Backbone.View.extend({
     events: { click: 'close' },
 
     initialize: function() {
-        this.listenTo(this.model, 'change:helpOverlayIsDisplayed', this.render);
-        var $tbody = this.$el.children('table').children('tbody');
+        this.listenTo(this.model, 'change:helpOverlayIsDisplayed', this.render)
+        var $tbody = this.$el.children('table').children('tbody')
         HELP_CONTENTS.forEach(function ([key, msg]) {
             $tbody.append(
                 msg ? $(`<tr><td>${key}</td><td>${msg}</td></tr>`) :
                       $(`<tr class='title'><td>${key}</td><td></td></tr>`)
-            );
-        });
+            )
+        })
 
-        this.render();
+        this.render()
     },
 
     render: function () {
-        this.$el.toggleClass('Display', this.model.isHelpOverlayOn());
+        this.$el.toggleClass('Display', this.model.isHelpOverlayOn())
     },
 
     close: function () {
-        this.model.toggleHelpOverlay();
+        this.model.toggleHelpOverlay()
     }
-});
+})

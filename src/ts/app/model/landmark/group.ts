@@ -1,12 +1,12 @@
-'use strict';
+'use strict'
 
-import * as THREE from 'three';
-import { notify } from '../../view/notification';
-import Tracker from '../../lib/tracker';
-import { atomic } from '../atomic';
+import * as THREE from 'three'
+import { notify } from '../../view/notification'
+import Tracker from '../../lib/tracker'
+import { atomic } from '../atomic'
 import { Backend } from '../../backend'
 
-import { Landmark } from './landmark';
+import { Landmark } from './landmark'
 import { LandmarkCollection }  from './collection'
 import { LandmarkLabel } from './label'
 
@@ -31,18 +31,18 @@ type LJSON = {
 function _validateConnectivity (nLandmarks: number,
                                 connectivity: [number, number][]): [number, number][] {
     if (!connectivity) {
-        return [];
+        return []
     }
     connectivity.forEach(([a, b]) => {
         if (a < 0 || a >= nLandmarks || b < 0 || b >= nLandmarks) {
             // we have bad connectivity!
             throw new Error(
                 "Illegal connectivity encountered - [" + a + ", " + b +
-                "] not permitted in group of " + nLandmarks + " landmarks");
+                "] not permitted in group of " + nLandmarks + " landmarks")
         }
     })
 
-    return connectivity;
+    return connectivity
 }
 
 function _pointToVector (p: JSONPoint) : [THREE.Vector3, number] {
@@ -70,13 +70,13 @@ export class LandmarkGroup extends LandmarkCollection {
 
         // 1. Build landmarks from points
         super(points.map((p, index) => {
-            const [point, nDims] = _pointToVector(p);
-            return new Landmark(this, index, nDims, point);
+            const [point, nDims] = _pointToVector(p)
+            return new Landmark(this, index, nDims, point)
         }))
 
-        this.id = id;
-        this.type = type;
-        this.server = server;
+        this.id = id
+        this.type = type
+        this.server = server
         this.tracker = tracker || new Tracker()
 
         // 2. Validate and assign connectivity (if there is any, it's not mandatory)
@@ -89,8 +89,8 @@ export class LandmarkGroup extends LandmarkCollection {
         })
 
         // make sure we start with a sensible insertion configuration.
-        this.resetNextAvailable();
-        this.tracker.recordState(this.toJSON(), true);
+        this.resetNextAvailable()
+        this.tracker.recordState(this.toJSON(), true)
     }
 
     static parse(json: LJSON, id: string, type: string, server: Backend, tracker: Tracker) {
@@ -108,7 +108,7 @@ export class LandmarkGroup extends LandmarkCollection {
     // Restore landmarks from json saved, should be of the same template so
     // no hard checking ot resetting the labels
     restore = atomic.atomicOperation(({ landmarks, labels }: LJSON) => {
-        const {points, connectivity} = landmarks;
+        const {points, connectivity} = landmarks
 
         this.landmarks.forEach(lm => lm.clear())
         points.forEach((p, i) => {
@@ -116,12 +116,12 @@ export class LandmarkGroup extends LandmarkCollection {
             if (v) {
                 this.landmarks[i].setPoint(v)
             }
-        });
+        })
 
         this.connectivity = _validateConnectivity(this.landmarks.length,
                                                 connectivity)
 
-        delete this.labels;
+        delete this.labels
         this.labels = labels.map(label => {
             return new LandmarkLabel(label.label, this.landmarks, label.mask)
         })
@@ -132,17 +132,17 @@ export class LandmarkGroup extends LandmarkCollection {
     nextAvailable = (): Landmark => {
         for (let i = 0; i < this.landmarks.length; i++) {
             if (this.landmarks[i].isNextAvailable()) {
-                return this.landmarks[i];
+                return this.landmarks[i]
             }
         }
-        return null;
-    };
+        return null
+    }
 
     clearAllNextAvailable = () => {
         this.landmarks.forEach(function (l) {
-            l.clearNextAvailable();
-        });
-    };
+            l.clearNextAvailable()
+        })
+    }
 
     // Sets the next available landmark to be either the first empty one,
     // or if originLm is provided from the set, the first empty on after
@@ -154,17 +154,17 @@ export class LandmarkGroup extends LandmarkCollection {
         let pastOrigin = (originLm === null)
 
         this.landmarks.forEach(lm => {
-            lm.clearNextAvailable();
-            pastOrigin = pastOrigin || lm === originLm;
+            lm.clearNextAvailable()
+            pastOrigin = pastOrigin || lm === originLm
 
             if (lm.isEmpty() && (!next || !first)) {
                 if (!next && pastOrigin) {
-                    next = lm;
+                    next = lm
                 } else if (!first && !pastOrigin) {
-                    first = lm;
+                    first = lm
                 }
             }
-        });
+        })
 
         next = !next ? first : next         // Nothing was found after the origin
         if (next) {
@@ -175,44 +175,44 @@ export class LandmarkGroup extends LandmarkCollection {
     }
 
     deleteSelected = atomic.atomicOperation(() => {
-        const ops = [];
+        const ops = []
         this.selected().forEach(function (lm) {
-            ops.push([lm.index(), lm.point().clone(), undefined]);
-            lm.clear();
-        });
+            ops.push([lm.index(), lm.point().clone(), undefined])
+            lm.clear()
+        })
         // reactivate the group to reset next available.
-        this.resetNextAvailable();
-        this.tracker.record(ops);
+        this.resetNextAvailable()
+        this.tracker.record(ops)
     })
 
     insertNew = atomic.atomicOperation((v: THREE.Vector3) => {
-        const lm = this.nextAvailable();
+        const lm = this.nextAvailable()
         if (lm === null) {
-            return null;    // nothing left to insert!
+            return null    // nothing left to insert!
         }
         // we are definitely inserting.
-        this.deselectAll();
-        this.setLmAt(lm, v);
-        this.resetNextAvailable(lm);
+        this.deselectAll()
+        this.setLmAt(lm, v)
+        this.resetNextAvailable(lm)
     })
 
    setLmAt = (lm: Landmark, v: THREE.Vector3) => {
 
         if (!v) {
-            return;
+            return
         }
         this.tracker.record([
             [lm.index(),
             lm.point() ? lm.point().clone() : undefined,
             v.clone() ]
-        ]);
+        ])
 
         lm.set({
             point: v.clone(),
             selected: true,
             isEmpty: false,
             nextAvailable: false
-        });
+        })
     }
 
     toJSON = () => {
@@ -223,56 +223,56 @@ export class LandmarkGroup extends LandmarkCollection {
             },
             labels: this.labels.map(label => label.toJSON()),
             version: 2
-        };
-    };
+        }
+    }
 
     save = () => {
         return this.server
             .saveLandmarkGroup(this.id, this.type, this.toJSON())
             .then(() => {
-                this.tracker.recordState(this.toJSON(), true);
-                notify({type: 'success', msg: 'Save Completed'});
+                this.tracker.recordState(this.toJSON(), true)
+                notify({type: 'success', msg: 'Save Completed'})
             }, () => {
-                notify({type: 'error', msg: 'Save Failed'});
-            });
-    };
+                notify({type: 'error', msg: 'Save Failed'})
+            })
+    }
 
     undo = () => {
         this.tracker.undo((ops) => {
             ops.forEach(([index, start]) => {
                 if (!start) {
-                    this.landmarks[index].clear();
+                    this.landmarks[index].clear()
                 } else {
-                    this.landmarks[index].setPoint(start.clone());
+                    this.landmarks[index].setPoint(start.clone())
                 }
-            });
-            this.resetNextAvailable();
+            })
+            this.resetNextAvailable()
         }, (json) => {
-            this.restore(json);
-        });
-    };
+            this.restore(json)
+        })
+    }
 
     redo = () => {
         this.tracker.redo((ops) => {
             ops.forEach(([index, , end]) => {
                 if (!end) {
-                    this.landmarks[index].clear();
+                    this.landmarks[index].clear()
                 } else {
-                    this.landmarks[index].setPoint(end.clone());
+                    this.landmarks[index].setPoint(end.clone())
                 }
-            });
-            this.resetNextAvailable();
+            })
+            this.resetNextAvailable()
         }, (json) => {
-            this.restore(json);
-        });
-    };
+            this.restore(json)
+        })
+    }
 
     completeGroups = () => {
         this.labels.forEach((label) => {
             // May be a way to review the structure as this is n^2 worse
             if (label.landmarks.some(lm => lm.isSelected())) {
-                label.selectAll();
+                label.selectAll()
             }
-        });
+        })
     }
 }

@@ -1,7 +1,7 @@
-'use strict';
+'use strict'
 
-import * as _ from 'underscore';
-import * as Backbone from 'backbone';
+import * as _ from 'underscore'
+import * as Backbone from 'backbone'
 
 /**
  * @class Tracker
@@ -27,15 +27,15 @@ import * as Backbone from 'backbone';
  *
  */
 export function Tracker () {
-    this._operations = [];
-    this._states = [];
-    this._futureOperations = [];
-    this._futureStates = [];
-    this._lastSavedState = undefined;
+    this._operations = []
+    this._states = []
+    this._futureOperations = []
+    this._futureStates = []
+    this._lastSavedState = undefined
 
-    this._lastRev = 0;
+    this._lastRev = 0
 
-    _.extend(this, Backbone.Events);
+    _.extend(this, Backbone.Events)
 }
 
 /**
@@ -43,8 +43,8 @@ export function Tracker () {
  * @returns {integer}
  */
 Tracker.prototype.rev = function () {
-    return ++this._lastRev;
-};
+    return ++this._lastRev
+}
 
 /**
  * Record an single operation,
@@ -53,14 +53,14 @@ Tracker.prototype.rev = function () {
  * @fires Tracker#change
  */
 Tracker.prototype.record = function (data) {
-    const rev = this.rev();
+    const rev = this.rev()
 
-    this._operations.push({rev, data});
-    this._futureOperations = [];
-    this._futureStates = [];
+    this._operations.push({rev, data})
+    this._futureOperations = []
+    this._futureStates = []
 
-    this.trigger('change');
-};
+    this.trigger('change')
+}
 
 /**
  * Record a state
@@ -87,37 +87,37 @@ Tracker.prototype.record = function (data) {
  */
 Tracker.prototype.recordState = function (data, saved=false, override=false) {
     const state = _.last(this._states),
-        op = _.last(this._operations);
-    let rev;
+        op = _.last(this._operations)
+    let rev
 
     if (!op && state && _.isEqual(data, state.data)) {
         // No op and we have the same data than before, don't fill twice
-        rev = state.rev;
+        rev = state.rev
     } else { // There are changes, store the state
         if (op && !override && (!state || state.rev !== op.rev)) {
-            rev = op.rev; // Track the lastest operation
+            rev = op.rev // Track the lastest operation
         } else {
-            rev = this.rev();
+            rev = this.rev()
         }
-        this._states.push({rev, data});
+        this._states.push({rev, data})
     }
 
     if (override) {
         // Remove all operations between the new state and the last
-        let prev = _.last(this._operations);
+        let prev = _.last(this._operations)
         while (prev && prev.rev > state.rev) {
-            this._operations.pop();
-            prev = _.last(this._operations);
+            this._operations.pop()
+            prev = _.last(this._operations)
         }
     }
 
     // Mark as saved, only one saved value at any point in time
     if (saved) {
-        this._lastSavedState = rev;
+        this._lastSavedState = rev
     }
 
-    this.trigger('change');
-};
+    this.trigger('change')
+}
 
 /**
  * Does the current (state, operation) combo correspond to the last saved state
@@ -125,20 +125,20 @@ Tracker.prototype.recordState = function (data, saved=false, override=false) {
  */
 Tracker.prototype.isUpToDate = function () {
     const state = _.last(this._states),
-         op = _.last(this._operations);
+         op = _.last(this._operations)
 
     if (!state) { // No state stored, cannot be up to date
-        return false;
+        return false
     }
 
-    const stateOk = this._lastSavedState === state.rev;
+    const stateOk = this._lastSavedState === state.rev
 
     if (op) { // Last operation must correspond to checkpoint
-        return stateOk && op.rev === state.rev;
+        return stateOk && op.rev === state.rev
     } else { // We may be in a restoring process (not at the last checkpoint)
-        return stateOk;
+        return stateOk
     }
-};
+}
 
 /**
  * Perform undo
@@ -154,45 +154,45 @@ Tracker.prototype.isUpToDate = function () {
  */
 Tracker.prototype.undo = function (process, restore) {
     const state = _.last(this._states),
-         op = _.last(this._operations);
+         op = _.last(this._operations)
 
-    let CASE = 0;
+    let CASE = 0
 
     if (op) {
         if (!state) {
-            CASE = 1;
+            CASE = 1
         } else {
             if (state.rev === op.rev) {
-                CASE = 3;
+                CASE = 3
             } else if (state.rev > op.rev) {
-                CASE = 2;
+                CASE = 2
             } else {
-                CASE = 1;
+                CASE = 1
             }
         }
     } else {
-        CASE = !!state && this._states.length > 1 ? 2 : 0;
+        CASE = !!state && this._states.length > 1 ? 2 : 0
     }
 
     if (CASE === 1) {
-        this._futureOperations.push(this._operations.pop());
-        process(op.data, op.rev);
+        this._futureOperations.push(this._operations.pop())
+        process(op.data, op.rev)
     } else if (CASE === 2) {
-        this._futureStates.push(this._states.pop());
-        const {rev, data} = _.last(this._states);
-        restore(data, rev);
+        this._futureStates.push(this._states.pop())
+        const {rev, data} = _.last(this._states)
+        restore(data, rev)
     } else if (CASE === 3) {
-        this._futureStates.push(this._states.pop());
-        this._futureOperations.push(this._operations.pop());
-        process(op.data, op.rev);
+        this._futureStates.push(this._states.pop())
+        this._futureOperations.push(this._operations.pop())
+        process(op.data, op.rev)
     } else {
-        this.trigger('noop');
-        return false;
+        this.trigger('noop')
+        return false
     }
 
-    this.trigger('change');
-    return true;
-};
+    this.trigger('change')
+    return true
+}
 
 /**
  * Perform redo
@@ -208,56 +208,56 @@ Tracker.prototype.undo = function (process, restore) {
  */
 Tracker.prototype.redo = function (process, restore) {
     const state = _.last(this._futureStates),
-         op = _.last(this._futureOperations);
+         op = _.last(this._futureOperations)
 
-    let CASE = 0;
+    let CASE = 0
 
     if (op) {
         if (!state) {
-            CASE = 1;
+            CASE = 1
         } else {
             // Case in for security reason but shouldn't happen
             // as state untracked by an operation (see recordState doc)
             // This ensure the structure doesn't get stuck,
             // but does not guarantee consistency
             if (state.rev > op.rev) {
-                CASE = 1;
+                CASE = 1
             } else if (state.rev === op.rev) {
-                CASE = 3;
+                CASE = 3
             } else {
-                CASE = 2;
+                CASE = 2
             }
         }
     } else {
-        CASE = state ? 2 : 0;
+        CASE = state ? 2 : 0
     }
 
     if (CASE === 1) {
-        this._operations.push(this._futureOperations.pop());
-        process(op.data, op.rev);
+        this._operations.push(this._futureOperations.pop())
+        process(op.data, op.rev)
     } else if (CASE === 2) {
-        this._states.push(this._futureStates.pop());
-        restore(state.data, state.rev);
+        this._states.push(this._futureStates.pop())
+        restore(state.data, state.rev)
     } else if (CASE === 3) {
-        this._states.push(this._futureStates.pop());
-        this._operations.push(this._futureOperations.pop());
-        process(op.data, op.rev);
+        this._states.push(this._futureStates.pop())
+        this._operations.push(this._futureOperations.pop())
+        process(op.data, op.rev)
     } else {
-        this.trigger('noop');
-        return false;
+        this.trigger('noop')
+        return false
     }
 
-    this.trigger('change');
-    return true;
-};
+    this.trigger('change')
+    return true
+}
 
 /**
  * Is in a state when redo is available
  * @return {Boolean}
  */
 Tracker.prototype.canRedo = function () {
-    return this._futureOperations.length + this._futureStates.length > 0;
-};
+    return this._futureOperations.length + this._futureStates.length > 0
+}
 
 /**
  * Is in a state when undo is available
@@ -266,7 +266,7 @@ Tracker.prototype.canRedo = function () {
  * @return {Boolean}
  */
 Tracker.prototype.canUndo = function () {
-    return this._operations.length > 0 || this._states.length > 1;
-};
+    return this._operations.length > 0 || this._states.length > 1
+}
 
-export default Tracker;
+export default Tracker

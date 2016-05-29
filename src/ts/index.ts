@@ -1,96 +1,96 @@
-'use strict';
+'use strict'
 
 // include all our style information
-require('../scss/main.scss');
+require('../scss/main.scss')
 
 
 // Polyfill promise if it's not globally definted
 if (typeof window.Promise !== 'function') {
-  require('es6-promise').polyfill();
+  require('es6-promise').polyfill()
 }
 
-import * as $ from 'jquery';
-import * as THREE from 'three';
-import * as url from 'url';
+import * as $ from 'jquery'
+import * as THREE from 'three'
+import * as url from 'url'
 
-import * as utils from './app/lib/utils';
-import * as support from './app/lib/support';
+import * as utils from './app/lib/utils'
+import * as support from './app/lib/support'
 
-import {notify} from './app/view/notification';
-import Intro from './app/view/intro';
-import AssetView from './app/view/asset';
-import SidebarView from './app/view/sidebar';
-import HelpOverlay from './app/view/help';
-import ToolbarView from './app/view/toolbar';
-import URLState from './app/view/url_state';
-import { BackboneViewport } from './app/view/bbviewport';
-import KeyboardShortcutsHandler from './app/view/keyboard';
+import {notify} from './app/view/notification'
+import Intro from './app/view/intro'
+import AssetView from './app/view/asset'
+import SidebarView from './app/view/sidebar'
+import HelpOverlay from './app/view/help'
+import ToolbarView from './app/view/toolbar'
+import URLState from './app/view/url_state'
+import { BackboneViewport } from './app/view/bbviewport'
+import KeyboardShortcutsHandler from './app/view/keyboard'
 
-import Config from './app/model/config';
-import App from './app/model/app';
+import Config from './app/model/config'
+import App from './app/model/app'
 
 import { Dropbox, Server } from './app/backend'
 
-const cfg = Config();
+const cfg = Config()
 
 const mixedContentWarning = `
 <p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href='http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/'>unadvisable</a> and thus we do not allow it.<br><br>
 You can visit <a href='http://insecure.landmarker.io${window.location.search}'>insecure.landmarker.io</a> to disable this warning.</p>
-`;
+`
 
 function resolveBackend (u) {
     console.log(
         'Resolving which backend to use for url:', window.location.href, u,
-        'and config:', cfg.get());
+        'and config:', cfg.get())
 
     // Found a server parameter >> override to traditionnal mode
     if (u.query.server) {
-        const serverUrl = utils.stripTrailingSlash(u.query.server);
-        cfg.clear(); // Reset all stored data, we use the url
+        const serverUrl = utils.stripTrailingSlash(u.query.server)
+        cfg.clear() // Reset all stored data, we use the url
         try {
-            const server = new Server(serverUrl);
+            const server = new Server(serverUrl)
 
             if (!server.demoMode) { // Don't persist demo mode
                 cfg.set({
                     'BACKEND_TYPE': Server.Type,
                     'BACKEND_SERVER_URL': u.query.server
-                }, true);
+                }, true)
             } else {
-                document.title = document.title + ' - demo mode';
+                document.title = document.title + ' - demo mode'
             }
 
-            return resolveMode(server, u);
+            return resolveMode(server, u)
         } catch (e) {
             if (e.message === 'Mixed Content') {
-                Intro.close();
+                Intro.close()
                 notify({
                     type: 'error',
                     persist: true,
                     msg: $(mixedContentWarning),
                     actions: [['Restart', utils.restart]]
-                });
+                })
             } else {
-                throw e;
+                throw e
             }
-            return null;
+            return null
         }
     }
 
-    const backendType = cfg.get('BACKEND_TYPE');
+    const backendType = cfg.get('BACKEND_TYPE')
 
     if (!backendType) {
-        return Intro.open();
+        return Intro.open()
     }
 
     switch (backendType) {
         case Dropbox.Type:
-            return _loadDropbox(u);
+            return _loadDropbox(u)
         case Server.Type:
-            return _loadServer(u);
+            return _loadServer(u)
     }
 }
 
-var goToDemo = utils.restart.bind(undefined, 'demo');
+var goToDemo = utils.restart.bind(undefined, 'demo')
 
 function retry (msg) {
     notify({
@@ -101,193 +101,193 @@ function retry (msg) {
           ['Restart', utils.restart],
           ['Go to Demo', goToDemo]
         ]
-    });
+    })
 }
 
 function _loadServer (u) {
-    const server = new Server(cfg.get('BACKEND_SERVER_URL'));
-    u.query.server = cfg.get('BACKEND_SERVER_URL');
-    history.replaceState(null, null, url.format(u).replace('?', '#'));
-    resolveMode(server, u);
+    const server = new Server(cfg.get('BACKEND_SERVER_URL'))
+    u.query.server = cfg.get('BACKEND_SERVER_URL')
+    history.replaceState(null, null, url.format(u).replace('?', '#'))
+    resolveMode(server, u)
 }
 
 function _loadDropbox (u) {
 
-    let dropbox;
+    let dropbox
     const oAuthState = cfg.get('OAUTH_STATE'),
-          token = cfg.get('BACKEND_DROPBOX_TOKEN');
+          token = cfg.get('BACKEND_DROPBOX_TOKEN')
 
     if (oAuthState) { // We were waiting for redirect
 
         const urlOk = [
             'state', 'access_token', 'uid'
-        ].every(key => u.query.hasOwnProperty(key));
+        ].every(key => u.query.hasOwnProperty(key))
 
         if (urlOk && u.query.state === oAuthState) {
-            cfg.delete('OAUTH_STATE', true);
-            dropbox = new Dropbox(u.query.access_token, cfg);
+            cfg.delete('OAUTH_STATE', true)
+            dropbox = new Dropbox(u.query.access_token, cfg)
 
-            delete u.query.access_token;
-            delete u.query.token_type;
-            delete u.query.state;
-            delete u.query.uid;
-            u.search = null;
-            history.replaceState(null, null, url.format(u).replace('?', '#'));
+            delete u.query.access_token
+            delete u.query.token_type
+            delete u.query.state
+            delete u.query.uid
+            u.search = null
+            history.replaceState(null, null, url.format(u).replace('?', '#'))
         } else {
             notify({
                 msg: 'Incorrect Dropbox redirect URL',
                 type: 'error'
-            });
-            Intro.open();
+            })
+            Intro.open()
         }
     } else if (token) {
-        dropbox = new Dropbox(token, cfg);
+        dropbox = new Dropbox(token, cfg)
     }
 
     if (dropbox) {
-        dropbox.setMode(cfg.get('BACKEND_DROPBOX_MODE'));
+        dropbox.setMode(cfg.get('BACKEND_DROPBOX_MODE'))
         return dropbox.accountInfo().then(function () {
-            _loadDropboxAssets(dropbox, u);
+            _loadDropboxAssets(dropbox, u)
         }, function () {
             notify({
                 msg: 'Could not reach Dropbox servers',
                 type: 'error'
-            });
-            Intro.open();
-        });
+            })
+            Intro.open()
+        })
     } else {
-        Intro.open();
+        Intro.open()
     }
 }
 
 function _loadDropboxAssets (dropbox, u) {
-    const assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH');
+    const assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH')
 
     function _pick () {
         dropbox.pickAssets(function () {
-            _loadDropboxTemplates(dropbox, u);
+            _loadDropboxTemplates(dropbox, u)
         }, function (err) {
-            retry(`Couldn't find assets: ${err}`);
-        });
+            retry(`Couldn't find assets: ${err}`)
+        })
     }
 
     if (assetsPath) {
         dropbox.setAssets(assetsPath).then(function () {
-            _loadDropboxTemplates(dropbox, u);
-        }, _pick);
+            _loadDropboxTemplates(dropbox, u)
+        }, _pick)
     } else {
-        _pick();
+        _pick()
     }
 }
 
 function _loadDropboxTemplates (dropbox, u) {
 
-    const templatesPaths = cfg.get('BACKEND_DROPBOX_TEMPLATES_PATHS');
+    const templatesPaths = cfg.get('BACKEND_DROPBOX_TEMPLATES_PATHS')
 
     if (templatesPaths) {
-        const templatesPromises = [];
+        const templatesPromises = []
         Object.keys(templatesPaths).forEach(function (key) {
             templatesPromises.push(
                 dropbox.addTemplate(templatesPaths[key])
-            );
-        });
+            )
+        })
 
         Promise.all(templatesPromises).then(function () {
-            resolveMode(dropbox, u);
-        });
+            resolveMode(dropbox, u)
+        })
     } else {
-        resolveMode(dropbox, u);
+        resolveMode(dropbox, u)
     }
 }
 
 function resolveMode (server, u) {
     server.fetchMode().then(function (mode) {
         if (mode === 'mesh' || mode === 'image') {
-            initLandmarker(server, mode, u);
+            initLandmarker(server, mode, u)
         } else {
-            retry('Received invalid mode', mode);
+            retry('Received invalid mode', mode)
         }
     }, function (err) {
-        console.log(err);
-        retry(`Couldn't reach server, are you sure the url was correct`);
-    });
+        console.log(err)
+        retry(`Couldn't reach server, are you sure the url was correct`)
+    })
 }
 
 function initLandmarker(server, mode, u) {
 
-    console.log('Starting landmarker in ' + mode + ' mode');
+    console.log('Starting landmarker in ' + mode + ' mode')
 
     // allow CORS loading of textures
     // https://github.com/mrdoob/three.js/issues/687
-    THREE.ImageUtils.crossOrigin = '';
+    THREE.ImageUtils.crossOrigin = ''
 
-    var appInit = {server: server, mode: mode};
+    var appInit = {server: server, mode: mode}
 
     if (u.query.hasOwnProperty('t')) {
-        appInit._activeTemplate = u.query.t;
+        appInit._activeTemplate = u.query.t
     }
 
     if (u.query.hasOwnProperty('c')) {
-        appInit._activeCollection = u.query.c;
+        appInit._activeCollection = u.query.c
     }
 
     if (u.query.hasOwnProperty('i')) {
-        let idx = u.query.i;
-        idx = isNaN(idx) ? 0 : Number(idx);
-        appInit._assetIndex = idx > 0 ? idx - 1 : 0;
+        let idx = u.query.i
+        idx = isNaN(idx) ? 0 : Number(idx)
+        appInit._assetIndex = idx > 0 ? idx - 1 : 0
     }
 
-    var app = new App(appInit);
+    var app = new App(appInit)
 
-    new SidebarView({model: app});
-    new AssetView({model: app});
-    new ToolbarView({model: app});
-    new HelpOverlay({model: app});
+    new SidebarView({model: app})
+    new AssetView({model: app})
+    new ToolbarView({model: app})
+    new HelpOverlay({model: app})
 
     var bbviewport = new BackboneViewport(document.getElementById('viewportContainer'), app)
     var viewport = bbviewport.viewport
 
-    var prevAsset = null;
+    var prevAsset = null
 
     app.on('change:asset', function () {
-       console.log('Index: the asset has changed');
-        viewport.removeMeshIfPresent();
+       console.log('Index: the asset has changed')
+        viewport.removeMeshIfPresent()
         if (prevAsset !== null) {
             // clean up previous asset
-            console.log('Before dispose: ' + viewport.memoryString());
-            prevAsset.dispose();
-            console.log('After dispose: ' + viewport.memoryString());
+            console.log('Before dispose: ' + viewport.memoryString())
+            prevAsset.dispose()
+            console.log('After dispose: ' + viewport.memoryString())
         }
-        prevAsset = app.asset();
-    });
+        prevAsset = app.asset()
+    })
 
     // update the URL of the page as the state changes
-    new URLState({model: app});
+    new URLState({model: app})
 
     // ----- KEYBOARD HANDLER ----- //
-    $(window).off('keydown');
-    (new KeyboardShortcutsHandler(app, viewport)).enable();
+    $(window).off('keydown')
+    (new KeyboardShortcutsHandler(app, viewport)).enable()
 }
 
 function handleNewVersion () {
 
-    const $topBar = $('#newVersionPrompt');
+    const $topBar = $('#newVersionPrompt')
     $topBar.text(
-        'New version has been downloaded in the background, click to reload.');
+        'New version has been downloaded in the background, click to reload.')
 
     $topBar.click(function () {
-        window.location.reload(true);
-    });
+        window.location.reload(true)
+    })
 
-    $topBar.addClass('Display');
+    $topBar.addClass('Display')
 }
 
 document.addEventListener('DOMContentLoaded', function () {
 
     // Check for new version (vs current appcache retrieved version)
-    window.applicationCache.addEventListener('updateready', handleNewVersion);
+    window.applicationCache.addEventListener('updateready', handleNewVersion)
     if(window.applicationCache.status === window.applicationCache.UPDATEREADY) {
-        handleNewVersion();
+        handleNewVersion()
     }
 
     // Test for IE
@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function () {
             msg: 'Internet Explorer is not currently supported by landmarker.io, please use Chrome or Firefox',
             persist: true,
             type: 'error'
-        });
+        })
     }
 
     // Test for webgl
@@ -307,43 +307,43 @@ document.addEventListener('DOMContentLoaded', function () {
             msg: $('<p>It seems your browser doesn\'t support WebGL, which is needed by landmarker.io.<br/>Please visit <a href="https://get.webgl.org/">https://get.webgl.org/</a> for more information<p>'),
             persist: true,
             type: 'error'
-        });
+        })
     }
 
-    cfg.load();
-    Intro.init({cfg});
+    cfg.load()
+    Intro.init({cfg})
     var u = url.parse(
-        utils.stripTrailingSlash(window.location.href.replace('#', '?')), true);
+        utils.stripTrailingSlash(window.location.href.replace('#', '?')), true)
 
     $(window).on('keydown', function (evt) {
         if (evt.which === 27) {
-            Intro.open();
+            Intro.open()
         }
-    });
+    })
 
     function canScroll(overflowCSS) {
-        return overflowCSS === 'scroll' || overflowCSS === 'auto';
+        return overflowCSS === 'scroll' || overflowCSS === 'auto'
     }
 
     window.document.ontouchmove = function (event) {
-        var isTouchMoveAllowed = false;
-        var p = event.target;
+        var isTouchMoveAllowed = false
+        var p = event.target
         while (p !== null) {
-            var style = window.getComputedStyle(p);
+            var style = window.getComputedStyle(p)
             if (style !== null && (canScroll(style.overflow) ||
                                    canScroll(style.overflowX) ||
                                    canScroll(style.overflowY))) {
-                isTouchMoveAllowed = true;
-                break;
+                isTouchMoveAllowed = true
+                break
             }
-            p = p.parentNode;
+            p = p.parentNode
         }
 
         if (!isTouchMoveAllowed) {
-            event.preventDefault();
+            event.preventDefault()
         }
 
-    };
+    }
 
-    resolveBackend(u);
-});
+    resolveBackend(u)
+})
