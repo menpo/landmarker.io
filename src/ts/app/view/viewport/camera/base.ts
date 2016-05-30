@@ -198,15 +198,18 @@ export class Camera implements ICamera {
     zoom = (distance: THREE.Vector3, screenPosition: THREE.Vector2) => {
         console.log('camera: zoom')
 
-        // First, handling the perspective matrix
-        const normalMatrix = new THREE.Matrix3()
-        normalMatrix.getNormalMatrix(this.pCam.matrix)
-        distance.applyMatrix3(normalMatrix)
-        distance.multiplyScalar(this.distanceToTarget() * 0.001)
-        this.pCam.position.add(distance)
-
+        // First, handling the orthographic camera
         const orthoScalar = distance.z * 0.0007
         this.zoomOrthographic(orthoScalar, screenPosition)
+
+        // And then the perspective camera
+        const perceptiveDistance = distance.clone()
+        const normalMatrix = new THREE.Matrix3()
+        normalMatrix.getNormalMatrix(this.pCam.matrix)
+        perceptiveDistance.applyMatrix3(normalMatrix)
+        perceptiveDistance.multiplyScalar(this.distanceToTarget() * 0.001)
+        this.pCam.position.add(perceptiveDistance)
+
         this.onChange()
     }
 
