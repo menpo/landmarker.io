@@ -76,8 +76,12 @@ export default class App extends Backbone.Model {
         this.set('editingOn', isEditingOn)
     }
 
-    isHelpOverlayOn(): boolean {
+    get isHelpOverlayOn(): boolean {
         return this.get('helpOverlayIsDisplayed')
+    }
+
+    set isHelpOverlayOn(isHelpOverlayOn: boolean) {
+        this.set('helpOverlayIsDisplayed', isHelpOverlayOn)
     }
 
     toggleAutoSave(): void {
@@ -97,7 +101,7 @@ export default class App extends Backbone.Model {
     }
 
     toggleHelpOverlay() {
-        this.set('helpOverlayIsDisplayed', !this.isHelpOverlayOn())
+        this.isHelpOverlayOn = !this.isHelpOverlayOn
     }
 
     get mode(): 'image' | 'mesh' {

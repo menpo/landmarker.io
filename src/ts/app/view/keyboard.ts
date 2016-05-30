@@ -90,7 +90,7 @@ export default function KeyboardShortcutsHandler (app, viewport) {
 
         const key = String.fromCharCode(e.which).toLowerCase()
 
-        if (app.isHelpOverlayOn() && key !== "?" || Modal.active()) {
+        if (app.isHelpOverlayOn && key !== "?" || Modal.active()) {
             return null
         }
 
@@ -110,7 +110,7 @@ export default function KeyboardShortcutsHandler (app, viewport) {
         let lms
 
         if (evt.which === 27) {
-            if (app.isHelpOverlayOn()) {
+            if (app.isHelpOverlayOn) {
                 app.toggleHelpOverlay()
                 evt.stopPropagation()
                 return null

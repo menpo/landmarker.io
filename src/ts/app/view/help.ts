@@ -55,7 +55,7 @@ export default Backbone.View.extend({
     },
 
     render: function () {
-        this.$el.toggleClass('Display', this.model.isHelpOverlayOn())
+        this.$el.toggleClass('Display', this.model.isHelpOverlayOn)
     },
 
     close: function () {
