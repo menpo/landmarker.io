@@ -1,11 +1,11 @@
-import querystring from 'querystring'
+import { stringify } from 'querystring'
 import { loading } from '../view/notification'
 
 function _url(url, data) {
     if (!data || Object.keys(data).length === 0) {
         return url
     } else {
-        return `${url}?${querystring.stringify(data)}`
+        return `${url}?${stringify(data)}`
     }
 }
 

@@ -1,7 +1,7 @@
 import * as $ from 'jquery'
 
 import Modal from './modal'
-import { Dropbox, Server } from '../backend/server'
+import { Dropbox, Server } from '../backend'
 import { baseUrl, restart } from '../lib/utils'
 
 import * as support from '../lib/support'

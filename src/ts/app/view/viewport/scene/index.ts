@@ -261,7 +261,8 @@ export class Scene implements IScene {
             const [a, b] = this.connectivity[i]
             view.render(this.landmarks[a], this.landmarks[b])
         })
-
+        // finally, ensure the scale is set properly for the landmarks
+        this.scaleLandmarks()
     }
 
     // Coordinates and intersection helpers
