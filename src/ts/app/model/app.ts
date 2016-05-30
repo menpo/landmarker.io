@@ -25,6 +25,7 @@ export default class App extends Backbone.Model {
     // This is so we are able to undo/redo even after moving away from
     // and coming back to an asset.
     landmarkGroupTrackers: LandmarkGroupTrackers = {}
+    onBudgeLandmarks: (vector: [number, number]) => void
 
     constructor(opts: AppOptions) {
         super({
@@ -172,8 +173,10 @@ export default class App extends Backbone.Model {
     }
 
     budgeLandmarks(vector:  [number, number]) {
-        // call our onBudgeLandmarks callback
-        this.onBudgeLandmarks(vector)
+        if (this.onBudgeLandmarks !== null) {
+            // call our onBudgeLandmarks callback
+            this.onBudgeLandmarks(vector)
+        }
     }
 
     get _activeTemplate(): string {

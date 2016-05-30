@@ -19,7 +19,7 @@ export class BackboneViewport {
     constructor(element: HTMLElement, app: App) {
         this.model = app
 
-        this.model.onBudgeLandmarks = (vector:  [number, number]) => this.viewport.budgeLandmarks(vector)
+        this.model.onBudgeLandmarks = (vector: [number, number]) => this.viewport.budgeLandmarks(vector)
 
         // Construct the callback object to be provided to the viewport
         const on: ViewportCallbacks = {
