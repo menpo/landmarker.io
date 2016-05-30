@@ -99,7 +99,7 @@ export default class App extends Backbone.Model {
         this.set('helpOverlayIsDisplayed', !this.isHelpOverlayOn())
     }
 
-    mode(): string {
+    get mode(): 'image' | 'mesh' {
         return this.get('mode')
     }
 

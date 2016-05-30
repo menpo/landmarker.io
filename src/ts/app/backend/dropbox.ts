@@ -41,7 +41,7 @@ export class Dropbox implements Backend {
 
     _token: string
     _cfg
-    mode = 'image'
+    mode: 'image' | 'mesh' = 'image'
     _meshTextures = {}
     _meshMtls = {}
 
@@ -106,7 +106,7 @@ export class Dropbox implements Backend {
         return getJSON(`${API_URL}/account/info`, {headers: this.headers()})
     }
 
-    setMode(mode: string) {
+    setMode(mode: 'image' | 'mesh') {
         if (mode === 'image' || mode === 'mesh') {
             this.mode = mode
         } else {
@@ -226,7 +226,7 @@ export class Dropbox implements Backend {
         return picker
     }
 
-    setAssets(path: string, mode: string) {
+    setAssets(path: string, mode: 'image' | 'mesh') {
 
         if (!path) {
             return Promise.resolve(null)

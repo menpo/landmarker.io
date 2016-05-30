@@ -235,7 +235,7 @@ export const CollectionName = Backbone.View.extend({
     render: function () {
         const backend = this.model.backend
         this.$el.find('.content').html(
-            `${this.model.activeCollection} (${this.model.mode()})`)
+            `${this.model.activeCollection} (${this.model.mode})`)
         this.$el.toggleClass(
             'Disabled',
             ( this.model.collections().length <= 1 &&

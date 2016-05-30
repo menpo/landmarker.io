@@ -211,7 +211,7 @@ function resolveMode (backend: Backend, u: url.Url) {
     })
 }
 
-function initLandmarker(backend: Backend, mode: string, u: url.Url) {
+function initLandmarker(backend: Backend, mode: 'image' | 'mesh', u: url.Url) {
 
     console.log('Starting landmarker in ' + mode + ' mode')
 

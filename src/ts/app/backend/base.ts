@@ -5,11 +5,8 @@ export interface Backend {
     /**
      * Returns which mode the backend is currently working on to set the viewport
      * accordingly
-     *
-     * @return {Promise}
-     * @resolve {String}
      */
-     fetchMode(): Promise<string>
+     fetchMode(): Promise<'image' | 'mesh'>
 
     /**
      * List of available collections
