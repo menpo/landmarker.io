@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { atomic, AtomicOperationTracker } from '../../model/atomic'
 
-import { Landmark } from './base'
+import { Landmark, LandmarkDelta } from './base'
 import { DomElements } from './dom'
 import { ICanvas, Canvas } from './canvas'
 import { ICamera, Camera, TouchCameraHandler, MouseCameraHandler } from './camera'
@@ -22,7 +22,7 @@ export interface ViewportCallbacks {
     selectLandmarkAndDeselectRest: (index: number) => void
     setLandmarkPoint: (index: number, point: THREE.Vector) => void
     setLandmarkPointWithHistory: (index: number, point: THREE.Vector) => void
-    addLandmarkHistory: (points: THREE.Vector[]) => void
+    addLandmarkHistory: (deltas: LandmarkDelta[]) => void
     insertNewLandmark: (point: THREE.Vector) => void
 }
 
@@ -284,7 +284,7 @@ export class Viewport implements IViewport {
 
         move.set(x * dx, y * dy)
 
-        const ops = []
+        const ops: LandmarkDelta[] = []
         this.selectedLandmarks.forEach((lm) => {
             const lmScreen = this.scene.localToScreen(lm.point)
             lmScreen.add(move)
