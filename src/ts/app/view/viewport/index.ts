@@ -87,7 +87,7 @@ export class Viewport implements IViewport {
                                          this.scene.sOCam,
                                          this.scene.sOCamZoom)
 
-        this.camera.onChange = this.update
+        this.camera.onChange = this.updateAndClearCanvas
         // set the cameera lock status to false, which will wire up the handlers.
         this.cameraIsLocked = false
 
@@ -299,6 +299,8 @@ export class Viewport implements IViewport {
             }
         })
         this.on.addLandmarkHistory(ops)
+
+        this.clearCanvas()
     })
 
     // this is called whenever there is a state change on the THREE scene
@@ -347,6 +349,11 @@ export class Viewport implements IViewport {
                 this.renderer.render(scene.sceneHelpers, scene.sOCamZoom)
             }
         }
+    }
+
+    updateAndClearCanvas = () => {
+        this.update()
+        this.clearCanvas()
     }
 
     memoryString = () => {
