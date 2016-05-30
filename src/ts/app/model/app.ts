@@ -7,7 +7,9 @@ import { LandmarkGroup, LandmarkGroupTracker, landmarkGroupTrackerFactory } from
 import Modal from '../view/modal'
 import { Backend } from '../backend'
 
-type AppOptions = {
+export type AppOptions = {
+    mode: 'image' | 'mesh'
+    backend: Backend
     _activeTemplate?: string
     _activeCollection?: string
     _assetIndex?: number
@@ -19,7 +21,7 @@ type LandmarkGroupTrackers = {
     }
 }
 
-export default class App extends Backbone.Model {
+export class App extends Backbone.Model {
 
     // We store a tracker per landmark group that we use in the app.
     // This is so we are able to undo/redo even after moving away from
@@ -120,7 +122,7 @@ export default class App extends Backbone.Model {
         return this.get('backend')
     }
 
-    templates(): string[] {
+    get templates(): string[] {
         return this.get('templates')
     }
 
@@ -187,11 +189,19 @@ export default class App extends Backbone.Model {
         return this.get('_activeTemplate')
     }
 
+    set _activeTemplate(_activeTemplate: string) {
+        this.set('_activeTemplate', _activeTemplate)
+    }
+
+    set templates(templates: string[]) {
+        this.set('templates', templates)
+    }
+
     _initTemplates(override=false) {
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.
         this.backend.fetchTemplates().then((templates) => {
-            this.set('templates', templates)
+            this.templates = templates
             let selected = templates[0]
             if (!override && this.has('_activeTemplate')) {
                 // user has specified a preset! Use that if we can

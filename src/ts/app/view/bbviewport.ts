@@ -1,6 +1,6 @@
 import { Viewport, IViewport, ViewportCallbacks } from './viewport'
 import { Landmark as BBLandmark } from '../model/landmark'
-import App from '../model/app'
+import { App } from '../model/app'
 
 const landmarkForBBLandmark = (bbLm: BBLandmark) => ({
     point: bbLm.point,

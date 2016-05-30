@@ -25,7 +25,8 @@ import { BackboneViewport } from './app/view/bbviewport'
 import KeyboardShortcutsHandler from './app/view/keyboard'
 
 import Config from './app/model/config'
-import App from './app/model/app'
+import { App, AppOptions } from './app/model/app'
+import * as Asset from './app/model/asset'
 
 import { Dropbox, Server, Backend } from './app/backend'
 
@@ -111,9 +112,9 @@ function _loadServer(u: url.Url) {
 
 function _loadDropbox (u: url.Url) {
 
-    let dropbox
-    const oAuthState = cfg.get('OAUTH_STATE'),
-          token = cfg.get('BACKEND_DROPBOX_TOKEN')
+    let dropbox: Dropbox
+    const oAuthState = cfg.get('OAUTH_STATE')
+    const token = cfg.get('BACKEND_DROPBOX_TOKEN')
 
     if (oAuthState) { // We were waiting for redirect
 
@@ -158,7 +159,7 @@ function _loadDropbox (u: url.Url) {
     }
 }
 
-function _loadDropboxAssets (dropbox, u: url.Url) {
+function _loadDropboxAssets (dropbox: Dropbox, u: url.Url) {
     const assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH')
 
     function _pick () {
@@ -178,7 +179,7 @@ function _loadDropboxAssets (dropbox, u: url.Url) {
     }
 }
 
-function _loadDropboxTemplates (dropbox, u: url.Url) {
+function _loadDropboxTemplates (dropbox: Dropbox, u: url.Url) {
 
     const templatesPaths = cfg.get('BACKEND_DROPBOX_TEMPLATES_PATHS')
 
@@ -219,7 +220,7 @@ function initLandmarker(backend: Backend, mode: 'image' | 'mesh', u: url.Url) {
     // https://github.com/mrdoob/three.js/issues/687
     THREE.ImageUtils.crossOrigin = ''
 
-    const appInit = {backend: backend, mode: mode}
+    const appInit: AppOptions = { backend, mode }
 
     if (u.query.hasOwnProperty('t')) {
         appInit._activeTemplate = u.query.t
@@ -245,7 +246,7 @@ function initLandmarker(backend: Backend, mode: 'image' | 'mesh', u: url.Url) {
     var bbviewport = new BackboneViewport(document.getElementById('viewportContainer'), app)
     var viewport = bbviewport.viewport
 
-    var prevAsset = null
+    let prevAsset: Asset.Image = null
 
     app.on('change:asset', function () {
        console.log('Index: the asset has changed')
@@ -320,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     })
 
-    function canScroll(overflowCSS) {
+    function canScroll(overflowCSS: string) {
         return overflowCSS === 'scroll' || overflowCSS === 'auto'
     }
 

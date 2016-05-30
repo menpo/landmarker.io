@@ -25,7 +25,7 @@ export const TemplatePicker = Backbone.View.extend({
     render: function () {
         const backend = this.model.backend
         const $ul = $('<ul></ul>')
-        this.model.templates().forEach((tmpl, index) => {
+        this.model.templates.forEach((tmpl, index) => {
             $ul.prepend($(`
                 <li id="templatePick_${tmpl}"
                     data-template="${tmpl}"
@@ -82,7 +82,7 @@ export const TemplatePicker = Backbone.View.extend({
         evt.stopPropagation()
         if (typeof this.model.backend.pickTemplate === 'function') {
             this.model.backend.pickTemplate((name) => {
-                this.model.set('_activeTemplate', name)
+                this.model._activeTemplate = name
                 this.model._initTemplates()
             }, function (err) {
                 notify({
@@ -99,7 +99,7 @@ export const TemplatePicker = Backbone.View.extend({
             this.$el.find('li').fadeIn(200)
         }
 
-        this.model.templates().forEach(function (tmpl) {
+        this.model.templates.forEach(function (tmpl) {
             if (tmpl.toLowerCase().indexOf(value) > -1) {
                 $(`#templatePick_${tmpl}`).fadeIn(200)
             } else {
@@ -158,7 +158,7 @@ export const TemplatePanel = Backbone.View.extend({
         }
 
         const backend = this.model.backend
-        const templates = this.model.templates()
+        const templates = this.model.templates
         return (templates.length <= 1 && backend instanceof Server) &&
                typeof backend.pickTemplate !== 'function'
     },
