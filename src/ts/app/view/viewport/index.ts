@@ -20,10 +20,10 @@ export interface ViewportCallbacks {
     deselectLandmarks: (indicies: number[]) => void
     deselectAllLandmarks: () => void
     selectLandmarkAndDeselectRest: (index: number) => void
-    setLandmarkPoint: (index: number, point: THREE.Vector) => void
-    setLandmarkPointWithHistory: (index: number, point: THREE.Vector) => void
+    setLandmarkPoint: (index: number, point: THREE.Vector3) => void
+    setLandmarkPointWithoutHistory: (index: number, point: THREE.Vector3) => void
     addLandmarkHistory: (deltas: LandmarkDelta[]) => void
-    insertNewLandmark: (point: THREE.Vector) => void
+    insertNewLandmark: (point: THREE.Vector3) => void
 }
 
 export interface IViewport {
@@ -295,7 +295,7 @@ export class Viewport implements IViewport {
             if (intersectsWithMesh.length > 0) {
                 const pt = this.scene.worldToLocal(intersectsWithMesh[0].point)
                 ops.push([lm.index, lm.point.clone(), pt.clone()])
-                this.on.setLandmarkPointWithHistory(lm.index, pt)
+                this.on.setLandmarkPointWithoutHistory(lm.index, pt)
             }
         })
         this.on.addLandmarkHistory(ops)

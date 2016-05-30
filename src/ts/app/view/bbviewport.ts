@@ -33,8 +33,8 @@ export class BackboneViewport {
             },
             selectLandmarkAndDeselectRest: i => this.model.landmarks.landmarks[i].selectAndDeselectRest(),
             setLandmarkPoint: (i, point) => this.model.landmarks.setLmAt(this.model.landmarks.landmarks[i], point),
-            setLandmarkPointWithHistory: (i, point) => this.model.landmarks.landmarks[i].point = point,
-            addLandmarkHistory: points => this.model.landmarks.tracker.record(points),
+            setLandmarkPointWithoutHistory: (i, point) => this.model.landmarks.landmarks[i].point = point,
+            addLandmarkHistory: delta => this.model.landmarks.tracker.record(delta),
             insertNewLandmark: point => this.model.landmarks.insertNew(point),
         }
         this.viewport = new Viewport(element, app.meshMode(), on)
@@ -68,9 +68,8 @@ export class BackboneViewport {
                                                       landmarks.connectivity)
 
             // TODO will this be collected properly?
-            landmarks.landmarks.forEach((lm: BBLandmark) => lm.on('change', () => this.updateLandmark(lm.index))
+            landmarks.landmarks.forEach((lm: BBLandmark) => lm.on('change', () => this.updateLandmark(lm.index)))
         }
-
     }
 
     setLandmarkSize = () => {

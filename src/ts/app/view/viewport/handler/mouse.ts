@@ -215,7 +215,7 @@ export class MouseHandler {
             if (this.intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
                 this.dragged = !!this.dragged || true
-                this.viewport.on.setLandmarkPointWithHistory(lm.index,
+                this.viewport.on.setLandmarkPointWithoutHistory(lm.index,
                     this.viewport.scene.worldToLocal(this.intersectsWithMesh[0].point))
             } else {
                 // don't update point - it would fall off the surface.
