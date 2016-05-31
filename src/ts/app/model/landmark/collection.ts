@@ -1,4 +1,3 @@
-import { atomic } from '../atomic'
 import { Landmark } from './landmark'
 
 export class LandmarkCollection {
@@ -21,12 +20,12 @@ export class LandmarkCollection {
         return this.landmarks.some(lm => lm.isEmpty())
     }
 
-    deselectAll = atomic.atomicOperation(() => {
+    deselectAll = () => {
         this.landmarks.forEach(lm => lm.deselect())
-    })
+    }
 
-    selectAll = atomic.atomicOperation(() => {
+    selectAll = () => {
         this.landmarks.forEach(lm => lm.select())
-    })
+    }
 
 }

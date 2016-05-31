@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { atomic, AtomicOperationTracker } from '../../model/atomic'
 
 import { Landmark, LandmarkDelta } from './base'
 import { DomElements } from './dom'
@@ -124,9 +123,6 @@ export class Viewport implements IViewport {
         // trigger resize to initially size the viewport
         // this will also clearCanvas (will draw context box if needed)
         this.resize()
-
-        // TODO this probably goes away once we remove Backbone from the view
-        atomic.on("change:ATOMIC_OPERATION", this.onAtomicChange)
 
         // register for the animation loop
         this.animate()
@@ -271,7 +267,7 @@ export class Viewport implements IViewport {
         this.requestUpdate()
     }
 
-    budgeLandmarks = atomic.atomicOperation((vector: [number, number]) => {
+    budgeLandmarks = (vector: [number, number]) => {
 
         // Set a movement of 0.5% of the screen in the suitable direction
         const [x, y] = vector,
@@ -297,7 +293,7 @@ export class Viewport implements IViewport {
         this.on.addLandmarkHistory(ops)
 
         this.clearCanvas()
-    })
+    }
 
      animate = () => {
         requestAnimationFrame(this.animate)

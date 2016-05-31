@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 import { Landmark, Intersection } from '../base'
-import { atomic } from '../../../model/atomic'
 import { Viewport } from '../index'
 import { listenOnce } from '../lib/event'
 import { findClosestLandmarks } from './base'
@@ -120,7 +119,7 @@ export class MouseHandler {
 
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
-    onMouseDown = atomic.atomicOperation((event: MouseEvent) => {
+    onMouseDown = (event: MouseEvent) => {
         event.preventDefault()
         this.viewport.focus()
 
@@ -183,11 +182,12 @@ export class MouseHandler {
                 this.meshPressed()
             }
         }
-    })
+        this.viewport.requestUpdate()
+    }
 
     // Drag Handlers
     // ------------------------------------------------------------------------
-    landmarkOnDrag = atomic.atomicOperation((event: MouseEvent) => {
+    landmarkOnDrag = (event: MouseEvent) => {
         console.log("drag")
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
@@ -222,7 +222,8 @@ export class MouseHandler {
                 console.log("fallen off mesh")
             }
         })
-    })
+       this.viewport.requestUpdate()
+    }
 
     shiftOnDrag = (event: MouseEvent) => {
         console.log("shift:drag")
@@ -237,7 +238,7 @@ export class MouseHandler {
     // Up handlers
     // ------------------------------------------------------------------------
 
-    shiftOnMouseUp = atomic.atomicOperation((event: MouseEvent) => {
+    shiftOnMouseUp = (event: MouseEvent) => {
         this.viewport.cameraIsLocked = false
         console.log("shift:up")
         document.removeEventListener('mousemove', this.shiftOnDrag)
@@ -264,9 +265,9 @@ export class MouseHandler {
         // obscured) and select the rest
         const indexesToSelect = lms.filter(this.viewport.scene.lmViewVisible).map(lm => lm.index)
         this.viewport.on.selectLandmarks(indexesToSelect)
-        this.viewport.clearCanvas()
+        this.viewport.requestUpdateAndClearCanvas()
         this.isPressed = false
-    })
+    }
 
     meshOnMouseUp = (event: MouseEvent) => {
         console.log("meshPress:up")
@@ -302,7 +303,7 @@ export class MouseHandler {
         this.viewport.clearCanvas()
     }
 
-    landmarkOnMouseUp = atomic.atomicOperation((event: MouseEvent) => {
+    landmarkOnMouseUp = (event: MouseEvent) => {
         const ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey
         this.viewport.cameraIsLocked = false
         console.log("landmarkPress:up")
@@ -325,20 +326,20 @@ export class MouseHandler {
             this.viewport.on.addLandmarkHistory(this.dragStartPositions)
         }
 
-        this.viewport.clearCanvas()
+        this.viewport.requestUpdateAndClearCanvas()
         this.dragged = false
         this.dragStartPositions = []
         this.isPressed = false
-    })
+    }
 
     // Move handlers
     // ------------------------------------------------------------------------
-    onMouseMove = atomic.atomicOperation((event: MouseEvent) => {
+    onMouseMove = (event: MouseEvent) => {
 
         this.viewport.clearCanvas()
 
         if (this.isPressed || !this.viewport.landmarkSnapPermitted) {
-            return null
+            return
         }
         // only here as:
         // 1. Edit mode is enabled
@@ -355,7 +356,7 @@ export class MouseHandler {
 
         if (this.intersectsWithMesh.length == 0) {
             // moving the mouse off the mesh does nothing.
-            return null
+            return
         }
 
         const mouseLoc = this.viewport.scene.worldToLocal(this.intersectsWithMesh[0].point)
@@ -391,6 +392,8 @@ export class MouseHandler {
             // finally, update the current target lm for next time around.
             this.currentTargetLm = newTarget
         }
-    })
+
+        this.viewport.requestUpdate()
+    }
 
 }

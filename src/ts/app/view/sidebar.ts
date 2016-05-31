@@ -3,7 +3,6 @@ import * as Backbone from 'backbone'
 import * as $ from 'jquery'
 
 import download from '../lib/download'
-import { atomic } from '../model/atomic'
 import TemplatePanel from './templates'
 
 // Renders a single Landmark. Should update when constituent landmark
@@ -53,7 +52,7 @@ export const LandmarkView = Backbone.View.extend({
         }
     },
 
-    select: atomic.atomicOperation(function (event) {
+    select: function (event) {
         if (event.shiftKey) {
             this.selectAll(event)
         } else if (this.model.isSelected()) {
@@ -69,7 +68,7 @@ export const LandmarkView = Backbone.View.extend({
         } else {
             this.model.selectAndDeselectRest()
         }
-    }),
+    },
 
     selectGroup: function () {
         this.model.group.deselectAll()
