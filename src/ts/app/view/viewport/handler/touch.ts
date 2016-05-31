@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 import * as $ from 'jquery'
 import { Landmark } from '../base'
-import { atomic } from '../../../model/atomic'
 import { Viewport } from '../index'
 import { touchListByType } from '../lib/touch'
 import { findClosestLandmarks } from './base'
@@ -34,7 +33,7 @@ export class TouchHandler {
 
     // Move handlers
     // ------------------------------------------------------------------------
-    stylusSnapLandmark = atomic.atomicOperation((touch: Touch) => {
+    stylusSnapLandmark = (touch: Touch) => {
 
         if (!this.viewport.landmarkSnapPermitted) {
             return
@@ -56,5 +55,6 @@ export class TouchHandler {
         // this.viewport.drawTargetingLines(new THREE.Vector2(touch.clientX, touch.clientY), newTarget, [])
         this.viewport.on.selectLandmarkAndDeselectRest(newTarget.index)
         this.viewport.on.setLandmarkPoint(newTarget.index, touchLoc)
-    })
+        this.viewport.requestUpdate()
+    }
 }

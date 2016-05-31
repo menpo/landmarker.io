@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 import { notify } from '../../view/notification'
 import Tracker from '../../lib/tracker'
-import { atomic } from '../atomic'
 import { Backend } from '../../backend'
 
 import { Landmark } from './landmark'
@@ -120,7 +119,7 @@ export class LandmarkGroup extends LandmarkCollection {
 
     // Restore landmarks from json saved, should be of the same template so
     // no hard checking ot resetting the labels
-    restore = atomic.atomicOperation(({ landmarks, labels }: LJSON): void => {
+    restore = ({ landmarks, labels }: LJSON): void => {
         const {points, connectivity} = landmarks
 
         this.landmarks.forEach(lm => lm.clear())
@@ -138,7 +137,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.labels = labels.map(label => new LandmarkLabel(label.label, this.landmarks, label.mask))
 
         this.resetNextAvailable()
-    })
+    }
 
     nextAvailable = (): Landmark => {
         for (let i = 0; i < this.landmarks.length; i++) {
@@ -185,7 +184,7 @@ export class LandmarkGroup extends LandmarkCollection {
         return next
     }
 
-    deleteSelected = atomic.atomicOperation(() => {
+    deleteSelected = () => {
         const ops: LGTrackerOperation = []
         this.selected().forEach(function (lm) {
             ops.push([lm.index, lm.point.clone(), undefined])
@@ -194,9 +193,9 @@ export class LandmarkGroup extends LandmarkCollection {
         // reactivate the group to reset next available.
         this.resetNextAvailable()
         this.tracker.record(ops)
-    })
+    }
 
-    insertNew = atomic.atomicOperation((v: THREE.Vector3) => {
+    insertNew = (v: THREE.Vector3) => {
         const lm = this.nextAvailable()
         if (lm === null) {
             return null    // nothing left to insert!
@@ -205,7 +204,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.deselectAll()
         this.setLmAt(lm, v)
         this.resetNextAvailable(lm)
-    })
+    }
 
    setLmAt = (lm: Landmark, v: THREE.Vector3) => {
 

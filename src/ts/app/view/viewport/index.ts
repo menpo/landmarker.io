@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { atomic, AtomicOperationTracker } from '../../model/atomic'
 
 import { Landmark, LandmarkDelta } from './base'
 import { DomElements } from './dom'
@@ -57,6 +56,7 @@ export class Viewport implements IViewport {
     pixelRatio = window.devicePixelRatio || 1  // 2/3 if on a HIDPI/retina display
 
     renderer: THREE.WebGLRenderer
+    _updateRequired = true // flag that is set whenever a frame update is needed (for perf)
 
     scene: IScene = new Scene()
     canvas: ICanvas
@@ -89,7 +89,7 @@ export class Viewport implements IViewport {
                                          this.scene.sOCam,
                                          this.scene.sOCamZoom)
 
-        this.camera.onChange = this.updateAndClearCanvas
+        this.camera.onChange = this.requestUpdateAndClearCanvas
         // set the cameera lock status to false, which will wire up the handlers.
         this.cameraIsLocked = false
 
@@ -126,15 +126,8 @@ export class Viewport implements IViewport {
         // this will also clearCanvas (will draw context box if needed)
         this.resize()
 
-        // TODO this probably goes away once we remove Backbone from the view
-        atomic.on("change:ATOMIC_OPERATION", this.onAtomicChange)
-
         // register for the animation loop
-        animate()
-
-        function animate() {
-            requestAnimationFrame(animate)
-        }
+        this.animate()
 
         this.snapModeEnabled = true
     }
@@ -177,7 +170,7 @@ export class Viewport implements IViewport {
 
     set connectivityVisable (connectivityVisable: boolean) {
         this._connectivityVisable = connectivityVisable
-        this.update()
+        this.requestUpdate()
     }
 
     get snapModeEnabled () {
@@ -230,18 +223,18 @@ export class Viewport implements IViewport {
         console.log('Viewport:setLandmarksAndConnectivity')
         this.scene.setLandmarksAndConnectivity(landmarks, connectivity)
         this.mouseHandler.resetLandmarks()
-        this.update()
+        this.requestUpdate()
     }
 
     updateLandmarks = (landmarks: Landmark[]) => {
         this.scene.updateLandmarks(landmarks)
-        this.update()
+        this.requestUpdate()
     }
 
     setMesh = (mesh: THREE.Mesh, up: THREE.Vector3, front: THREE.Vector3) => {
         console.log('Viewport:setMesh - memory before: ' + this.memoryString())
         this.scene.setMesh(mesh, up, front)
-        this.update()
+        this.requestUpdate()
     }
 
     removeMeshIfPresent = () => this.scene.removeMeshIfPresent()
@@ -249,7 +242,7 @@ export class Viewport implements IViewport {
     setLandmarkSize = (lmSize: number) => {
         // setting the lmScale will trigger the nessessary changes.
         this.scene.lmScale = lmSize
-        this.update()
+        this.requestUpdate()
     }
 
     toggleCamera = () => {
@@ -258,7 +251,7 @@ export class Viewport implements IViewport {
         this.scene.toggleCamera()
         if (currentMode === CAMERA_MODE.PERSPECTIVE) {
             // going to orthographic - start listening for pip updates
-            this.camera.onChangePip = this.update
+            this.camera.onChangePip = this.requestUpdate
             this.canvas.pipVisable = true
         } else {
             // leaving orthographic - stop listening to pip calls.
@@ -266,18 +259,17 @@ export class Viewport implements IViewport {
             this.canvas.pipVisable = false
         }
         // clear the canvas and re-render our state
-        this.canvas.clear()
-        this.update()
+        this.requestUpdateAndClearCanvas()
     }
 
     resetCamera = () => {
         // reposition the cameras and focus back to the starting point.
         const v = this.meshMode ? MESH_MODE_STARTING_POSITION : IMAGE_MODE_STARTING_POSITION
         this.camera.reset(v, this.scene.scene.position, this.meshMode)
-        this.update()
+        this.requestUpdate()
     }
 
-    budgeLandmarks = atomic.atomicOperation((vector: [number, number]) => {
+    budgeLandmarks = (vector: [number, number]) => {
 
         // Set a movement of 0.5% of the screen in the suitable direction
         const [x, y] = vector,
@@ -303,16 +295,18 @@ export class Viewport implements IViewport {
         this.on.addLandmarkHistory(ops)
 
         this.clearCanvas()
-    })
+    }
 
-    // this is called whenever there is a state change on the THREE scene
-    update = () => {
-        // console.log('Viewport:update()')
-        if (!this.renderer) {
-            return
+     animate = () => {
+        requestAnimationFrame(this.animate)
+        if (this._updateRequired) {
+            this.render()
         }
-        // if in batch mode - dont render unnecessarily
-        if (atomic.atomicOperationUnderway()) {
+        this._updateRequired = false
+     }
+
+    render = () => {
+        if (!this.renderer) {
             return
         }
 
@@ -353,8 +347,12 @@ export class Viewport implements IViewport {
         }
     }
 
-    updateAndClearCanvas = () => {
-        this.update()
+    requestUpdate = () => {
+        this._updateRequired = true
+    }
+
+    requestUpdateAndClearCanvas = () => {
+        this.requestUpdate()
         this.clearCanvas()
     }
 
@@ -371,14 +369,7 @@ export class Viewport implements IViewport {
         this.camera.resize(w, h)
         this.renderer.setSize(w, h)
         this.canvas.resize(w, h)
-        this.update()
-    }
-
-    onAtomicChange = (tracker: AtomicOperationTracker) => {
-        if (tracker.atomicOperationFinished()) {
-            // just been turned off - trigger an update.
-            this.update()
-        }
+        this.requestUpdate()
     }
 
     clearCanvas = (): void => {
