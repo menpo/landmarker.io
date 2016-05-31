@@ -370,13 +370,6 @@ export class Viewport implements IViewport {
         this.requestUpdate()
     }
 
-    onAtomicChange = (tracker: AtomicOperationTracker) => {
-        if (tracker.atomicOperationFinished()) {
-            // just been turned off - trigger an update.
-            this.requestUpdate()
-        }
-    }
-
     clearCanvas = (): void => {
         this.canvas.clear()
     }
