@@ -20,7 +20,7 @@ import AssetView from './app/view/asset'
 import SidebarView from './app/view/sidebar'
 import HelpOverlay from './app/view/help'
 import ToolbarView from './app/view/toolbar'
-import URLState from './app/view/url_state'
+import { URLState } from './app/view/urlstate'
 import { BackboneViewport } from './app/view/bbviewport'
 import { KeyboardShortcutsHandler } from './app/view/keyboard'
 
@@ -261,7 +261,7 @@ function initLandmarker(backend: Backend, mode: 'image' | 'mesh', u: url.Url) {
     })
 
     // update the URL of the page as the state changes
-    new URLState({model: app})
+    new URLState(app)
 
     // ----- KEYBOARD HANDLER ----- //
     $(window).off('keydown')

@@ -1,9 +1,11 @@
 import * as url from 'url'
 import * as Backbone from 'backbone'
+import { App } from '../model/app'
 
-export default Backbone.View.extend({
+export class URLState extends Backbone.View<App> {
 
-    initialize: function () {
+    constructor(model: App) {
+        super({ model })
         console.log('HistoryUpdate:initialize')
         this.listenTo(this.model, "change:asset", this.assetChanged)
         this.listenTo(this.model, "change:activeTemplate", this.assetChanged)
@@ -11,9 +13,9 @@ export default Backbone.View.extend({
         // this could lead to an invalid URL (e.g. change the collection to
         // something else, URL immediately changes, user saves before asset
         // loads)
-    },
+    }
 
-    assetChanged: function () {
+    assetChanged = () => {
         var u = url.parse(window.location.href.replace('#', '?'), true)
         u.search = null
 
@@ -31,4 +33,5 @@ export default Backbone.View.extend({
 
         history.replaceState(null, null, url.format(u).replace('?', '#'))
     }
-})
+
+}
