@@ -241,7 +241,7 @@ function initLandmarker(backend: Backend, mode: 'image' | 'mesh', u: url.Url) {
     new SidebarView({model: app})
     new AssetView({model: app})
     new ToolbarView(app)
-    new HelpOverlay({model: app})
+    new HelpOverlay(app)
 
     var bbviewport = new BackboneViewport(document.getElementById('viewportContainer'), app)
     var viewport = bbviewport.viewport
