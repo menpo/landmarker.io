@@ -33,6 +33,8 @@ export interface IViewport {
     removeMeshIfPresent: () => void
     budgeLandmarks: (vector: [number, number]) => void
     setLandmarkSize: (lmSize: number) => void
+    resetCamera: () => void,
+    toggleCamera: () => void
     snapModeEnabled: boolean
     connectivityVisable: boolean
     cameraIsLocked: boolean

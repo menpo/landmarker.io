@@ -1,7 +1,7 @@
 import { stringify } from 'querystring'
 import { loading } from '../view/notification'
 
-function _url(url, data) {
+function _url(url: string, data: {}) {
     if (!data || Object.keys(data).length === 0) {
         return url
     } else {
@@ -10,7 +10,7 @@ function _url(url, data) {
 }
 
 export default function XMLHttpRequestPromise(
-    url, {
+    url: string, {
         method='GET',
         responseType,
         contentType,

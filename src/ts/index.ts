@@ -22,7 +22,7 @@ import HelpOverlay from './app/view/help'
 import ToolbarView from './app/view/toolbar'
 import URLState from './app/view/url_state'
 import { BackboneViewport } from './app/view/bbviewport'
-import KeyboardShortcutsHandler from './app/view/keyboard'
+import { KeyboardShortcutsHandler } from './app/view/keyboard'
 
 import Config from './app/model/config'
 import { App, AppOptions } from './app/model/app'

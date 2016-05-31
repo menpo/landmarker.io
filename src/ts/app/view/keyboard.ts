@@ -1,8 +1,21 @@
 import * as $ from 'jquery'
 
 import Modal from './modal'
+import { App } from '../model/app'
+import { IViewport } from '../view/viewport'
+import { LandmarkGroup } from '../model/landmark'
+// Up and down are inverted due to the way THREE handles coordinates
+const ARROW_CODES_TO_VECTORS: {[index:number]: [number, number]} = {
+    37: [-1, 0],  // Left
+    38: [0, -1],  // Up
+    39: [1, 0],   // Right
+    40: [0, 1]    // Down
+}
 
-const SHORTCUTS = {
+type KeyHandler = (lms: LandmarkGroup, app?: App, viewport?: IViewport) => void
+type Shortcut = [KeyHandler, boolean, boolean]
+
+const SHORTCUTS: { [index:string]: Shortcut} = {
     // Structure is [fn, acceptShift?, needLms?]
     // Shortcuts activated without SHIFT, but CAPS LOCK ok (letters)
     "d": [function (lms) { // d = [d]elete selected
@@ -80,40 +93,52 @@ const SHORTCUTS = {
     }, true, false]
 }
 
-export default function KeyboardShortcutsHandler (app, viewport) {
-    this._keypress = function (e) {
+export class KeyboardShortcutsHandler {
+
+    app: App
+    viewport: IViewport
+
+    constructor(app: App, viewport: IViewport) {
+        this.app = app
+        this.viewport = viewport
+    }
+
+    keypress = (event: KeyboardEvent) => {
 
         // Don't fire on input fields
-        if ($(e.target).closest("input[type='text']")[0]) {
-            return null
+        if ($(event.target).closest("input[type='text']")[0]) {
+            return
         }
 
-        const key = String.fromCharCode(e.which).toLowerCase()
+        const key = String.fromCharCode(event.which).toLowerCase()
 
-        if (app.isHelpOverlayOn && key !== "?" || Modal.active()) {
-            return null
+        // We don't respond to this key.
+        if (!SHORTCUTS.hasOwnProperty(key)) {
+            return
         }
 
-        const lms = app.landmarks
+        if (this.app.isHelpOverlayOn && key !== "?" || Modal.active()) {
+            return
+        }
 
-        const [fn, acceptShift, needLms] = SHORTCUTS[key] || []
+        const lms = this.app.landmarks
+        const [fn, acceptShift, needLms] = SHORTCUTS[key]
         if (
             fn &&
-            (e.shiftKey && acceptShift || !e.shiftKey) &&
+            (event.shiftKey && acceptShift || !event.shiftKey) &&
             (lms && needLms || !needLms)
         ) {
-            fn(lms, app, viewport)
+            fn(lms, this.app, this.viewport)
         }
     }
 
-    this._keydown = function (evt) {
-        let lms
+    keydown = (event: KeyboardEvent) => {
 
-        if (evt.which === 27) {
-            if (app.isHelpOverlayOn) {
-                app.toggleHelpOverlay()
-                evt.stopPropagation()
-                return null
+        if (event.which === 27) {
+            if (this.app.isHelpOverlayOn) {
+                this.app.toggleHelpOverlay()
+                event.stopPropagation()
+                return
             }
 
             const modal = Modal.active()
@@ -121,46 +146,38 @@ export default function KeyboardShortcutsHandler (app, viewport) {
                 if (modal.closable) {
                     modal.close()
                 }
-                evt.stopPropagation()
-                return null
+                event.stopPropagation()
+                return
             }
 
             if ($('#templatePicker').hasClass('Active')) {
                 $('#templatePicker').removeClass('Active')
-                return null
+                return
             }
 
-            lms = app.landmarks
-            if (lms) {
-                app.landmarks.deselectAll()
-                evt.stopPropagation()
-                return null
+            if (this.app.landmarks) {
+                this.app.landmarks.deselectAll()
+                event.stopPropagation()
+                return
             }
-        } else if (evt.which === 83 && (evt.metaKey || evt.ctrlKey)) {
-            evt.preventDefault()
-            lms = app.landmarks
-            if (lms) {
-                lms.save()
+        } else if (event.which === 83 && (event.metaKey || event.ctrlKey)) {
+            event.preventDefault()
+            if (this.app.landmarks) {
+                this.app.landmarks.save()
             }
-        } else if (evt.which >= 37 && evt.which <= 40) { // arrow keys
-            // Up and down are inverted due to the way THREE handles coordinates
-            const vector = {
-                37: [-1, 0],  // Left
-                38: [0, -1],  // Up
-                39: [1, 0],   // Right
-                40: [0, 1]    // Down
-            }[evt.which]
-            app.budgeLandmarks(vector)
+        } else if (event.which >= 37 && event.which <= 40) { // arrow keys
+            this.app.budgeLandmarks(ARROW_CODES_TO_VECTORS[event.which])
         }
     }
-}
 
-KeyboardShortcutsHandler.prototype.enable = function () {
-    $(window).on('keypress', this._keypress)
-    $(window).on('keydown', this._keydown)
-}
+    enable = () => {
+        window.addEventListener('keypress', this.keypress)
+        window.addEventListener('keydown', this.keydown)
+    }
 
-KeyboardShortcutsHandler.prototype.disable = function () {
-    $(window).off('keypress', this._keypress)
-    $(window).off('keydown', this._keydown)
+    disable = () => {
+        window.removeEventListener('keypress', this.keypress)
+        window.removeEventListener('keydown', this.keydown)
+    }
+
 }
