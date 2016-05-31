@@ -338,7 +338,7 @@ export default Backbone.View.extend({
         this.lmLoadView = null
         this.lmView = null
         this.undoRedoView = null
-        this.templatePanel = new TemplatePanel({model: this.model})
+        this.templatePanel = new TemplatePanel(this.model)
     },
 
     landmarksChange: function () {

@@ -3,26 +3,28 @@ import * as Backbone from 'backbone'
 import * as $ from 'jquery'
 import { notify } from './notification'
 import { Server } from '../backend'
+import { App } from '../model/app'
 // import ListPicker from './list_picker'
 
-export const TemplatePicker = Backbone.View.extend({
+export class TemplatePicker extends Backbone.View<App> {
 
-    el: '#templatePicker',
-
-    events: {
-        'click li': 'select',
-        'click .RightSidebar-TemplatePicker-Add': 'add',
-        'click input': 'clickInput',
-        'keyup input': 'filter'
-    },
-
-    initialize: function () {
+    constructor(model: App) {
+        super({
+            model,
+            el: '#templatePicker',
+            events: {
+                'click li': 'select',
+                'click .RightSidebar-TemplatePicker-Add': 'add',
+                'click input': 'clickInput',
+                'keyup input': 'filter'
+            }
+        })
         _.bindAll(this, 'update', 'render', 'select', 'add', 'reload')
         this.listenTo(this.model, 'change:activeTemplate', this.update)
         this.listenTo(this.model, 'change:templates', this.reload)
-    },
+    }
 
-    render: function () {
+    render() {
         const backend = this.model.backend
         const $ul = $('<ul></ul>')
         this.model.templates.forEach((tmpl, index) => {
@@ -41,29 +43,30 @@ export const TemplatePicker = Backbone.View.extend({
         }
 
         this.update()
-    },
+        return this
+    }
 
-    update: function () {
+    update() {
         const activeTmpl = this.model.activeTemplate()
         if (activeTmpl) {
             this.$el.find('li').removeClass('Active')
             this.$el.find(`#templatePick_${activeTmpl}`)
                     .addClass('Active')
         }
-    },
+    }
 
-    reload: function () {
+    reload() {
         this.undelegateEvents()
         this.render()
         this.delegateEvents()
-    },
+    }
 
-    toggle: function () {
+    toggle() {
         this.$el.toggleClass('Active')
         this.$el.find('input').focus()
-    },
+    }
 
-    select: function (evt) {
+    select(evt) {
         evt.stopPropagation()
         const tmpl = evt.currentTarget.dataset.template
         if (tmpl !== this.model.activeTemplate()) {
@@ -72,13 +75,13 @@ export const TemplatePicker = Backbone.View.extend({
                 this.model.set('activeTemplate', tmpl)
             })
         }
-    },
+    }
 
-    clickInput: function (evt) {
+    clickInput(evt) {
         evt.stopPropagation()
-    },
+    }
 
-    add: function (evt) {
+    add(evt) {
         evt.stopPropagation()
         if (typeof this.model.backend.pickTemplate === 'function') {
             this.model.backend.pickTemplate((name) => {
@@ -91,9 +94,9 @@ export const TemplatePicker = Backbone.View.extend({
                 })
             }, true)
         }
-    },
+    }
 
-    filter: _.throttle(function (evt) {
+    filter = _.throttle((evt) => {
         const value = evt.currentTarget.value.toLowerCase()
         if (!value || value === "") {
             this.$el.find('li').fadeIn(200)
@@ -107,23 +110,27 @@ export const TemplatePicker = Backbone.View.extend({
             }
         })
     }, 50)
-})
+}
 
-export const TemplatePanel = Backbone.View.extend({
-    el: '#templatePanel',
+export class TemplatePanel extends Backbone.View<App> {
 
-    events: {
-        'click .TemplateName': 'open',
-        'click .TemplateDownload': 'download'
-    },
+    picker: TemplatePicker
 
-    initialize: function () {
+    constructor(model: App) {
+        super({
+            model,
+            el: '#templatePanel',
+            events: {
+                'click .TemplateName': 'open',
+                'click .TemplateDownload': 'download'
+            }
+        })
         _.bindAll(this, 'update')
-        this.picker = new TemplatePicker({model: this.model})
+        this.picker = new TemplatePicker(this.model)
         this.listenTo(this.model, 'change:activeTemplate', this.update)
-    },
+    }
 
-    update: function () {
+    update() {
 
         if (!this.model) {
             return
@@ -149,9 +156,9 @@ export const TemplatePanel = Backbone.View.extend({
         }
 
         this.delegateEvents()
-    },
+    }
 
-    disabled: function () {
+    disabled() {
 
         if (!this.model) {
             return true
@@ -161,15 +168,15 @@ export const TemplatePanel = Backbone.View.extend({
         const templates = this.model.templates
         return (templates.length <= 1 && backend instanceof Server) &&
                typeof backend.pickTemplate !== 'function'
-    },
+    }
 
-    open: function () {
+    open() {
         if (!this.disabled()) {
             this.picker.toggle()
         }
-    },
+    }
 
-    download: function (evt) {
+    download(evt) {
         evt.stopPropagation()
         const backend = this.model.backend
         const tmpl = this.model.activeTemplate()
@@ -178,6 +185,6 @@ export const TemplatePanel = Backbone.View.extend({
             backend.downloadTemplate(tmpl)
         }
     }
-})
+}
 
 export default TemplatePanel

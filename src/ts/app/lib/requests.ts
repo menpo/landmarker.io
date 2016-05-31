@@ -87,17 +87,17 @@ export function getArrayBuffer(url: string, {headers={}, auth=false}={}): Promis
         url, {responseType: 'arraybuffer', headers, auth})
 }
 
-export function get (url, {headers={}, data={}, auth=false}={}) {
+export function get (url: string, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(
         _url(url, data), {headers, auth})
 }
 
-export function getJSON (url, {headers={}, data={}, auth=false}={}) {
+export function getJSON (url: string, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(
         _url(url, data), {responseType: 'json', headers, auth})
 }
 
-export function putJSON (url, {headers={}, data={}, auth=false}={}) {
+export function putJSON (url: string, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(url, {
         headers,
         auth,
