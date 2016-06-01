@@ -5,7 +5,8 @@
 		"sourceMap": true,
         "noImplicitAny": true,
 		"noImplicitReturns": true,
-		"noFallthroughCasesInSwitch": true
+		"noFallthroughCasesInSwitch": true,
+		"jsx" : "react"
 	},
 	"exclude": [
 		"node_modules",

@@ -1,7 +1,6 @@
 // include all our style information
 require('../scss/main.scss')
 
-
 // Polyfill promise if it's not globally definted
 if (typeof window.Promise !== 'function') {
   require('es6-promise').polyfill()
@@ -14,7 +13,17 @@ import * as url from 'url'
 import * as utils from './app/lib/utils'
 import * as support from './app/lib/support'
 
-import {notify} from './app/view/notification'
+import Config from './app/model/config'
+import { App, AppOptions } from './app/model/app'
+import * as Asset from './app/model/asset'
+
+import { Backend, Dropbox, Server } from './app/backend'
+
+// ReactBridge mirrors Backbone App state to
+// our React components trees.
+import { ReactBridge } from './app/view/reactbridge'
+
+import { notify } from './app/view/notification'
 import Intro from './app/view/intro'
 import AssetView from './app/view/asset'
 import SidebarView from './app/view/sidebar'
@@ -24,11 +33,6 @@ import { URLState } from './app/view/urlstate'
 import { BackboneViewport } from './app/view/bbviewport'
 import { KeyboardShortcutsHandler } from './app/view/keyboard'
 
-import Config from './app/model/config'
-import { App, AppOptions } from './app/model/app'
-import * as Asset from './app/model/asset'
-
-import { Dropbox, Server, Backend } from './app/backend'
 
 const cfg = Config()
 
@@ -238,7 +242,7 @@ function initLandmarker(backend: Backend, mode: 'image' | 'mesh', u: url.Url) {
 
     var app = new App(appInit)
 
-    new SidebarView({model: app})
+    new ReactBridge(app)
     new AssetView({model: app})
     new ToolbarView(app)
     new HelpOverlay(app)
