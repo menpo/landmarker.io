@@ -81,94 +81,12 @@ export class TextureToggle extends Backbone.View<App> {
     }
 }
 
-export class ConnectivityToggle extends Backbone.View<App> {
 
-    toggle: HTMLInputElement
-
-    constructor(model: App) {
-        super({
-            model,
-            el: '#connectivityRow',
-            events: {
-                'click #connectivityToggle': "toggleConnectivity"
-            }
-        })
-        this.toggle = this.$el.find('#connectivityToggle')[0] as HTMLInputElement
-        this.listenTo(this.model, 'change:connectivityOn', this.render)
-        this.render()
-    }
-
-    render() {
-        this.toggle.checked = this.model.isConnectivityOn
-        return this
-    }
-
-    toggleConnectivity() {
-        this.model.toggleConnectivity()
-    }
-}
-
-export class EditingToggle extends Backbone.View<App> {
-
-    toggle: HTMLInputElement
-
-    constructor(model: App) {
-        super({
-            model,
-            el: '#editingRow',
-                events: {
-                    'click #editingToggle': "toggleEditing"
-                }
-        })
-        this.toggle = this.$el.find('#editingToggle')[0] as HTMLInputElement
-        this.listenTo(this.model, 'change:editingOn', this.render)
-        this.render()
-    }
-
-    render() {
-        this.toggle.checked = this.model.isEditingOn
-        return this
-    }
-
-    toggleEditing() {
-        this.model.toggleEditing()
-    }
-}
-
-export class AutoSaveToggle extends Backbone.View<App> {
-
-    toggle: HTMLInputElement
-
-    constructor(model: App) {
-        super({
-            model,
-            el: '#autosaveRow',
-            events: {
-                'click #autosaveToggle': "toggleAutosave"
-            }
-        })
-        this.toggle = this.$el.find('#autosaveToggle')[0] as HTMLInputElement
-        this.listenTo(this.model, 'change:autoSaveOn', this.render)
-        this.render()
-    }
-
-    render() {
-        this.toggle.checked = this.model.isAutoSaveOn
-        return this
-    }
-
-    toggleAutosave() {
-        this.model.toggleAutoSave()
-    }
-}
 
 export default class Toolbar extends Backbone.View<App> {
 
     lmSizeSlider: LandmarkSizeSlider
-    connectivityToggle: ConnectivityToggle
-    editingToggle: EditingToggle
     textureToggle: TextureToggle
-    autosaveToggle: AutoSaveToggle
 
     constructor(model: App) {
         super({
@@ -176,14 +94,11 @@ export default class Toolbar extends Backbone.View<App> {
             el: '#toolbar'
         })
         this.lmSizeSlider = new LandmarkSizeSlider(this.model)
-        this.connectivityToggle = new ConnectivityToggle(this.model)
-        this.editingToggle = new EditingToggle(this.model)
         if (this.model.meshMode()) {
             this.textureToggle = new TextureToggle(this.model)
         } else {
             // in image mode, we shouldn't even have these controls.
             this.$el.find('#textureRow').css("display", "none")
         }
-        this.autosaveToggle = new AutoSaveToggle(this.model)
     }
 }

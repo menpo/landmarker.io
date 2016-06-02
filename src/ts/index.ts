@@ -243,8 +243,9 @@ function initLandmarker(backend: Backend, mode: 'image' | 'mesh', u: url.Url) {
     var app = new App(appInit)
 
     new ReactBridge(app)
+
     new AssetView({model: app})
-    new ToolbarView(app)
+    // new ToolbarView(app)
     new HelpOverlay(app)
 
     var bbviewport = new BackboneViewport(document.getElementById('viewportContainer'), app)

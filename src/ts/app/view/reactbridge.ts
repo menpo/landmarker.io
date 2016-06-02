@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as ReactDom from 'react-dom'
 import { Sidebar, SidebarProps } from './components/Sidebar'
+import { Toolbar, ToolbarProps } from './components/Toolbar'
 import { App } from '../model/app'
 
 const TEST_GROUPS = [
@@ -53,7 +54,12 @@ export class ReactBridge {
     constructor(app: App) {
         this.app = app
         app.on('change:landmarks', this.connectLandmarks)
+        app.on('change:asset', this.connectAsset)
+        app.on('change', this.renderToolbar)
         this.connectLandmarks()
+        this.connectAsset()
+        this.render()
+        this.renderToolbar()
     }
 
     connectLandmarks = () => {
@@ -63,6 +69,13 @@ export class ReactBridge {
         this.app.landmarks.landmarks.forEach(lm => {
             lm.on('change', this.render)
         })
+    }
+
+    connectAsset = () => {
+        if (!this.app.asset()) {
+            return
+        }
+        this.app.asset().on('change:textureOn', this.renderToolbar)
     }
 
     render = () => {
@@ -88,5 +101,21 @@ export class ReactBridge {
         const el = document.getElementById('landmarksPanel')
         ReactDom.render(sidebar, el)
 
+    }
+
+    renderToolbar = () => {
+        const props: ToolbarProps = {
+            isConnectivityOn: this.app.isConnectivityOn,
+            isAutosaveOn: this.app.isAutoSaveOn,
+            isSnapOn: this.app.isEditingOn,
+            isTextureOn: this.app.asset() ? this.app.asset().isTextureOn() : false,
+            setAutosave: (on) => this.app.toggleAutoSave(),
+            setConnectivity: (on) => this.app.toggleConnectivity(),
+            setSnap: (on) => this.app.toggleEditing(),
+            setTexture: (on) => this.app.asset() ? this.app.asset().textureToggle() : null
+        }
+        const toolbar = Toolbar(props)
+        const el = document.getElementById('toolbar')
+        ReactDom.render(toolbar, el)
     }
 }
