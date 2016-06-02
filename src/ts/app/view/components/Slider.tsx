@@ -10,6 +10,7 @@ interface SliderProps {
     onChange: ChangeFunction
 }
 
+// Invokes callback with value from React's SyntheticEvent event safely
 const bind = (onChange: ChangeFunction) => (event: React.SyntheticEvent) => {
     const target = event.target as HTMLInputElement
     onChange(parseInt(target.value))

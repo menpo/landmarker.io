@@ -17,9 +17,9 @@ export interface ToolbarProps {
 
 export const Toolbar:React.StatelessComponent<ToolbarProps> = (props) =>
     <div>
-        <Toggle title="Autosave" checked={props.isAutosaveOn} onClick={props.setAutosave} />
-        <Toggle title="Links" checked={props.isConnectivityOn} onClick={props.setConnectivity} />
-        <Toggle title="Texture" checked={props.isTextureOn} onClick={props.setTexture} />
-        <Toggle title="Snap" checked={props.isSnapOn} onClick={props.setSnap} />
+        <Toggle label="Autosave" checked={props.isAutosaveOn} onClick={props.setAutosave} />
+        <Toggle label="Links" checked={props.isConnectivityOn} onClick={props.setConnectivity} />
+        <Toggle label="Texture" checked={props.isTextureOn} onClick={props.setTexture} />
+        <Toggle label="Snap" checked={props.isSnapOn} onClick={props.setSnap} />
         <Slider label="●" min={0} max={100} value={props.landmarkSize} onChange={props.setLandmarkSize} />
     </div>
