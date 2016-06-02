@@ -3,34 +3,6 @@ import * as Backbone from 'backbone'
 import { App } from '../model/app'
 import * as Asset from '../model/asset'
 
-export class LandmarkSizeSlider extends Backbone.View<App> {
-
-    constructor(model: App) {
-        super({
-            model,
-            el: '#lmSizeSlider' ,
-            events: {
-                input: "changeLandmarkSize"
-            }
-        })
-        this.listenTo(this.model, "change:landmarkSize", this.render)
-        // set the size immediately.
-        this.render()
-    }
-
-    render() {
-        this.$el[0].value = this.model.landmarkSize() * 100
-        return this
-    }
-
-    changeLandmarkSize(event: JQueryInputEventObject) {
-        this.model.set(
-            "landmarkSize",
-            Math.max(Number(event.target.value) / 100, 0.05))
-    }
-
-}
-
 export class TextureToggle extends Backbone.View<App> {
 
     mesh: Asset.Image
@@ -85,7 +57,6 @@ export class TextureToggle extends Backbone.View<App> {
 
 export default class Toolbar extends Backbone.View<App> {
 
-    lmSizeSlider: LandmarkSizeSlider
     textureToggle: TextureToggle
 
     constructor(model: App) {
@@ -93,7 +64,6 @@ export default class Toolbar extends Backbone.View<App> {
             model: model,
             el: '#toolbar'
         })
-        this.lmSizeSlider = new LandmarkSizeSlider(this.model)
         if (this.model.meshMode()) {
             this.textureToggle = new TextureToggle(this.model)
         } else {

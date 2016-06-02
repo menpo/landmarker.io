@@ -73,7 +73,7 @@ export class BackboneViewport {
     }
 
     setLandmarkSize = () => {
-        this.viewport.setLandmarkSize(this.model.landmarkSize())
+        this.viewport.setLandmarkSize(this.model.landmarkSize)
     }
 
     updateEditingDisplay = () => {

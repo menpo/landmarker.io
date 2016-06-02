@@ -31,7 +31,6 @@ export class App extends Backbone.Model {
 
     constructor(opts: AppOptions) {
         super({
-            landmarkSize: 0.2,
             mode: 'mesh',
             connectivityOn: true,
             editingOn: true,
@@ -41,6 +40,7 @@ export class App extends Backbone.Model {
             helpOverlayIsDisplayed: false
         })
         this.set(opts)
+        this.landmarkSize = 0.2
 
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource)
@@ -174,8 +174,12 @@ export class App extends Backbone.Model {
         }
     }
 
-    landmarkSize(): number {
+    get landmarkSize() {
         return this.get('landmarkSize')
+    }
+
+    set landmarkSize (landmarkSize: number) {
+        this.set('landmarkSize', landmarkSize)
     }
 
     budgeLandmarks(vector:  [number, number]) {
@@ -445,15 +449,15 @@ export class App extends Backbone.Model {
      }
 
     incrementLandmarkSize() {
-        const size = this.landmarkSize()
+        const size = this.landmarkSize
         const factor = Math.floor(size / 0.25) + 1
-        this.set('landmarkSize', Math.min(0.25 * factor, 1))
+        this.landmarkSize = Math.min(0.25 * factor, 1)
      }
 
     decrementLandmarkSize() {
-        const size = this.landmarkSize()
+        const size = this.landmarkSize
         const factor = Math.floor(size / 0.25) - 1
-        this.set('landmarkSize', Math.max(0.25 * factor, 0.05))
+        this.landmarkSize = Math.max(0.25 * factor, 0.05)
     }
 
 }

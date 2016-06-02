@@ -112,7 +112,9 @@ export class ReactBridge {
             setAutosave: (on) => this.app.toggleAutoSave(),
             setConnectivity: (on) => this.app.toggleConnectivity(),
             setSnap: (on) => this.app.toggleEditing(),
-            setTexture: (on) => this.app.asset() ? this.app.asset().textureToggle() : null
+            setTexture: (on) => this.app.asset() ? this.app.asset().textureToggle() : null,
+            landmarkSize: this.app.landmarkSize * 100,
+            setLandmarkSize: (size) => { this.app.landmarkSize = size / 100 }
         }
         const toolbar = Toolbar(props)
         const el = document.getElementById('toolbar')
