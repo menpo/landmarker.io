@@ -16,13 +16,13 @@ export default {
         'points': 5,
         'connectivity': ['0 1', '1 2', '2 3', '3 4']
     }, {
-        'label': 'nose',
-        'points': 9,
-        'connectivity': ['0 1', '1 2', '2 3', '4 5', '5 6', '6 7', '7 8']
-    }, {
         'label': 'reyebrow',
         'points': 5,
         'connectivity': ['0 1', '1 2', '2 3', '3 4']
+    }, {
+        'label': 'nose',
+        'points': 9,
+        'connectivity': ['0 1', '1 2', '2 3', '4 5', '5 6', '6 7', '7 8']
     }, {
         'label': 'mouth',
         'points': 20,
