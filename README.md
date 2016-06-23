@@ -1,5 +1,3 @@
-![](./static/favicon-194x194.png)
-
 <p align="center">
   <img src="./static/favicon-194x194.png" alt="landmarker.io"></center>
   <br><br>
