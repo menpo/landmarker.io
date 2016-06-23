@@ -1,9 +1,13 @@
 ![](./static/favicon-194x194.png)
 
-# landmarker.io
+<p align="center">
+  <img src="./static/favicon-194x194.png" alt="landmarker.io"></center>
+  <br><br>
+  <a href="https://travis-ci.org/menpo/landmarker.io"><img src="https://travis-ci.org/menpo/landmarker.io.svg?branch=master" alt="Build Status"/></a>
+</p>
 
-[![Build Status](https://travis-ci.org/menpo/landmarker.io.svg?branch=master)](https://travis-ci.org/menpo/landmarker.io)
-
+landmarker.io
+=============
 3D mesh and image annotation in the browser, the app is live at [https://www.landmarker.io](https://www.landmarker.io).
 
 Check out [the wiki](https://github.com/menpo/landmarker.io/wiki) for [usage instructions](https://github.com/menpo/landmarker.io/wiki/User-guide) and specifications. Read on if you want to contribute.
