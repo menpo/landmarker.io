@@ -33,6 +33,7 @@ import ImagePromise from '../lib/imagepromise'
 import Template from '../template'
 import Picker from '../view/dropbox_picker'
 import { Backend } from './base'
+import { Config } from '../model/config'
 
 export class Dropbox implements Backend {
 
@@ -40,7 +41,7 @@ export class Dropbox implements Backend {
     static Type = 'DROPBOX'
 
     _token: string
-    _cfg
+    _cfg: Config
     mode: 'image' | 'mesh' = 'image'
     _meshTextures = {}
     _meshMtls = {}
@@ -53,7 +54,7 @@ export class Dropbox implements Backend {
     _templates = Template.loadDefaultTemplates()
     _templatesPaths = {}
 
-    constructor(token: string, cfg) {
+    constructor(token: string, cfg: Config) {
         this._token = token
         this._cfg = cfg
 

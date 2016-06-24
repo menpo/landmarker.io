@@ -9,7 +9,7 @@ import * as support from '../lib/support'
 
 const LOCALSTORAGE_KEY = 'LMIO#CONFIG'
 
-class Config {
+export class Config {
     _data = {}
 
     get(key:string) {

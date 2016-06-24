@@ -208,7 +208,7 @@ function resolveMode (backend: Backend, u: url.Url) {
         if (mode === 'mesh' || mode === 'image') {
             initLandmarker(backend, mode, u)
         } else {
-            retry('Received invalid mode', mode)
+            retry(`Received invalid mode '${mode}''`)
         }
     }, function (err) {
         console.log(err)
