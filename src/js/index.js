@@ -18,7 +18,7 @@ import SidebarView from './app/view/sidebar';
 import HelpOverlay from './app/view/help';
 import ToolbarView from './app/view/toolbar';
 import URLState from './app/view/url_state';
-import ViewportView from './app/view/viewport';
+import { BackboneViewport } from './app/view/bbviewport';
 import KeyboardShortcutsHandler from './app/view/keyboard';
 
 import Config from './app/model/config';
@@ -239,7 +239,8 @@ function initLandmarker(server, mode, u) {
     new ToolbarView({model: app});
     new HelpOverlay({model: app});
 
-    var viewport = new ViewportView({model: app});
+    var bbviewport = new BackboneViewport(app);
+    var viewport = bbviewport.viewport;
 
     var prevAsset = null;
 

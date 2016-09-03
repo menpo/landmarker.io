@@ -17,8 +17,8 @@
     "new-cap": [2, {"newIsCap":true, "capIsNew":false}],
     "prefer-const": [1],
     "no-alert": [0],
-    "key-spacing": [2, {"beforeColon": false, "afterColon": true}],
     "camelcase": [1],
+    "semi": [1, "always"],
     "no-multiple-empty-lines": [2, {"max": 1}],
     "dot-notation": [1],
     "no-unexpected-multiline": [2]

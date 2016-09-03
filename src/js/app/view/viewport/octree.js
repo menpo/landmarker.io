@@ -1,4 +1,3 @@
-
 'use strict';
 
 import THREE from 'three';

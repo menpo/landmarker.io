@@ -14,7 +14,7 @@
     "build:webpack": "webpack --config ./webpack/webpack.prod.config.js",
     "build:appcache": "sed 's/<html lang=\"en\">/<html lang=\"en\" manifest=\"lmio.appcache\">/g' ./build/index.html > tmp && mv tmp ./build/index.html",
     "build": "NODE_ENV=production npm run build:prep && npm run build:webpack && npm run build:appcache",
-    "watch:webpack-dev-server": "webpack-dev-server --config ./webpack/webpack.dev.config.js --colours --content-base ./build",
+    "watch:webpack-dev-server": "webpack-dev-server --config ./webpack/webpack.dev.config.js --colours --content-base ./build --port 4000 --host 0.0.0.0",
     "watch": "npm run build:prep && npm run watch:webpack-dev-server",
     "test": "mocha --compilers js:babel/register -R spec --recursive ./test",
     "coverage": "istanbul cover _mocha -- --compilers js:babel/register -R dot --recursive ./test",

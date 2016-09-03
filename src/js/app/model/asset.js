@@ -64,6 +64,10 @@ export const Image = Backbone.Model.extend({
         return { textureOn: true };
     },
 
+    server: function () {
+        return this.get('server');
+    },
+
     hasTexture: function() {
         return this.hasOwnProperty('texture');
     },
@@ -179,7 +183,7 @@ export const Image = Backbone.Model.extend({
 
     loadThumbnail: function () {
         if (!this.hasOwnProperty('_thumbnailPromise')) {
-            this._thumbnailPromise = this.get('server').fetchThumbnail(this.id).then((material) => {
+            this._thumbnailPromise = this.server().fetchThumbnail(this.id).then((material) => {
                 delete this._thumbnailPromise;
                 console.log('Asset: loaded thumbnail for ' + this.id);
                 this.thumbnail = material;
@@ -196,7 +200,7 @@ export const Image = Backbone.Model.extend({
 
     loadTexture: function () {
         if (!this.hasOwnProperty('_texturePromise')) {
-            this._texturePromise = this.get('server').fetchTexture(this.id).then((material) => {
+            this._texturePromise = this.server().fetchTexture(this.id).then((material) => {
                 delete this._texturePromise;
                 console.log('Asset: loaded texture for ' + this.id);
                 this.texture = material;
@@ -258,7 +262,7 @@ export const Image = Backbone.Model.extend({
 export const Mesh = Image.extend({
 
     geometryUrl: function () {
-        return this.get('server').map('meshes/' + this.id);
+        return this.server().map('meshes/' + this.id);
     },
 
     loadGeometry: function () {
@@ -266,7 +270,7 @@ export const Mesh = Image.extend({
             // already loading this geometry
             return this._geometryPromise;
         }
-        const arrayPromise = this.get('server').fetchGeometry(this.id);
+        const arrayPromise = this.server().fetchGeometry(this.id);
 
         if (arrayPromise.isGeometry) { // Backend says it parses the geometry
             this._geometryPromise = arrayPromise.then((geometry) => {

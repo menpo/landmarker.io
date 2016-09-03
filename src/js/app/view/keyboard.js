@@ -9,12 +9,10 @@ const SHORTCUTS = {
     // Shortcuts activated without SHIFT, but CAPS LOCK ok (letters)
     "d": [function (lms) { // d = [d]elete selected
         lms.deleteSelected();
-        $('#viewportContainer').trigger("groupDeselected");
     }, false, true],
 
     "q": [function (lms) { // q = deselect all
         lms.deselectAll();
-        $('#viewportContainer').trigger("groupDeselected");
     }, false, true],
 
     "r": [function (lms, app, viewport) { // r = [r]eset camera
@@ -30,11 +28,10 @@ const SHORTCUTS = {
 
     "a": [function (lms, app) { // a = select [a]ll
         app.landmarks().selectAll();
-        $('#viewportContainer').trigger("groupSelected");
     }, false, true],
 
-    "g": [function () { // g = complete [g]roup selection
-        $('#viewportContainer').trigger("completeGroupSelection");
+    "g": [function (lms) { // g = complete [g]roup selection
+        lms.completeGroups()
     }, false, true],
 
     "c": [function (lms, app, viewport) { // c = toggle [c]amera mode
@@ -138,7 +135,6 @@ export default function KeyboardShortcutsHandler (app, viewport) {
             lms = app.landmarks();
             if (lms) {
                 app.landmarks().deselectAll();
-                $('#viewportContainer').trigger("groupDeselected");
                 evt.stopPropagation();
                 return null;
             }
@@ -148,6 +144,15 @@ export default function KeyboardShortcutsHandler (app, viewport) {
             if (lms) {
                 lms.save();
             }
+        } else if (evt.which >= 37 && evt.which <= 40) { // arrow keys
+            // Up and down are inverted due to the way THREE handles coordinates
+            const vector = {
+                37: [-1, 0],  // Left
+                38: [0, -1],  // Up
+                39: [1, 0],   // Right
+                40: [0, 1]    // Down
+            }[evt.which];
+            app.budgeLandmarks(vector)
         }
     };
 }

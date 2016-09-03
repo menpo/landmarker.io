@@ -19,9 +19,13 @@ const AssetSource = Backbone.Model.extend({
         return { assets: new Backbone.Collection(), assetIsLoading: false };
     },
 
+    server: function () {
+        return this.get('server');
+    },
+
     fetch: function () {
         return (
-            this.get('server').fetchCollection(this.id).then((response) => {
+            this.server().fetchCollection(this.id).then((response) => {
                 this.set('assets', this.parse(response).assets);
             })
         );
@@ -95,7 +99,7 @@ export const MeshSource = AssetSource.extend({
         const meshes = response.map((assetId) => {
             return new Asset.Mesh({
                 id: assetId,
-                server: this.get('server')
+                server: this.server()
             });
         });
 
@@ -103,7 +107,7 @@ export const MeshSource = AssetSource.extend({
     },
 
     setAsset: function (newMesh) {
-        var oldAsset = this.get('asset');
+        var oldAsset = this.asset();
         // stop listening to the old asset
         if (oldAsset) {
             this.stopListening(oldAsset);
@@ -165,7 +169,7 @@ export const ImageSource = AssetSource.extend({
         const images = response.map((assetId) => {
             return new Asset.Image({
                 id: assetId,
-                server: this.get('server')
+                server: this.server()
             });
         });
 
@@ -173,7 +177,7 @@ export const ImageSource = AssetSource.extend({
     },
 
     setAsset: function (newAsset) {
-        const oldAsset = this.get('asset');
+        const oldAsset = this.asset();
         // stop listening to the old asset
         if (oldAsset) {
             this.stopListening(oldAsset);

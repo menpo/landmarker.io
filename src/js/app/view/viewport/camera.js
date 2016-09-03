@@ -1,3 +1,28 @@
+'use strict';
+
+import THREE from 'three';
+import $ from 'jquery';
+
+const MOUSE_WHEEL_SENSITIVITY = 0.5;
+const ROTATION_SENSITIVITY = 3.5;
+const DAMPING_FACTOR = 0.2;
+const PIP_ZOOM_FACTOR = 12.0;
+// const EPS = 0.000001;
+
+const STATE = {
+    NONE: -1,
+    ROTATE: 0,
+    ZOOM: 1,
+    PAN: 2
+};
+
+// see https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent.deltaMode
+const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
+    0: 1.0, // The delta values are specified in pixels.
+    1: 34.0, // The delta values are specified in lines.
+    2: 1.0 // The delta values are specified in pages.
+};
+
 /**
  * Controller for handling basic camera events on a Landmarker.
  *
@@ -21,37 +46,9 @@
  * for instance) can disable the Controller temporarily with the enabled
  * property.
  */
-'use strict';
-
-import _ from 'underscore';
-import THREE from 'three';
-import $ from 'jquery';
-import Backbone from 'backbone';
-
-const MOUSE_WHEEL_SENSITIVITY = 0.5;
-const ROTATION_SENSITIVITY = 3.5;
-const DAMPING_FACTOR = 0.2;
-const PIP_ZOOM_FACTOR = 12.0;
-// const EPS = 0.000001;
-
-// see https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent.deltaMode
-const UNITS_FOR_MOUSE_WHEEL_DELTA_MODE = {
-    0: 1.0, // The delta values are specified in pixels.
-    1: 34.0, // The delta values are specified in lines.
-    2: 1.0 // The delta values are specified in pages.
-};
-
-export default function CameraController (pCam, oCam, oCamZoom, domElement) {
+export function CameraController (pCam, oCam, oCamZoom, domElement) {
 
     const controller = {};
-    _.extend(controller, Backbone.Events);
-
-    const STATE = {
-        NONE: -1,
-        ROTATE: 0,
-        ZOOM: 1,
-        PAN: 2
-    };
 
     let state = STATE.NONE; // the current state of the Camera
     let canRotate = true;
@@ -141,8 +138,9 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         pCam.updateProjectionMatrix();
     }
 
-    const tvec = new THREE.Vector3(); // a temporary vector for efficient maths
-    const tinput = new THREE.Vector3(); // temp vec used for
+    // temporary vectors for efficient maths
+    const tvec = new THREE.Vector3();
+    const tinput = new THREE.Vector3();
 
     const normalMatrix = new THREE.Matrix3();
 
@@ -178,7 +176,7 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         oCam.top += deltaV;
         oCam.bottom += deltaV;
         oCam.updateProjectionMatrix();
-        controller.trigger('change');
+        _change();
     }
 
     function zoom (distance) {
@@ -221,7 +219,7 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
             pageX: mouseHoverPosition.x,
             pageY: mouseHoverPosition.y
         });
-        controller.trigger('change');
+        _change();
     }
 
     function distanceToTarget () {
@@ -306,7 +304,7 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         rotateCamera(delta, pCam, singleDir);
         rotateCamera(delta, oCam, singleDir);
         rotateCamera(delta, oCamZoom, singleDir);
-        controller.trigger('change');
+        _change();
     }
 
     // mouse
@@ -422,7 +420,19 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         oCamZoom.updateProjectionMatrix();
         // emit a special change event. If the viewport is
         // interested (i.e. we are in PIP mode) it can update
-        controller.trigger('changePip');
+        _changePip();
+    }
+
+    function _changePip() {
+        if (controller.onChangePip !== null) {
+            controller.onChangePip();
+        }
+    }
+
+    function _change() {
+        if (controller.onChange !== null) {
+            controller.onChange();
+        }
     }
 
     function onMouseUp (event) {
@@ -507,6 +517,8 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
     controller.focus = focus;
     controller.position = position;
     controller.reset = reset;
+    controller.onChange = null;
+    controller.onChangePip = null;
 
     return controller;
 }

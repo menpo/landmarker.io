@@ -132,6 +132,10 @@ export default Backbone.Model.extend({
         return this.get('landmarks');
     },
 
+    landmarkSize: function () {
+        return this.get('landmarkSize');
+    },
+
     initialize: function () {
         _.bindAll(this, 'assetChanged', 'mesh', 'assetSource', 'landmarks');
 
@@ -141,6 +145,11 @@ export default Backbone.Model.extend({
 
         this._initTemplates();
         this._initCollections();
+    },
+
+    budgeLandmarks: function(vector) {
+        // call our onBudgeLandmarks callback
+        this.onBudgeLandmarks(vector)
     },
 
     _initTemplates: function (override=false) {
