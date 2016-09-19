@@ -2,7 +2,9 @@ node_modules
 .DS_Store
 # IntelliJ modules
 *.iml
+.idea
 # On master - we don't want to check in every bundle we make!
 npm-debug.log
 coverage
 build
+typings

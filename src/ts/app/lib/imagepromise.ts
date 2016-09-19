@@ -1,0 +1,64 @@
+import * as THREE from 'three'
+import { loading } from '../view/notification'
+
+export function ImagePromise (url: string, auth=false) {
+
+    return new Promise(function (resolve, reject) {
+
+        var xhr = new XMLHttpRequest()
+
+        xhr.open('GET', url, true)
+        xhr.responseType = 'blob'
+        var img = new Image()
+
+        xhr.withCredentials = !!auth
+        var asyncId = loading.start()
+
+        xhr.addEventListener('load', function () {
+            if (this.status === 200) {
+                var blob = this.response
+                img.addEventListener('load', function () {
+                    loading.stop(asyncId)
+                    window.URL.revokeObjectURL(img.src) // Clean up after ourselves.
+                    resolve(img)
+                })
+                img.src = window.URL.createObjectURL(blob)
+            } else {
+                loading.stop(asyncId)
+                reject(Error(xhr.statusText))
+            }
+        })
+
+        xhr.addEventListener('error', function() {
+            loading.stop(asyncId)
+            reject(Error('Network Error'))
+        })
+
+        xhr.addEventListener('abort', function() {
+            loading.stop(asyncId)
+            reject(Error('Aborted'))
+        })
+
+        xhr.send()
+    })
+}
+
+export function TexturePromise (url: string, auth: boolean) {
+    const texture = new THREE.Texture(undefined)
+    texture.sourceFile = url
+    // in general our textures will not be powers of two size, so we need
+    // to set our resampling appropriately.
+    texture.minFilter = THREE.LinearFilter
+
+    return ImagePromise(url, auth).then(function(image) {
+            texture.image = image
+            texture.needsUpdate = true
+            return texture
+    })
+}
+
+export function MaterialPromise (url: string, auth: boolean) {
+    return TexturePromise(url, auth).then((texture) => new THREE.MeshBasicMaterial({map: texture}))
+}
+
+export default MaterialPromise
