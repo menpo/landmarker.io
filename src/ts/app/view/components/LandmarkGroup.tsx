@@ -2,11 +2,11 @@ import * as React from "react"
 import { LandmarkProps } from './Landmark'
 import { LandmarkList, LandmarkListProps } from './LandmarkList'
 
-const S = {
-    GROUP: {
+const S_GROUP: React.CSSProperties = {
         position: 'relative'
-    },
-    LABEL: {
+}
+
+const S_LABEL: React.CSSProperties = {
         width: '100%',
         height: '100%',
         position: 'absolute',
@@ -18,7 +18,6 @@ const S = {
         alignItems: 'center',
         justifyContent: 'center',
         display: 'flex'
-    }
 }
 
 export interface LandmarkGroupProps extends LandmarkListProps {
@@ -29,10 +28,13 @@ interface LandmarkGroupPropsWithCB extends LandmarkGroupProps {
     onClick: (index: number) => void
 }
 
-export const LandmarkGroup:React.StatelessComponent<LandmarkGroupPropsWithCB> = (props) =>
-    <div className="LmGroup" style={S.GROUP}>
-        <div className="LmGroup-Label" style={S.LABEL}>{props.label}</div>
-        <LandmarkList
-            landmarks={props.landmarks}
-            onClick={props.onClick} />
-    </div>
+export function LandmarkGroup(props: LandmarkGroupPropsWithCB) {
+    return (
+        <div className="LmGroup" style={S_GROUP}>
+            <div className="LmGroup-Label" style={S_LABEL}>{props.label}</div>
+            <LandmarkList
+                landmarks={props.landmarks}
+                onClick={props.onClick} />
+        </div>
+    )
+}

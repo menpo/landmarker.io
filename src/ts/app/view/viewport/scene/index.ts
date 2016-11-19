@@ -208,7 +208,7 @@ export class Scene implements IScene {
         this.shScaleRotate.lookAt(front.clone())
 
         // ..and finally the translation
-        const t = mesh.geometry.boundingBox.center().clone()
+        const t = mesh.geometry.boundingBox.getCenter().clone()
         t.multiplyScalar(-1.0)
         this.sTranslate.position.copy(t)
         this.shTranslate.position.copy(t)

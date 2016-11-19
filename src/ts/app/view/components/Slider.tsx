@@ -16,8 +16,11 @@ const bind = (onChange: ChangeFunction) => (event: React.SyntheticEvent) => {
     onChange(parseInt(target.value))
 }
 
-export const Slider:React.StatelessComponent<SliderProps> = (props) =>
-    <div className="Toolbar-Row Toolbar-Slider">
-        <div>{props.label}</div>
-        <input type="range" onChange={bind(props.onChange)} min={props.min} max={props.max} value={props.value}/>
-    </div>
+export function Slider(props: SliderProps) {
+    return (
+        <div className="Toolbar-Row Toolbar-Slider">
+            <div>{props.label}</div>
+            <input type="range" onChange={bind(props.onChange)} min={props.min} max={props.max} value={props.value}/>
+        </div>
+    )
+}

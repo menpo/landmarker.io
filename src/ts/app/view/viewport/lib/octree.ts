@@ -182,7 +182,7 @@ class ExtendableOctree extends OctreeNode<ExtendableOctree> {
     // Split this node into 8 subnodes.
     subdivide() {
         const m = this.min
-        const c = this.center()
+        const c = this.getCenter()
 
         // all subnodes will have this vector from min to max
         const displacement = new THREE.Vector3()

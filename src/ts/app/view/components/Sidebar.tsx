@@ -5,8 +5,11 @@ export interface SidebarProps extends LandmarkGroupListProps {
     onClickLandmark: (index: number) => void
 }
 
-export const Sidebar:React.StatelessComponent<SidebarProps> = (props) =>
-    <LandmarkGroupList
-        groups={props.groups}
-        onClick={props.onClickLandmark}
-    />
+export function Sidebar(props: SidebarProps) {
+    return (
+        <LandmarkGroupList
+            groups={props.groups}
+            onClick={props.onClickLandmark}
+        />
+    )
+}

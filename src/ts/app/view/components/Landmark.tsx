@@ -38,5 +38,8 @@ interface LandmarkPropsWithCB extends LandmarkProps {
     onClick: (index: number) => void
 }
 
-export const Landmark:React.StatelessComponent<LandmarkPropsWithCB> = (props) =>
-    <div style={style(props)} onClick={() => props.onClick(props.id)}></div>
+export function Landmark(props: LandmarkPropsWithCB) {
+    return (
+        <div style={style(props)} onClick={() => props.onClick(props.id)}></div>
+    )
+}

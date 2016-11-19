@@ -16,11 +16,14 @@ interface LandmarkListPropsWithCB extends LandmarkListProps {
     onClick: (index: number) => void
 }
 
-export const LandmarkList:React.StatelessComponent<LandmarkListPropsWithCB> = (props) =>
-    <div className="LandmarkList" style={S}>
-        {props.landmarks.map((lm, index) =>
-                <Landmark {...lm}
-                    key={index}
-                    onClick={props.onClick} />
-        )}
-    </div>
+export function LandmarkList(props: LandmarkListPropsWithCB) {
+    return (
+        <div className="LandmarkList" style={S}>
+            {props.landmarks.map((lm, index) =>
+                    <Landmark {...lm}
+                        key={index}
+                        onClick={props.onClick} />
+            )}
+        </div>
+    )
+}

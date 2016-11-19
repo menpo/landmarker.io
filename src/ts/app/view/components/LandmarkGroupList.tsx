@@ -10,11 +10,14 @@ interface LandmarkGroupListPropsWithCB extends LandmarkGroupListProps {
     onClick: (index: number) => void
 }
 
-export const LandmarkGroupList:React.StatelessComponent<LandmarkGroupListPropsWithCB> = (props) =>
-    <div>
-        {props.groups.map((group, i) =>
-                <LandmarkGroup {...group}
-                    key={i}
-                    onClick={props.onClick} />
-        )}
-    </div>
+export function LandmarkGroupList(props: LandmarkGroupListPropsWithCB) {
+    return (
+        <div>
+            {props.groups.map((group, i) =>
+                    <LandmarkGroup {...group}
+                        key={i}
+                        onClick={props.onClick} />
+            )}
+        </div>
+    )
+}
