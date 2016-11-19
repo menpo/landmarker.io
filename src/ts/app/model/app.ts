@@ -327,7 +327,7 @@ export class App extends Backbone.Model {
         }
      }
 
-    autoSaveWrapper(fn) {
+    autoSaveWrapper(fn: () => void) {
         const lms = this.landmarks
         if (lms && !lms.tracker.isUpToDate) {
             if (!this.isAutoSaveOn) {

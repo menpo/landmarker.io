@@ -13,35 +13,51 @@
 
 import * as THREE from 'three'
 
-export default function OBJLoader(text) {
+type OBJGeometry = {
+    vertices: number[],
+    normals: number[],
+    uvs: number[]
+}
+
+type OBJMaterial = {
+    name: string
+}
+
+type OBJObject = {
+    name: string
+    geometry: OBJGeometry,
+    material: OBJMaterial
+}
+
+export default function OBJLoader(text: string) {
 
     console.time('OBJLoader')
 
-    let object
-    const objects = []
-    let geometry
-    let material
-    const vertices = []
-    const normals = []
-    const uvs = []
-    let buffergeometry
+    let object: OBJObject
+    const objects: OBJObject[] = []
+    let geometry: OBJGeometry
+    let material: OBJMaterial
+    const vertices: number[] = []
+    const normals: number[] = []
+    const uvs: number[] = []
+    let buffergeometry: THREE.BufferGeometry
 
-    function parseVertexIndex(value) {
+    function parseVertexIndex(value: string) {
         const index = parseInt(value)
         return (index >= 0 ? index - 1 : index + vertices.length / 3) * 3
     }
 
-    function parseNormalIndex(value) {
+    function parseNormalIndex(value: string) {
         const index = parseInt(value)
         return (index >= 0 ? index - 1 : index + normals.length / 3) * 3
     }
 
-    function parseUVIndex(value) {
+    function parseUVIndex(value: string) {
         const index = parseInt(value)
         return (index >= 0 ? index - 1 : index + uvs.length / 2) * 2
     }
 
-    function addVertex(a, b, c) {
+    function addVertex(a: number, b: number, c: number) {
         geometry.vertices.push(
             vertices[a], vertices[a + 1], vertices[a + 2],
             vertices[b], vertices[b + 1], vertices[b + 2],
@@ -49,7 +65,7 @@ export default function OBJLoader(text) {
         )
     }
 
-    function addNormal(a, b, c) {
+    function addNormal(a: number, b: number, c: number) {
         geometry.normals.push(
             normals[a], normals[a + 1], normals[a + 2],
             normals[b], normals[b + 1], normals[b + 2],
@@ -57,7 +73,7 @@ export default function OBJLoader(text) {
         )
     }
 
-    function addUV(a, b, c) {
+    function addUV(a: number, b: number, c: number) {
         geometry.uvs.push(
             uvs[a], uvs[a + 1],
             uvs[b], uvs[b + 1],
@@ -65,11 +81,13 @@ export default function OBJLoader(text) {
         )
     }
 
-    function addFace(a, b, c, d, ua, ub, uc, ud, na, nb, nc, nd) {
+    function addFace(a: string, b: string, c: string, d: string,
+                     ua: string, ub: string, uc: string, ud: string,
+                     na: string, nb: string, nc: string, nd: string) {
         let ia = parseVertexIndex(a)
         let ib = parseVertexIndex(b)
         let ic = parseVertexIndex(c)
-        let id
+        let id: number
 
         if (d === undefined) {
             addVertex(ia, ib, ic)
@@ -158,7 +176,7 @@ export default function OBJLoader(text) {
         let line = lines[i]
         line = line.trim()
 
-        let result
+        let result: RegExpExecArray
 
         if (line.length === 0 || line.charAt(0) === '#') {
             continue
@@ -185,13 +203,16 @@ export default function OBJLoader(text) {
         } else if ((result = facePattern1.exec(line)) !== null) {
             // ["f 1 2 3", "1", "2", "3", undefined]
             addFace(
-                result[1], result[2], result[3], result[4]
+                result[1], result[2], result[3], result[4],
+                undefined, undefined, undefined, undefined,
+                undefined, undefined, undefined, undefined
             )
         } else if ((result = facePattern2.exec(line)) !== null) {
             // ["f 1/1 2/2 3/3", " 1/1", "1", "1", " 2/2", "2", "2", " 3/3", "3", "3", undefined, undefined, undefined]
             addFace(
                 result[2], result[5], result[8], result[11],
-                result[3], result[6], result[9], result[12]
+                result[3], result[6], result[9], result[12],
+                undefined, undefined, undefined, undefined
             )
         } else if ((result = facePattern3.exec(line)) !== null) {
             // ["f 1/1/1 2/2/2 3/3/3", " 1/1/1", "1", "1", "1", " 2/2/2", "2", "2", "2", " 3/3/3", "3", "3", "3", undefined, undefined, undefined, undefined]
@@ -259,7 +280,7 @@ export default function OBJLoader(text) {
             buffergeometry.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(geometry.uvs), 2))
         }
 
-        material = new THREE.MeshLambertMaterial()
+        const material = new THREE.MeshLambertMaterial()
         material.name = object.material.name
 
         const mesh = new THREE.Mesh(buffergeometry, material)

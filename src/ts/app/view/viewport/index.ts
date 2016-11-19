@@ -38,6 +38,7 @@ export interface IViewport {
     connectivityVisable: boolean
     cameraIsLocked: boolean
     landmarkSnapPermitted: boolean
+    memoryString: () => string
 }
 
 // We are trying to move towards the whole viewport module being a standalone black box that

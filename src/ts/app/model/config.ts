@@ -13,7 +13,7 @@ export function Config () {
     this._data = {}
 }
 
-Config.prototype.get = function (key) {
+Config.prototype.get = function (key: string) {
     if (!key) {
         return _.clone(this._data)
     } else {
@@ -21,11 +21,11 @@ Config.prototype.get = function (key) {
     }
 }
 
-Config.prototype.has = function (key) {
+Config.prototype.has = function (key: string) {
     return this._data.hasOwnProperty(key)
 }
 
-Config.prototype.delete = function (key, save) {
+Config.prototype.delete = function (key: string, save: boolean) {
     delete this._data[key]
     if (save) {
         this.save()
@@ -34,7 +34,7 @@ Config.prototype.delete = function (key, save) {
 
 Config.prototype.set = function (arg1, arg2, arg3) {
 
-    let save
+    let save: boolean
 
     if (typeof arg1 === 'string') { // Submitted a key/value pair
         this._data[arg1] = arg2

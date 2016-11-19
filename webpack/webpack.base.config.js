@@ -35,5 +35,8 @@ module.exports = {
     postcss: function () {
         return [autoprefixer];
     },
+    ts: {
+        visualStudioErrorFormat: true
+    },
     plugins: []
 };

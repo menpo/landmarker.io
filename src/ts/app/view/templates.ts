@@ -84,7 +84,7 @@ export class TemplatePicker extends Backbone.View<App> {
     add(evt) {
         evt.stopPropagation()
         if (typeof this.model.backend.pickTemplate === 'function') {
-            this.model.backend.pickTemplate((name) => {
+            this.model.backend.pickTemplate((name: string) => {
                 this.model._activeTemplate = name
                 this.model._initTemplates()
             }, function (err) {

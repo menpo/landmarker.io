@@ -91,7 +91,7 @@ const Intro = Modal.extend({
     },
 
     startServer: function () {
-        Modal.prompt('Where is your server located ?', (value) => {
+        Modal.prompt('Where is your server located ?', (value: string) => {
             restart(value)
         }, () => {
             this.open()
