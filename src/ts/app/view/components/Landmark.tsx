@@ -1,5 +1,4 @@
 import * as React from "react"
-import * as classNames from 'classnames'
 import * as _ from 'lodash'
 
 const BASE_STYLE: React.CSSProperties = {

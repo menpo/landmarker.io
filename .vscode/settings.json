@@ -1,4 +1,6 @@
 // Place your settings in this file to overwrite default and user settings.
 {
-    "files.trimTrailingWhitespace": true
+    "files.trimTrailingWhitespace": true,
+    "typescript.check.workspaceVersion": true,
+    "typescript.tsdk": "./node_modules/typescript/lib"
 }
