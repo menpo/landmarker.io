@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { Landmark } from '../base'
+import { Landmark } from '../../base'
 import { ViewportElementCallbacks } from './base'
 
 const LM_SCALE = 0.01  // the default scale for 1.0
