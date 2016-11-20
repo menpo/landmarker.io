@@ -17,7 +17,8 @@ function PagerArrow(props: PagerArrowProps) {
 
 
 const style: React.CSSProperties = {
-    display: 'flex'
+    display: 'flex',
+    flex: 1
 }
 
 

@@ -58,8 +58,9 @@ export class ReactBridge {
         app.on('change:asset', () => this.connectAsset())
         app.on('change', () => {
             this.renderToolbar()
-            this.renderPager()
         })
+        app.on('change:asset', () => this.renderPager())
+
         this.connectLandmarks()
         this.connectAsset()
         this.renderLandmarkTable()

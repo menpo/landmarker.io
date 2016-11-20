@@ -10,38 +10,6 @@ import { Dropbox, Server } from '../backend'
 import Modal from './modal'
 import ListPicker from './list_picker'
 
-export const AssetPagerView = Backbone.View.extend({
-
-    el: '#assetPager',
-
-    events: {
-        'click #next': 'next',
-        'click #previous': 'previous'
-    },
-
-    initialize: function() {
-        _.bindAll(this, 'render')
-        this.listenTo(this.model, "change:asset", this.render)
-    },
-
-    render: function () {
-        this.$el.find('#next').toggleClass('Button--Disabled',
-            !this.model.assetSource.hasSuccessor)
-        this.$el.find('#previous').toggleClass('Button--Disabled',
-            !this.model.assetSource.hasPredecessor)
-        return this
-    },
-
-    next: function () {
-        this.model.nextAsset()
-    },
-
-    previous: function () {
-        this.model.previousAsset()
-    }
-
-})
-
 export const BackendNameView = Backbone.View.extend({
 
     el: '#backendName',
@@ -285,7 +253,6 @@ export default Backbone.View.extend({
     initialize: function ({restart}) {
         new BackendNameView({model: this.model, restart})
         new CollectionName({model: this.model})
-        new AssetPagerView({model: this.model})
         new AssetNameView({model: this.model})
         new AssetIndexView({model: this.model})
     }
