@@ -274,7 +274,7 @@ function initLandmarker(backend: Backend, mode: 'image' | 'mesh', u: url.Url) {
     keyboard.enable()
 }
 
-function handleNewVersion () {
+function handleNewVersion() {
 
     const $topBar = $('#newVersionPrompt')
     $topBar.text(

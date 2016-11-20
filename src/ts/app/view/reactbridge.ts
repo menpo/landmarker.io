@@ -53,32 +53,33 @@ export class ReactBridge {
 
     constructor(app: App) {
         this.app = app
-        app.on('change:landmarks', this.connectLandmarks)
-        app.on('change:asset', this.connectAsset)
-        app.on('change', this.renderToolbar)
+        app.on('change:landmarks', () => this.connectLandmarks())
+        app.on('change:asset', () => this.connectAsset())
+        app.on('change', () => this.renderToolbar())
         this.connectLandmarks()
         this.connectAsset()
-        this.render()
+        this.renderLandmarkTable()
         this.renderToolbar()
     }
 
-    connectLandmarks = () => {
+    connectLandmarks() {
         if (!this.app.landmarks) {
             return
         }
         this.app.landmarks.landmarks.forEach(lm => {
-            lm.on('change', this.render)
+            lm.on('change', () => this.renderLandmarkTable())
         })
+        this.renderLandmarkTable()
     }
 
-    connectAsset = () => {
+    connectAsset() {
         if (!this.app.asset()) {
             return
         }
-        this.app.asset().on('change:textureOn', this.renderToolbar)
+        this.app.asset().on('change:textureOn', () => this.renderToolbar())
     }
 
-    render = () => {
+    renderLandmarkTable() {
         if (!this.app.landmarks) {
             return
         }
@@ -103,7 +104,7 @@ export class ReactBridge {
 
     }
 
-    renderToolbar = () => {
+    renderToolbar() {
         const props: ToolbarProps = {
             isConnectivityOn: this.app.isConnectivityOn,
             isAutosaveOn: this.app.isAutoSaveOn,
