@@ -85,7 +85,7 @@ export class BackboneViewport {
     }
 
     updateLandmark = (i: number) => {
-        console.log(`updating landmark ${i}`)
+        // console.log(`updating landmark ${i}`)
         this.viewport.updateLandmarks([
                 landmarkForBBLandmark(this.model.landmarks.landmarks[i])
             ]

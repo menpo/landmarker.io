@@ -56,16 +56,16 @@ abstract class AssetSource extends Backbone.Model {
         return this.get('assetIsLoading')
     }
 
-    nAssets() {
+    get nAssets() {
         return this.assets().length
     }
 
-    hasPredecessor() {
+    get hasPredecessor() {
         return this.assetIndex !== 0
     }
 
-    hasSuccessor() {
-        return this.nAssets() - this.assetIndex !== 1
+    get hasSuccessor() {
+        return this.nAssets - this.assetIndex !== 1
     }
 
     // returns the index of the currently active mesh
@@ -75,21 +75,21 @@ abstract class AssetSource extends Backbone.Model {
 
 
     next() {
-        if (!this.hasSuccessor()) {
+        if (!this.hasSuccessor) {
             return undefined
         }
         return this.setAsset(this.assets()[this.assetIndex + 1])
     }
 
     previous() {
-        if (!this.hasPredecessor()) {
+        if (!this.hasPredecessor) {
             return undefined
         }
         return this.setAsset(this.assets()[this.assetIndex - 1])
     }
 
     setIndex(newIndex: number) {
-        if (newIndex < 0 || newIndex >= this.nAssets()) {
+        if (newIndex < 0 || newIndex >= this.nAssets) {
             console.log(`Can't go to asset with index ${newIndex + 1}`)
             return null
         } else {

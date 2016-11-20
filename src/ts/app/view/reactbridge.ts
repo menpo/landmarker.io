@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as ReactDom from 'react-dom'
 import { Sidebar, SidebarProps } from './components/Sidebar'
 import { Toolbar, ToolbarProps } from './components/Toolbar'
+import { Pager, PagerProps } from './components/Pager'
 import { App } from '../model/app'
 
 const TEST_GROUPS = [
@@ -55,11 +56,15 @@ export class ReactBridge {
         this.app = app
         app.on('change:landmarks', () => this.connectLandmarks())
         app.on('change:asset', () => this.connectAsset())
-        app.on('change', () => this.renderToolbar())
+        app.on('change', () => {
+            this.renderToolbar()
+            this.renderPager()
+        })
         this.connectLandmarks()
         this.connectAsset()
         this.renderLandmarkTable()
         this.renderToolbar()
+        this.renderPager()
     }
 
     connectLandmarks() {
@@ -110,6 +115,7 @@ export class ReactBridge {
             isAutosaveOn: this.app.isAutoSaveOn,
             isSnapOn: this.app.isEditingOn,
             isTextureOn: this.app.asset() ? this.app.asset().isTextureOn() : false,
+            textureToggleEnabled: this.app.meshMode(),
             setAutosave: (on) => this.app.toggleAutoSave(),
             setConnectivity: (on) => this.app.toggleConnectivity(),
             setSnap: (on) => this.app.toggleEditing(),
@@ -120,5 +126,20 @@ export class ReactBridge {
         const toolbar = Toolbar(props)
         const el = document.getElementById('toolbar')
         ReactDom.render(toolbar, el)
+    }
+
+    renderPager() {
+        if (!this.app.assetSource) {
+            return
+        }
+        const props: PagerProps = {
+            decrementEnabled: this.app.assetSource.hasPredecessor,
+            incrementEnabled: this.app.assetSource.hasSuccessor,
+            onDecrement: () => this.app.previousAsset(),
+            onIncrement: () => this.app.nextAsset()
+        }
+        const pager = Pager(props)
+        const el = document.getElementById('assetPager')
+        ReactDom.render(pager, el)
     }
 }

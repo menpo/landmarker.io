@@ -292,8 +292,8 @@ export class App extends Backbone.Model {
                 i = 0
             }
 
-            if (i < 0 || i > assetSource.nAssets() - 1) {
-                throw Error(`Error trying to set index to ${i} - needs to be in the range 0-${assetSource.nAssets()}`)
+            if (i < 0 || i > assetSource.nAssets - 1) {
+                throw Error(`Error trying to set index to ${i} - needs to be in the range 0-${assetSource.nAssets}`)
             }
 
             return this.goToAssetIndex(i)
@@ -408,7 +408,7 @@ export class App extends Backbone.Model {
      }
 
     nextAsset() {
-        if (this.assetSource.hasSuccessor()) {
+        if (this.assetSource.hasSuccessor) {
             this.autoSaveWrapper(() => {
                 this._switchToAsset(this.assetSource.next())
             })
@@ -416,7 +416,7 @@ export class App extends Backbone.Model {
      }
 
     previousAsset() {
-        if (this.assetSource.hasPredecessor()) {
+        if (this.assetSource.hasPredecessor) {
             this.autoSaveWrapper(() => {
                 this._switchToAsset(this.assetSource.previous())
             })
@@ -433,7 +433,7 @@ export class App extends Backbone.Model {
         const lms = this.landmarks
         if (lms) {
             const as = this.assetSource
-            if (this.assetSource.hasPredecessor()) {
+            if (this.assetSource.hasPredecessor) {
                 this.backend.fetchLandmarkGroup(
                     as.assets()[as.assetIndex - 1].id,
                     this.activeTemplate()
