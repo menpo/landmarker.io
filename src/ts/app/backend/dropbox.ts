@@ -197,7 +197,8 @@ export class Dropbox implements Backend {
     // Assets management
     // ---------------------------
 
-    pickAssets(success, error, closable=false) {
+    pickAssets(success: (path: string) => void,
+               error: (err: any) => void, closable=false) {
         const picker = new Picker({
             dropbox: this,
             selectFoldersOnly: true,
@@ -214,7 +215,7 @@ export class Dropbox implements Backend {
                 root: this._assetsPath
             },
             closable,
-            submit: (path, isFolder, {mode}) => {
+            submit: (path: string, isFolder: boolean) => {
                 this.setAssets(path, mode).then(() => {
                     picker.dispose()
                     success(path)

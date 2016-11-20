@@ -40,8 +40,7 @@ export type LandmarkGroupTracker = Tracker<LJSON, LGTrackerOperation>
 // factory function to produce a tracker for use with Landmark Groups.
 export const landmarkGroupTrackerFactory = () => new Tracker<LJSON, LGTrackerOperation>()
 
-function _validateConnectivity (nLandmarks: number,
-                                connectivity: [number, number][]): [number, number][] {
+function _validateConnectivity(nLandmarks: number, connectivity: [number, number][]): [number, number][] {
     if (!connectivity) {
         return []
     }
@@ -57,7 +56,7 @@ function _validateConnectivity (nLandmarks: number,
     return connectivity
 }
 
-function _pointToVector (p: JSONPoint) : [THREE.Vector3, number] {
+function _pointToVector(p: JSONPoint) : [THREE.Vector3, number] {
     const n = p.length
     const [x, y] = p
     const z = (n === 3) ?  p[2] : 0
@@ -119,7 +118,7 @@ export class LandmarkGroup extends LandmarkCollection {
 
     // Restore landmarks from json saved, should be of the same template so
     // no hard checking ot resetting the labels
-    restore = ({ landmarks, labels }: LJSON): void => {
+    restore({ landmarks, labels }: LJSON) {
         const {points, connectivity} = landmarks
 
         this.landmarks.forEach(lm => lm.clear())
@@ -139,7 +138,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.resetNextAvailable()
     }
 
-    nextAvailable = (): Landmark => {
+    nextAvailable(): Landmark {
         for (let i = 0; i < this.landmarks.length; i++) {
             if (this.landmarks[i].isNextAvailable()) {
                 return this.landmarks[i]
@@ -148,7 +147,7 @@ export class LandmarkGroup extends LandmarkCollection {
         return null
     }
 
-    clearAllNextAvailable = () => {
+    clearAllNextAvailable() {
         this.landmarks.forEach(function (l) {
             l.clearNextAvailable()
         })
@@ -158,7 +157,7 @@ export class LandmarkGroup extends LandmarkCollection {
     // or if originLm is provided from the set, the first empty on after
     // the originLm in storage order which is assumed to be logical order
     // (Loop over all lms to clear the next available flag)
-    resetNextAvailable = (originLm: Landmark=null) => {
+    resetNextAvailable(originLm: Landmark=null) {
 
         let first: Landmark, next: Landmark
         let pastOrigin = (originLm === null)
@@ -184,7 +183,7 @@ export class LandmarkGroup extends LandmarkCollection {
         return next
     }
 
-    deleteSelected = () => {
+    deleteSelected() {
         const ops: LGTrackerOperation = []
         this.selected().forEach(function (lm) {
             ops.push([lm.index, lm.point.clone(), undefined])
@@ -195,7 +194,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.tracker.record(ops)
     }
 
-    insertNew = (v: THREE.Vector3) => {
+    insertNew(v: THREE.Vector3): void {
         const lm = this.nextAvailable()
         if (lm === null) {
             return null    // nothing left to insert!
@@ -206,7 +205,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.resetNextAvailable(lm)
     }
 
-   setLmAt = (lm: Landmark, v: THREE.Vector3) => {
+   setLmAt(lm: Landmark, v: THREE.Vector3) {
 
         if (!v) {
             return
@@ -225,7 +224,7 @@ export class LandmarkGroup extends LandmarkCollection {
         })
     }
 
-    toJSON = (): LJSONFile => {
+    toJSON(): LJSONFile {
         return {
             landmarks: {
                 points: this.landmarks.map(lm => lm.toJSON()),
@@ -236,7 +235,7 @@ export class LandmarkGroup extends LandmarkCollection {
         }
     }
 
-    save = () => {
+    save() {
         return this.backend
             .saveLandmarkGroup(this.id, this.type, this.toJSON())
             .then(() => {
@@ -247,7 +246,7 @@ export class LandmarkGroup extends LandmarkCollection {
             })
     }
 
-    undo = () => {
+    undo() {
         this.tracker.undo((ops) => {
             ops.forEach(([index, start]) => {
                 if (!start) {
@@ -262,7 +261,7 @@ export class LandmarkGroup extends LandmarkCollection {
         })
     }
 
-    redo = () => {
+    redo() {
         this.tracker.redo(ops => {
             ops.forEach(([index, , end]) => {
                 if (!end) {
@@ -277,7 +276,7 @@ export class LandmarkGroup extends LandmarkCollection {
         })
     }
 
-    completeGroups = () => {
+    completeGroups() {
         this.labels.forEach((label) => {
             // May be a way to review the structure as this is n^2 worse
             if (label.landmarks.some(lm => lm.isSelected())) {

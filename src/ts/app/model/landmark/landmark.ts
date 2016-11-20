@@ -33,41 +33,41 @@ export class Landmark extends Backbone.Model {
         this.set('point', point)
     }
 
-    isEmpty = (): boolean => {
+    isEmpty() {
         return !this.has('point')
     }
 
-    isSelected = (): boolean => {
+    isSelected(): boolean {
         return this.get('selected')
     }
 
-    select = () => {
+    select() {
         if (!this.isEmpty() && !this.isSelected()) {
             this.set('selected', true)
         }
     }
 
-    selectAndDeselectRest = () => {
+    selectAndDeselectRest() {
         this.group.deselectAll()
         this.select()
     }
 
-    deselect = () => {
+    deselect() {
         if(this.isSelected()) {
             this.set('selected', false)
         }
     }
 
-    isNextAvailable = (): boolean => {
+    isNextAvailable(): boolean {
         return this.get('nextAvailable')
     }
 
-    setNextAvailable = () : void => {
+    setNextAvailable() {
         this.group.clearAllNextAvailable()
         this.set('nextAvailable', true)
     }
 
-    clearNextAvailable = () : void => {
+    clearNextAvailable() {
         if (this.isNextAvailable()) {
             this.set('nextAvailable', false)
         }

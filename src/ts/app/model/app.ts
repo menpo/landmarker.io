@@ -166,7 +166,7 @@ export class App extends Backbone.Model {
     }
 
     // returns the currently active THREE.Mesh.
-    mesh = () => {
+    mesh() {
         if (this.hasAssetSource) {
             return this.assetSource.mesh()
         } else {

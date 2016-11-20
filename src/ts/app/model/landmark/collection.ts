@@ -8,23 +8,23 @@ export class LandmarkCollection {
         this.landmarks = landmarks
     }
 
-    selected = () => {
+    selected() {
         return this.landmarks.filter(lm => lm.isSelected())
     }
 
-    isEmpty = () => {
+    isEmpty() {
         return this.landmarks.every(lm => lm.isEmpty())
     }
 
-    hasEmpty = () => {
+    hasEmpty() {
         return this.landmarks.some(lm => lm.isEmpty())
     }
 
-    deselectAll = () => {
+    deselectAll() {
         this.landmarks.forEach(lm => lm.deselect())
     }
 
-    selectAll = () => {
+    selectAll() {
         this.landmarks.forEach(lm => lm.select())
     }
 

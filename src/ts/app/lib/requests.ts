@@ -9,6 +9,15 @@ function _url(url: string, data: {}) {
     }
 }
 
+interface XMLHttpRequestPromiseOpts {
+    method?: string
+    responseType?: string
+    contentType?: string
+    headers?: { [s: string]: string }
+    data?: any
+    auth?: boolean
+}
+
 export default function XMLHttpRequestPromise(
     url: string, {
         method='GET',
@@ -17,7 +26,7 @@ export default function XMLHttpRequestPromise(
         headers={},
         data,
         auth=false
-    }
+    }: XMLHttpRequestPromiseOpts
 ){
     var xhr = new XMLHttpRequest()
     xhr.open(method, url)
