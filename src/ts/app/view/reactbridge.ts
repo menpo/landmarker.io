@@ -3,50 +3,8 @@ import * as ReactDom from 'react-dom'
 import { Sidebar, SidebarProps } from './components/Sidebar'
 import { Toolbar, ToolbarProps } from './components/Toolbar'
 import { Pager, PagerProps } from './components/Pager'
+import { UndoRedo, UndoRedoProps } from './components/UndoRedo'
 import { App } from '../model/app'
-
-const TEST_GROUPS = [
-            {
-                label: 'PATRICKS',
-                landmarks: [
-                    {
-                        id: 0,
-                        isEmpty: false,
-                        isNextAvailable: false,
-                        isSelected: true
-                    },
-                    {
-                        id: 1,
-                        isEmpty: true,
-                        isNextAvailable: true,
-                        isSelected: false
-                    }
-               ]
-            },
-            {
-                label: 'FUUUUURCE',
-                landmarks: [
-                    {
-                        id: 2,
-                        isEmpty: false,
-                        isNextAvailable: false,
-                        isSelected: false
-                    },
-                    {
-                        id: 3,
-                        isEmpty: true,
-                        isNextAvailable: false,
-                        isSelected: false
-                    },
-                    {
-                        id: 4,
-                        isEmpty: true,
-                        isNextAvailable: false,
-                        isSelected: false
-                    }
-               ]
-            }
-        ]
 
 export class ReactBridge {
 
@@ -54,35 +12,38 @@ export class ReactBridge {
 
     constructor(app: App) {
         this.app = app
-        app.on('change:landmarks', () => this.connectLandmarks())
-        app.on('change:asset', () => this.connectAsset())
-        app.on('change', () => {
-            this.renderToolbar()
-        })
-        app.on('change:asset', () => this.renderPager())
+        app.on('change', () => this.onAppStateChange())
+        app.on('change:landmarks', () => this.onLandmarksChange())
+        app.on('change:asset', () => this.onAssetChange())
 
-        this.connectLandmarks()
-        this.connectAsset()
-        this.renderLandmarkTable()
+        this.onAppStateChange()
+        this.onAssetChange()
+        this.onLandmarksChange()
+    }
+
+    onAppStateChange() {
+        this.renderToolbar()
+    }
+
+    onAssetChange() {
+        if (!this.app.asset()) {
+            return
+        }
+        this.app.asset().on('change:textureOn', () => this.renderToolbar())
         this.renderToolbar()
         this.renderPager()
     }
 
-    connectLandmarks() {
+    onLandmarksChange() {
         if (!this.app.landmarks) {
             return
         }
         this.app.landmarks.landmarks.forEach(lm => {
             lm.on('change', () => this.renderLandmarkTable())
         })
+        this.app.landmarks.tracker.on('change', () => this.renderUndoRedo())
         this.renderLandmarkTable()
-    }
-
-    connectAsset() {
-        if (!this.app.asset()) {
-            return
-        }
-        this.app.asset().on('change:textureOn', () => this.renderToolbar())
+        this.renderUndoRedo()
     }
 
     renderLandmarkTable() {
@@ -108,6 +69,21 @@ export class ReactBridge {
         const el = document.getElementById('landmarksPanel')
         ReactDom.render(sidebar, el)
 
+    }
+
+    renderUndoRedo() {
+        if (!this.app.landmarks) {
+            return
+        }
+        const props: UndoRedoProps = {
+            canUndo: this.app.landmarks.tracker.canUndo,
+            canRedo: this.app.landmarks.tracker.canRedo,
+            undo: () => this.app.landmarks.undo(),
+            redo: () => this.app.landmarks.redo()
+        }
+        const undoredo = UndoRedo(props)
+        const el = document.getElementById('undoRedo')
+        ReactDom.render(undoredo, el)
     }
 
     renderToolbar() {

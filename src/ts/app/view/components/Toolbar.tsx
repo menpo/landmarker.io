@@ -12,8 +12,8 @@ export interface ToolbarProps {
     setTexture: (isOn: boolean) => void
     setSnap: (isOn: boolean) => void
     setAutosave: (isOn: boolean) => void
-    landmarkSize: number,
-    setLandmarkSize: (size: number) => void,
+    landmarkSize: number
+    setLandmarkSize: (size: number) => void
 }
 
 export function Toolbar(props: ToolbarProps) {
