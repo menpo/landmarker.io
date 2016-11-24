@@ -20,7 +20,7 @@ export class TextureToggle extends Backbone.View<App> {
         this.toggle = this.$el.find('#textureToggle')[0] as HTMLInputElement
         this.listenTo(this.model, "newMeshAvailable", this.changeMesh)
         // there could already be an asset we have missed
-        if (this.model.asset()) {
+        if (this.model.asset) {
             this.changeMesh()
         }
         this.render()
@@ -41,8 +41,8 @@ export class TextureToggle extends Backbone.View<App> {
         if (this.mesh) {
             this.stopListening(this.mesh)
         }
-        this.listenTo(this.model.asset(), "all", this.render)
-        this.mesh = this.model.asset()
+        this.listenTo(this.model.asset, "all", this.render)
+        this.mesh = this.model.asset
     }
 
     textureToggle() {

@@ -161,7 +161,7 @@ export class App extends Backbone.Model {
     // returns the currently active Asset (Image or Asset).
     // changes independently of mesh() - care should be taken as to which one
     // other objects should listen to.
-    asset(): Asset.Image {
+    get asset(): Asset.Image {
         return this.get('asset')
     }
 
@@ -317,7 +317,7 @@ export class App extends Backbone.Model {
      }
 
     reloadLandmarks() {
-        if (this.landmarks && this.asset()) {
+        if (this.landmarks && this.asset) {
             this.autoSaveWrapper(() => {
                 this.set('landmarks', null)
                 this.loadLandmarksPromise().then((lms) => {
@@ -354,7 +354,7 @@ export class App extends Backbone.Model {
     // Mirror the state of the asset source onto the app
     assetChanged = () => {
         console.log('App.assetChanged')
-        this.set('asset', this.assetSource.asset())
+        this.set('asset', this.assetSource.asset)
      }
 
     meshChanged() {
@@ -364,15 +364,15 @@ export class App extends Backbone.Model {
 
     loadLandmarksPromise() {
         return this.backend.fetchLandmarkGroup(
-            this.asset().id,
+            this.asset.id,
             this.activeTemplate()
         ).then(json => {
             return LandmarkGroup.parse(
                 json,
-                this.asset().id,
+                this.asset.id,
                 this.activeTemplate(),
                 this.backend,
-                this.landmarkGroupTrackerForAssetAndTemplate(this.asset().id, this.activeTemplate())
+                this.landmarkGroupTrackerForAssetAndTemplate(this.asset.id, this.activeTemplate())
             )
         }, () => {
             console.log('Error in fetching landmark JSON file')

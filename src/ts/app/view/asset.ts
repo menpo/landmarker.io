@@ -68,7 +68,7 @@ export const AssetNameView = Backbone.View.extend({
 
     render: function () {
         this.$el.find('.content').html(
-            truncate(this.model.asset().id, 64, true, true))
+            truncate(this.model.asset.id, 64, true, true))
         this.$el.toggleClass(
             'Disabled', this.model.assetSource.nAssets <= 1)
         return this

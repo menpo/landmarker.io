@@ -33,7 +33,7 @@ const SHORTCUTS: { [index:string]: Shortcut} = {
 
     "t": [function (lms, app) { // t = toggle [t]exture (mesh mode only)
         if (app.meshMode()) {
-            app.asset().textureToggle()
+            app.asset.textureToggle()
         }
     }, false, false],
 

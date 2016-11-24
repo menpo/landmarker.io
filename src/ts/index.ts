@@ -262,7 +262,7 @@ function initLandmarker(backend: Backend, mode: 'image' | 'mesh', u: url.Url) {
             prevAsset.dispose()
             console.log('After dispose: ' + viewport.memoryString())
         }
-        prevAsset = app.asset()
+        prevAsset = app.asset
     })
 
     // update the URL of the page as the state changes
