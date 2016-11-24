@@ -14,7 +14,7 @@ export class EventsClass {
     }
 
     // ...and manually promise the same API as Backbone Events for typing checks.
-    on: ((eventName: string, callback?: Function, context?: any) => any) | ((eventMap: Backbone.EventsHash) => any)
+    on: ((eventName: string, callback?: Function, context?: any) => any)
     off: (eventName?: string, callback?: Function, context?: any) => any
     trigger: (eventName: string, ...args: any[]) => any
     bind: (eventName: string, callback: Function, context?: any) => any
