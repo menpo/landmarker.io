@@ -19,8 +19,8 @@ export class URLState extends Backbone.View<App> {
         var u = url.parse(window.location.href.replace('#', '?'), true)
         u.search = null
 
-        if (this.model.activeTemplate()) {
-            u.query.t = this.model.activeTemplate()
+        if (this.model.activeTemplate) {
+            u.query.t = this.model.activeTemplate
         }
 
         if (this.model.activeCollection) {

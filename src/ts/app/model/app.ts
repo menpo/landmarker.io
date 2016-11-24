@@ -126,7 +126,7 @@ export class App extends Backbone.Model {
         return this.get('templates')
     }
 
-    activeTemplate(): string {
+    get activeTemplate(): string {
         return this.get('activeTemplate')
     }
 
@@ -365,14 +365,14 @@ export class App extends Backbone.Model {
     loadLandmarksPromise() {
         return this.backend.fetchLandmarkGroup(
             this.asset.id,
-            this.activeTemplate()
+            this.activeTemplate
         ).then(json => {
             return LandmarkGroup.parse(
                 json,
                 this.asset.id,
-                this.activeTemplate(),
+                this.activeTemplate,
                 this.backend,
-                this.landmarkGroupTrackerForAssetAndTemplate(this.asset.id, this.activeTemplate())
+                this.landmarkGroupTrackerForAssetAndTemplate(this.asset.id, this.activeTemplate)
             )
         }, () => {
             console.log('Error in fetching landmark JSON file')
@@ -436,7 +436,7 @@ export class App extends Backbone.Model {
             if (this.assetSource.hasPredecessor) {
                 this.backend.fetchLandmarkGroup(
                     as.assets()[as.assetIndex - 1].id,
-                    this.activeTemplate()
+                    this.activeTemplate
                 ).then((json) => {
                     lms.tracker.recordState(lms.toJSON())
                     lms.restore(json)

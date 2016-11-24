@@ -47,7 +47,7 @@ export class TemplatePicker extends Backbone.View<App> {
     }
 
     update() {
-        const activeTmpl = this.model.activeTemplate()
+        const activeTmpl = this.model.activeTemplate
         if (activeTmpl) {
             this.$el.find('li').removeClass('Active')
             this.$el.find(`#templatePick_${activeTmpl}`)
@@ -69,7 +69,7 @@ export class TemplatePicker extends Backbone.View<App> {
     select(evt) {
         evt.stopPropagation()
         const tmpl = evt.currentTarget.dataset.template
-        if (tmpl !== this.model.activeTemplate()) {
+        if (tmpl !== this.model.activeTemplate) {
             this.toggle()
             this.model.autoSaveWrapper(() => {
                 this.model.set('activeTemplate', tmpl)
@@ -139,7 +139,7 @@ export class TemplatePanel extends Backbone.View<App> {
         this.undelegateEvents()
 
         const backend = this.model.backend
-        const activeTemplate = this.model.activeTemplate()
+        const activeTemplate = this.model.activeTemplate
 
         const $tn = this.$el.find('.TemplateName')
         this.$el.find('.TemplateDownload').remove()
@@ -179,7 +179,7 @@ export class TemplatePanel extends Backbone.View<App> {
     download(evt) {
         evt.stopPropagation()
         const backend = this.model.backend
-        const tmpl = this.model.activeTemplate()
+        const tmpl = this.model.activeTemplate
 
         if (typeof backend.downloadTemplate === 'function' && tmpl) {
             backend.downloadTemplate(tmpl)
