@@ -116,7 +116,7 @@ export class Image extends Backbone.Model {
         return this._geometryPromise !== null
     }
 
-    mesh() {
+    get mesh() {
         // regenerate a THREE.Mesh from the current state. Note that no
         // texture, geometry or material is created in here - we just
         // wire up buffers that we own.

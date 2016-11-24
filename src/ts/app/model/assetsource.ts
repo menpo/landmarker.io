@@ -47,9 +47,9 @@ abstract class AssetSource extends Backbone.Model {
         return this.get('assets')
     }
 
-    mesh() {
+    get mesh() {
         const asset = this.asset
-        return asset ? asset.mesh() : undefined
+        return asset ? asset.mesh : undefined
     }
 
     assetIsLoading(): boolean {

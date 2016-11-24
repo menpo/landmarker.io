@@ -159,16 +159,16 @@ export class App extends Backbone.Model {
     }
 
     // returns the currently active Asset (Image or Asset).
-    // changes independently of mesh() - care should be taken as to which one
+    // changes independently of mesh - care should be taken as to which one
     // other objects should listen to.
     get asset(): Asset.Image {
         return this.get('asset')
     }
 
     // returns the currently active THREE.Mesh.
-    mesh() {
+    get mesh() {
         if (this.hasAssetSource) {
-            return this.assetSource.mesh()
+            return this.assetSource.mesh
         } else {
             return null
         }

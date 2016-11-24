@@ -54,7 +54,7 @@ export class BackboneViewport {
     }
 
     setMesh = () => {
-        const meshPayload = this.model.mesh()
+        const meshPayload = this.model.mesh
         if (meshPayload === null) {
             return
         }
