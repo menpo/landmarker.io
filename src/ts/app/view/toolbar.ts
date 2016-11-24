@@ -29,8 +29,8 @@ export class TextureToggle extends Backbone.View<App> {
     render() {
         if (this.mesh) {
             this.$el.toggleClass('Toolbar-Row--Disabled',
-                !this.mesh.hasTexture())
-            this.toggle.checked = this.mesh.isTextureOn()
+                !this.mesh.hasTexture)
+            this.toggle.checked = this.mesh.isTextureOn
         } else {
             this.$el.addClass('Toolbar-Row--Disabled')
         }
