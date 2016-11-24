@@ -4,6 +4,7 @@ import { Sidebar, SidebarProps } from './components/Sidebar'
 import { Toolbar, ToolbarProps } from './components/Toolbar'
 import { Pager, PagerProps } from './components/Pager'
 import { UndoRedo, UndoRedoProps } from './components/UndoRedo'
+import { SaveDownloadHelp, SaveDownloadHelpProps } from './components/SaveDownloadHelp'
 import { App } from '../model/app'
 
 export class ReactBridge {
@@ -26,10 +27,10 @@ export class ReactBridge {
     }
 
     onAssetChange() {
-        if (!this.app.asset()) {
+        if (!this.app.asset) {
             return
         }
-        this.app.asset().on('change:textureOn', () => this.renderToolbar())
+        this.app.asset.on('change:textureOn', () => this.renderToolbar())
         this.renderToolbar()
         this.renderPager()
     }
@@ -41,9 +42,13 @@ export class ReactBridge {
         this.app.landmarks.landmarks.forEach(lm => {
             lm.on('change', () => this.renderLandmarkTable())
         })
-        this.app.landmarks.tracker.on('change', () => this.renderUndoRedo())
+        this.app.landmarks.tracker.on('change', () => {
+            this.renderUndoRedo()
+            this.renderSaveDownloadHelp()
+        })
         this.renderLandmarkTable()
         this.renderUndoRedo()
+        this.renderSaveDownloadHelp()
     }
 
     renderLandmarkTable() {
@@ -74,7 +79,24 @@ export class ReactBridge {
         const sidebar = Sidebar(props)
         const el = document.getElementById('landmarksPanel')
         ReactDom.render(sidebar, el)
+    }
 
+    renderSaveDownloadHelp() {
+        if (!this.app.landmarks) {
+            return
+        }
+
+        // // TODO the saving state will not be reflected in the UI for now.
+        // // Ideally, this.app.landmarks.save() should change
+        // const props: SaveDownloadHelpProps = {
+        //     hasUnsavedChanges: !this.app.landmarks.tracker.isUpToDate,
+        //     onSave: () => this.app.landmarks.save(),
+        //     onDownload: () => ,
+        //     onOpenHelp: () => ,
+        // }
+        // const saveDownloadHelp = SaveDownloadHelp(props)
+        // const el = document.getElementById('landmarksPanel')
+        // ReactDom.render(saveDownloadHelp, el)
     }
 
     renderUndoRedo() {
@@ -97,12 +119,12 @@ export class ReactBridge {
             isConnectivityOn: this.app.isConnectivityOn,
             isAutosaveOn: this.app.isAutoSaveOn,
             isSnapOn: this.app.isEditingOn,
-            isTextureOn: this.app.asset() ? this.app.asset().isTextureOn() : false,
+            isTextureOn: this.app.asset ? this.app.asset.isTextureOn() : false,
             textureToggleEnabled: this.app.meshMode(),
             setAutosave: (on) => this.app.toggleAutoSave(),
             setConnectivity: (on) => this.app.toggleConnectivity(),
             setSnap: (on) => this.app.toggleEditing(),
-            setTexture: (on) => this.app.asset() ? this.app.asset().textureToggle() : null,
+            setTexture: (on) => this.app.asset ? this.app.asset.textureToggle() : null,
             landmarkSize: this.app.landmarkSize * 100,
             setLandmarkSize: (size) => { this.app.landmarkSize = size / 100 }
         }
