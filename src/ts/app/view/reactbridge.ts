@@ -119,7 +119,7 @@ export class ReactBridge {
             isConnectivityOn: this.app.isConnectivityOn,
             isAutosaveOn: this.app.isAutoSaveOn,
             isSnapOn: this.app.isEditingOn,
-            isTextureOn: this.app.asset ? this.app.asset.isTextureOn() : false,
+            isTextureOn: this.app.asset ? this.app.asset.isTextureOn : false,
             textureToggleEnabled: this.app.meshMode(),
             setAutosave: (on) => this.app.toggleAutoSave(),
             setConnectivity: (on) => this.app.toggleConnectivity(),

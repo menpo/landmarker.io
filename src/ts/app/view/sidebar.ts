@@ -95,7 +95,7 @@ export const ActionsView = Backbone.View.extend({
         if (this.model) {
             this.$el.find('#download').addClass('Button--Disabled')
             const data = JSON.stringify(this.model.toJSON())
-            const filename = `${this.app.asset.id}_${this.app.activeTemplate()}.ljson`
+            const filename = `${this.app.asset.id}_${this.app.activeTemplate}.ljson`
             download(data, filename, 'json')
             this.$el.find('#download').removeClass('Button--Disabled')
 
