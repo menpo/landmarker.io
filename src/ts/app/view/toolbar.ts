@@ -64,7 +64,7 @@ export default class Toolbar extends Backbone.View<App> {
             model: model,
             el: '#toolbar'
         })
-        if (this.model.meshMode()) {
+        if (this.model.meshMode) {
             this.textureToggle = new TextureToggle(this.model)
         } else {
             // in image mode, we shouldn't even have these controls.

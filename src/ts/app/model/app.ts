@@ -110,11 +110,11 @@ export class App extends Backbone.Model {
         return this.get('mode')
     }
 
-    imageMode() {
+    get imageMode() {
         return this.get('mode') === 'image'
     }
 
-    meshMode() {
+    get meshMode() {
         return this.get('mode') === 'mesh'
     }
 
@@ -341,9 +341,9 @@ export class App extends Backbone.Model {
      }
 
     _assetSourceConstructor() {
-        if (this.imageMode()) {
+        if (this.imageMode) {
             return AssetSource.ImageSource
-        } else if (this.meshMode()) {
+        } else if (this.meshMode) {
             return AssetSource.MeshSource
         } else {
             throw Error('Error - illegal mode setting on app! Must be' +
