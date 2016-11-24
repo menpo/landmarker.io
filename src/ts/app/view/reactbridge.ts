@@ -63,7 +63,13 @@ export class ReactBridge {
 
         const props: SidebarProps = {
             groups,
-            onClickLandmark: (index: number) => { console.log(`landmark ${index} clicked!`)}
+            onClickLandmark: (index: number) => {
+                if (this.app.landmarks.landmarks[index].isEmpty()) {
+                    this.app.landmarks.landmarks[index].setNextAvailable()
+                } else {
+                    this.app.landmarks.landmarks[index].selectAndDeselectRest()
+                }
+            }
         }
         const sidebar = Sidebar(props)
         const el = document.getElementById('landmarksPanel')
