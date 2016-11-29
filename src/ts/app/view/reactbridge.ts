@@ -5,49 +5,6 @@ import { Toolbar, ToolbarProps } from './components/Toolbar'
 import { Pager, PagerProps } from './components/Pager'
 import { App } from '../model/app'
 
-const TEST_GROUPS = [
-            {
-                label: 'PATRICKS',
-                landmarks: [
-                    {
-                        id: 0,
-                        isEmpty: false,
-                        isNextAvailable: false,
-                        isSelected: true
-                    },
-                    {
-                        id: 1,
-                        isEmpty: true,
-                        isNextAvailable: true,
-                        isSelected: false
-                    }
-               ]
-            },
-            {
-                label: 'FUUUUURCE',
-                landmarks: [
-                    {
-                        id: 2,
-                        isEmpty: false,
-                        isNextAvailable: false,
-                        isSelected: false
-                    },
-                    {
-                        id: 3,
-                        isEmpty: true,
-                        isNextAvailable: false,
-                        isSelected: false
-                    },
-                    {
-                        id: 4,
-                        isEmpty: true,
-                        isNextAvailable: false,
-                        isSelected: false
-                    }
-               ]
-            }
-        ]
-
 export class ReactBridge {
 
     app: App
@@ -122,7 +79,9 @@ export class ReactBridge {
             setSnap: (on) => this.app.toggleEditing(),
             setTexture: (on) => this.app.asset() ? this.app.asset().textureToggle() : null,
             landmarkSize: this.app.landmarkSize * 100,
-            setLandmarkSize: (size) => { this.app.landmarkSize = size / 100 }
+            setLandmarkSize: (size) => { this.app.landmarkSize = size / 100 },
+            landmarkColour: this.app.landmarkColour,
+            setLandmarkColour: (colour, event) => { this.app.landmarkColour = colour.hex }
         }
         const toolbar = Toolbar(props)
         const el = document.getElementById('toolbar')

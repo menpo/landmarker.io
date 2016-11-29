@@ -40,11 +40,12 @@ export class BackboneViewport {
         this.viewport = new Viewport(element, app.meshMode(), on)
         window.vp = this.viewport
 
-        this.model.on('newMeshAvailable', this.setMesh)
-        this.model.on("change:landmarks", this.setLandmarks)
-        this.model.on("change:landmarkSize", this.setLandmarkSize)
-        this.model.on("change:connectivityOn", this.updateConnectivityDisplay)
-        this.model.on("change:editingOn", this.updateEditingDisplay)
+        this.model.on('newMeshAvailable', () => this.setMesh())
+        this.model.on("change:landmarks", () => this.setLandmarks())
+        this.model.on("change:landmarkSize", () => this.setLandmarkSize())
+        this.model.on("change:connectivityOn", () => this.updateConnectivityDisplay())
+        this.model.on("change:editingOn", () => this.updateEditingDisplay())
+        this.model.on("change:landmarkColour", () => this.setLandmarkColour())
 
         // make sure we didn't miss any state changes on load
         this.setMesh()
@@ -53,7 +54,7 @@ export class BackboneViewport {
         this.updateEditingDisplay()
     }
 
-    setMesh = () => {
+    setMesh() {
         const meshPayload = this.model.mesh()
         if (meshPayload === null) {
             return
@@ -61,7 +62,7 @@ export class BackboneViewport {
         this.viewport.setMesh(meshPayload.mesh, meshPayload.up, meshPayload.front)
     }
 
-    setLandmarks = () => {
+    setLandmarks() {
         const landmarks = this.model.landmarks
         if (landmarks !== null) {
             this.viewport.setLandmarksAndConnectivity(landmarks.landmarks.map(landmarkForBBLandmark),
@@ -72,19 +73,23 @@ export class BackboneViewport {
         }
     }
 
-    setLandmarkSize = () => {
+    setLandmarkSize() {
         this.viewport.setLandmarkSize(this.model.landmarkSize)
     }
 
-    updateEditingDisplay = () => {
+    setLandmarkColour() {
+        this.viewport.setLandmarkColour(this.model.landmarkColour)
+    }
+
+    updateEditingDisplay() {
         this.viewport.snapModeEnabled = this.model.isEditingOn
     }
 
-    updateConnectivityDisplay = () => {
+    updateConnectivityDisplay() {
         this.viewport.connectivityVisable = this.model.isConnectivityOn
     }
 
-    updateLandmark = (i: number) => {
+    updateLandmark(i: number) {
         // console.log(`updating landmark ${i}`)
         this.viewport.updateLandmarks([
                 landmarkForBBLandmark(this.model.landmarks.landmarks[i])

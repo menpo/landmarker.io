@@ -33,6 +33,7 @@ export interface IScene {
     sceneHelpers: THREE.Scene,
     sLms: THREE.Object3D
     lmScale: number
+    lmColour: string
 
     // Intersection related
     localToScreen: (v: THREE.Vector3) => THREE.Vector2
@@ -150,6 +151,11 @@ export class Scene implements IScene {
     set lmScale(scale: number) {
         this._lmScale = scale
         this.scaleLandmarks()
+    }
+
+    set lmColour(colour: string) {
+        this.landmarkViews.forEach(lmv => lmv.updateUnselectedColour(colour))
+        this.connectivityViews.forEach(cv => cv.updateColour(colour))
     }
 
     get meshScale() {

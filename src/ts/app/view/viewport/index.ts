@@ -32,6 +32,7 @@ export interface IViewport {
     removeMeshIfPresent: () => void
     budgeLandmarks: (vector: [number, number]) => void
     setLandmarkSize: (lmSize: number) => void
+    setLandmarkColour: (lmColour: string) => void
     resetCamera: () => void,
     toggleCamera: () => void
     snapModeEnabled: boolean
@@ -243,6 +244,11 @@ export class Viewport implements IViewport {
     setLandmarkSize = (lmSize: number) => {
         // setting the lmScale will trigger the nessessary changes.
         this.scene.lmScale = lmSize
+        this.requestUpdate()
+    }
+
+    setLandmarkColour = (lmColour: string) => {
+        this.scene.lmColour = lmColour
         this.requestUpdate()
     }
 

@@ -74,6 +74,10 @@ export class LandmarkTHREEView {
         this.symbol.material = lmMaterialForSelected(lm.isSelected)
     }
 
+    updateUnselectedColour = (colour: string) => {
+        UNSELECTED_LM_MATERIAL.color = new THREE.Color(colour)
+    }
+
     dispose = () => {
         if (this.symbol) {
             this.onDispose(this.symbol)
