@@ -80,8 +80,12 @@ export class ReactBridge {
             setTexture: (on) => this.app.asset() ? this.app.asset().textureToggle() : null,
             landmarkSize: this.app.landmarkSize * 100,
             setLandmarkSize: (size) => { this.app.landmarkSize = size / 100 },
-            landmarkColour: this.app.landmarkColour,
-            setLandmarkColour: (colour, event) => { this.app.landmarkColour = colour.hex }
+            connectionColour: this.app.connectionColour,
+            setConnectionColour: (colour, event) => { this.app.connectionColour = colour.hex },
+            unselectedLandmarkColour: this.app.unselectedLandmarkColour,
+            setUnselectedLandmarkColour: (colour, event) => { this.app.unselectedLandmarkColour = colour.hex },
+            selectedLandmarkColour: this.app.selectedLandmarkColour,
+            setSelectedLandmarkColour: (colour, event) => { this.app.selectedLandmarkColour = colour.hex }
         }
         const toolbar = Toolbar(props)
         const el = document.getElementById('toolbar')

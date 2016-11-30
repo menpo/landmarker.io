@@ -13,10 +13,14 @@ export interface ToolbarProps {
     setTexture: (isOn: boolean) => void
     setSnap: (isOn: boolean) => void
     setAutosave: (isOn: boolean) => void
-    landmarkSize: number,
-    setLandmarkSize: (size: number) => void,
-    landmarkColour: string,
-    setLandmarkColour: (colour, event) => void,
+    landmarkSize: number
+    setLandmarkSize: (size: number) => void
+    connectionColour: string
+    setConnectionColour: (colour, event) => void
+    unselectedLandmarkColour: string
+    setUnselectedLandmarkColour: (colour, event) => void
+    selectedLandmarkColour: string
+    setSelectedLandmarkColour: (colour, event) => void
 }
 
 export function Toolbar(props: ToolbarProps) {
@@ -27,9 +31,9 @@ export function Toolbar(props: ToolbarProps) {
             { props.textureToggleEnabled ? <Toggle label="Texture" checked={props.isTextureOn} onClick={props.setTexture} /> : null }
             <Toggle label="Snap" checked={props.isSnapOn} onClick={props.setSnap} />
             <Slider label="●" min={0} max={100} value={props.landmarkSize} onChange={props.setLandmarkSize} />
-            <ColourPicker label="Colour" triangle="hide" width="172px"
-            colours={['#FF6900', '#FFFF00', '#00D084', '#8ED1FC', '#0693E3', '#EB144C', '#F78DA7', '#9900EF']}
-            landmarkColour={props.landmarkColour} setLandmarkColour={props.setLandmarkColour} />
+            <ColourPicker label="Connection Colour" colour={props.connectionColour} setColour={props.setConnectionColour} />
+            <ColourPicker label="Unselected Landmark Colour" colour={props.unselectedLandmarkColour} setColour={props.setUnselectedLandmarkColour} />
+            <ColourPicker label="Selected Landmark Colour" colour={props.selectedLandmarkColour} setColour={props.setSelectedLandmarkColour} />
         </div>
     )
 }

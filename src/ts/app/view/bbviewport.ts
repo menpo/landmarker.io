@@ -45,7 +45,9 @@ export class BackboneViewport {
         this.model.on("change:landmarkSize", () => this.setLandmarkSize())
         this.model.on("change:connectivityOn", () => this.updateConnectivityDisplay())
         this.model.on("change:editingOn", () => this.updateEditingDisplay())
-        this.model.on("change:landmarkColour", () => this.setLandmarkColour())
+        this.model.on("change:connectionColour", () => this.setConnectionColour())
+        this.model.on("change:unselectedLandmarkColour", () => this.setUnselectedLandmarkColour())
+        this.model.on("change:selectedLandmarkColour", () => this.setSelectedLandmarkColour())
 
         // make sure we didn't miss any state changes on load
         this.setMesh()
@@ -77,8 +79,16 @@ export class BackboneViewport {
         this.viewport.setLandmarkSize(this.model.landmarkSize)
     }
 
-    setLandmarkColour() {
-        this.viewport.setLandmarkColour(this.model.landmarkColour)
+    setConnectionColour() {
+        this.viewport.setConnectionColour(this.model.connectionColour)
+    }
+
+    setUnselectedLandmarkColour() {
+        this.viewport.setUnselectedLandmarkColour(this.model.unselectedLandmarkColour)
+    }
+
+    setSelectedLandmarkColour() {
+        this.viewport.setSelectedLandmarkColour(this.model.selectedLandmarkColour)
     }
 
     updateEditingDisplay() {
