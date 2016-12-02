@@ -61,6 +61,10 @@ export class LandmarkConnectionTHREEView {
         geometry.verticesNeedUpdate = true
     }
 
+    updateColour = (colour: string) => {
+        LINE_MATERIAL.color = new THREE.Color(colour)
+    }
+
     dispose = () => {
         if (this.symbol) {
             this.onDispose(this.symbol)

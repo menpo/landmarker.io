@@ -41,6 +41,9 @@ export class App extends Backbone.Model {
         })
         this.set(opts)
         this.landmarkSize = 0.2
+        this.connectionColour = 'ffff00'
+        this.unselectedLandmarkColour = 'ffff00'
+        this.selectedLandmarkColour = 'ff75ff'
 
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource)
@@ -180,6 +183,30 @@ export class App extends Backbone.Model {
 
     set landmarkSize (landmarkSize: number) {
         this.set('landmarkSize', landmarkSize)
+    }
+
+    get connectionColour() {
+        return this.get('connectionColour')
+    }
+
+    set connectionColour (colour: string) {
+        this.set('connectionColour', colour)
+    }
+
+    get unselectedLandmarkColour() {
+        return this.get('unselectedLandmarkColour')
+    }
+
+    set unselectedLandmarkColour (colour: string) {
+        this.set('unselectedLandmarkColour', colour)
+    }
+
+    get selectedLandmarkColour() {
+        return this.get('selectedLandmarkColour')
+    }
+
+    set selectedLandmarkColour (colour: string) {
+        this.set('selectedLandmarkColour', colour)
     }
 
     budgeLandmarks(vector:  [number, number]) {
