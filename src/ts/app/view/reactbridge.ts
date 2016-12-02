@@ -3,6 +3,7 @@ import * as ReactDom from 'react-dom'
 import { Sidebar, SidebarProps } from './components/Sidebar'
 import { Toolbar, ToolbarProps } from './components/Toolbar'
 import { Pager, PagerProps } from './components/Pager'
+import { Help, HelpProps } from './components/Help'
 import { UndoRedo, UndoRedoProps } from './components/UndoRedo'
 import { SaveDownloadHelp, SaveDownloadHelpProps } from './components/SaveDownloadHelp'
 import { App } from '../model/app'
@@ -24,6 +25,7 @@ export class ReactBridge {
 
     onAppStateChange() {
         this.renderToolbar()
+        this.renderHelp()
     }
 
     onAssetChange() {
@@ -146,5 +148,16 @@ export class ReactBridge {
         const pager = Pager(props)
         const el = document.getElementById('assetPager')
         ReactDom.render(pager, el)
+    }
+
+    renderHelp() {
+        const props: HelpProps = {
+            isVisable: this.app.isHelpOverlayOn,
+            onClick: () => this.app.toggleHelpOverlay()
+        }
+        const help = Help(props)
+        const el = document.getElementById('helpOverlay')
+        console.log("rendering help")
+        ReactDom.render(help, el)
     }
 }

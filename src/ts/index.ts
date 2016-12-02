@@ -27,7 +27,6 @@ import { notify } from './app/view/notification'
 import Intro from './app/view/intro'
 import AssetView from './app/view/asset'
 import SidebarView from './app/view/sidebar'
-import HelpOverlay from './app/view/help'
 import ToolbarView from './app/view/toolbar'
 import { URLState } from './app/view/urlstate'
 import { BackboneViewport } from './app/view/bbviewport'
@@ -246,7 +245,6 @@ function initLandmarker(backend: Backend, mode: 'image' | 'mesh', u: url.Url) {
 
     new AssetView({model: app})
     // new ToolbarView(app)
-    new HelpOverlay(app)
 
     var bbviewport = new BackboneViewport(document.getElementById('viewportContainer'), app)
     var viewport = bbviewport.viewport
