@@ -1,3 +1,4 @@
+import * as Collections from 'typescript-collections'
 import * as THREE from 'three'
 
 import { Landmark, LandmarkDelta } from './base'
@@ -6,7 +7,6 @@ import { ICanvas, Canvas } from './canvas'
 import { ICamera, Camera, TouchCameraHandler, MouseCameraHandler } from './camera'
 import { MouseHandler, TouchHandler } from './handler'
 import { IScene, Scene, CAMERA_MODE } from './scene'
-
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE
 const CLEAR_COLOUR_PIP = 0xCCCCCC
@@ -44,6 +44,98 @@ export interface IViewport {
     memoryString: () => string
 }
 
+export interface IViewportOptions {
+    verbose?: false
+}
+
+function wrapViewportCallbacksInDebug(on:ViewportCallbacks): ViewportCallbacks {
+    return {
+        selectLandmarks: (indicies: number[]) => {
+            console.log('selectLandmarks')
+            on.selectLandmarks(indicies)
+        },
+        deselectLandmarks: (indicies: number[]) => {
+            console.log('deselectLandmarks')
+            on.deselectLandmarks(indicies)
+        },
+        deselectAllLandmarks: () => {
+            console.log('deselectAllLandmarks')
+            on.deselectAllLandmarks()
+        },
+        selectLandmarkAndDeselectRest: (index: number) => {
+            console.log('selectLandmarkAndDeselectRest');
+            on.selectLandmarkAndDeselectRest(index)
+        },
+        setLandmarkPoint: (index: number, point: THREE.Vector3) => {
+            console.log('setLandmarkPoint')
+            on.setLandmarkPoint(index, point)
+        },
+        setLandmarkPointWithoutHistory: (index: number, point: THREE.Vector3) => {
+            console.log('setLandmarkPointWithoutHistory')
+            on.setLandmarkPointWithoutHistory(index, point)
+        },
+        addLandmarkHistory: (deltas: LandmarkDelta[]) => {
+            console.log('addLandmarkHistory')
+            on.addLandmarkHistory(deltas)
+        },
+        insertNewLandmark: (point: THREE.Vector3) => {
+            console.log('insertNewLandmark')
+            on.insertNewLandmark(point)
+        }
+    }
+}
+
+// The Viewport itself has no internal state tracking the selection/deselection
+// of landmarks. This is great for keeping the code clean, but means we make unnessessary
+// callbacks (e.g. every mouse movement in snap mode triggers on.selectLandmarkAndDeselectRest,
+// regardless of whether the selection changes or not).
+//
+// To avoid unnessessary function calls, we wrap the callbacks object in this closure, which
+// tracks the selected indices in one place and only dispatches the callback if the selection
+// state changes.
+function bufferedViewportCallbacks(on:ViewportCallbacks): ViewportCallbacks {
+    const selectedIndices = new Collections.Set<number>()
+    return {
+        selectLandmarks: (indicies: number[]) => {
+            const toSelectNotSelected = new Collections.Set<number>()
+            indicies.map(i => toSelectNotSelected.add(i))
+            toSelectNotSelected.difference(selectedIndices)
+            if (!toSelectNotSelected.isEmpty()) {
+                indicies.map(i => selectedIndices.add(i))
+                // only select the landmarks that were previously not selected
+                on.selectLandmarks(toSelectNotSelected.toArray())
+            }
+        },
+        deselectLandmarks: (indicies: number[]) => {
+            const toDeselectCurrentlySelected = new Collections.Set<number>()
+            indicies.map(i => toDeselectCurrentlySelected.add(i))
+            toDeselectCurrentlySelected.intersection(selectedIndices)
+            if (!toDeselectCurrentlySelected.isEmpty()) {
+                indicies.map(i => selectedIndices.remove(i))
+                on.deselectLandmarks(toDeselectCurrentlySelected.toArray())
+            }
+        },
+        deselectAllLandmarks: () => {
+            if (!selectedIndices.isEmpty()) {
+                selectedIndices.clear()
+                on.deselectAllLandmarks()
+            }
+        },
+        selectLandmarkAndDeselectRest: (index: number) => {
+            if (!(selectedIndices.size() == 1 && selectedIndices.contains(index))) {
+                selectedIndices.clear()
+                selectedIndices.add(index)
+                on.selectLandmarkAndDeselectRest(index)
+            }
+        },
+        // We don't care about the other callbacks, just pass them through
+        setLandmarkPoint: on.setLandmarkPoint,
+        setLandmarkPointWithoutHistory: on.setLandmarkPointWithoutHistory,
+        addLandmarkHistory: on.addLandmarkHistory,
+        insertNewLandmark: on.insertNewLandmark
+    }
+}
+
 // We are trying to move towards the whole viewport module being a standalone black box that
 // has no dependencies beyond THREE and our octree. As part of this effort, we refactor out
 // the Viewport core code into a standalone class with minimal interaction with Backbone.
@@ -73,10 +165,13 @@ export class Viewport implements IViewport {
     mouseHandler: MouseHandler
     touchHandler: TouchHandler
 
-    constructor(parent: HTMLElement, meshMode: boolean, on: ViewportCallbacks) {
-
+    constructor(parent: HTMLElement, meshMode: boolean, on: ViewportCallbacks, verbose = false) {
+        if (verbose) {
+            on = wrapViewportCallbacksInDebug(on)
+        }
         // all our callbacks are stored under the on namespace.
-        this.on = on
+        // we buffer the callbacks to avoid unnessessary duplicate invocations.
+        this.on = bufferedViewportCallbacks(on)
         this.meshMode = meshMode
 
         this.parent = parent

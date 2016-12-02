@@ -113,11 +113,11 @@ export class App extends Backbone.Model {
         return this.get('mode')
     }
 
-    imageMode() {
+    get imageMode() {
         return this.get('mode') === 'image'
     }
 
-    meshMode() {
+    get meshMode() {
         return this.get('mode') === 'mesh'
     }
 
@@ -129,7 +129,7 @@ export class App extends Backbone.Model {
         return this.get('templates')
     }
 
-    activeTemplate(): string {
+    get activeTemplate(): string {
         return this.get('activeTemplate')
     }
 
@@ -162,16 +162,16 @@ export class App extends Backbone.Model {
     }
 
     // returns the currently active Asset (Image or Asset).
-    // changes independently of mesh() - care should be taken as to which one
+    // changes independently of mesh - care should be taken as to which one
     // other objects should listen to.
-    asset(): Asset.Image {
+    get asset(): Asset.Image {
         return this.get('asset')
     }
 
     // returns the currently active THREE.Mesh.
-    mesh() {
+    get mesh() {
         if (this.hasAssetSource) {
-            return this.assetSource.mesh()
+            return this.assetSource.mesh
         } else {
             return null
         }
@@ -344,7 +344,7 @@ export class App extends Backbone.Model {
      }
 
     reloadLandmarks() {
-        if (this.landmarks && this.asset()) {
+        if (this.landmarks && this.asset) {
             this.autoSaveWrapper(() => {
                 this.set('landmarks', null)
                 this.loadLandmarksPromise().then((lms) => {
@@ -368,9 +368,9 @@ export class App extends Backbone.Model {
      }
 
     _assetSourceConstructor() {
-        if (this.imageMode()) {
+        if (this.imageMode) {
             return AssetSource.ImageSource
-        } else if (this.meshMode()) {
+        } else if (this.meshMode) {
             return AssetSource.MeshSource
         } else {
             throw Error('Error - illegal mode setting on app! Must be' +
@@ -381,7 +381,7 @@ export class App extends Backbone.Model {
     // Mirror the state of the asset source onto the app
     assetChanged = () => {
         console.log('App.assetChanged')
-        this.set('asset', this.assetSource.asset())
+        this.set('asset', this.assetSource.asset)
      }
 
     meshChanged() {
@@ -391,15 +391,15 @@ export class App extends Backbone.Model {
 
     loadLandmarksPromise() {
         return this.backend.fetchLandmarkGroup(
-            this.asset().id,
-            this.activeTemplate()
+            this.asset.id,
+            this.activeTemplate
         ).then(json => {
             return LandmarkGroup.parse(
                 json,
-                this.asset().id,
-                this.activeTemplate(),
+                this.asset.id,
+                this.activeTemplate,
                 this.backend,
-                this.landmarkGroupTrackerForAssetAndTemplate(this.asset().id, this.activeTemplate())
+                this.landmarkGroupTrackerForAssetAndTemplate(this.asset.id, this.activeTemplate)
             )
         }, () => {
             console.log('Error in fetching landmark JSON file')
@@ -463,7 +463,7 @@ export class App extends Backbone.Model {
             if (this.assetSource.hasPredecessor) {
                 this.backend.fetchLandmarkGroup(
                     as.assets()[as.assetIndex - 1].id,
-                    this.activeTemplate()
+                    this.activeTemplate
                 ).then((json) => {
                     lms.tracker.recordState(lms.toJSON())
                     lms.restore(json)

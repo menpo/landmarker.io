@@ -88,20 +88,20 @@ export class Image extends Backbone.Model {
         this.set('backend', backend)
     }
 
-    hasTexture() {
+    get hasTexture() {
         return this.texture !== null
     }
 
-    hasThumbnail() {
+    get hasThumbnail() {
         return this.thumbnail !== null
     }
 
-    hasGeometry() {
+    get hasGeometry() {
         return this.geometry !== null
     }
 
-    isTextureOn (): boolean {
-        return this.hasTexture() && this.get('textureOn')
+    get isTextureOn(): boolean {
+        return this.hasTexture && this.get('textureOn')
     }
 
     get hasGeometryPromise() {
@@ -116,7 +116,7 @@ export class Image extends Backbone.Model {
         return this._geometryPromise !== null
     }
 
-    mesh() {
+    get mesh() {
         // regenerate a THREE.Mesh from the current state. Note that no
         // texture, geometry or material is created in here - we just
         // wire up buffers that we own.
@@ -124,9 +124,9 @@ export class Image extends Backbone.Model {
         // clear all state back up.
         let geometry: THREE.Geometry | THREE.BufferGeometry
         let material: THREE.Material
-        const hasGeo = this.hasGeometry()
-        const hasTex = this.hasTexture()
-        const hasThumb = this.hasThumbnail()
+        const hasGeo = this.hasGeometry
+        const hasTex = this.hasTexture
+        const hasThumb = this.hasThumbnail
 
         // Start assuming that we have an image
         let up = UP.image
@@ -153,7 +153,7 @@ export class Image extends Backbone.Model {
 
         if (hasGeo) {
             // MESH
-            if (this.isTextureOn()) {
+            if (this.isTextureOn) {
                 // must have either thumbnail or texture
                 material = hasTex ? this.texture : this.thumbnail
             }
@@ -174,21 +174,21 @@ export class Image extends Backbone.Model {
     }
 
     textureOn() {
-        if (this.isTextureOn() || !this.hasTexture()) {
+        if (this.isTextureOn || !this.hasTexture) {
             return  // texture already off or no texture
         }
         this.set('textureOn', true)
     }
 
     textureOff() {
-        if (!this.isTextureOn()) {
+        if (!this.isTextureOn) {
             return  // texture already on
         }
         this.set('textureOn', false)
     }
 
     textureToggle() {
-        if (this.isTextureOn()) {
+        if (this.isTextureOn) {
             this.textureOff()
         } else {
             this.textureOn()
@@ -231,16 +231,16 @@ export class Image extends Backbone.Model {
 
     // reset this asset back to how it was at fetch time.
     dispose() {
-        if (this.hasGeometry()) {
+        if (this.hasGeometry) {
             this.geometry.dispose()
         }
-        if (this.hasTexture()) {
+        if (this.hasTexture) {
             this.texture.map.dispose()
             this.texture.dispose()
             this.textureGeometry.dispose()
 
         }
-        if (this.hasThumbnail()) {
+        if (this.hasThumbnail) {
             this.thumbnail.map.dispose()
             this.thumbnail.dispose()
             this.thumbnailGeometry.dispose()

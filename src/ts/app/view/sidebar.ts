@@ -95,7 +95,7 @@ export const ActionsView = Backbone.View.extend({
         if (this.model) {
             this.$el.find('#download').addClass('Button--Disabled')
             const data = JSON.stringify(this.model.toJSON())
-            const filename = `${this.app.asset().id}_${this.app.activeTemplate()}.ljson`
+            const filename = `${this.app.asset.id}_${this.app.activeTemplate}.ljson`
             download(data, filename, 'json')
             this.$el.find('#download').removeClass('Button--Disabled')
 
@@ -103,50 +103,6 @@ export const ActionsView = Backbone.View.extend({
     }
 })
 
-export const UndoRedoView = Backbone.View.extend({
-
-    el: "#undoRedo",
-
-    events: {
-        'click .Undo': 'undo',
-        'click .Redo': 'redo'
-    },
-
-    initialize: function ({app}) {
-        this.tracker = this.model.tracker
-        this.app = app
-        this.listenTo(this.tracker, "change", this.render)
-        _.bindAll(this, 'render', 'cleanup', 'undo', 'redo')
-        this.render()
-    },
-
-    cleanup: function () {
-        this.stopListening(this.tracker)
-        this.$el.find('.Undo').addClass('Disabled')
-        this.$el.find('.Redo').addClass('Disabled')
-    },
-
-    render: function () {
-        this.$el.find('.Undo').toggleClass('Disabled', !this.tracker.canUndo)
-        this.$el.find('.Redo').toggleClass('Disabled', !this.tracker.canRedo)
-    },
-
-    undo: function () {
-        if (!this.tracker.canUndo) {
-            return
-        } else {
-            this.model.undo()
-        }
-    },
-
-    redo: function () {
-        if (!this.tracker.canRedo) {
-            return
-        } else {
-            this.model.redo()
-        }
-    }
-})
 
 export const LmLoadView = Backbone.View.extend({
     el: '#lmLoadPanel',
@@ -207,7 +163,6 @@ export default Backbone.View.extend({
 
         this.actionsView = new ActionsView({model: lms, app: this.model})
         this.lmLoadView = new LmLoadView({model: lms, app: this.model})
-        this.undoRedoView = new UndoRedoView({model: lms})
         $('#landmarksPanel').html(this.lmView.render().$el)
     }
 })

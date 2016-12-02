@@ -1,6 +1,4 @@
-import * as Backbone from 'backbone'
-import * as $ from 'jquery'
-import { App } from '../model/app'
+import * as React from "react"
 
 const HELP_CONTENTS = [
     ['j', 'go to next asset in collection'],
@@ -36,32 +34,42 @@ const HELP_CONTENTS = [
     ['?', 'display this help']
 ]
 
-export default class Help extends Backbone.View<App> {
+const overlayStyle: React.CSSProperties = {
+  zIndex: 3,
+  background: "rgba(0,0,0,.6)",
+  cursor: "pointer",
+  pointerEvents: "auto",
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
+}
 
-    constructor(model: App) {
-        super({
-            model,
-            el: '#helpOverlay',
-            events: { click: 'close' }
-        })
-        this.listenTo(this.model, 'change:helpOverlayIsDisplayed', this.render)
-        const $tbody = this.$el.children('table').children('tbody')
-        HELP_CONTENTS.forEach(function ([key, msg]) {
-            $tbody.append(
-                msg ? $(`<tr><td>${key}</td><td>${msg}</td></tr>`) :
-                      $(`<tr class='title'><td>${key}</td><td></td></tr>`)
-            )
-        })
 
-        this.render()
-    }
+const insetStyle: React.CSSProperties = {
+  borderCollapse: "collapse",
+  background: "white",
+  padding: "0",
+  maxHeight: "95%",
+  maxWidth: "95%",
+  overflowY: "scroll",
+  display: "block"
+}
 
-    render() {
-        this.$el.toggleClass('Display', this.model.isHelpOverlayOn)
-        return this
-    }
+export interface HelpProps {
+    isVisable: boolean
+    onClick: () => void
+}
 
-    close() {
-        this.model.toggleHelpOverlay()
-    }
+export function Help(props: HelpProps) {
+    return ( props.isVisable ?
+    <div style={overlayStyle} onClick={props.onClick}>
+        <table className="HelpContentTable" style={insetStyle}>
+            <tbody>
+                { HELP_CONTENTS.map(([key, msg], i) => msg !== null ? <tr key={i}><td>{key}</td><td>{msg}</td></tr> : <tr className='title' key={i}><td>{key}</td><td></td></tr> ) }
+            </tbody>
+        </table>
+    </div> : <div></div>
+    )
 }

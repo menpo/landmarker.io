@@ -39,7 +39,7 @@ abstract class AssetSource extends Backbone.Model {
         )
     }
 
-    asset(): Asset.Image {
+    get asset(): Asset.Image {
         return this.get('asset')
     }
 
@@ -47,9 +47,9 @@ abstract class AssetSource extends Backbone.Model {
         return this.get('assets')
     }
 
-    mesh() {
-        const asset = this.asset()
-        return asset ? asset.mesh() : undefined
+    get mesh() {
+        const asset = this.asset
+        return asset ? asset.mesh : undefined
     }
 
     assetIsLoading(): boolean {
@@ -70,7 +70,7 @@ abstract class AssetSource extends Backbone.Model {
 
     // returns the index of the currently active mesh
     get assetIndex(): number {
-        return this.assets().indexOf(this.asset())
+        return this.assets().indexOf(this.asset)
     }
 
 
@@ -110,7 +110,7 @@ export class MeshSource extends AssetSource {
     }
 
     setAsset(newMesh: Asset.Mesh) {
-        var oldAsset = this.asset()
+        var oldAsset = this.asset
         // stop listening to the old asset
         if (oldAsset) {
             this.stopListening(oldAsset)
@@ -177,7 +177,7 @@ export class ImageSource extends AssetSource {
     }
 
     setAsset(newAsset: Asset.Image) {
-        const oldAsset = this.asset()
+        const oldAsset = this.asset
         // stop listening to the old asset
         if (oldAsset) {
             this.stopListening(oldAsset)

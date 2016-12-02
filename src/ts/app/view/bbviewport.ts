@@ -37,7 +37,7 @@ export class BackboneViewport {
             addLandmarkHistory: delta => this.model.landmarks.tracker.record(delta),
             insertNewLandmark: point => this.model.landmarks.insertNew(point),
         }
-        this.viewport = new Viewport(element, app.meshMode(), on)
+        this.viewport = new Viewport(element, app.meshMode, on, true)
         window.vp = this.viewport
 
         this.model.on('newMeshAvailable', () => this.setMesh())
@@ -57,7 +57,7 @@ export class BackboneViewport {
     }
 
     setMesh() {
-        const meshPayload = this.model.mesh()
+        const meshPayload = this.model.mesh
         if (meshPayload === null) {
             return
         }

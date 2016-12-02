@@ -20,7 +20,7 @@ export class TextureToggle extends Backbone.View<App> {
         this.toggle = this.$el.find('#textureToggle')[0] as HTMLInputElement
         this.listenTo(this.model, "newMeshAvailable", this.changeMesh)
         // there could already be an asset we have missed
-        if (this.model.asset()) {
+        if (this.model.asset) {
             this.changeMesh()
         }
         this.render()
@@ -29,8 +29,8 @@ export class TextureToggle extends Backbone.View<App> {
     render() {
         if (this.mesh) {
             this.$el.toggleClass('Toolbar-Row--Disabled',
-                !this.mesh.hasTexture())
-            this.toggle.checked = this.mesh.isTextureOn()
+                !this.mesh.hasTexture)
+            this.toggle.checked = this.mesh.isTextureOn
         } else {
             this.$el.addClass('Toolbar-Row--Disabled')
         }
@@ -41,8 +41,8 @@ export class TextureToggle extends Backbone.View<App> {
         if (this.mesh) {
             this.stopListening(this.mesh)
         }
-        this.listenTo(this.model.asset(), "all", this.render)
-        this.mesh = this.model.asset()
+        this.listenTo(this.model.asset, "all", this.render)
+        this.mesh = this.model.asset
     }
 
     textureToggle() {
@@ -64,7 +64,7 @@ export default class Toolbar extends Backbone.View<App> {
             model: model,
             el: '#toolbar'
         })
-        if (this.model.meshMode()) {
+        if (this.model.meshMode) {
             this.textureToggle = new TextureToggle(this.model)
         } else {
             // in image mode, we shouldn't even have these controls.
