@@ -88,17 +88,18 @@ export class ReactBridge {
             return
         }
 
-        // // TODO the saving state will not be reflected in the UI for now.
-        // // Ideally, this.app.landmarks.save() should change
-        // const props: SaveDownloadHelpProps = {
-        //     hasUnsavedChanges: !this.app.landmarks.tracker.isUpToDate,
-        //     onSave: () => this.app.landmarks.save(),
-        //     onDownload: () => ,
-        //     onOpenHelp: () => ,
-        // }
-        // const saveDownloadHelp = SaveDownloadHelp(props)
-        // const el = document.getElementById('landmarksPanel')
-        // ReactDom.render(saveDownloadHelp, el)
+        // TODO the saving state will not be reflected in the UI for now.
+        // Ideally, this.app.landmarks.save() should change. Furthermore,
+        // The active state needs to be reflected in the css (see old Backbone view for details)
+        const props: SaveDownloadHelpProps = {
+            hasUnsavedChanges: !this.app.landmarks.tracker.isUpToDate,
+            onSave: () => this.app.landmarks.save(),
+            onDownload: () => {},
+            onOpenHelp: () => this.app.toggleHelpOverlay(),
+        }
+        const saveDownloadHelp = SaveDownloadHelp(props)
+        const el = document.getElementById('lmActionsPanel')
+        ReactDom.render(saveDownloadHelp, el)
     }
 
     renderUndoRedo() {
