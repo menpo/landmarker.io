@@ -12,4 +12,3 @@ export interface Intersection {
     point: THREE.Vector3,
     object: THREE.Object3D
 }
-
