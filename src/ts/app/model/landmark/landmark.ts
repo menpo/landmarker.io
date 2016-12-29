@@ -1,4 +1,3 @@
-import * as _ from 'underscore'
 import * as Backbone from 'backbone'
 import { LandmarkGroup } from './group'
 
@@ -7,7 +6,8 @@ const DEFAULTS = {
     nextAvailable: false,
 }
 
-type JSONLandmark = [number, number, number] | [number, number]
+type JSONLmValue = number | null
+export type JSONLmPoint = [JSONLmValue, JSONLmValue, JSONLmValue] | [JSONLmValue, JSONLmValue]
 
 export class Landmark extends Backbone.Model {
 
@@ -53,7 +53,7 @@ export class Landmark extends Backbone.Model {
     }
 
     deselect() {
-        if(this.isSelected()) {
+        if (this.isSelected()) {
             this.set('selected', false)
         }
     }
@@ -77,8 +77,8 @@ export class Landmark extends Backbone.Model {
         this.set({ point: null, selected: false })
     }
 
-    toJSON(): JSONLandmark {
-        let pointJSON: JSONLandmark
+    toJSON(): JSONLmPoint {
+        let pointJSON: JSONLmPoint
         if (!this.isEmpty()) {
             const point = this.point
             if (this.nDims === 2) {

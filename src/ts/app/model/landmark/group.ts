@@ -3,25 +3,24 @@ import { notify } from '../../view/notification'
 import Tracker from '../../lib/tracker'
 import { Backend } from '../../backend'
 
-import { Landmark } from './landmark'
+import { Landmark, JSONLmPoint } from './landmark'
 import { LandmarkCollection }  from './collection'
 import { LandmarkLabel } from './label'
 
 type LabelAndMask = {
     label: string,
-    mask: number[]
+    mask: number[],
 }
 
-type JSONPoint = [number, number, number] | [number, number]
 
 interface LJSON {
     landmarks: {
-        points: JSONPoint[]
-        connectivity: [number, number][]
+        points: JSONLmPoint[]
+        connectivity: [number, number][],
     }
     labels: {
         label: string,
-        mask: number[]
+        mask: number[],
     }[]
 }
 
@@ -56,7 +55,7 @@ function _validateConnectivity(nLandmarks: number, connectivity: [number, number
     return connectivity
 }
 
-function _pointToVector(p: JSONPoint) : [THREE.Vector3, number] {
+function pointToVector(p: JSONLmPoint) : [THREE.Vector3, number] {
     const n = p.length
     const [x, y] = p
     const z = (n === 3) ?  p[2] : 0
@@ -75,15 +74,17 @@ export class LandmarkGroup extends LandmarkCollection {
     tracker: LandmarkGroupTracker
     labels: LandmarkLabel[]
 
-    constructor(points: JSONPoint[], connectivity: [number, number][],
+    constructor(points: JSONLmPoint[], connectivity: [number, number][],
                 labels: LabelAndMask[], id: string, type: string,
                 backend: Backend, tracker: LandmarkGroupTracker) {
-
-        // 1. Build landmarks from points
-        super(points.map((p, index) => {
-            const [point, nDims] = _pointToVector(p)
+        // 1. construct our superclass with empty landmarks
+        super([])
+        // 2. (dodgey) re-implment our super behavior and assign the landmarks again
+        // we need to do this as 'this' is not defined before the super call finishes.
+        this.landmarks = points.map((p, index) => {
+            const [point, nDims] = pointToVector(p)
             return new Landmark(this, index, nDims, point)
-        }))
+        })
 
         this.id = id
         this.type = type
@@ -123,7 +124,7 @@ export class LandmarkGroup extends LandmarkCollection {
 
         this.landmarks.forEach(lm => lm.clear())
         points.forEach((p, i) => {
-            const [v] = _pointToVector(p)
+            const [v] = pointToVector(p)
             if (v) {
                 this.landmarks[i].point = v
             }
@@ -153,13 +154,14 @@ export class LandmarkGroup extends LandmarkCollection {
         })
     }
 
-    // Sets the next available landmark to be either the first empty one,
+    // set the next available landmark to be either the first empty one,
     // or if originLm is provided from the set, the first empty on after
     // the originLm in storage order which is assumed to be logical order
     // (Loop over all lms to clear the next available flag)
     resetNextAvailable(originLm: Landmark=null) {
 
-        let first: Landmark, next: Landmark
+        let first: Landmark
+        let next: Landmark
         let pastOrigin = (originLm === null)
 
         this.landmarks.forEach(lm => {
@@ -220,7 +222,7 @@ export class LandmarkGroup extends LandmarkCollection {
             point: v.clone(),
             selected: true,
             isEmpty: false,
-            nextAvailable: false
+            nextAvailable: false,
         })
     }
 
@@ -231,7 +233,7 @@ export class LandmarkGroup extends LandmarkCollection {
                 connectivity: this.connectivity
             },
             labels: this.labels.map(label => label.toJSON()),
-            version: 2
+            version: 2,
         }
     }
 

@@ -16,7 +16,7 @@ export class LandmarkLabel extends LandmarkCollection {
     toJSON() {
         return {
             label: this.label,
-            mask: this.mask
+            mask: this.mask,
         }
     }
 }

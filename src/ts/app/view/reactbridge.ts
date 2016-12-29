@@ -76,7 +76,7 @@ export class ReactBridge {
                 } else {
                     this.app.landmarks.landmarks[index].selectAndDeselectRest()
                 }
-            }
+            },
         }
         const sidebar = Sidebar(props)
         const el = document.getElementById('landmarksPanel')
