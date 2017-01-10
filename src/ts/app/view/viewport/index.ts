@@ -35,7 +35,7 @@ export interface IViewport {
     resetCamera: () => void,
     toggleCamera: () => void
     snapModeEnabled: boolean
-    connectivityVisable: boolean
+    connectivityVisible: boolean
     cameraIsLocked: boolean
     landmarkSnapPermitted: boolean
     memoryString: () => string
@@ -140,7 +140,7 @@ export class Viewport implements IViewport {
 
     meshMode: boolean   // if true, working with 3D meshes. False, 2D images.
     on: ViewportCallbacks
-    _connectivityVisable = true
+    _connectivityVisible = true
     _snapModeEnabled: boolean // Note that we need to fire this in the constructor for sideeffects
 
     parent: HTMLElement
@@ -260,12 +260,12 @@ export class Viewport implements IViewport {
         return this.nonEmptyLandmarks.length === 0
     }
 
-    get connectivityVisable() {
-        return this._connectivityVisable
+    get connectivityVisible() {
+        return this._connectivityVisible
     }
 
-    set connectivityVisable (connectivityVisable: boolean) {
-        this._connectivityVisable = connectivityVisable
+    set connectivityVisible (connectivityVisible: boolean) {
+        this._connectivityVisible = connectivityVisible
         this.requestUpdate()
     }
 
@@ -348,11 +348,11 @@ export class Viewport implements IViewport {
         if (currentMode === CAMERA_MODE.PERSPECTIVE) {
             // going to orthographic - start listening for pip updates
             this.camera.onChangePip = this.requestUpdate
-            this.canvas.pipVisable = true
+            this.canvas.pipVisible = true
         } else {
             // leaving orthographic - stop listening to pip calls.
             this.camera.onChangePip = null
-            this.canvas.pipVisable = false
+            this.canvas.pipVisible = false
         }
         // clear the canvas and re-render our state
         this.requestUpdateAndClearCanvas()
@@ -415,7 +415,7 @@ export class Viewport implements IViewport {
         this.renderer.clear()
         this.renderer.render(scene.scene, scene.sCamera)
 
-        if (this.connectivityVisable) {
+        if (this.connectivityVisible) {
             // clear depth buffer
             this.renderer.clearDepth()
             // and render the connectivity
@@ -435,7 +435,7 @@ export class Viewport implements IViewport {
 
             // render the PIP image
             this.renderer.render(scene.scene, scene.sOCamZoom)
-            if (this.connectivityVisable) {
+            if (this.connectivityVisible) {
                 this.renderer.clearDepth() // clear depth buffer
                 // and render the connectivity
                 this.renderer.render(scene.sceneHelpers, scene.sOCamZoom)

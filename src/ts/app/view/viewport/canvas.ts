@@ -18,16 +18,16 @@ interface Bounds {
     height: number
 }
 
-function initialBoundingBox() {
+function initialBoundingBox() : BoundingBox {
     return { minX: 999999, minY: 999999, maxX: 0, maxY: 0 }
 }
 
 export interface ICanvas {
-    pipVisable: boolean
+    pipVisible: boolean
     resize: (width: number, height: number) => void
     clear: () => void,
     drawTargetingLines: (point: THREE.Vector2, targetPoint: THREE.Vector2, secondaryPoints: THREE.Vector2[]) => void
-    drawSelectionBox: (mouseDown: THREE.Vector2, mousePosition: THREE.Vector2) => void,
+    drawSelectionBox: (pointA: THREE.Vector2, pointB: THREE.Vector2) => void,
     pipBounds: (width: number, height: number) => Bounds
 }
 
@@ -42,7 +42,7 @@ export class Canvas implements ICanvas {
     // drawing into each frame. This way we only need clear the relevant
     // area of the canvas which is a big perf win.
     // see this._updateCanvasBoundingBox() for usage.
-    ctxBox = initialBoundingBox()
+    ctxBox: BoundingBox = initialBoundingBox()
     pixelRatio = window.devicePixelRatio || 1  // 2/3 if on a HIDPI/retina display
 
     constructor(canvas: HTMLCanvasElement, pipCanvas: HTMLCanvasElement) {
@@ -62,7 +62,7 @@ export class Canvas implements ICanvas {
         // as we don't know the screen size at this time.
 
         // by default hide the PIP window.
-        this.pipVisable = false
+        this.pipVisible = false
 
         // To compensate for retina displays we have to manually
         // scale our contexts up by the pixel ratio. To counteract this (so we
@@ -87,12 +87,12 @@ export class Canvas implements ICanvas {
         this.pipCtx.strokeRect(0, 0, PIP_WIDTH, PIP_HEIGHT)
     }
 
-    get pipVisable() {
+    get pipVisible() {
         return this.pipCanvas.style.display !== 'none'
     }
 
-    set pipVisable(isVisable) {
-        this.pipCanvas.style.display = isVisable ? null : 'none'
+    set pipVisible(isVisible) {
+        this.pipCanvas.style.display = isVisible ? null : 'none'
     }
 
     pipBounds = (width: number, height: number) => {
@@ -125,15 +125,15 @@ export class Canvas implements ICanvas {
         this.ctxBox.maxY = Math.max(this.ctxBox.maxY, point.y)
     }
 
-    drawSelectionBox = (mouseDown: THREE.Vector2, mousePosition: THREE.Vector2) => {
-        var x = mouseDown.x
-        var y = mouseDown.y
-        var dx = mousePosition.x - x
-        var dy = mousePosition.y - y
+    drawSelectionBox = (pointA: THREE.Vector2, pointB: THREE.Vector2) => {
+        var x = pointA.x
+        var y = pointA.y
+        var dx = pointB.x - x
+        var dy = pointB.y - y
         this.ctx.strokeRect(x, y, dx, dy)
         // update the bounding box
-        this.updateCanvasBoundingBox(mouseDown)
-        this.updateCanvasBoundingBox(mousePosition)
+        this.updateCanvasBoundingBox(pointA)
+        this.updateCanvasBoundingBox(pointB)
     }
 
     drawTargetingLines = (point: THREE.Vector2,
