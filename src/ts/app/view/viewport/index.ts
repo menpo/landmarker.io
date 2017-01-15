@@ -185,7 +185,7 @@ export class Viewport implements IViewport {
                                          this.scene.sOCam,
                                          this.scene.sOCamZoom)
 
-        this.camera.onChange = this.requestUpdateAndClearCanvas
+        this.camera.onChange = this.requestUpdateAndRefreshCanvas
         // set the cameera lock status to false, which will wire up the handlers.
         this.cameraIsLocked = false
 
@@ -391,6 +391,7 @@ export class Viewport implements IViewport {
         this.on.addLandmarkHistory(ops)
 
         this.clearCanvas()
+        this.updateSelectionBox()
     }
 
      animate = () => {
@@ -452,6 +453,11 @@ export class Viewport implements IViewport {
         this.clearCanvas()
     }
 
+    requestUpdateAndRefreshCanvas = () => {
+        this.requestUpdateAndClearCanvas()
+        this.updateSelectionBox()
+    }
+
     memoryString = () => {
         return 'geo:' + this.renderer.info.memory.geometries +
                ' tex:' + this.renderer.info.memory.textures
@@ -478,6 +484,24 @@ export class Viewport implements IViewport {
             this.scene.localToScreen(targetLm.point),
             secondaryLms.map(lm => this.scene.localToScreen(lm.point))
         )
+    }
+
+    updateSelectionBox = () => {
+        if (this.selectedLandmarks.length > 1) {
+            var xs = this.selectedLandmarks.map(lm => this.scene.localToScreen(lm.point).x)
+            var ys = this.selectedLandmarks.map(lm => this.scene.localToScreen(lm.point).y)
+            var minX = Math.min(...xs)
+            var maxX = Math.max(...xs)
+            var minY = Math.min(...ys)
+            var maxY = Math.max(...ys)
+            var minPosition = new THREE.Vector2(minX, minY)
+            var maxPosition = new THREE.Vector2(maxX, maxY)
+            this.canvas.drawSelectionBox(minPosition, maxPosition)
+            this.canvas.drawSelectionBox(new THREE.Vector2(minX - 3, minY - 3), new THREE.Vector2(minX + 4, minY + 4))
+            this.canvas.drawSelectionBox(new THREE.Vector2(minX - 3, maxY - 3), new THREE.Vector2(minX + 4, maxY + 4))
+            this.canvas.drawSelectionBox(new THREE.Vector2(maxX - 3, minY - 3), new THREE.Vector2(maxX + 4, minY + 4))
+            this.canvas.drawSelectionBox(new THREE.Vector2(maxX - 3, maxY - 3), new THREE.Vector2(maxX + 4, maxY + 4))
+        }
     }
 
 }

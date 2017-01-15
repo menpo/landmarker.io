@@ -112,24 +112,9 @@ export class MouseHandler {
 
         if (!(this.downEvent.ctrlKey || this.downEvent.metaKey)) {
             this.viewport.on.deselectAllLandmarks()
-            this.viewport.clearCanvas()
         }
         document.addEventListener('mousemove', this.shiftOnDrag)
         listenOnce(document, 'mouseup', this.shiftOnMouseUp)
-    }
-
-    updateSelectionBox = () => {
-        if (this.viewport.selectedLandmarks.length > 1) {
-            var xs = this.viewport.selectedLandmarks.map(lm => this.viewport.scene.localToScreen(lm.point).x)
-            var ys = this.viewport.selectedLandmarks.map(lm => this.viewport.scene.localToScreen(lm.point).y)
-            var minX = Math.min(...xs)
-            var maxX = Math.max(...xs)
-            var minY = Math.min(...ys)
-            var maxY = Math.max(...ys)
-            var minPosition = new THREE.Vector2(minX, minY)
-            var maxPosition = new THREE.Vector2(maxX, maxY)
-            this.viewport.canvas.drawSelectionBox(minPosition, maxPosition)
-        }
     }
 
     // Catch all clicks and delegate to other handlers once user's intent
@@ -193,7 +178,6 @@ export class MouseHandler {
                 this.intersectsWithMesh.length > 0
             ) {
                 this.viewport.on.deselectAllLandmarks()
-                this.viewport.clearCanvas()
                 this.currentTargetLm = null
                 this.meshPressed()
             }
@@ -238,7 +222,6 @@ export class MouseHandler {
                 console.log("fallen off mesh")
             }
         })
-        this.updateSelectionBox()
         this.viewport.requestUpdate()
     }
 
@@ -282,8 +265,7 @@ export class MouseHandler {
         // obscured) and select the rest
         const indexesToSelect = lms.filter(this.viewport.scene.lmViewVisible).map(lm => lm.index)
         this.viewport.on.selectLandmarks(indexesToSelect)
-        this.viewport.requestUpdateAndClearCanvas()
-        this.updateSelectionBox()
+        this.viewport.requestUpdateAndRefreshCanvas()
         this.isPressed = false
     }
 
@@ -319,6 +301,7 @@ export class MouseHandler {
         }
         this.isPressed = false
         this.viewport.clearCanvas()
+        this.viewport.updateSelectionBox()
     }
 
     landmarkOnMouseUp = (event: MouseEvent) => {
@@ -345,9 +328,7 @@ export class MouseHandler {
             this.viewport.on.addLandmarkHistory(this.dragStartPositions)
         }
 
-        this.viewport.clearCanvas()
-        this.updateSelectionBox()
-        this.viewport.requestUpdate()
+        this.viewport.requestUpdateAndRefreshCanvas()
         this.dragged = false
         this.dragStartPositions = []
         this.isPressed = false
@@ -360,7 +341,7 @@ export class MouseHandler {
         this.viewport.clearCanvas()
 
         // update and draw selection box if active
-        this.updateSelectionBox()
+        this.viewport.updateSelectionBox()
 
         if (this.isPressed || !this.viewport.landmarkSnapPermitted) {
             return
