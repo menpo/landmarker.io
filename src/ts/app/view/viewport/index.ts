@@ -514,6 +514,8 @@ export class Viewport implements IViewport {
             this.canvas.drawSelectionBox(new THREE.Vector2(minX - 3, maxY - 3), new THREE.Vector2(minX + 3, maxY + 3))
             this.canvas.drawSelectionBox(new THREE.Vector2(maxX - 3, minY - 3), new THREE.Vector2(maxX + 3, minY + 3))
             this.canvas.drawSelectionBox(new THREE.Vector2(maxX - 3, maxY - 3), new THREE.Vector2(maxX + 3, maxY + 3))
+            this.canvas.drawLine(new THREE.Vector2((minX + maxX) / 2, minY), new THREE.Vector2((minX + maxX) / 2, minY - 5))
+            this.canvas.drawCircle(new THREE.Vector2((minX + maxX) / 2, minY - 8), 3)
             this.selectionBox = {
                 minPosition: minPosition,
                 maxPosition: maxPosition

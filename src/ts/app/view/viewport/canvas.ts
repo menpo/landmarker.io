@@ -28,6 +28,8 @@ export interface ICanvas {
     clear: () => void,
     drawTargetingLines: (point: THREE.Vector2, targetPoint: THREE.Vector2, secondaryPoints: THREE.Vector2[]) => void
     drawSelectionBox: (pointA: THREE.Vector2, pointB: THREE.Vector2) => void,
+    drawLine: (pointA: THREE.Vector2, pointB: THREE.Vector2) => void,
+    drawCircle: (centre: THREE.Vector2, radius: number) => void,
     pipBounds: (width: number, height: number) => Bounds
 }
 
@@ -164,6 +166,26 @@ export class Canvas implements ICanvas {
         this.ctx.moveTo(targetPoint.x, targetPoint.y)
         this.ctx.lineTo(point.x, point.y)
         this.ctx.stroke()
+    }
+
+    drawLine = (pointA: THREE.Vector2, pointB: THREE.Vector2) => {
+        this.ctx.beginPath()
+        this.ctx.moveTo(pointA.x, pointA.y)
+        this.ctx.lineTo(pointB.x, pointB.y)
+        this.ctx.stroke()
+        // update the bounding box
+        this.updateCanvasBoundingBox(pointA)
+        this.updateCanvasBoundingBox(pointB)
+    }
+
+    drawCircle = (centre: THREE.Vector2, radius: number) => {
+        this.ctx.beginPath()
+        this.ctx.arc(centre.x, centre.y, radius, 0, 2 * Math.PI, false)
+        this.ctx.fill()
+        this.ctx.stroke()
+        // update the bounding box
+        this.updateCanvasBoundingBox(new THREE.Vector2(centre.x - radius, centre.y - radius))
+        this.updateCanvasBoundingBox(new THREE.Vector2(centre.x + radius, centre.y + radius))
     }
 
     clear = () => {
