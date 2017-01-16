@@ -45,6 +45,11 @@ export interface IViewportOptions {
     verbose?: false
 }
 
+interface SelectionBox {
+    minPosition: THREE.Vector2
+    maxPosition: THREE.Vector2
+}
+
 function wrapViewportCallbacksInDebug(on:ViewportCallbacks): ViewportCallbacks {
     return {
         selectLandmarks: (indicies: number[]) => {
@@ -162,6 +167,8 @@ export class Viewport implements IViewport {
     mouseHandler: MouseHandler
     touchHandler: TouchHandler
 
+    selectionBox: SelectionBox
+
     constructor(parent: HTMLElement, meshMode: boolean, on: ViewportCallbacks, verbose = false) {
         if (verbose) {
             on = wrapViewportCallbacksInDebug(on)
@@ -226,6 +233,12 @@ export class Viewport implements IViewport {
         this.animate()
 
         this.snapModeEnabled = true
+
+        // invalid selection box - not active
+        this.selectionBox = {
+            minPosition: new THREE.Vector2(-1, -1),
+            maxPosition: new THREE.Vector2(-1, -1)
+        }
     }
 
     get width() {
@@ -497,10 +510,19 @@ export class Viewport implements IViewport {
             var minPosition = new THREE.Vector2(minX, minY)
             var maxPosition = new THREE.Vector2(maxX, maxY)
             this.canvas.drawSelectionBox(minPosition, maxPosition)
-            this.canvas.drawSelectionBox(new THREE.Vector2(minX - 3, minY - 3), new THREE.Vector2(minX + 4, minY + 4))
-            this.canvas.drawSelectionBox(new THREE.Vector2(minX - 3, maxY - 3), new THREE.Vector2(minX + 4, maxY + 4))
-            this.canvas.drawSelectionBox(new THREE.Vector2(maxX - 3, minY - 3), new THREE.Vector2(maxX + 4, minY + 4))
-            this.canvas.drawSelectionBox(new THREE.Vector2(maxX - 3, maxY - 3), new THREE.Vector2(maxX + 4, maxY + 4))
+            this.canvas.drawSelectionBox(new THREE.Vector2(minX - 3, minY - 3), new THREE.Vector2(minX + 3, minY + 3))
+            this.canvas.drawSelectionBox(new THREE.Vector2(minX - 3, maxY - 3), new THREE.Vector2(minX + 3, maxY + 3))
+            this.canvas.drawSelectionBox(new THREE.Vector2(maxX - 3, minY - 3), new THREE.Vector2(maxX + 3, minY + 3))
+            this.canvas.drawSelectionBox(new THREE.Vector2(maxX - 3, maxY - 3), new THREE.Vector2(maxX + 3, maxY + 3))
+            this.selectionBox = {
+                minPosition: minPosition,
+                maxPosition: maxPosition
+            }
+        } else {
+            this.selectionBox = {
+                minPosition: new THREE.Vector2(-1, -1),
+                maxPosition: new THREE.Vector2(-1, -1)
+            }
         }
     }
 

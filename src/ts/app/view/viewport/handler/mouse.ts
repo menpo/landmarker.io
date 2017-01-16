@@ -3,6 +3,14 @@ import { Landmark, Intersection } from '../base'
 import { Viewport } from '../index'
 import { listenOnce } from '../lib/event'
 import { findClosestLandmarks } from './base'
+
+enum Handle {
+    TL, // top left
+    TR, // top right
+    BL, // bottom left
+    BR // bottom right
+}
+
 /**
  * Holds state usable by all event handlers and should be bound to the
  * Viewport view instance.
@@ -24,6 +32,8 @@ export class MouseHandler {
     dragged = false
     intersectsWithLms: Intersection[] = []
     intersectsWithMesh: Intersection[] = []
+
+    handlePressed: Handle
 
     constructor(viewport: Viewport) {
         this.viewport = viewport
@@ -117,6 +127,51 @@ export class MouseHandler {
         listenOnce(document, 'mouseup', this.shiftOnMouseUp)
     }
 
+    selectionHandlePressed = () => {
+        console.log('selection handle pressed!')
+        // before anything else, disable the camera
+        this.viewport.cameraIsLocked = true
+
+        // record the starting positions of selected landmarks
+        this.dragStartPositions = this.viewport.selectedLandmarks
+            .map(lm => [lm.index, lm.point.clone()])
+
+        // start listening for dragging selection handle
+        document.addEventListener('mousemove', this.selectionHandleOnDrag)
+        listenOnce(document, 'mouseup', this.selectionHandleOnMouseUp)
+    }
+
+    mouseDownOnSelectionHandle = () => {
+        const md = this.onMouseDownPosition
+        const sb = this.viewport.selectionBox
+        if (sb.minPosition.x === -1 && sb.minPosition.y === -1 && sb.maxPosition.x === -1 && sb.maxPosition.y === -1) {
+            console.log("inactive!!!")
+            return false
+        }
+        if (md.x <= sb.minPosition.x + 3 && md.x >= sb.minPosition.x - 3 && md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y - 3) {
+            this.handlePressed = Handle.TL
+            return true
+        } else if (md.x <= sb.minPosition.x + 3 && md.x >= sb.minPosition.x - 3 && md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3) {
+            this.handlePressed = Handle.BL
+            return true
+        } else if (md.x <= sb.maxPosition.x + 3 && md.x >= sb.maxPosition.x - 3 && md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y - 3) {
+            this.handlePressed = Handle.TR
+            return true
+        } else if (md.x <= sb.maxPosition.x + 3 && md.x >= sb.maxPosition.x - 3 && md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3) {
+            this.handlePressed = Handle.BR
+            return true
+        }
+        return false
+        // return (md.x <= sb.minPosition.x + 3 && md.x >= sb.minPosition.x - 3 && md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y - 3)
+        // || (md.x <= sb.minPosition.x + 3 && md.x >= sb.minPosition.x - 3 && md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3)
+        // || (md.x <= sb.maxPosition.x + 3 && md.x >= sb.maxPosition.x - 3 && md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y - 3)
+        // || (md.x <= sb.maxPosition.x + 3 && md.x >= sb.maxPosition.x - 3 && md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3)
+        // return (md.x <= sb.minPosition.x + 3 && md.x >= sb.minPosition.x - 3 && ((md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y - 3)
+        // || (md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3)))
+        // || (md.x <= sb.maxPosition.x + 3 && md.x >= sb.maxPosition.x - 3 && ((md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y)
+        // || (md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3)))
+    }
+
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
     onMouseDown = (event: MouseEvent) => {
@@ -140,18 +195,23 @@ export class MouseHandler {
         // present.
         this.intersectsWithMesh = this.viewport.scene.getIntersectsFromEvent(event, this.viewport.scene.mesh)
 
+        const mouseDownOnSelectionHandle = this.mouseDownOnSelectionHandle()
+
         // Click type, we use MouseEvent.button which is the vanilla JS way
         // jQuery also exposes event.which which has different bindings
         if (event.button === 0) {  // left mouse button
             if (this.intersectsWithLms.length > 0 &&
                 this.intersectsWithMesh.length > 0) {
                 // degenerate case - which is closer?
+                // selection handle takes precedence over landmark
                 if (this.intersectsWithLms[0].distance <
-                    this.intersectsWithMesh[0].distance) {
+                    this.intersectsWithMesh[0].distance && !mouseDownOnSelectionHandle) {
                     this.landmarkPressed()
                 } else {
-                    // the mesh was pressed. Check for shift first.
-                    if (event.shiftKey) {
+                    // the mesh was pressed. Check for selection handle first and shift second.
+                    if (mouseDownOnSelectionHandle) {
+                        this.selectionHandlePressed()
+                    } if (event.shiftKey) {
                         this.shiftPressed()
                     } else if (this.viewport.snapModeEnabled && this.currentTargetLm !== null) {
                         this.meshPressed()
@@ -159,6 +219,8 @@ export class MouseHandler {
                         this.nothingPressed()
                     }
                 }
+            } else if (mouseDownOnSelectionHandle) {
+                this.selectionHandlePressed()
             } else if (this.intersectsWithLms.length > 0) {
                 this.landmarkPressed()
             } else if (event.shiftKey) {
@@ -233,6 +295,51 @@ export class MouseHandler {
         // clear the canvas and draw a selection rect.
         this.viewport.clearCanvas()
         this.viewport.canvas.drawSelectionBox(this.onMouseDownPosition, newPosition)
+    }
+
+    selectionHandleOnDrag = (event: MouseEvent) => {
+        console.log("selection handle:drag")
+        const oldMin = this.viewport.selectionBox.minPosition
+        const oldMax = this.viewport.selectionBox.maxPosition
+        const newMin = oldMin.clone()
+        const newMax = oldMax.clone()
+        if (this.handlePressed === Handle.TL) {
+            newMin.set(event.clientX, event.clientY)
+        } else if (this.handlePressed === Handle.BR) {
+            newMax.set(event.clientX, event.clientY)
+        } else if (this.handlePressed === Handle.TR) {
+            newMin.y = event.clientY
+            newMax.x = event.clientX
+        } else {
+            newMin.x = event.clientX
+            newMax.y = event.clientY
+        }
+        this.viewport.selectedLandmarks.forEach(lm => {
+            // convert to screen coordinates
+            const oldLmPos = this.viewport.scene.localToScreen(lm.point)
+
+            // Calculate new coordinates based on new selection box
+            const deltaX = (oldLmPos.x - oldMin.x) / (oldMax.x - oldMin.x)
+            const deltaY = (oldLmPos.y - oldMin.y) / (oldMax.y - oldMin.y)
+            const newLmX = (deltaX * (newMax.x - newMin.x)) + newMin.x
+            const newLmY = (deltaY * (newMax.y - newMin.y)) + newMin.y
+
+            // use the standard machinery to find intersections
+            // note that we intersect the mesh to use the octree
+            this.intersectsWithMesh = this.viewport.scene.getIntersects(
+                newLmX, newLmY, this.viewport.scene.mesh)
+            if (this.intersectsWithMesh.length > 0) {
+                // good, we're still on the mesh.
+                // TODO check
+                this.dragged = !!this.dragged || true
+                this.viewport.on.setLandmarkPointWithoutHistory(lm.index,
+                    this.viewport.scene.worldToLocal(this.intersectsWithMesh[0].point))
+            } else {
+                // don't update point - it would fall off the surface.
+                console.log("fallen off mesh")
+            }
+        })
+        this.viewport.requestUpdate()
     }
 
     // Up handlers
@@ -322,6 +429,24 @@ export class MouseHandler {
                 this.viewport.on.setLandmarkPoint(this.lmPressed.index, p)
             }
         } else if (this.dragged) {
+            this.viewport.selectedLandmarks.forEach((lm, i) => {
+                this.dragStartPositions[i].push(lm.point.clone())
+            })
+            this.viewport.on.addLandmarkHistory(this.dragStartPositions)
+        }
+
+        this.viewport.requestUpdateAndRefreshCanvas()
+        this.dragged = false
+        this.dragStartPositions = []
+        this.isPressed = false
+    }
+
+    selectionHandleOnMouseUp = (event: MouseEvent) => {
+        this.viewport.cameraIsLocked = false
+        console.log("handlePress:up")
+        document.removeEventListener('mousemove', this.selectionHandleOnDrag)
+
+        if (this.dragged) {
             this.viewport.selectedLandmarks.forEach((lm, i) => {
                 this.dragStartPositions[i].push(lm.point.clone())
             })
