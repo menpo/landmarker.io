@@ -330,7 +330,6 @@ export class MouseHandler {
                 newLmX, newLmY, this.viewport.scene.mesh)
             if (this.intersectsWithMesh.length > 0) {
                 // good, we're still on the mesh.
-                // TODO check
                 this.dragged = !!this.dragged || true
                 this.viewport.on.setLandmarkPointWithoutHistory(lm.index,
                     this.viewport.scene.worldToLocal(this.intersectsWithMesh[0].point))

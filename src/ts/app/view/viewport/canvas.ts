@@ -181,6 +181,7 @@ export class Canvas implements ICanvas {
     drawCircle = (centre: THREE.Vector2, radius: number) => {
         this.ctx.beginPath()
         this.ctx.arc(centre.x, centre.y, radius, 0, 2 * Math.PI, false)
+        this.ctx.fillStyle = "#01e6fb"
         this.ctx.fill()
         this.ctx.stroke()
         // update the bounding box
