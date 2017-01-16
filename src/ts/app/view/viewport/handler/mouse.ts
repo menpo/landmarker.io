@@ -464,10 +464,14 @@ export class MouseHandler {
 
         this.viewport.clearCanvas()
 
+        if (this.isPressed) {
+            return
+        }
+
         // update and draw selection box if active
         this.viewport.updateSelectionBox()
 
-        if (this.isPressed || !this.viewport.landmarkSnapPermitted) {
+        if (!this.viewport.landmarkSnapPermitted) {
             return
         }
 

@@ -337,7 +337,7 @@ export class Viewport implements IViewport {
 
     updateLandmarks = (landmarks: Landmark[]) => {
         this.scene.updateLandmarks(landmarks)
-        this.requestUpdate()
+        this.requestUpdateAndRefreshCanvas()
     }
 
     setMesh = (mesh: THREE.Mesh, up: THREE.Vector3, front: THREE.Vector3) => {
