@@ -144,32 +144,25 @@ export class MouseHandler {
     mouseDownOnSelectionHandle = () => {
         const md = this.onMouseDownPosition
         const sb = this.viewport.selectionBox
+        const hr = sb.handleRadius
         if (sb.minPosition.x === -1 && sb.minPosition.y === -1 && sb.maxPosition.x === -1 && sb.maxPosition.y === -1) {
-            console.log("inactive!!!")
+            console.log("selection box inactive!")
             return false
         }
-        if (md.x <= sb.minPosition.x + 3 && md.x >= sb.minPosition.x - 3 && md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y - 3) {
+        if (md.x <= sb.minPosition.x + hr && md.x >= sb.minPosition.x - hr && md.y <= sb.minPosition.y + hr && md.y >= sb.minPosition.y - hr) {
             this.handlePressed = Handle.TL
             return true
-        } else if (md.x <= sb.minPosition.x + 3 && md.x >= sb.minPosition.x - 3 && md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3) {
+        } else if (md.x <= sb.minPosition.x + hr && md.x >= sb.minPosition.x - hr && md.y <= sb.maxPosition.y + hr && md.y >= sb.maxPosition.y - hr) {
             this.handlePressed = Handle.BL
             return true
-        } else if (md.x <= sb.maxPosition.x + 3 && md.x >= sb.maxPosition.x - 3 && md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y - 3) {
+        } else if (md.x <= sb.maxPosition.x + hr && md.x >= sb.maxPosition.x - hr && md.y <= sb.minPosition.y + hr && md.y >= sb.minPosition.y - hr) {
             this.handlePressed = Handle.TR
             return true
-        } else if (md.x <= sb.maxPosition.x + 3 && md.x >= sb.maxPosition.x - 3 && md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3) {
+        } else if (md.x <= sb.maxPosition.x + hr && md.x >= sb.maxPosition.x - hr && md.y <= sb.maxPosition.y + hr && md.y >= sb.maxPosition.y - hr) {
             this.handlePressed = Handle.BR
             return true
         }
         return false
-        // return (md.x <= sb.minPosition.x + 3 && md.x >= sb.minPosition.x - 3 && md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y - 3)
-        // || (md.x <= sb.minPosition.x + 3 && md.x >= sb.minPosition.x - 3 && md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3)
-        // || (md.x <= sb.maxPosition.x + 3 && md.x >= sb.maxPosition.x - 3 && md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y - 3)
-        // || (md.x <= sb.maxPosition.x + 3 && md.x >= sb.maxPosition.x - 3 && md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3)
-        // return (md.x <= sb.minPosition.x + 3 && md.x >= sb.minPosition.x - 3 && ((md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y - 3)
-        // || (md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3)))
-        // || (md.x <= sb.maxPosition.x + 3 && md.x >= sb.maxPosition.x - 3 && ((md.y <= sb.minPosition.y + 3 && md.y >= sb.minPosition.y)
-        // || (md.y <= sb.maxPosition.y + 3 && md.y >= sb.maxPosition.y - 3)))
     }
 
     // Catch all clicks and delegate to other handlers once user's intent
@@ -294,25 +287,26 @@ export class MouseHandler {
         var newPosition = new THREE.Vector2(event.clientX, event.clientY)
         // clear the canvas and draw a selection rect.
         this.viewport.clearCanvas()
-        this.viewport.canvas.drawSelectionBox(this.onMouseDownPosition, newPosition)
+        this.viewport.canvas.drawBox(this.onMouseDownPosition, newPosition, "rgb(1, 230, 251)", "rgba(0, 0, 0, 0)")
     }
 
     selectionHandleOnDrag = (event: MouseEvent) => {
         console.log("selection handle:drag")
-        const oldMin = this.viewport.selectionBox.minPosition
-        const oldMax = this.viewport.selectionBox.maxPosition
+        const p = this.viewport.selectionBox.padding
+        const oldMin = this.viewport.selectionBox.minPosition.clone().add(new THREE.Vector2(p, p))
+        const oldMax = this.viewport.selectionBox.maxPosition.clone().sub(new THREE.Vector2(p, p))
         const newMin = oldMin.clone()
         const newMax = oldMax.clone()
         if (this.handlePressed === Handle.TL) {
-            newMin.set(event.clientX, event.clientY)
+            newMin.set(event.clientX + p, event.clientY + p)
         } else if (this.handlePressed === Handle.BR) {
-            newMax.set(event.clientX, event.clientY)
+            newMax.set(event.clientX - p, event.clientY - p)
         } else if (this.handlePressed === Handle.TR) {
-            newMin.y = event.clientY
-            newMax.x = event.clientX
+            newMin.y = event.clientY + p
+            newMax.x = event.clientX - p
         } else {
-            newMin.x = event.clientX
-            newMax.y = event.clientY
+            newMin.x = event.clientX + p
+            newMax.y = event.clientY - p
         }
         this.viewport.selectedLandmarks.forEach(lm => {
             // convert to screen coordinates

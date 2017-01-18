@@ -48,6 +48,10 @@ export interface IViewportOptions {
 interface SelectionBox {
     minPosition: THREE.Vector2
     maxPosition: THREE.Vector2
+    handleRadius: number
+    padding: number
+    colour: string
+    fillColour: string
 }
 
 function wrapViewportCallbacksInDebug(on:ViewportCallbacks): ViewportCallbacks {
@@ -237,7 +241,11 @@ export class Viewport implements IViewport {
         // invalid selection box - not active
         this.selectionBox = {
             minPosition: new THREE.Vector2(-1, -1),
-            maxPosition: new THREE.Vector2(-1, -1)
+            maxPosition: new THREE.Vector2(-1, -1),
+            handleRadius: -1,
+            padding: -1,
+            colour: "rgb(1, 230, 251)",
+            fillColour: "rgba(1, 230, 251, 0.2)"
         }
     }
 
@@ -500,30 +508,45 @@ export class Viewport implements IViewport {
     }
 
     updateSelectionBox = () => {
+        var col = this.selectionBox.colour
+        var fillCol = this.selectionBox.fillColour
+        var fillEmpty = "rgba(0, 0, 0, 0)"
         if (this.selectedLandmarks.length > 1) {
             var xs = this.selectedLandmarks.map(lm => this.scene.localToScreen(lm.point).x)
             var ys = this.selectedLandmarks.map(lm => this.scene.localToScreen(lm.point).y)
-            var minX = Math.min(...xs)
-            var maxX = Math.max(...xs)
-            var minY = Math.min(...ys)
-            var maxY = Math.max(...ys)
+            var padding = 7
+            var minX = Math.min(...xs) - padding
+            var maxX = Math.max(...xs) + padding
+            var minY = Math.min(...ys) - padding
+            var maxY = Math.max(...ys) + padding
             var minPosition = new THREE.Vector2(minX, minY)
             var maxPosition = new THREE.Vector2(maxX, maxY)
-            this.canvas.drawSelectionBox(minPosition, maxPosition)
-            this.canvas.drawSelectionBox(new THREE.Vector2(minX - 3, minY - 3), new THREE.Vector2(minX + 3, minY + 3))
-            this.canvas.drawSelectionBox(new THREE.Vector2(minX - 3, maxY - 3), new THREE.Vector2(minX + 3, maxY + 3))
-            this.canvas.drawSelectionBox(new THREE.Vector2(maxX - 3, minY - 3), new THREE.Vector2(maxX + 3, minY + 3))
-            this.canvas.drawSelectionBox(new THREE.Vector2(maxX - 3, maxY - 3), new THREE.Vector2(maxX + 3, maxY + 3))
-            this.canvas.drawLine(new THREE.Vector2((minX + maxX) / 2, minY), new THREE.Vector2((minX + maxX) / 2, minY - 5))
-            this.canvas.drawCircle(new THREE.Vector2((minX + maxX) / 2, minY - 8), 3)
+            var col = this.selectionBox.colour
+            this.canvas.drawBox(minPosition, maxPosition, col, fillCol)
+            // selection box handles
+            var hr = 4
+            this.canvas.drawBox(new THREE.Vector2(minX - hr, minY - hr), new THREE.Vector2(minX + hr, minY + hr), col, fillEmpty)
+            this.canvas.drawBox(new THREE.Vector2(minX - hr, maxY - hr), new THREE.Vector2(minX + hr, maxY + hr), col, fillEmpty)
+            this.canvas.drawBox(new THREE.Vector2(maxX - hr, minY - hr), new THREE.Vector2(maxX + hr, minY + hr), col, fillEmpty)
+            this.canvas.drawBox(new THREE.Vector2(maxX - hr, maxY - hr), new THREE.Vector2(maxX + hr, maxY + hr), col, fillEmpty)
+            this.canvas.drawLine(new THREE.Vector2((minX + maxX) / 2, minY), new THREE.Vector2((minX + maxX) / 2, minY - (hr * 2)), col)
+            this.canvas.drawCircle(new THREE.Vector2((minX + maxX) / 2, minY - (hr * 3)), hr, col)
             this.selectionBox = {
                 minPosition: minPosition,
-                maxPosition: maxPosition
+                maxPosition: maxPosition,
+                handleRadius: hr,
+                padding: padding,
+                colour: "rgb(1, 230, 251)",
+                fillColour: "rgba(1, 230, 251, 0.2)"
             }
         } else {
             this.selectionBox = {
                 minPosition: new THREE.Vector2(-1, -1),
-                maxPosition: new THREE.Vector2(-1, -1)
+                maxPosition: new THREE.Vector2(-1, -1),
+                handleRadius: -1,
+                padding: -1,
+                colour: "rgb(1, 230, 251)",
+                fillColour: "rgba(1, 230, 251, 0.2)"
             }
         }
     }

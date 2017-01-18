@@ -27,9 +27,9 @@ export interface ICanvas {
     resize: (width: number, height: number) => void
     clear: () => void,
     drawTargetingLines: (point: THREE.Vector2, targetPoint: THREE.Vector2, secondaryPoints: THREE.Vector2[]) => void
-    drawSelectionBox: (pointA: THREE.Vector2, pointB: THREE.Vector2) => void,
-    drawLine: (pointA: THREE.Vector2, pointB: THREE.Vector2) => void,
-    drawCircle: (centre: THREE.Vector2, radius: number) => void,
+    drawBox: (pointA: THREE.Vector2, pointB: THREE.Vector2, colour: string, fillColour: string) => void,
+    drawLine: (pointA: THREE.Vector2, pointB: THREE.Vector2, colour: string) => void,
+    drawCircle: (centre: THREE.Vector2, radius: number, colour: string) => void,
     pipBounds: (width: number, height: number) => Bounds
 }
 
@@ -127,11 +127,14 @@ export class Canvas implements ICanvas {
         this.ctxBox.maxY = Math.max(this.ctxBox.maxY, point.y)
     }
 
-    drawSelectionBox = (pointA: THREE.Vector2, pointB: THREE.Vector2) => {
+    drawBox = (pointA: THREE.Vector2, pointB: THREE.Vector2, colour: string, fillColour: string) => {
+        this.ctx.strokeStyle = colour
+        this.ctx.fillStyle = fillColour
         var x = pointA.x
         var y = pointA.y
         var dx = pointB.x - x
         var dy = pointB.y - y
+        this.ctx.fillRect(x, y, dx, dy)
         this.ctx.strokeRect(x, y, dx, dy)
         // update the bounding box
         this.updateCanvasBoundingBox(pointA)
@@ -168,7 +171,8 @@ export class Canvas implements ICanvas {
         this.ctx.stroke()
     }
 
-    drawLine = (pointA: THREE.Vector2, pointB: THREE.Vector2) => {
+    drawLine = (pointA: THREE.Vector2, pointB: THREE.Vector2, colour: string) => {
+        this.ctx.strokeStyle = colour
         this.ctx.beginPath()
         this.ctx.moveTo(pointA.x, pointA.y)
         this.ctx.lineTo(pointB.x, pointB.y)
@@ -178,10 +182,11 @@ export class Canvas implements ICanvas {
         this.updateCanvasBoundingBox(pointB)
     }
 
-    drawCircle = (centre: THREE.Vector2, radius: number) => {
+    drawCircle = (centre: THREE.Vector2, radius: number, colour: string) => {
+        this.ctx.strokeStyle = colour
         this.ctx.beginPath()
         this.ctx.arc(centre.x, centre.y, radius, 0, 2 * Math.PI, false)
-        this.ctx.fillStyle = "#01e6fb"
+        this.ctx.fillStyle = colour
         this.ctx.fill()
         this.ctx.stroke()
         // update the bounding box
