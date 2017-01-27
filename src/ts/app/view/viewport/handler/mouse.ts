@@ -106,7 +106,7 @@ export class MouseHandler {
             .map(lm => [lm.index, lm.point.clone()])
 
         // start listening for dragging landmarks
-        document.addEventListener('mousemove', this.landmarkOnDrag)
+        document.addEventListener('mousemove', this.landmarkOrSelectionBoxOnDrag)
         listenOnce(document, 'mouseup', this.landmarkOnMouseUp)
     }
 
@@ -141,6 +141,21 @@ export class MouseHandler {
         listenOnce(document, 'mouseup', this.selectionHandleOnMouseUp)
     }
 
+    selectionBoxPressed = (event: MouseEvent) => {
+        console.log('selection box pressed!')
+        // before anything else, disable the camera
+        this.viewport.cameraIsLocked = true
+
+        // record the starting positions of selected landmarks
+        this.positionLmDrag.copy(new THREE.Vector2(event.clientX, event.clientY))
+        this.dragStartPositions = this.viewport.selectedLandmarks
+            .map(lm => [lm.index, lm.point.clone()])
+
+        // start listening for dragging selection box
+        document.addEventListener('mousemove', this.landmarkOrSelectionBoxOnDrag)
+        listenOnce(document, 'mouseup', this.selectionBoxOnMouseUp)
+    }
+
     mouseDownOnSelectionHandle = () => {
         const md = this.onMouseDownPosition
         const sb = this.viewport.selectionBox
@@ -163,6 +178,21 @@ export class MouseHandler {
             return true
         }
         return false
+    }
+
+    mouseDownOnSelectionBox = () => {
+        const md = this.onMouseDownPosition
+        const sb = this.viewport.selectionBox
+        const hr = sb.handleRadius
+        if (sb.minPosition.x === -1 && sb.minPosition.y === -1 && sb.maxPosition.x === -1 && sb.maxPosition.y === -1) {
+            console.log("selection box inactive!")
+            return false
+        }
+        return md.x <= sb.maxPosition.x && md.x >= sb.minPosition.x && md.y <= sb.maxPosition.y && md.y >= sb.minPosition.y
+        && !(md.x <= sb.minPosition.x + hr && md.y <= sb.minPosition.y + hr)
+        && !(md.x <= sb.minPosition.x + hr && md.y >= sb.maxPosition.y - hr)
+        && !(md.x >= sb.maxPosition.x - hr && md.y <= sb.minPosition.y + hr)
+        && !(md.x >= sb.maxPosition.x - hr && md.y >= sb.maxPosition.y - hr)
     }
 
     // Catch all clicks and delegate to other handlers once user's intent
@@ -189,6 +219,7 @@ export class MouseHandler {
         this.intersectsWithMesh = this.viewport.scene.getIntersectsFromEvent(event, this.viewport.scene.mesh)
 
         const mouseDownOnSelectionHandle = this.mouseDownOnSelectionHandle()
+        const mouseDownOnSelectionBox = this.mouseDownOnSelectionBox()
 
         // Click type, we use MouseEvent.button which is the vanilla JS way
         // jQuery also exposes event.which which has different bindings
@@ -197,14 +228,16 @@ export class MouseHandler {
                 this.intersectsWithMesh.length > 0) {
                 // degenerate case - which is closer?
                 // selection handle takes precedence over landmark
-                if (this.intersectsWithLms[0].distance <
-                    this.intersectsWithMesh[0].distance && !mouseDownOnSelectionHandle) {
+                if (this.intersectsWithLms[0].distance < this.intersectsWithMesh[0].distance
+                && !mouseDownOnSelectionHandle) {
                     this.landmarkPressed()
                 } else {
                     // the mesh was pressed. Check for selection handle first and shift second.
                     if (mouseDownOnSelectionHandle) {
                         this.selectionHandlePressed()
-                    } if (event.shiftKey) {
+                    } else if (mouseDownOnSelectionBox) {
+                        this.selectionBoxPressed(event)
+                    } else if (event.shiftKey) {
                         this.shiftPressed()
                     } else if (this.viewport.snapModeEnabled && this.currentTargetLm !== null) {
                         this.meshPressed()
@@ -214,6 +247,8 @@ export class MouseHandler {
                 }
             } else if (mouseDownOnSelectionHandle) {
                 this.selectionHandlePressed()
+            } else if (mouseDownOnSelectionBox) {
+                this.selectionBoxPressed(event)
             } else if (this.intersectsWithLms.length > 0) {
                 this.landmarkPressed()
             } else if (event.shiftKey) {
@@ -242,7 +277,7 @@ export class MouseHandler {
 
     // Drag Handlers
     // ------------------------------------------------------------------------
-    landmarkOnDrag = (event: MouseEvent) => {
+    landmarkOrSelectionBoxOnDrag = (event: MouseEvent) => {
         console.log("drag")
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
@@ -408,7 +443,7 @@ export class MouseHandler {
         const ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey
         this.viewport.cameraIsLocked = false
         console.log("landmarkPress:up")
-        document.removeEventListener('mousemove', this.landmarkOnDrag)
+        document.removeEventListener('mousemove', this.landmarkOrSelectionBoxOnDrag)
         this.onMouseUpPosition.set(event.clientX, event.clientY)
 
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) === 0) {
@@ -434,10 +469,28 @@ export class MouseHandler {
         this.isPressed = false
     }
 
-    selectionHandleOnMouseUp = (event: MouseEvent) => {
+    selectionHandleOnMouseUp = () => {
         this.viewport.cameraIsLocked = false
         console.log("handlePress:up")
         document.removeEventListener('mousemove', this.selectionHandleOnDrag)
+
+        if (this.dragged) {
+            this.viewport.selectedLandmarks.forEach((lm, i) => {
+                this.dragStartPositions[i].push(lm.point.clone())
+            })
+            this.viewport.on.addLandmarkHistory(this.dragStartPositions)
+        }
+
+        this.viewport.requestUpdateAndRefreshCanvas()
+        this.dragged = false
+        this.dragStartPositions = []
+        this.isPressed = false
+    }
+
+    selectionBoxOnMouseUp = () => {
+        this.viewport.cameraIsLocked = false
+        console.log("selectionBoxPress:up")
+        document.removeEventListener('mousemove', this.landmarkOrSelectionBoxOnDrag)
 
         if (this.dragged) {
             this.viewport.selectedLandmarks.forEach((lm, i) => {
