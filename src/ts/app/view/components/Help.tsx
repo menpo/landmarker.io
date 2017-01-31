@@ -31,7 +31,7 @@ const HELP_CONTENTS = [
     ['click + drag', 'rotate camera (<i>mesh mode only</i>)'],
     ['right click + drag', 'pan the camera'],
     [''],
-    ['?', 'display this help']
+    ['?', 'display this help'],
 ]
 
 const overlayStyle: React.CSSProperties = {
@@ -43,7 +43,7 @@ const overlayStyle: React.CSSProperties = {
   height: "100%",
   display: "flex",
   alignItems: "center",
-  justifyContent: "center"
+  justifyContent: "center",
 }
 
 
@@ -54,7 +54,7 @@ const insetStyle: React.CSSProperties = {
   maxHeight: "95%",
   maxWidth: "95%",
   overflowY: "scroll",
-  display: "block"
+  display: "block",
 }
 
 export interface HelpProps {
