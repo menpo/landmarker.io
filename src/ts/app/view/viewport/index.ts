@@ -172,6 +172,7 @@ export class Viewport implements IViewport {
     touchHandler: TouchHandler
 
     selectionBox: SelectionBox
+    rotationCircleActive: boolean
 
     constructor(parent: HTMLElement, meshMode: boolean, on: ViewportCallbacks, verbose = false) {
         if (verbose) {
@@ -247,6 +248,7 @@ export class Viewport implements IViewport {
             colour: "rgb(1, 230, 251)",
             fillColour: "rgba(1, 230, 251, 0.2)"
         }
+        this.rotationCircleActive = false
     }
 
     get width() {
@@ -412,7 +414,7 @@ export class Viewport implements IViewport {
         this.on.addLandmarkHistory(ops)
 
         this.clearCanvas()
-        this.updateSelectionBox()
+        this.drawSelectionElements()
     }
 
      animate = () => {
@@ -476,7 +478,7 @@ export class Viewport implements IViewport {
 
     requestUpdateAndRefreshCanvas = () => {
         this.requestUpdateAndClearCanvas()
-        this.updateSelectionBox()
+        this.drawSelectionElements()
     }
 
     memoryString = () => {
@@ -507,7 +509,15 @@ export class Viewport implements IViewport {
         )
     }
 
-    updateSelectionBox = () => {
+    drawSelectionElements = () => {
+        if (this.rotationCircleActive) {
+            this.drawRotationCircle()
+        } else {
+            this.updateAndDrawSelectionBox()
+        }
+    }
+
+    updateAndDrawSelectionBox = () => {
         var col = this.selectionBox.colour
         var fillCol = this.selectionBox.fillColour
         var fillEmpty = "rgba(0, 0, 0, 0)"
@@ -530,7 +540,7 @@ export class Viewport implements IViewport {
             this.canvas.drawBox(new THREE.Vector2(maxX - hr, minY - hr), new THREE.Vector2(maxX + hr, minY + hr), col, fillEmpty)
             this.canvas.drawBox(new THREE.Vector2(maxX - hr, maxY - hr), new THREE.Vector2(maxX + hr, maxY + hr), col, fillEmpty)
             this.canvas.drawLine(new THREE.Vector2((minX + maxX) / 2, minY), new THREE.Vector2((minX + maxX) / 2, minY - (hr * 2)), col)
-            this.canvas.drawCircle(new THREE.Vector2((minX + maxX) / 2, minY - (hr * 3)), hr, col)
+            this.canvas.drawCircle(new THREE.Vector2((minX + maxX) / 2, minY - (hr * 3)), hr, col, true)
             this.selectionBox = {
                 minPosition: minPosition,
                 maxPosition: maxPosition,
@@ -549,6 +559,23 @@ export class Viewport implements IViewport {
                 fillColour: "rgba(1, 230, 251, 0.2)"
             }
         }
+    }
+
+    drawRotationCircle = () => {
+        var col = this.selectionBox.colour
+        var min = this.selectionBox.minPosition
+        var max = this.selectionBox.maxPosition
+        var centre = new THREE.Vector2((min.x + max.x) / 2, (min.y + max.y) / 2)
+        var radius = Math.min((max.x - min.x) / 2, (max.y - min.y) / 2)
+        this.canvas.drawCircle(centre, radius, col, false)
+    }
+
+    activateRotationCircle = () => {
+        this.rotationCircleActive = true
+    }
+
+    deactivateRotationCircle = () => {
+        this.rotationCircleActive = false
     }
 
 }

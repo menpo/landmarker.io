@@ -29,7 +29,7 @@ export interface ICanvas {
     drawTargetingLines: (point: THREE.Vector2, targetPoint: THREE.Vector2, secondaryPoints: THREE.Vector2[]) => void
     drawBox: (pointA: THREE.Vector2, pointB: THREE.Vector2, colour: string, fillColour: string) => void,
     drawLine: (pointA: THREE.Vector2, pointB: THREE.Vector2, colour: string) => void,
-    drawCircle: (centre: THREE.Vector2, radius: number, colour: string) => void,
+    drawCircle: (centre: THREE.Vector2, radius: number, colour: string, fill: boolean) => void,
     pipBounds: (width: number, height: number) => Bounds
 }
 
@@ -182,12 +182,14 @@ export class Canvas implements ICanvas {
         this.updateCanvasBoundingBox(pointB)
     }
 
-    drawCircle = (centre: THREE.Vector2, radius: number, colour: string) => {
+    drawCircle = (centre: THREE.Vector2, radius: number, colour: string, fill: boolean) => {
         this.ctx.strokeStyle = colour
         this.ctx.beginPath()
         this.ctx.arc(centre.x, centre.y, radius, 0, 2 * Math.PI, false)
-        this.ctx.fillStyle = colour
-        this.ctx.fill()
+        if (fill) {
+            this.ctx.fillStyle = colour
+            this.ctx.fill()
+        }
         this.ctx.stroke()
         // update the bounding box
         this.updateCanvasBoundingBox(new THREE.Vector2(centre.x - radius, centre.y - radius))
