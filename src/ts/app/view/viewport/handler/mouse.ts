@@ -182,16 +182,21 @@ export class MouseHandler {
             console.log("selection box inactive!")
             return false
         }
-        if (md.x <= sb.minPosition.x + hr && md.x >= sb.minPosition.x - hr && md.y <= sb.minPosition.y + hr && md.y >= sb.minPosition.y - hr) {
+        // add one pixel padding to make handle easier to grab
+        if (md.x <= sb.minPosition.x + hr + 1 && md.x >= sb.minPosition.x - hr - 1
+        && md.y <= sb.minPosition.y + hr + 1 && md.y >= sb.minPosition.y - hr - 1) {
             this.handlePressed = Handle.TL
             return true
-        } else if (md.x <= sb.minPosition.x + hr && md.x >= sb.minPosition.x - hr && md.y <= sb.maxPosition.y + hr && md.y >= sb.maxPosition.y - hr) {
+        } else if (md.x <= sb.minPosition.x + hr + 1 && md.x >= sb.minPosition.x - hr - 1
+        && md.y <= sb.maxPosition.y + hr + 1 && md.y >= sb.maxPosition.y - hr - 1) {
             this.handlePressed = Handle.BL
             return true
-        } else if (md.x <= sb.maxPosition.x + hr && md.x >= sb.maxPosition.x - hr && md.y <= sb.minPosition.y + hr && md.y >= sb.minPosition.y - hr) {
+        } else if (md.x <= sb.maxPosition.x + hr + 1 && md.x >= sb.maxPosition.x - hr - 1
+        && md.y <= sb.minPosition.y + hr + 1 && md.y >= sb.minPosition.y - hr - 1) {
             this.handlePressed = Handle.TR
             return true
-        } else if (md.x <= sb.maxPosition.x + hr && md.x >= sb.maxPosition.x - hr && md.y <= sb.maxPosition.y + hr && md.y >= sb.maxPosition.y - hr) {
+        } else if (md.x <= sb.maxPosition.x + hr + 1 && md.x >= sb.maxPosition.x - hr - 1
+        && md.y <= sb.maxPosition.y + hr + 1 && md.y >= sb.maxPosition.y - hr - 1) {
             this.handlePressed = Handle.BR
             return true
         }
@@ -223,7 +228,8 @@ export class MouseHandler {
         }
         const deltaX = (md.x - ((sb.minPosition.x + sb.maxPosition.x) / 2))
         const deltaY = (md.y - (sb.minPosition.y - (hr * 3)))
-        return Math.sqrt((deltaX * deltaX) + (deltaY * deltaY)) <= hr
+        // add one pixel padding to make handle easier to grab
+        return Math.sqrt((deltaX * deltaX) + (deltaY * deltaY)) <= hr + 1
     }
 
     // Catch all clicks and delegate to other handlers once user's intent
