@@ -35,6 +35,9 @@ export class MouseHandler {
 
     handlePressed: Handle
 
+    readonly RESIZE_HANDLE_PADDING = 1
+    readonly ROTATION_HANDLE_PADDING = 2
+
     constructor(viewport: Viewport) {
         this.viewport = viewport
     }
@@ -59,6 +62,19 @@ export class MouseHandler {
     // resolve what item is being interacted with and delegate to these methods
     // as appropriate.
     // ------------------------------------------------------------------------
+
+    boxIntersection = (mousePosition: THREE.Vector2, boxCentre : THREE.Vector2, radius: number) => {
+        return mousePosition.x <= boxCentre.x + radius &&
+            mousePosition.x >= boxCentre.x - radius &&
+            mousePosition.y <= boxCentre.y + radius &&
+            mousePosition.y >= boxCentre.y - radius
+    }
+
+    circleIntersection = (mousePosition: THREE.Vector2, circleCentre: THREE.Vector2, radius: number) => {
+        const deltaX = (mousePosition.x - circleCentre.x)
+        const deltaY = (mousePosition.y - circleCentre.y)
+        return Math.sqrt((deltaX * deltaX) + (deltaY * deltaY)) <= radius
+    }
 
     meshPressed = () => {
         console.log('mesh pressed!')
@@ -127,8 +143,8 @@ export class MouseHandler {
         listenOnce(document, 'mouseup', this.shiftOnMouseUp)
     }
 
-    selectionHandlePressed = () => {
-        console.log('selection handle pressed!')
+    resizeHandlePressed = () => {
+        console.log('resize handle pressed!')
         // before anything else, disable the camera
         this.viewport.cameraIsLocked = true
 
@@ -137,8 +153,8 @@ export class MouseHandler {
             .map(lm => [lm.index, lm.point.clone()])
 
         // start listening for dragging selection handle
-        document.addEventListener('mousemove', this.selectionHandleOnDrag)
-        listenOnce(document, 'mouseup', this.selectionHandleOnMouseUp)
+        document.addEventListener('mousemove', this.resizeHandleOnDrag)
+        listenOnce(document, 'mouseup', this.resizeHandleOnMouseUp)
     }
 
     selectionBoxPressed = (event: MouseEvent) => {
@@ -174,30 +190,26 @@ export class MouseHandler {
         listenOnce(document, 'mouseup', this.rotationHandleOnMouseUp)
     }
 
-    mouseDownOnSelectionHandle = () => {
+    mouseDownOnResizeHandle = () => {
         const md = this.onMouseDownPosition
         const sb = this.viewport.selectionBox
-        const hr = sb.handleRadius
+        // add extra padding to make handle easier to grab
+        const hr = sb.handleRadius + this.RESIZE_HANDLE_PADDING
         if (sb.minPosition.x === -1 && sb.minPosition.y === -1 && sb.maxPosition.x === -1 && sb.maxPosition.y === -1) {
             console.log("selection box inactive!")
             return false
         }
-        // add one pixel padding to make handle easier to grab
-        if (md.x <= sb.minPosition.x + hr + 1 && md.x >= sb.minPosition.x - hr - 1
-        && md.y <= sb.minPosition.y + hr + 1 && md.y >= sb.minPosition.y - hr - 1) {
+        if (this.boxIntersection(md, sb.minPosition, hr)) {
             this.handlePressed = Handle.TL
             return true
-        } else if (md.x <= sb.minPosition.x + hr + 1 && md.x >= sb.minPosition.x - hr - 1
-        && md.y <= sb.maxPosition.y + hr + 1 && md.y >= sb.maxPosition.y - hr - 1) {
+        } else if (this.boxIntersection(md, sb.maxPosition, hr)) {
+            this.handlePressed = Handle.BR
+            return true
+        } else if (this.boxIntersection(md, new THREE.Vector2(sb.minPosition.x, sb.maxPosition.y), hr)) {
             this.handlePressed = Handle.BL
             return true
-        } else if (md.x <= sb.maxPosition.x + hr + 1 && md.x >= sb.maxPosition.x - hr - 1
-        && md.y <= sb.minPosition.y + hr + 1 && md.y >= sb.minPosition.y - hr - 1) {
+        } else if (this.boxIntersection(md, new THREE.Vector2(sb.maxPosition.x, sb.minPosition.y), hr)) {
             this.handlePressed = Handle.TR
-            return true
-        } else if (md.x <= sb.maxPosition.x + hr + 1 && md.x >= sb.maxPosition.x - hr - 1
-        && md.y <= sb.maxPosition.y + hr + 1 && md.y >= sb.maxPosition.y - hr - 1) {
-            this.handlePressed = Handle.BR
             return true
         }
         return false
@@ -206,30 +218,28 @@ export class MouseHandler {
     mouseDownOnSelectionBox = () => {
         const md = this.onMouseDownPosition
         const sb = this.viewport.selectionBox
-        const hr = sb.handleRadius
+        const hr = sb.handleRadius + this.RESIZE_HANDLE_PADDING
         if (sb.minPosition.x === -1 && sb.minPosition.y === -1 && sb.maxPosition.x === -1 && sb.maxPosition.y === -1) {
             console.log("selection box inactive!")
             return false
         }
         return md.x <= sb.maxPosition.x && md.x >= sb.minPosition.x && md.y <= sb.maxPosition.y && md.y >= sb.minPosition.y
-        && !(md.x <= sb.minPosition.x + hr && md.y <= sb.minPosition.y + hr)
-        && !(md.x <= sb.minPosition.x + hr && md.y >= sb.maxPosition.y - hr)
-        && !(md.x >= sb.maxPosition.x - hr && md.y <= sb.minPosition.y + hr)
-        && !(md.x >= sb.maxPosition.x - hr && md.y >= sb.maxPosition.y - hr)
+        && !this.boxIntersection(md, sb.minPosition, hr) && !this.boxIntersection(md, sb.maxPosition, hr)
+        && !this.boxIntersection(md, new THREE.Vector2(sb.minPosition.x, sb.maxPosition.y), hr)
+        && !this.boxIntersection(md, new THREE.Vector2(sb.maxPosition.x, sb.minPosition.y), hr)
     }
 
     mouseDownOnRotationHandle = () => {
         const md = this.onMouseDownPosition
         const sb = this.viewport.selectionBox
-        const hr = sb.handleRadius
+        // add extra padding to make handle easier to grab
+        const hr = sb.handleRadius + this.ROTATION_HANDLE_PADDING
         if (sb.minPosition.x === -1 && sb.minPosition.y === -1 && sb.maxPosition.x === -1 && sb.maxPosition.y === -1) {
             console.log("selection box inactive!")
             return false
         }
-        const deltaX = (md.x - ((sb.minPosition.x + sb.maxPosition.x) / 2))
-        const deltaY = (md.y - (sb.minPosition.y - (hr * 3)))
-        // add one pixel padding to make handle easier to grab
-        return Math.sqrt((deltaX * deltaX) + (deltaY * deltaY)) <= hr + 1
+        const handleCentre = new THREE.Vector2((sb.minPosition.x + sb.maxPosition.x) / 2, sb.minPosition.y - (sb.handleRadius * 3))
+        return this.circleIntersection(md, handleCentre, hr)
     }
 
     // Catch all clicks and delegate to other handlers once user's intent
@@ -255,7 +265,7 @@ export class MouseHandler {
         // present.
         this.intersectsWithMesh = this.viewport.scene.getIntersectsFromEvent(event, this.viewport.scene.mesh)
 
-        const mouseDownOnSelectionHandle = this.mouseDownOnSelectionHandle()
+        const mouseDownOnResizeHandle = this.mouseDownOnResizeHandle()
         const mouseDownOnSelectionBox = this.mouseDownOnSelectionBox()
         const mouseDownOnRotationHandle = this.mouseDownOnRotationHandle()
 
@@ -267,12 +277,12 @@ export class MouseHandler {
                 // degenerate case - which is closer?
                 // selection handle takes precedence over landmark
                 if (this.intersectsWithLms[0].distance < this.intersectsWithMesh[0].distance
-                && !(mouseDownOnSelectionHandle || mouseDownOnRotationHandle)) {
+                && !(mouseDownOnResizeHandle || mouseDownOnRotationHandle)) {
                     this.landmarkPressed()
                 } else {
                     // the mesh was pressed. Check for selection handle first and shift second.
-                    if (mouseDownOnSelectionHandle) {
-                        this.selectionHandlePressed()
+                    if (mouseDownOnResizeHandle) {
+                        this.resizeHandlePressed()
                     } else if (mouseDownOnSelectionBox) {
                         this.selectionBoxPressed(event)
                     } else if (mouseDownOnRotationHandle) {
@@ -285,8 +295,8 @@ export class MouseHandler {
                         this.nothingPressed()
                     }
                 }
-            } else if (mouseDownOnSelectionHandle) {
-                this.selectionHandlePressed()
+            } else if (mouseDownOnResizeHandle) {
+                this.resizeHandlePressed()
             } else if (mouseDownOnRotationHandle) {
                 this.rotationHandlePressed()
             } else if (this.intersectsWithLms.length > 0) {
@@ -354,7 +364,7 @@ export class MouseHandler {
         this.viewport.canvas.drawBox(this.onMouseDownPosition, newPosition, "rgb(1, 230, 251)", "rgba(0, 0, 0, 0)")
     }
 
-    selectionHandleOnDrag = (event: MouseEvent) => {
+    resizeHandleOnDrag = (event: MouseEvent) => {
         console.log("selection handle:drag")
         const p = this.viewport.selectionBox.padding
         const oldMin = this.viewport.selectionBox.minPosition.clone().add(new THREE.Vector2(p, p))
@@ -526,10 +536,10 @@ export class MouseHandler {
         this.isPressed = false
     }
 
-    selectionHandleOnMouseUp = () => {
+    resizeHandleOnMouseUp = () => {
         this.viewport.cameraIsLocked = false
-        console.log("selectionHandlePress:up")
-        document.removeEventListener('mousemove', this.selectionHandleOnDrag)
+        console.log("resizeHandlePress:up")
+        document.removeEventListener('mousemove', this.resizeHandleOnDrag)
         this.mouseUpUpdate()
     }
 
