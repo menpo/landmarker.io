@@ -3,6 +3,14 @@ import { Landmark, Intersection } from '../base'
 import { Viewport } from '../index'
 import { listenOnce } from '../lib/event'
 import { findClosestLandmarks } from './base'
+
+enum Handle {
+    TL, // top left
+    TR, // top right
+    BL, // bottom left
+    BR // bottom right
+}
+
 /**
  * Holds state usable by all event handlers and should be bound to the
  * Viewport view instance.
@@ -24,6 +32,11 @@ export class MouseHandler {
     dragged = false
     intersectsWithLms: Intersection[] = []
     intersectsWithMesh: Intersection[] = []
+
+    handlePressed: Handle
+
+    readonly RESIZE_HANDLE_PADDING = 1
+    readonly ROTATION_HANDLE_PADDING = 2
 
     constructor(viewport: Viewport) {
         this.viewport = viewport
@@ -49,6 +62,19 @@ export class MouseHandler {
     // resolve what item is being interacted with and delegate to these methods
     // as appropriate.
     // ------------------------------------------------------------------------
+
+    boxIntersection = (mousePosition: THREE.Vector2, boxCentre : THREE.Vector2, radius: number) => {
+        return mousePosition.x <= boxCentre.x + radius &&
+            mousePosition.x >= boxCentre.x - radius &&
+            mousePosition.y <= boxCentre.y + radius &&
+            mousePosition.y >= boxCentre.y - radius
+    }
+
+    circleIntersection = (mousePosition: THREE.Vector2, circleCentre: THREE.Vector2, radius: number) => {
+        const deltaX = (mousePosition.x - circleCentre.x)
+        const deltaY = (mousePosition.y - circleCentre.y)
+        return Math.sqrt((deltaX * deltaX) + (deltaY * deltaY)) <= radius
+    }
 
     meshPressed = () => {
         console.log('mesh pressed!')
@@ -96,7 +122,7 @@ export class MouseHandler {
             .map(lm => [lm.index, lm.point.clone()])
 
         // start listening for dragging landmarks
-        document.addEventListener('mousemove', this.landmarkOnDrag)
+        document.addEventListener('mousemove', this.landmarkOrSelectionBoxOnDrag)
         listenOnce(document, 'mouseup', this.landmarkOnMouseUp)
     }
 
@@ -115,6 +141,105 @@ export class MouseHandler {
         }
         document.addEventListener('mousemove', this.shiftOnDrag)
         listenOnce(document, 'mouseup', this.shiftOnMouseUp)
+    }
+
+    resizeHandlePressed = () => {
+        console.log('resize handle pressed!')
+        // before anything else, disable the camera
+        this.viewport.cameraIsLocked = true
+
+        // record the starting positions of selected landmarks
+        this.dragStartPositions = this.viewport.selectedLandmarks
+            .map(lm => [lm.index, lm.point.clone()])
+
+        // start listening for dragging selection handle
+        document.addEventListener('mousemove', this.resizeHandleOnDrag)
+        listenOnce(document, 'mouseup', this.resizeHandleOnMouseUp)
+    }
+
+    selectionBoxPressed = (event: MouseEvent) => {
+        console.log('selection box pressed!')
+        // before anything else, disable the camera
+        this.viewport.cameraIsLocked = true
+
+        // record the starting positions of selected landmarks
+        this.positionLmDrag.copy(new THREE.Vector2(event.clientX, event.clientY))
+        this.dragStartPositions = this.viewport.selectedLandmarks
+            .map(lm => [lm.index, lm.point.clone()])
+
+        // start listening for dragging selection box
+        document.addEventListener('mousemove', this.landmarkOrSelectionBoxOnDrag)
+        listenOnce(document, 'mouseup', this.selectionBoxOnMouseUp)
+    }
+
+    rotationHandlePressed = () => {
+        console.log('rotation handle pressed!')
+        // before anything else, disable the camera
+        this.viewport.cameraIsLocked = true
+        this.viewport.activateRotationCircle()
+
+        this.viewport.clearCanvas()
+        this.viewport.drawRotationCircle()
+
+        // record the starting positions of selected landmarks
+        this.dragStartPositions = this.viewport.selectedLandmarks
+            .map(lm => [lm.index, lm.point.clone()])
+
+        // start listening for dragging rotation handle
+        document.addEventListener('mousemove', this.rotationHandleOnDrag)
+        listenOnce(document, 'mouseup', this.rotationHandleOnMouseUp)
+    }
+
+    mouseDownOnResizeHandle = () => {
+        const md = this.onMouseDownPosition
+        const sb = this.viewport.selectionBox
+        // add extra padding to make handle easier to grab
+        const hr = sb.handleRadius + this.RESIZE_HANDLE_PADDING
+        if (sb.minPosition.x === -1 && sb.minPosition.y === -1 && sb.maxPosition.x === -1 && sb.maxPosition.y === -1) {
+            console.log("selection box inactive!")
+            return false
+        }
+        if (this.boxIntersection(md, sb.minPosition, hr)) {
+            this.handlePressed = Handle.TL
+            return true
+        } else if (this.boxIntersection(md, sb.maxPosition, hr)) {
+            this.handlePressed = Handle.BR
+            return true
+        } else if (this.boxIntersection(md, new THREE.Vector2(sb.minPosition.x, sb.maxPosition.y), hr)) {
+            this.handlePressed = Handle.BL
+            return true
+        } else if (this.boxIntersection(md, new THREE.Vector2(sb.maxPosition.x, sb.minPosition.y), hr)) {
+            this.handlePressed = Handle.TR
+            return true
+        }
+        return false
+    }
+
+    mouseDownOnSelectionBox = () => {
+        const md = this.onMouseDownPosition
+        const sb = this.viewport.selectionBox
+        const hr = sb.handleRadius + this.RESIZE_HANDLE_PADDING
+        if (sb.minPosition.x === -1 && sb.minPosition.y === -1 && sb.maxPosition.x === -1 && sb.maxPosition.y === -1) {
+            console.log("selection box inactive!")
+            return false
+        }
+        return md.x <= sb.maxPosition.x && md.x >= sb.minPosition.x && md.y <= sb.maxPosition.y && md.y >= sb.minPosition.y
+        && !this.boxIntersection(md, sb.minPosition, hr) && !this.boxIntersection(md, sb.maxPosition, hr)
+        && !this.boxIntersection(md, new THREE.Vector2(sb.minPosition.x, sb.maxPosition.y), hr)
+        && !this.boxIntersection(md, new THREE.Vector2(sb.maxPosition.x, sb.minPosition.y), hr)
+    }
+
+    mouseDownOnRotationHandle = () => {
+        const md = this.onMouseDownPosition
+        const sb = this.viewport.selectionBox
+        // add extra padding to make handle easier to grab
+        const hr = sb.handleRadius + this.ROTATION_HANDLE_PADDING
+        if (sb.minPosition.x === -1 && sb.minPosition.y === -1 && sb.maxPosition.x === -1 && sb.maxPosition.y === -1) {
+            console.log("selection box inactive!")
+            return false
+        }
+        const handleCentre = new THREE.Vector2((sb.minPosition.x + sb.maxPosition.x) / 2, sb.minPosition.y - (sb.handleRadius * 3))
+        return this.circleIntersection(md, handleCentre, hr)
     }
 
     // Catch all clicks and delegate to other handlers once user's intent
@@ -140,18 +265,29 @@ export class MouseHandler {
         // present.
         this.intersectsWithMesh = this.viewport.scene.getIntersectsFromEvent(event, this.viewport.scene.mesh)
 
+        const mouseDownOnResizeHandle = this.mouseDownOnResizeHandle()
+        const mouseDownOnSelectionBox = this.mouseDownOnSelectionBox()
+        const mouseDownOnRotationHandle = this.mouseDownOnRotationHandle()
+
         // Click type, we use MouseEvent.button which is the vanilla JS way
         // jQuery also exposes event.which which has different bindings
         if (event.button === 0) {  // left mouse button
             if (this.intersectsWithLms.length > 0 &&
                 this.intersectsWithMesh.length > 0) {
                 // degenerate case - which is closer?
-                if (this.intersectsWithLms[0].distance <
-                    this.intersectsWithMesh[0].distance) {
+                // selection handle takes precedence over landmark
+                if (this.intersectsWithLms[0].distance < this.intersectsWithMesh[0].distance
+                && !(mouseDownOnResizeHandle || mouseDownOnRotationHandle)) {
                     this.landmarkPressed()
                 } else {
-                    // the mesh was pressed. Check for shift first.
-                    if (event.shiftKey) {
+                    // the mesh was pressed. Check for selection handle first and shift second.
+                    if (mouseDownOnResizeHandle) {
+                        this.resizeHandlePressed()
+                    } else if (mouseDownOnSelectionBox) {
+                        this.selectionBoxPressed(event)
+                    } else if (mouseDownOnRotationHandle) {
+                        this.rotationHandlePressed()
+                    } else if (event.shiftKey) {
                         this.shiftPressed()
                     } else if (this.viewport.snapModeEnabled && this.currentTargetLm !== null) {
                         this.meshPressed()
@@ -159,10 +295,15 @@ export class MouseHandler {
                         this.nothingPressed()
                     }
                 }
+            } else if (mouseDownOnResizeHandle) {
+                this.resizeHandlePressed()
+            } else if (mouseDownOnRotationHandle) {
+                this.rotationHandlePressed()
             } else if (this.intersectsWithLms.length > 0) {
                 this.landmarkPressed()
+            } else if (mouseDownOnSelectionBox) {
+                this.selectionBoxPressed(event)
             } else if (event.shiftKey) {
-                // shift trumps all!
                 this.shiftPressed()
             } else if (
                 this.intersectsWithMesh.length > 0 &&
@@ -187,7 +328,7 @@ export class MouseHandler {
 
     // Drag Handlers
     // ------------------------------------------------------------------------
-    landmarkOnDrag = (event: MouseEvent) => {
+    landmarkOrSelectionBoxOnDrag = (event: MouseEvent) => {
         console.log("drag")
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
@@ -208,21 +349,9 @@ export class MouseHandler {
             // budge the screen coordinate
             vScreen.add(deltaLmDrag)
 
-            // use the standard machinery to find intersections
-            // note that we intersect the mesh to use the octree
-            this.intersectsWithMesh = this.viewport.scene.getIntersects(
-                vScreen.x, vScreen.y, this.viewport.scene.mesh)
-            if (this.intersectsWithMesh.length > 0) {
-                // good, we're still on the mesh.
-                this.dragged = !!this.dragged || true
-                this.viewport.on.setLandmarkPointWithoutHistory(lm.index,
-                    this.viewport.scene.worldToLocal(this.intersectsWithMesh[0].point))
-            } else {
-                // don't update point - it would fall off the surface.
-                console.log("fallen off mesh")
-            }
+            this.moveLandmarksWithoutHistory(lm, vScreen.x, vScreen.y)
         })
-       this.viewport.requestUpdate()
+        this.viewport.requestUpdate()
     }
 
     shiftOnDrag = (event: MouseEvent) => {
@@ -232,7 +361,80 @@ export class MouseHandler {
         var newPosition = new THREE.Vector2(event.clientX, event.clientY)
         // clear the canvas and draw a selection rect.
         this.viewport.clearCanvas()
-        this.viewport.canvas.drawSelectionBox(this.onMouseDownPosition, newPosition)
+        this.viewport.canvas.drawBox(this.onMouseDownPosition, newPosition, "rgb(1, 230, 251)", "rgba(0, 0, 0, 0)")
+    }
+
+    resizeHandleOnDrag = (event: MouseEvent) => {
+        console.log("selection handle:drag")
+        const p = this.viewport.selectionBox.padding
+        const oldMin = this.viewport.selectionBox.minPosition.clone().add(new THREE.Vector2(p, p))
+        const oldMax = this.viewport.selectionBox.maxPosition.clone().sub(new THREE.Vector2(p, p))
+        const newMin = oldMin.clone()
+        const newMax = oldMax.clone()
+        if (this.handlePressed === Handle.TL) {
+            newMin.set(event.clientX + p, event.clientY + p)
+        } else if (this.handlePressed === Handle.BR) {
+            newMax.set(event.clientX - p, event.clientY - p)
+        } else if (this.handlePressed === Handle.TR) {
+            newMin.y = event.clientY + p
+            newMax.x = event.clientX - p
+        } else {
+            newMin.x = event.clientX + p
+            newMax.y = event.clientY - p
+        }
+        this.viewport.selectedLandmarks.forEach(lm => {
+            // convert to screen coordinates
+            const oldLmPos = this.viewport.scene.localToScreen(lm.point)
+
+            // Calculate new coordinates based on new selection box
+            const deltaX = (oldLmPos.x - oldMin.x) / (oldMax.x - oldMin.x)
+            const deltaY = (oldLmPos.y - oldMin.y) / (oldMax.y - oldMin.y)
+            const newLmX = (deltaX * (newMax.x - newMin.x)) + newMin.x
+            const newLmY = (deltaY * (newMax.y - newMin.y)) + newMin.y
+
+            this.moveLandmarksWithoutHistory(lm, newLmX, newLmY)
+        })
+        this.viewport.requestUpdate()
+    }
+
+    rotationHandleOnDrag = (event: MouseEvent) => {
+        console.log("rotation handle:drag")
+        const min = this.viewport.selectionBox.minPosition
+        const max = this.viewport.selectionBox.maxPosition
+        const deltaX = event.clientX - ((min.x + max.x) / 2)
+        const deltaY = ((min.y + max.y) / 2) - event.clientY // since the 'up' Y-direction is negative
+        const hyp = Math.sqrt((deltaX * deltaX) + (deltaY * deltaY))
+        const sinTheta = deltaX / hyp
+        const cosTheta = deltaY / hyp
+
+        this.viewport.selectedLandmarks.forEach((lm, i) => {
+            // convert to screen coordinates
+            const oldLmPos = this.viewport.scene.localToScreen(this.dragStartPositions[i][1])
+
+            const oldLmDeltaX = oldLmPos.x - ((min.x + max.x) / 2)
+            const oldLmDeltaY = oldLmPos.y - ((min.y + max.y) / 2)
+            const newLmX = (oldLmDeltaX * cosTheta) - (oldLmDeltaY * sinTheta) + ((min.x + max.x) / 2)
+            const newLmY = (oldLmDeltaX * sinTheta) + (oldLmDeltaY * cosTheta) + ((min.y + max.y) / 2)
+
+            this.moveLandmarksWithoutHistory(lm, newLmX, newLmY)
+        })
+        this.viewport.requestUpdateAndRefreshCanvas() // refresh - some movement may not budge landmarks
+    }
+
+    moveLandmarksWithoutHistory = (lm: Landmark, newLmX: number, newLmY: number) => {
+        // use the standard machinery to find intersections
+        // note that we intersect the mesh to use the octree
+        this.intersectsWithMesh = this.viewport.scene.getIntersects(
+            newLmX, newLmY, this.viewport.scene.mesh)
+        if (this.intersectsWithMesh.length > 0) {
+            // good, we're still on the mesh.
+            this.dragged = !!this.dragged || true
+            this.viewport.on.setLandmarkPointWithoutHistory(lm.index,
+                this.viewport.scene.worldToLocal(this.intersectsWithMesh[0].point))
+        } else {
+            // don't update point - it would fall off the surface.
+            console.log("fallen off mesh")
+        }
     }
 
     // Up handlers
@@ -265,7 +467,7 @@ export class MouseHandler {
         // obscured) and select the rest
         const indexesToSelect = lms.filter(this.viewport.scene.lmViewVisible).map(lm => lm.index)
         this.viewport.on.selectLandmarks(indexesToSelect)
-        this.viewport.requestUpdateAndClearCanvas()
+        this.viewport.requestUpdateAndRefreshCanvas()
         this.isPressed = false
     }
 
@@ -301,14 +503,16 @@ export class MouseHandler {
         }
         this.isPressed = false
         this.viewport.clearCanvas()
+        this.viewport.updateAndDrawSelectionBox()
     }
 
     landmarkOnMouseUp = (event: MouseEvent) => {
         const ctrl = this.downEvent.ctrlKey || this.downEvent.metaKey
         this.viewport.cameraIsLocked = false
         console.log("landmarkPress:up")
-        document.removeEventListener('mousemove', this.landmarkOnDrag)
+        document.removeEventListener('mousemove', this.landmarkOrSelectionBoxOnDrag)
         this.onMouseUpPosition.set(event.clientX, event.clientY)
+
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) === 0) {
             // landmark was pressed
             if (this.lmPressed.isSelected && ctrl) {
@@ -326,7 +530,43 @@ export class MouseHandler {
             this.viewport.on.addLandmarkHistory(this.dragStartPositions)
         }
 
-        this.viewport.requestUpdateAndClearCanvas()
+        this.viewport.requestUpdateAndRefreshCanvas()
+        this.dragged = false
+        this.dragStartPositions = []
+        this.isPressed = false
+    }
+
+    resizeHandleOnMouseUp = () => {
+        this.viewport.cameraIsLocked = false
+        console.log("resizeHandlePress:up")
+        document.removeEventListener('mousemove', this.resizeHandleOnDrag)
+        this.mouseUpUpdate()
+    }
+
+    selectionBoxOnMouseUp = () => {
+        this.viewport.cameraIsLocked = false
+        console.log("selectionBoxPress:up")
+        document.removeEventListener('mousemove', this.landmarkOrSelectionBoxOnDrag)
+        this.mouseUpUpdate()
+    }
+
+    rotationHandleOnMouseUp = () => {
+        this.viewport.cameraIsLocked = false
+        console.log("rotationHandlePress:up")
+        document.removeEventListener('mousemove', this.rotationHandleOnDrag)
+        this.viewport.deactivateRotationCircle()
+        this.mouseUpUpdate()
+    }
+
+    mouseUpUpdate = () => {
+        if (this.dragged) {
+            this.viewport.selectedLandmarks.forEach((lm, i) => {
+                this.dragStartPositions[i].push(lm.point.clone())
+            })
+            this.viewport.on.addLandmarkHistory(this.dragStartPositions)
+        }
+
+        this.viewport.requestUpdateAndRefreshCanvas()
         this.dragged = false
         this.dragStartPositions = []
         this.isPressed = false
@@ -338,9 +578,17 @@ export class MouseHandler {
 
         this.viewport.clearCanvas()
 
-        if (this.isPressed || !this.viewport.landmarkSnapPermitted) {
+        if (this.isPressed) {
             return
         }
+
+        // update and draw selection box if active
+        this.viewport.updateAndDrawSelectionBox()
+
+        if (!this.viewport.landmarkSnapPermitted) {
+            return
+        }
+
         // only here as:
         // 1. Edit mode is enabled
         // 2. No group selection is made

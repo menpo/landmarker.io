@@ -81,7 +81,7 @@ export class BackboneViewport {
     }
 
     updateConnectivityDisplay = () => {
-        this.viewport.connectivityVisable = this.model.isConnectivityOn
+        this.viewport.connectivityVisible = this.model.isConnectivityOn
     }
 
     updateLandmark = (i: number) => {

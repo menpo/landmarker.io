@@ -18,16 +18,18 @@ interface Bounds {
     height: number
 }
 
-function initialBoundingBox() {
+function initialBoundingBox() : BoundingBox {
     return { minX: 999999, minY: 999999, maxX: 0, maxY: 0 }
 }
 
 export interface ICanvas {
-    pipVisable: boolean
+    pipVisible: boolean
     resize: (width: number, height: number) => void
     clear: () => void,
     drawTargetingLines: (point: THREE.Vector2, targetPoint: THREE.Vector2, secondaryPoints: THREE.Vector2[]) => void
-    drawSelectionBox: (mouseDown: THREE.Vector2, mousePosition: THREE.Vector2) => void,
+    drawBox: (pointA: THREE.Vector2, pointB: THREE.Vector2, colour: string, fillColour: string) => void,
+    drawLine: (pointA: THREE.Vector2, pointB: THREE.Vector2, colour: string) => void,
+    drawCircle: (centre: THREE.Vector2, radius: number, colour: string, fill: boolean) => void,
     pipBounds: (width: number, height: number) => Bounds
 }
 
@@ -42,7 +44,7 @@ export class Canvas implements ICanvas {
     // drawing into each frame. This way we only need clear the relevant
     // area of the canvas which is a big perf win.
     // see this._updateCanvasBoundingBox() for usage.
-    ctxBox = initialBoundingBox()
+    ctxBox: BoundingBox = initialBoundingBox()
     pixelRatio = window.devicePixelRatio || 1  // 2/3 if on a HIDPI/retina display
 
     constructor(canvas: HTMLCanvasElement, pipCanvas: HTMLCanvasElement) {
@@ -62,7 +64,7 @@ export class Canvas implements ICanvas {
         // as we don't know the screen size at this time.
 
         // by default hide the PIP window.
-        this.pipVisable = false
+        this.pipVisible = false
 
         // To compensate for retina displays we have to manually
         // scale our contexts up by the pixel ratio. To counteract this (so we
@@ -87,12 +89,12 @@ export class Canvas implements ICanvas {
         this.pipCtx.strokeRect(0, 0, PIP_WIDTH, PIP_HEIGHT)
     }
 
-    get pipVisable() {
+    get pipVisible() {
         return this.pipCanvas.style.display !== 'none'
     }
 
-    set pipVisable(isVisable) {
-        this.pipCanvas.style.display = isVisable ? null : 'none'
+    set pipVisible(isVisible) {
+        this.pipCanvas.style.display = isVisible ? null : 'none'
     }
 
     pipBounds = (width: number, height: number) => {
@@ -125,15 +127,18 @@ export class Canvas implements ICanvas {
         this.ctxBox.maxY = Math.max(this.ctxBox.maxY, point.y)
     }
 
-    drawSelectionBox = (mouseDown: THREE.Vector2, mousePosition: THREE.Vector2) => {
-        var x = mouseDown.x
-        var y = mouseDown.y
-        var dx = mousePosition.x - x
-        var dy = mousePosition.y - y
+    drawBox = (pointA: THREE.Vector2, pointB: THREE.Vector2, colour: string, fillColour: string) => {
+        this.ctx.strokeStyle = colour
+        this.ctx.fillStyle = fillColour
+        var x = pointA.x
+        var y = pointA.y
+        var dx = pointB.x - x
+        var dy = pointB.y - y
+        this.ctx.fillRect(x, y, dx, dy)
         this.ctx.strokeRect(x, y, dx, dy)
         // update the bounding box
-        this.updateCanvasBoundingBox(mouseDown)
-        this.updateCanvasBoundingBox(mousePosition)
+        this.updateCanvasBoundingBox(pointA)
+        this.updateCanvasBoundingBox(pointB)
     }
 
     drawTargetingLines = (point: THREE.Vector2,
@@ -164,6 +169,31 @@ export class Canvas implements ICanvas {
         this.ctx.moveTo(targetPoint.x, targetPoint.y)
         this.ctx.lineTo(point.x, point.y)
         this.ctx.stroke()
+    }
+
+    drawLine = (pointA: THREE.Vector2, pointB: THREE.Vector2, colour: string) => {
+        this.ctx.strokeStyle = colour
+        this.ctx.beginPath()
+        this.ctx.moveTo(pointA.x, pointA.y)
+        this.ctx.lineTo(pointB.x, pointB.y)
+        this.ctx.stroke()
+        // update the bounding box
+        this.updateCanvasBoundingBox(pointA)
+        this.updateCanvasBoundingBox(pointB)
+    }
+
+    drawCircle = (centre: THREE.Vector2, radius: number, colour: string, fill: boolean) => {
+        this.ctx.strokeStyle = colour
+        this.ctx.beginPath()
+        this.ctx.arc(centre.x, centre.y, radius, 0, 2 * Math.PI, false)
+        if (fill) {
+            this.ctx.fillStyle = colour
+            this.ctx.fill()
+        }
+        this.ctx.stroke()
+        // update the bounding box
+        this.updateCanvasBoundingBox(new THREE.Vector2(centre.x - radius, centre.y - radius))
+        this.updateCanvasBoundingBox(new THREE.Vector2(centre.x + radius, centre.y + radius))
     }
 
     clear = () => {

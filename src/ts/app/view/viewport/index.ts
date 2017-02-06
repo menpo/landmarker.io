@@ -35,7 +35,7 @@ export interface IViewport {
     resetCamera: () => void,
     toggleCamera: () => void
     snapModeEnabled: boolean
-    connectivityVisable: boolean
+    connectivityVisible: boolean
     cameraIsLocked: boolean
     landmarkSnapPermitted: boolean
     memoryString: () => string
@@ -43,6 +43,15 @@ export interface IViewport {
 
 export interface IViewportOptions {
     verbose?: false
+}
+
+interface SelectionBox {
+    minPosition: THREE.Vector2
+    maxPosition: THREE.Vector2
+    handleRadius: number
+    padding: number
+    colour: string
+    fillColour: string
 }
 
 function wrapViewportCallbacksInDebug(on:ViewportCallbacks): ViewportCallbacks {
@@ -140,7 +149,7 @@ export class Viewport implements IViewport {
 
     meshMode: boolean   // if true, working with 3D meshes. False, 2D images.
     on: ViewportCallbacks
-    _connectivityVisable = true
+    _connectivityVisible = true
     _snapModeEnabled: boolean // Note that we need to fire this in the constructor for sideeffects
 
     parent: HTMLElement
@@ -161,6 +170,9 @@ export class Viewport implements IViewport {
 
     mouseHandler: MouseHandler
     touchHandler: TouchHandler
+
+    selectionBox: SelectionBox
+    rotationCircleActive: boolean
 
     constructor(parent: HTMLElement, meshMode: boolean, on: ViewportCallbacks, verbose = false) {
         if (verbose) {
@@ -185,7 +197,7 @@ export class Viewport implements IViewport {
                                          this.scene.sOCam,
                                          this.scene.sOCamZoom)
 
-        this.camera.onChange = this.requestUpdateAndClearCanvas
+        this.camera.onChange = this.requestUpdateAndRefreshCanvas
         // set the cameera lock status to false, which will wire up the handlers.
         this.cameraIsLocked = false
 
@@ -226,6 +238,17 @@ export class Viewport implements IViewport {
         this.animate()
 
         this.snapModeEnabled = true
+
+        // invalid selection box - not active
+        this.selectionBox = {
+            minPosition: new THREE.Vector2(-1, -1),
+            maxPosition: new THREE.Vector2(-1, -1),
+            handleRadius: -1,
+            padding: -1,
+            colour: "rgb(1, 230, 251)",
+            fillColour: "rgba(1, 230, 251, 0.2)"
+        }
+        this.rotationCircleActive = false
     }
 
     get width() {
@@ -260,12 +283,12 @@ export class Viewport implements IViewport {
         return this.nonEmptyLandmarks.length === 0
     }
 
-    get connectivityVisable() {
-        return this._connectivityVisable
+    get connectivityVisible() {
+        return this._connectivityVisible
     }
 
-    set connectivityVisable (connectivityVisable: boolean) {
-        this._connectivityVisable = connectivityVisable
+    set connectivityVisible (connectivityVisible: boolean) {
+        this._connectivityVisible = connectivityVisible
         this.requestUpdate()
     }
 
@@ -324,7 +347,7 @@ export class Viewport implements IViewport {
 
     updateLandmarks = (landmarks: Landmark[]) => {
         this.scene.updateLandmarks(landmarks)
-        this.requestUpdate()
+        this.requestUpdateAndRefreshCanvas()
     }
 
     setMesh = (mesh: THREE.Mesh, up: THREE.Vector3, front: THREE.Vector3) => {
@@ -348,11 +371,11 @@ export class Viewport implements IViewport {
         if (currentMode === CAMERA_MODE.PERSPECTIVE) {
             // going to orthographic - start listening for pip updates
             this.camera.onChangePip = this.requestUpdate
-            this.canvas.pipVisable = true
+            this.canvas.pipVisible = true
         } else {
             // leaving orthographic - stop listening to pip calls.
             this.camera.onChangePip = null
-            this.canvas.pipVisable = false
+            this.canvas.pipVisible = false
         }
         // clear the canvas and re-render our state
         this.requestUpdateAndClearCanvas()
@@ -391,6 +414,7 @@ export class Viewport implements IViewport {
         this.on.addLandmarkHistory(ops)
 
         this.clearCanvas()
+        this.drawSelectionElements()
     }
 
      animate = () => {
@@ -415,7 +439,7 @@ export class Viewport implements IViewport {
         this.renderer.clear()
         this.renderer.render(scene.scene, scene.sCamera)
 
-        if (this.connectivityVisable) {
+        if (this.connectivityVisible) {
             // clear depth buffer
             this.renderer.clearDepth()
             // and render the connectivity
@@ -435,7 +459,7 @@ export class Viewport implements IViewport {
 
             // render the PIP image
             this.renderer.render(scene.scene, scene.sOCamZoom)
-            if (this.connectivityVisable) {
+            if (this.connectivityVisible) {
                 this.renderer.clearDepth() // clear depth buffer
                 // and render the connectivity
                 this.renderer.render(scene.sceneHelpers, scene.sOCamZoom)
@@ -450,6 +474,11 @@ export class Viewport implements IViewport {
     requestUpdateAndClearCanvas = () => {
         this.requestUpdate()
         this.clearCanvas()
+    }
+
+    requestUpdateAndRefreshCanvas = () => {
+        this.requestUpdateAndClearCanvas()
+        this.drawSelectionElements()
     }
 
     memoryString = () => {
@@ -478,6 +507,75 @@ export class Viewport implements IViewport {
             this.scene.localToScreen(targetLm.point),
             secondaryLms.map(lm => this.scene.localToScreen(lm.point))
         )
+    }
+
+    drawSelectionElements = () => {
+        if (this.rotationCircleActive) {
+            this.drawRotationCircle()
+        } else {
+            this.updateAndDrawSelectionBox()
+        }
+    }
+
+    updateAndDrawSelectionBox = () => {
+        var col = this.selectionBox.colour
+        var fillCol = this.selectionBox.fillColour
+        var fillEmpty = "rgba(0, 0, 0, 0)"
+        if (this.selectedLandmarks.length > 1) {
+            var xs = this.selectedLandmarks.map(lm => this.scene.localToScreen(lm.point).x)
+            var ys = this.selectedLandmarks.map(lm => this.scene.localToScreen(lm.point).y)
+            var padding = 7
+            var minX = Math.min(...xs) - padding
+            var maxX = Math.max(...xs) + padding
+            var minY = Math.min(...ys) - padding
+            var maxY = Math.max(...ys) + padding
+            var minPosition = new THREE.Vector2(minX, minY)
+            var maxPosition = new THREE.Vector2(maxX, maxY)
+            var col = this.selectionBox.colour
+            this.canvas.drawBox(minPosition, maxPosition, col, fillCol)
+            // selection box handles
+            var hr = 4
+            this.canvas.drawBox(new THREE.Vector2(minX - hr, minY - hr), new THREE.Vector2(minX + hr, minY + hr), col, fillEmpty)
+            this.canvas.drawBox(new THREE.Vector2(minX - hr, maxY - hr), new THREE.Vector2(minX + hr, maxY + hr), col, fillEmpty)
+            this.canvas.drawBox(new THREE.Vector2(maxX - hr, minY - hr), new THREE.Vector2(maxX + hr, minY + hr), col, fillEmpty)
+            this.canvas.drawBox(new THREE.Vector2(maxX - hr, maxY - hr), new THREE.Vector2(maxX + hr, maxY + hr), col, fillEmpty)
+            this.canvas.drawLine(new THREE.Vector2((minX + maxX) / 2, minY), new THREE.Vector2((minX + maxX) / 2, minY - (hr * 2)), col)
+            this.canvas.drawCircle(new THREE.Vector2((minX + maxX) / 2, minY - (hr * 3)), hr, col, true)
+            this.selectionBox = {
+                minPosition: minPosition,
+                maxPosition: maxPosition,
+                handleRadius: hr,
+                padding: padding,
+                colour: "rgb(1, 230, 251)",
+                fillColour: "rgba(1, 230, 251, 0.2)"
+            }
+        } else {
+            this.selectionBox = {
+                minPosition: new THREE.Vector2(-1, -1),
+                maxPosition: new THREE.Vector2(-1, -1),
+                handleRadius: -1,
+                padding: -1,
+                colour: "rgb(1, 230, 251)",
+                fillColour: "rgba(1, 230, 251, 0.2)"
+            }
+        }
+    }
+
+    drawRotationCircle = () => {
+        var col = this.selectionBox.colour
+        var min = this.selectionBox.minPosition
+        var max = this.selectionBox.maxPosition
+        var centre = new THREE.Vector2((min.x + max.x) / 2, (min.y + max.y) / 2)
+        var radius = Math.min((max.x - min.x) / 2, (max.y - min.y) / 2)
+        this.canvas.drawCircle(centre, radius, col, false)
+    }
+
+    activateRotationCircle = () => {
+        this.rotationCircleActive = true
+    }
+
+    deactivateRotationCircle = () => {
+        this.rotationCircleActive = false
     }
 
 }
