@@ -6,6 +6,7 @@ import { Backend } from '../../backend'
 import { Landmark, JSONLmPoint } from './landmark'
 import { LandmarkCollection }  from './collection'
 import { LandmarkLabel } from './label'
+import { LandmarkGroups } from './groups'
 
 type LabelAndMask = {
     label: string,
@@ -13,18 +14,21 @@ type LabelAndMask = {
 }
 
 
-interface LJSON {
+interface LJSONGroup {
     landmarks: {
-        points: JSONLmPoint[]
-        connectivity: [number, number][],
-    }
+        points: JSONLmPoint[],
+        connectivity: [number, number][]
+    },
     labels: {
         label: string,
-        mask: number[],
-    }[]
+        mask: number[]
+    }[],
+    metadata?: {
+        [key: string]: any
+    }
 }
 
-export interface LJSONFile extends LJSON {
+export interface LJSONFile extends LJSONGroup {
     version: number
 }
 
@@ -34,10 +38,10 @@ type LGTrackerOperation = [
     THREE.Vector3   // Point After
 ][]
 
-export type LandmarkGroupTracker = Tracker<LJSON, LGTrackerOperation>
+export type LandmarkGroupTracker = Tracker<LJSONGroup, LGTrackerOperation>
 
 // factory function to produce a tracker for use with Landmark Groups.
-export const landmarkGroupTrackerFactory = () => new Tracker<LJSON, LGTrackerOperation>()
+export const landmarkGroupTrackerFactory = () => new Tracker<LJSONGroup, LGTrackerOperation>()
 
 function _validateConnectivity(nLandmarks: number, connectivity: [number, number][]): [number, number][] {
     if (!connectivity) {
@@ -73,10 +77,12 @@ export class LandmarkGroup extends LandmarkCollection {
     backend: Backend
     tracker: LandmarkGroupTracker
     labels: LandmarkLabel[]
+    parent: LandmarkGroups
 
     constructor(points: JSONLmPoint[], connectivity: [number, number][],
                 labels: LabelAndMask[], id: string, type: string,
-                backend: Backend, tracker: LandmarkGroupTracker) {
+                backend: Backend, tracker: LandmarkGroupTracker,
+                parent: LandmarkGroups) {
         // 1. construct our superclass with empty landmarks
         super([])
         // 2. (dodgey) re-implment our super behavior and assign the landmarks again
@@ -90,6 +96,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.type = type
         this.backend = backend
         this.tracker = tracker || landmarkGroupTrackerFactory()
+        this.parent = parent
 
         // 2. Validate and assign connectivity (if there is any, it's not mandatory)
         this.connectivity = _validateConnectivity(this.landmarks.length,
@@ -105,7 +112,7 @@ export class LandmarkGroup extends LandmarkCollection {
         this.tracker.recordState(this.toJSON(), true)
     }
 
-    static parse(json: LJSONFile, id: string, type: string, backend: Backend, tracker: LandmarkGroupTracker) {
+    static parse(json: LJSONGroup, id: string, type: string, backend: Backend, tracker: LandmarkGroupTracker, parent: LandmarkGroups) {
         return new LandmarkGroup(
             json.landmarks.points,
             json.landmarks.connectivity,
@@ -113,13 +120,14 @@ export class LandmarkGroup extends LandmarkCollection {
             id,
             type,
             backend,
-            tracker
+            tracker,
+            parent
         )
     }
 
     // Restore landmarks from json saved, should be of the same template so
     // no hard checking ot resetting the labels
-    restore({ landmarks, labels }: LJSON) {
+    restore({ landmarks, labels }: LJSONGroup) {
         const {points, connectivity} = landmarks
 
         this.landmarks.forEach(lm => lm.clear())
@@ -226,26 +234,18 @@ export class LandmarkGroup extends LandmarkCollection {
         })
     }
 
-    toJSON(): LJSONFile {
+    toJSON(): LJSONGroup {
         return {
             landmarks: {
                 points: this.landmarks.map(lm => lm.toJSON()),
                 connectivity: this.connectivity
             },
-            labels: this.labels.map(label => label.toJSON()),
-            version: 2,
+            labels: this.labels.map(label => label.toJSON())
         }
     }
 
     save() {
-        return this.backend
-            .saveLandmarkGroup(this.id, this.type, this.toJSON())
-            .then(() => {
-                this.tracker.recordState(this.toJSON(), true)
-                notify({type: 'success', msg: 'Save Completed'})
-            }, () => {
-                notify({type: 'error', msg: 'Save Failed'})
-            })
+        return this.parent.save(this.type)
     }
 
     undo() {

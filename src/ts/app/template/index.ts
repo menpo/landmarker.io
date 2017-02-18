@@ -150,7 +150,7 @@ export default class Template  {
      * @param  {Number} dims=2
      * @return {Object}
      */
-    emptyLJSON(dims=2) {
+    emptyLJSONGroup(dims=2) {
 
         if (this._emptyLmGroup[dims]) {
             return _.clone(this._emptyLmGroup[dims])
@@ -172,7 +172,6 @@ export default class Template  {
 
         this._emptyLmGroup[dims] = {
             labels,
-            version: 2,
             landmarks: { connectivity: globalConnectivity, points }
         }
 
@@ -185,7 +184,7 @@ export default class Template  {
             json = JSON.parse(json)
         }
 
-        const ljson = this.emptyLJSON(dims)
+        const ljson = this.emptyLJSONGroup(dims)
         let ok
 
         ok = json.version === ljson.version

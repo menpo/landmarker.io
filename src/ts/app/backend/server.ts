@@ -77,7 +77,7 @@ export class Server implements Backend {
 
     url: string
     demoMode = false
-    version = 2
+    version = 3
     httpAuth = false
 
     constructor(url: string) {
@@ -144,12 +144,12 @@ export class Server implements Backend {
         return this.fetchJSON(`collections/${collectionId}`)
     }
 
-    fetchLandmarkGroup(id: string, type: string) {
-        return getJSON(this.map(`landmarks/${id}/${type}`), {auth: this.httpAuth})
+    fetchLandmarkGroups(id: string) {
+        return getJSON(this.map(`landmarks/json/${id}`), {auth: this.httpAuth})
     }
 
-    saveLandmarkGroup(id: string, group: string, json: Object) {
-        return putJSON(this.map(`landmarks/${id}/${group}`), {
+    saveLandmarkGroups(id: string, json: Object) {
+        return putJSON(this.map(`landmarks/json/${id}`), {
             data: json,
             auth: this.httpAuth
         })

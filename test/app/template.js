@@ -37,8 +37,8 @@ var faceYAMLPath = cwd + '/test/fixtures/face.yml',
     };
 
 // Taken from python server
-var LJSON2D = require(cwd + '/test/fixtures/face_2d_ljson.json');
-var LJSON3D = require(cwd + '/test/fixtures/face_3d_ljson.json');
+var LJSONGroup2D = require(cwd + '/test/fixtures/face_2d_ljson_group.json');
+var LJSONGroup3D = require(cwd + '/test/fixtures/face_3d_ljson_group.json');
 
 describe('Template$constructor', function () {
     var tmpl;
@@ -82,7 +82,7 @@ describe('Template$parseYAML', function () {
     });
 });
 
-describe('Template#emptyLJSON', function () {
+describe('Template#emptyLJSONGroup', function () {
     var tmpl;
 
     before(function () {
@@ -90,13 +90,13 @@ describe('Template#emptyLJSON', function () {
     });
 
     it('should return correct LJSON in 2D', function () {
-        var ljson = tmpl.emptyLJSON(2);
-        assert.deepEqual(ljson, LJSON2D);
+        var ljsonGroup = tmpl.emptyLJSONGroup(2);
+        assert.deepEqual(ljsonGroup, LJSONGroup2D);
     });
 
     it('should return correct LJSON in 3D', function () {
-        var ljson = tmpl.emptyLJSON(3);
-        assert.deepEqual(ljson, LJSON3D);
+        var ljsonGroup = tmpl.emptyLJSONGroup(3);
+        assert.deepEqual(ljsonGroup, LJSONGroup3D);
     });
 });
 
@@ -108,13 +108,13 @@ describe('Template$parseLJSON', function () {
     });
 
     it('should have the correct data', function () {
-        ljsonTmpl = Template.parseLJSON(jsonTmpl.emptyLJSON(2));
+        ljsonTmpl = Template.parseLJSON(jsonTmpl.emptyLJSONGroup(2));
         assert.deepEqual(ljsonTmpl.groups, jsonTmpl.groups);
         assert.deepEqual(ljsonTmpl.size, jsonTmpl.size);
     });
 
     it('should accept a string', function () {
-        ljsonTmpl = Template.parseLJSON(JSON.stringify(jsonTmpl.emptyLJSON(2)));
+        ljsonTmpl = Template.parseLJSON(JSON.stringify(jsonTmpl.emptyLJSONGroup(2)));
         assert.deepEqual(ljsonTmpl.groups, jsonTmpl.groups);
         assert.deepEqual(ljsonTmpl.size, jsonTmpl.size);
     });
