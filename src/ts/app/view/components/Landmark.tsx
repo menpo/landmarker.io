@@ -9,13 +9,15 @@ const BASE_STYLE: React.CSSProperties = {
     opacity: 0.5
 }
 
-function backgroundForState(isEmpty: boolean, isSelected: boolean, isNextAvailable: boolean):string  {
+function backgroundForState(isEmpty: boolean, isSelected: boolean, isNextAvailable: boolean, isOccluded: boolean):string  {
     if (isNextAvailable) {
         return 'orange'
     } else if (isSelected) {
         return 'purple'
     } else if (isEmpty) {
         return 'grey'
+    } else if (isOccluded) {
+        return 'red' // occluded but not selected
     } else {
         return 'blue'
     }
@@ -23,7 +25,7 @@ function backgroundForState(isEmpty: boolean, isSelected: boolean, isNextAvailab
 
 function style(props: LandmarkProps):React.CSSProperties  {
     return _.assign({
-        background: backgroundForState(props.isEmpty, props.isSelected, props.isNextAvailable)
+        background: backgroundForState(props.isEmpty, props.isSelected, props.isNextAvailable, props.isOccluded)
     }, BASE_STYLE)
 }
 
@@ -32,6 +34,7 @@ export interface LandmarkProps {
     isEmpty: boolean
     isSelected: boolean
     isNextAvailable: boolean
+    isOccluded: boolean
 }
 
 interface LandmarkPropsWithCB extends LandmarkProps {

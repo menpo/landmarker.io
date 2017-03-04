@@ -63,6 +63,10 @@ const SHORTCUTS: { [index:string]: Shortcut} = {
         app.toggleConnectivity()
     }, false, false],
 
+    "o": [function (lms) { // o = toggle [o]cclusion
+        lms.toggleSelectedOcclusion()
+    }, false, true],
+
     "e": [function (lms, app) { // e = toggle [e]dit mode
         app.toggleEditing()
     }, false, false],

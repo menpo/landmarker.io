@@ -64,7 +64,8 @@ export class ReactBridge {
                 id: lm.index,
                 isEmpty: lm.isEmpty(),
                 isNextAvailable: lm.isNextAvailable(),
-                isSelected: lm.isSelected()
+                isSelected: lm.isSelected(),
+                isOccluded: lm.isOccluded()
             }))
         }))
 

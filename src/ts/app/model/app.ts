@@ -319,7 +319,7 @@ export class App extends Backbone.Model {
     reloadLandmarks() {
         if (this.landmarks && this.asset) {
             this.autoSaveWrapper(() => {
-                this.set('landmarkGorups', null)
+                this.set('landmarkGroups', null)
                 this.set('landmarks', null)
                 this.loadLandmarksPromise().then((lmGroups) => {
                     this.set('landmarkGroups', lmGroups)

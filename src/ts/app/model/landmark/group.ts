@@ -78,18 +78,33 @@ export class LandmarkGroup extends LandmarkCollection {
     tracker: LandmarkGroupTracker
     labels: LandmarkLabel[]
     parent: LandmarkGroups
+    metadata?: {[key:string]:any}
 
     constructor(points: JSONLmPoint[], connectivity: [number, number][],
-                labels: LabelAndMask[], id: string, type: string,
-                backend: Backend, tracker: LandmarkGroupTracker,
+                labels: LabelAndMask[], metadata: {[key:string]:any} | undefined,
+                id: string, type: string, backend: Backend, tracker: LandmarkGroupTracker,
                 parent: LandmarkGroups) {
         // 1. construct our superclass with empty landmarks
         super([])
-        // 2. (dodgey) re-implment our super behavior and assign the landmarks again
+
+        // 2. Store metadata
+        this.metadata = metadata
+        const occludedValues: boolean[] = []
+        if (metadata != undefined && metadata['visible'] != undefined && metadata['visible'].length === points.length) {
+            metadata['visible'].forEach(function(v) {
+                occludedValues.push(v != 1)
+            })
+        } else {
+            for (let i = 0; i < points.length; i++) {
+                occludedValues.push(false)
+            }
+        }
+
+        // 3. (dodgey) re-implement our super behavior and assign the landmarks again
         // we need to do this as 'this' is not defined before the super call finishes.
         this.landmarks = points.map((p, index) => {
             const [point, nDims] = pointToVector(p)
-            return new Landmark(this, index, nDims, point)
+            return new Landmark(this, index, nDims, point, occludedValues[index])
         })
 
         this.id = id
@@ -98,11 +113,11 @@ export class LandmarkGroup extends LandmarkCollection {
         this.tracker = tracker || landmarkGroupTrackerFactory()
         this.parent = parent
 
-        // 2. Validate and assign connectivity (if there is any, it's not mandatory)
+        // 3. Validate and assign connectivity (if there is any, it's not mandatory)
         this.connectivity = _validateConnectivity(this.landmarks.length,
                                                   connectivity)
 
-        // 3. Build labels
+        // 4. Build labels
         this.labels = labels.map((label) => {
             return new LandmarkLabel(label.label, this.landmarks, label.mask)
         })
@@ -117,6 +132,7 @@ export class LandmarkGroup extends LandmarkCollection {
             json.landmarks.points,
             json.landmarks.connectivity,
             json.labels,
+            json.metadata,
             id,
             type,
             backend,
@@ -235,12 +251,15 @@ export class LandmarkGroup extends LandmarkCollection {
     }
 
     toJSON(): LJSONGroup {
+        const metadata = this.metadata == undefined ? {} : this.metadata
+        metadata['visible'] = this.landmarks.map(lm => lm.isOccluded() ? 0 : 1)
         return {
             landmarks: {
                 points: this.landmarks.map(lm => lm.toJSON()),
                 connectivity: this.connectivity
             },
-            labels: this.labels.map(label => label.toJSON())
+            labels: this.labels.map(label => label.toJSON()),
+            metadata
         }
     }
 
@@ -284,6 +303,12 @@ export class LandmarkGroup extends LandmarkCollection {
             if (label.landmarks.some(lm => lm.isSelected())) {
                 label.selectAll()
             }
+        })
+    }
+
+    toggleSelectedOcclusion() {
+        this.selected().forEach(function (lm) {
+            lm.toggleOccluded()
         })
     }
 }

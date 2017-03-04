@@ -3,7 +3,7 @@ import { LandmarkGroup } from './group'
 
 const DEFAULTS = {
     selected: false,
-    nextAvailable: false,
+    nextAvailable: false
 }
 
 type JSONLmValue = number | null
@@ -14,9 +14,10 @@ export class Landmark extends Backbone.Model {
     nDims: number
     index: number
 
-    constructor (group: LandmarkGroup, index: number, nDims: number, point: THREE.Vector3) {
+    constructor (group: LandmarkGroup, index: number, nDims: number, point: THREE.Vector3, occluded: boolean) {
         super(DEFAULTS)
         this.set({ group, point })
+        this.set('occluded', occluded)
         this.nDims = nDims
         this.index = index
     }
@@ -39,6 +40,14 @@ export class Landmark extends Backbone.Model {
 
     isSelected(): boolean {
         return this.get('selected')
+    }
+
+    isOccluded(): boolean {
+        return this.get('occluded')
+    }
+
+    toggleOccluded() {
+        this.set('occluded', !this.isOccluded())
     }
 
     select() {
