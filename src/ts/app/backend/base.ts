@@ -66,25 +66,23 @@ export interface Backend {
     fetchGeometry(assetId: string): Promise<THREE.BufferGeometry>
 
     /**
-     * Return the remote data for landmarks for an asset/template combination
+     * Return the remote data for landmarks for an asset
      *
      * @param {String} assetId
-     * @param {String} type [template name]
      * @return {Promise}
      * @resolve {Object} [Parsed JSON]
      */
-    fetchLandmarkGroup(assetId: string, group:string): Promise<LJSONFile>
+    fetchLandmarkGroups(assetId: string): Promise<LJSONFile>
 
     /**
-     * Saves the json data remotely for landmarks for an asset/template combination,
+     * Saves the json data remotely for landmarks for an asset,
      * resolving with any value marks success, rejection is an error
      *
      * @param {String} assetId
-     * @param {String} type [template name]
      * @param {Object} json
      * @return {Promise}
      * @resolve {}
      */
-    saveLandmarkGroup(assetId: string, group:string, object:Object): Promise<{}>
+    saveLandmarkGroups(assetId: string, object:Object): Promise<{}>
 
 }
