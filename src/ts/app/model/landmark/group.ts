@@ -6,6 +6,7 @@ import { Backend } from '../../backend'
 import { Landmark, JSONLmPoint } from './landmark'
 import { LandmarkCollection }  from './collection'
 import { LandmarkLabel } from './label'
+import { LandmarkGroups } from './groups'
 
 type LabelAndMask = {
     label: string,
@@ -13,18 +14,21 @@ type LabelAndMask = {
 }
 
 
-interface LJSON {
+interface LJSONGroup {
     landmarks: {
-        points: JSONLmPoint[]
-        connectivity: [number, number][],
-    }
+        points: JSONLmPoint[],
+        connectivity: [number, number][]
+    },
     labels: {
         label: string,
-        mask: number[],
-    }[]
+        mask: number[]
+    }[],
+    metadata?: {
+        [key: string]: any
+    }
 }
 
-export interface LJSONFile extends LJSON {
+export interface LJSONFile extends LJSONGroup {
     version: number
 }
 
@@ -34,10 +38,10 @@ type LGTrackerOperation = [
     THREE.Vector3   // Point After
 ][]
 
-export type LandmarkGroupTracker = Tracker<LJSON, LGTrackerOperation>
+export type LandmarkGroupTracker = Tracker<LJSONGroup, LGTrackerOperation>
 
 // factory function to produce a tracker for use with Landmark Groups.
-export const landmarkGroupTrackerFactory = () => new Tracker<LJSON, LGTrackerOperation>()
+export const landmarkGroupTrackerFactory = () => new Tracker<LJSONGroup, LGTrackerOperation>()
 
 function _validateConnectivity(nLandmarks: number, connectivity: [number, number][]): [number, number][] {
     if (!connectivity) {
@@ -73,29 +77,47 @@ export class LandmarkGroup extends LandmarkCollection {
     backend: Backend
     tracker: LandmarkGroupTracker
     labels: LandmarkLabel[]
+    parent: LandmarkGroups
+    metadata?: {[key:string]:any}
 
     constructor(points: JSONLmPoint[], connectivity: [number, number][],
-                labels: LabelAndMask[], id: string, type: string,
-                backend: Backend, tracker: LandmarkGroupTracker) {
+                labels: LabelAndMask[], metadata: {[key:string]:any} | undefined,
+                id: string, type: string, backend: Backend, tracker: LandmarkGroupTracker,
+                parent: LandmarkGroups) {
         // 1. construct our superclass with empty landmarks
         super([])
-        // 2. (dodgey) re-implment our super behavior and assign the landmarks again
+
+        // 2. Store metadata
+        this.metadata = metadata
+        const occludedValues: boolean[] = []
+        if (metadata != undefined && metadata['visible'] != undefined && metadata['visible'].length === points.length) {
+            metadata['visible'].forEach(function(v) {
+                occludedValues.push(v != 1)
+            })
+        } else {
+            for (let i = 0; i < points.length; i++) {
+                occludedValues.push(false)
+            }
+        }
+
+        // 3. (dodgey) re-implement our super behavior and assign the landmarks again
         // we need to do this as 'this' is not defined before the super call finishes.
         this.landmarks = points.map((p, index) => {
             const [point, nDims] = pointToVector(p)
-            return new Landmark(this, index, nDims, point)
+            return new Landmark(this, index, nDims, point, occludedValues[index])
         })
 
         this.id = id
         this.type = type
         this.backend = backend
         this.tracker = tracker || landmarkGroupTrackerFactory()
+        this.parent = parent
 
-        // 2. Validate and assign connectivity (if there is any, it's not mandatory)
+        // 3. Validate and assign connectivity (if there is any, it's not mandatory)
         this.connectivity = _validateConnectivity(this.landmarks.length,
                                                   connectivity)
 
-        // 3. Build labels
+        // 4. Build labels
         this.labels = labels.map((label) => {
             return new LandmarkLabel(label.label, this.landmarks, label.mask)
         })
@@ -105,21 +127,23 @@ export class LandmarkGroup extends LandmarkCollection {
         this.tracker.recordState(this.toJSON(), true)
     }
 
-    static parse(json: LJSONFile, id: string, type: string, backend: Backend, tracker: LandmarkGroupTracker) {
+    static parse(json: LJSONGroup, id: string, type: string, backend: Backend, tracker: LandmarkGroupTracker, parent: LandmarkGroups) {
         return new LandmarkGroup(
             json.landmarks.points,
             json.landmarks.connectivity,
             json.labels,
+            json.metadata,
             id,
             type,
             backend,
-            tracker
+            tracker,
+            parent
         )
     }
 
     // Restore landmarks from json saved, should be of the same template so
     // no hard checking ot resetting the labels
-    restore({ landmarks, labels }: LJSON) {
+    restore({ landmarks, labels }: LJSONGroup) {
         const {points, connectivity} = landmarks
 
         this.landmarks.forEach(lm => lm.clear())
@@ -226,26 +250,21 @@ export class LandmarkGroup extends LandmarkCollection {
         })
     }
 
-    toJSON(): LJSONFile {
+    toJSON(): LJSONGroup {
+        const metadata = this.metadata == undefined ? {} : this.metadata
+        metadata['visible'] = this.landmarks.map(lm => lm.isOccluded() ? 0 : 1)
         return {
             landmarks: {
                 points: this.landmarks.map(lm => lm.toJSON()),
                 connectivity: this.connectivity
             },
             labels: this.labels.map(label => label.toJSON()),
-            version: 2,
+            metadata
         }
     }
 
     save() {
-        return this.backend
-            .saveLandmarkGroup(this.id, this.type, this.toJSON())
-            .then(() => {
-                this.tracker.recordState(this.toJSON(), true)
-                notify({type: 'success', msg: 'Save Completed'})
-            }, () => {
-                notify({type: 'error', msg: 'Save Failed'})
-            })
+        return this.parent.save(this.type)
     }
 
     undo() {
@@ -284,6 +303,12 @@ export class LandmarkGroup extends LandmarkCollection {
             if (label.landmarks.some(lm => lm.isSelected())) {
                 label.selectAll()
             }
+        })
+    }
+
+    toggleSelectedOcclusion() {
+        this.selected().forEach(function (lm) {
+            lm.toggleOccluded()
         })
     }
 }

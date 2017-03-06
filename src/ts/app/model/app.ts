@@ -3,7 +3,7 @@ import * as Backbone from 'backbone'
 import Tracker from '../lib/tracker'
 import * as AssetSource from './assetsource'
 import * as Asset from './asset'
-import { LandmarkGroup, LandmarkGroupTracker, landmarkGroupTrackerFactory } from './landmark'
+import { LandmarkGroup, LandmarkGroups, LandmarkGroupTracker } from './landmark'
 import Modal from '../view/modal'
 import { Backend } from '../backend'
 
@@ -56,6 +56,10 @@ export class App extends Backbone.Model {
 
     get landmarks(): LandmarkGroup {
         return this.get('landmarks')
+    }
+
+    get landmarkGroups(): LandmarkGroups {
+        return this.get('landmarkGroups')
     }
 
     set isConnectivityOn(isConnectivityOn: boolean) {
@@ -303,25 +307,23 @@ export class App extends Backbone.Model {
         })
     }
 
-    landmarkGroupTrackerForAssetAndTemplate(assetId: string, template: string): LandmarkGroupTracker {
+    landmarkGroupTrackersForAsset(assetId: string): {[template: string]: LandmarkGroupTracker} {
         const trackers = this.landmarkGroupTrackers
         if (!trackers[assetId]) {
             trackers[assetId] = {}
         }
 
-        if (!trackers[assetId][template]) {
-            trackers[assetId][template] = landmarkGroupTrackerFactory()
-        }
-
-        return trackers[assetId][template]
+        return trackers[assetId]
      }
 
     reloadLandmarks() {
         if (this.landmarks && this.asset) {
             this.autoSaveWrapper(() => {
+                this.set('landmarkGroups', null)
                 this.set('landmarks', null)
-                this.loadLandmarksPromise().then((lms) => {
-                    this.set('landmarks', lms)
+                this.loadLandmarksPromise().then((lmGroups) => {
+                    this.set('landmarkGroups', lmGroups)
+                    this.set('landmarks', lmGroups.groups[this.activeTemplate])
                 })
             })
         }
@@ -363,16 +365,14 @@ export class App extends Backbone.Model {
      }
 
     loadLandmarksPromise() {
-        return this.backend.fetchLandmarkGroup(
-            this.asset.id,
-            this.activeTemplate
+        return this.backend.fetchLandmarkGroups(
+            this.asset.id
         ).then(json => {
-            return LandmarkGroup.parse(
+            return new LandmarkGroups(
                 json,
                 this.asset.id,
-                this.activeTemplate,
                 this.backend,
-                this.landmarkGroupTrackerForAssetAndTemplate(this.asset.id, this.activeTemplate)
+                this.landmarkGroupTrackersForAsset(this.asset.id)
             )
         }, () => {
             console.log('Error in fetching landmark JSON file')
@@ -386,13 +386,14 @@ export class App extends Backbone.Model {
         // if both come true, then set the landmarks
         return Promise.all([this.loadLandmarksPromise(),
                             loadAssetPromise]).then((args) => {
-            const landmarks = args[0]
+            const landmarkGroups = args[0]
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display')
             // now we know that this is resolved we set the landmarks on the
             // app. This way we know the landmarks will always be set with a
             // valid asset.
-            this.set('landmarks', landmarks)
+            this.set('landmarkGroups', landmarkGroups)
+            this.set('landmarks', landmarkGroups.groups[this.activeTemplate])
         })
      }
 
@@ -403,6 +404,7 @@ export class App extends Backbone.Model {
         // applicable) and asset data are present
         if (newAssetPromise) {
             this.set('landmarks', null)
+            this.set('landmarkGroups', null)
             return this._promiseLandmarksWithAsset(newAssetPromise)
         }
      }
@@ -431,15 +433,15 @@ export class App extends Backbone.Model {
 
     reloadLandmarksFromPrevious() {
         const lms = this.landmarks
+        const template = this.activeTemplate
         if (lms) {
             const as = this.assetSource
             if (this.assetSource.hasPredecessor) {
-                this.backend.fetchLandmarkGroup(
-                    as.assets()[as.assetIndex - 1].id,
-                    this.activeTemplate
+                this.backend.fetchLandmarkGroups(
+                    as.assets()[as.assetIndex - 1].id
                 ).then((json) => {
                     lms.tracker.recordState(lms.toJSON())
-                    lms.restore(json)
+                    lms.restore(json.groups[template])
                     lms.tracker.recordState(lms.toJSON(), false, true)
                 }, () => {
                     console.log('Error in fetching landmark JSON file')

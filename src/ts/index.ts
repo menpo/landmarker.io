@@ -211,7 +211,28 @@ function resolveMode (backend: Backend, u: url.Url) {
         }
     }, function (err) {
         console.log(err)
-        retry(`Couldn't reach server, are you sure the url was correct`)
+        if (cfg.get('BACKEND_TYPE') === Server.Type) {
+            let reportOldVersion = function(v: number) {
+                retry(`You are using a deprecated version of the server (API version ${v}). Please upgrade to API version ${(<Server>backend).version}.`)
+            }
+            // base function which is called when no API version has been discovered
+            let serverNotFoundFn = function() {
+                retry(`Couldn't reach server, are you sure the url was correct?`)
+            }
+            let fetchModeFunctions: (() => void)[] = []
+            fetchModeFunctions.push(serverNotFoundFn)
+            for (let i = 1; i < (<Server>backend).version; i++) {
+                let fetchModeFn = function() {
+                    (<Server>backend).fetchModeForVersion(i).then(function() {
+                        reportOldVersion(i)
+                    }, fetchModeFunctions[i - 1])
+                }
+                fetchModeFunctions.push(fetchModeFn)
+            }
+            fetchModeFunctions[fetchModeFunctions.length - 1]() // start fetch mode function chain
+        } else {
+            retry(`Couldn't reach server, are you sure the url was correct?`)
+        }
     })
 }
 
