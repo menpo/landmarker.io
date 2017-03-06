@@ -102,6 +102,10 @@ export class Server implements Backend {
         return `/api/v${this.version}/`
     }
 
+    apiHeaderForVersion(apiVersion: number) {
+        return `/api/v${apiVersion}/`
+    }
+
     map(url: string) {
         if (this.demoMode) {
             // demoMode so we ignore the server url
@@ -130,6 +134,11 @@ export class Server implements Backend {
 
     fetchMode() {
         return this.fetchJSON('mode')
+    }
+
+    fetchModeForVersion(apiVersion: number) {
+        const url = this.url + this.apiHeaderForVersion(apiVersion) + 'mode'
+        return getJSON(url, {auth: this.httpAuth})
     }
 
     fetchTemplates() {
