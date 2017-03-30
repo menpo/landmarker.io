@@ -5,7 +5,7 @@ import * as $ from 'jquery'
 import * as Notification from './notification'
 import Intro from './intro'
 import { pad, randomString, truncate } from '../lib/utils'
-import { Dropbox, Server } from '../backend'
+import { Server } from '../backend'
 
 import Modal from './modal'
 import ListPicker from './list_picker'
@@ -30,10 +30,7 @@ export const BackendNameView = Backbone.View.extend({
         this.$el.find('.octicon-globe').remove()
         this.$el.show()
 
-        if (backend instanceof Dropbox) {
-            this.$el.find('.content').html('Dropbox')
-            this.$el.addClass('BackendName--Dropbox')
-        } else if (backend instanceof Server) {
+        if (backend instanceof Server) {
             this.$el.find('.content').html(
                 backend.demoMode ? 'demo' : backend.url)
             this.$el.addClass('BackendName--Server')
