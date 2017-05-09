@@ -3,9 +3,10 @@ import * as Backbone from 'backbone'
 import Tracker from '../lib/tracker'
 import * as AssetSource from './assetsource'
 import * as Asset from './asset'
-import { LandmarkGroup, LandmarkGroups, LandmarkGroupTracker } from './landmark'
+import { LandmarkGroup, LandmarkGroups, LandmarkGroupTracker, Landmark } from './landmark'
 import Modal from '../view/modal'
 import { Backend } from '../backend'
+import { notify } from '../view/notification'
 
 export type AppOptions = {
     mode: 'image' | 'mesh'
@@ -21,6 +22,47 @@ type LandmarkGroupTrackers = {
     }
 }
 
+function sortByPosition(lms: Landmark[]) {
+    const compareByX = function(lm1: Landmark, lm2: Landmark) {
+        if (lm1.point.x < lm2.point.x) {
+            return -1
+        } else if (lm1.point.x > lm2.point.x) {
+            return 1
+        }
+        return 0
+    }
+    const lmsClone = lms.slice(0)
+    lmsClone.sort(compareByX)
+    var temp
+    if (lmsClone[0].point.y > lmsClone[1].point.y) {
+        temp = lmsClone[1]
+        lmsClone[1] = lmsClone[0]
+        lmsClone[0] = temp
+    }
+    if (lmsClone[2].point.y > lmsClone[3].point.y) {
+        temp = lmsClone[3]
+        lmsClone[3] = lmsClone[2]
+        lmsClone[2] = temp
+    }
+    return lmsClone
+}
+
+function makesRectangleShape(lms: Landmark[]) {
+    // Sort points by their position
+    const sortedLms = sortByPosition(lms)
+    // Allow for a little error in the rectangle
+    const errorMarginX = (sortedLms[3].point.x - sortedLms[0].point.x) * 0.01
+    const errorMarginY = (sortedLms[3].point.y - sortedLms[0].point.y) * 0.01
+    return !(sortedLms[1].point.y < sortedLms[3].point.y - errorMarginY
+    || sortedLms[1].point.y > sortedLms[3].point.y + errorMarginY
+    || sortedLms[1].point.x < sortedLms[0].point.x - errorMarginX
+    || sortedLms[1].point.x > sortedLms[0].point.x + errorMarginX
+    || sortedLms[2].point.y < sortedLms[0].point.y - errorMarginY
+    || sortedLms[2].point.y > sortedLms[0].point.y + errorMarginY
+    || sortedLms[2].point.x < sortedLms[3].point.x - errorMarginX
+    || sortedLms[2].point.x > sortedLms[3].point.x + errorMarginX)
+}
+
 export class App extends Backbone.Model {
 
     // We store a tracker per landmark group that we use in the app.
@@ -32,9 +74,13 @@ export class App extends Backbone.Model {
     constructor(opts: AppOptions) {
         super({
             mode: 'mesh',
+            boundingBoxOn: false,
             connectivityOn: true,
             editingOn: true,
             autoSaveOn: false,
+            linksToggleEnabled: true,
+            snapToggleEnabled: true,
+            lmSizeSliderEnabled: true,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false
@@ -50,6 +96,10 @@ export class App extends Backbone.Model {
         this._initCollections()
     }
 
+    get isBoundingBoxOn(): boolean {
+        return this.get('boundingBoxOn')
+    }
+
     get isConnectivityOn(): boolean {
         return this.get('connectivityOn')
     }
@@ -62,6 +112,10 @@ export class App extends Backbone.Model {
         return this.get('landmarkGroups')
     }
 
+    set isBoundingBoxOn(isBoundingBoxOn: boolean) {
+        this.set('boundingBoxOn', isBoundingBoxOn)
+    }
+
     set isConnectivityOn(isConnectivityOn: boolean) {
         this.set('connectivityOn', isConnectivityOn)
     }
@@ -72,6 +126,30 @@ export class App extends Backbone.Model {
 
     set isAutoSaveOn(isAutoSaveOn: boolean) {
         this.set('autoSaveOn', isAutoSaveOn)
+    }
+
+    get linksToggleEnabled(): boolean {
+        return this.get('linksToggleEnabled')
+    }
+
+    set linksToggleEnabled(linksToggleEnabled: boolean) {
+        this.set('linksToggleEnabled', linksToggleEnabled)
+    }
+
+    get snapToggleEnabled(): boolean {
+        return this.get('snapToggleEnabled')
+    }
+
+    set snapToggleEnabled(snapToggleEnabled: boolean) {
+        this.set('snapToggleEnabled', snapToggleEnabled)
+    }
+
+    get lmSizeSliderEnabled(): boolean {
+        return this.get('lmSizeSliderEnabled')
+    }
+
+    set lmSizeSliderEnabled(lmSizeSliderEnabled: boolean) {
+        this.set('lmSizeSliderEnabled', lmSizeSliderEnabled)
     }
 
     get isEditingOn() {
@@ -90,19 +168,71 @@ export class App extends Backbone.Model {
         this.set('helpOverlayIsDisplayed', isHelpOverlayOn)
     }
 
+    toggleBoundingBox(): void {
+        if (this.isBoundingBoxOn) {
+            // Unlock these parameters before restoring them
+            this.linksToggleEnabled = true
+            this.snapToggleEnabled = true
+            this.lmSizeSliderEnabled = true
+            this.isConnectivityOn = this.get('_standbyIsConnectivityOn')
+            this.isEditingOn = this.get('_standbyIsEditingOn')
+            this.landmarkSize = this.get('_standbyLandmarkSize')
+            this.isBoundingBoxOn = false
+        } else {
+            if (!this.imageMode) {
+                // Should not be able to switch on bounding box annotation in mesh mode!
+                return
+            }
+            // Do some checks
+            const lms = this.landmarks.landmarks
+            if (this.landmarks.labels.length !== 1 || lms.length !== 4) {
+                notify({msg: `The current template does not match the format required for bounding box annotation.
+                    The template must consist of one label and four landmarks.`, type: 'warning'})
+                return
+            }
+            if (!((lms[0].isEmpty() && lms[1].isEmpty() && lms[2].isEmpty() && lms[3].isEmpty())
+            || !(lms[0].isEmpty() || lms[1].isEmpty() || lms[2].isEmpty() || lms[3].isEmpty()))) {
+                notify({msg: 'In order to switch on bounding box annotation, either 0 or 4 landmrks must be filled in.',
+                type: 'warning'})
+                return
+            }
+            if (!lms[0].isEmpty() && !makesRectangleShape(lms)) {
+                notify({msg: 'These landmarks do not form a rectangle shape - bounding box annotation cannot be used.',
+                type: 'warning'})
+                return
+            }
+            // Store these parameters, set them as needed and then lock them
+            this.set('_standbyIsConnectivityOn', this.isConnectivityOn)
+            this.set('_standbyIsEditingOn', this.isEditingOn)
+            this.set('_standbyLandmarkSize', this.landmarkSize)
+            this.isConnectivityOn = false
+            this.isEditingOn = false
+            // Scaling to zero causes problems with three.js
+            this.landmarkSize = 0.00001
+            this.linksToggleEnabled = false
+            this.snapToggleEnabled = false
+            this.lmSizeSliderEnabled = false
+            this.isBoundingBoxOn = true
+        }
+    }
+
     toggleAutoSave(): void {
         this.isAutoSaveOn = !this.isAutoSaveOn
     }
 
-    toggleConnectivity() {
-        this.isConnectivityOn = !this.isConnectivityOn
+    toggleConnectivity(): void {
+        if (this.linksToggleEnabled) {
+            this.isConnectivityOn = !this.isConnectivityOn
+        }
     }
 
-    toggleEditing() {
-        this.isEditingOn = !this.isEditingOn
-        if (!this.isEditingOn && this.landmarks) {
-            this.landmarks.deselectAll()
-            this.landmarks.resetNextAvailable()
+    toggleEditing(): void {
+        if (this.snapToggleEnabled) {
+            this.isEditingOn = !this.isEditingOn
+            if (!this.isEditingOn && this.landmarks) {
+                this.landmarks.deselectAll()
+                this.landmarks.resetNextAvailable()
+            }
         }
     }
 
@@ -178,12 +308,14 @@ export class App extends Backbone.Model {
         }
     }
 
-    get landmarkSize() {
+    get landmarkSize(): number {
         return this.get('landmarkSize')
     }
 
     set landmarkSize (landmarkSize: number) {
-        this.set('landmarkSize', landmarkSize)
+        if (this.lmSizeSliderEnabled) {
+            this.set('landmarkSize', landmarkSize)
+        }
     }
 
     budgeLandmarks(vector:  [number, number]) {

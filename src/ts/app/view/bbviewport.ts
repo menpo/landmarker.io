@@ -40,17 +40,19 @@ export class BackboneViewport {
         this.viewport = new Viewport(element, app.meshMode, on, true)
         window.vp = this.viewport
 
-        this.model.on('newMeshAvailable', this.setMesh)
+        this.model.on("newMeshAvailable", this.setMesh)
         this.model.on("change:landmarks", this.setLandmarks)
         this.model.on("change:landmarkSize", this.setLandmarkSize)
         this.model.on("change:connectivityOn", this.updateConnectivityDisplay)
         this.model.on("change:editingOn", this.updateEditingDisplay)
+        this.model.on("change:boundingBoxOn", this.updateBoundingBoxDisplay)
 
         // make sure we didn't miss any state changes on load
         this.setMesh()
         this.setLandmarkSize()
         this.updateConnectivityDisplay()
         this.updateEditingDisplay()
+        this.updateBoundingBoxDisplay()
     }
 
     setMesh = () => {
@@ -82,6 +84,10 @@ export class BackboneViewport {
 
     updateConnectivityDisplay = () => {
         this.viewport.connectivityVisible = this.model.isConnectivityOn
+    }
+
+    updateBoundingBoxDisplay = () => {
+        this.viewport.boundingBoxOn = this.model.isBoundingBoxOn
     }
 
     updateLandmark = (i: number) => {

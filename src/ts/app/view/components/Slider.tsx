@@ -3,10 +3,11 @@ import * as React from "react"
 type ChangeFunction = (newNumber: number) => void
 
 interface SliderProps {
-    label: string,
-    min: number,
+    label: string
+    min: number
     max: number
     value: number
+    disabled: boolean
     onChange: ChangeFunction
 }
 
@@ -18,7 +19,7 @@ const bind = (onChange: ChangeFunction) => (event: React.SyntheticEvent) => {
 
 export function Slider(props: SliderProps) {
     return (
-        <div className="Toolbar-Row Toolbar-Slider">
+        <div className={ props.disabled ? "Toolbar-Row Toolbar-Slider Toolbar-Row--Disabled" : "Toolbar-Row Toolbar-Slider" }>
             <div>{props.label}</div>
             <input type="range" onChange={bind(props.onChange)} min={props.min} max={props.max} value={props.value}/>
         </div>
