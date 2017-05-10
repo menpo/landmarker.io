@@ -10,6 +10,14 @@ import { IScene, Scene, CAMERA_MODE } from './scene'
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE
 const CLEAR_COLOUR_PIP = 0xCCCCCC
+// drawing colours
+const HANDLE_RADIUS = 4
+const PADDING = 7
+const INVALID_POS = new THREE.Vector2(-1, -1)
+const SBOX_COLOUR = "rgb(1, 230, 251)"
+const SBOX_FILL_COLOUR = "rgba(1, 230, 251, 0.2)"
+const FILL_EMPTY = "rgba(0, 0, 0, 0)"
+const BBOX_COLOUR = "rgb(153, 0, 239)"
 
 const MESH_MODE_STARTING_POSITION = new THREE.Vector3(1.0, 0.20, 1.5)
 const IMAGE_MODE_STARTING_POSITION = new THREE.Vector3(0.0, 0.0, 1.0)
@@ -36,6 +44,7 @@ export interface IViewport {
     toggleCamera: () => void
     snapModeEnabled: boolean
     connectivityVisible: boolean
+    boundingBoxOn: boolean
     cameraIsLocked: boolean
     landmarkSnapPermitted: boolean
     memoryString: () => string
@@ -50,8 +59,12 @@ interface SelectionBox {
     maxPosition: THREE.Vector2
     handleRadius: number
     padding: number
-    colour: string
-    fillColour: string
+}
+
+interface BoundingBoxAnnotation {
+    minPosition: THREE.Vector2
+    maxPosition: THREE.Vector2
+    handleHalfWidth: number
 }
 
 function wrapViewportCallbacksInDebug(on:ViewportCallbacks): ViewportCallbacks {
@@ -150,6 +163,7 @@ export class Viewport implements IViewport {
     meshMode: boolean   // if true, working with 3D meshes. False, 2D images.
     on: ViewportCallbacks
     _connectivityVisible = true
+    _boundingBoxOn = false
     _snapModeEnabled: boolean // Note that we need to fire this in the constructor for sideeffects
 
     parent: HTMLElement
@@ -173,6 +187,7 @@ export class Viewport implements IViewport {
 
     selectionBox: SelectionBox
     rotationCircleActive: boolean
+    boundingBox: BoundingBoxAnnotation
 
     constructor(parent: HTMLElement, meshMode: boolean, on: ViewportCallbacks, verbose = false) {
         if (verbose) {
@@ -241,14 +256,18 @@ export class Viewport implements IViewport {
 
         // invalid selection box - not active
         this.selectionBox = {
-            minPosition: new THREE.Vector2(-1, -1),
-            maxPosition: new THREE.Vector2(-1, -1),
+            minPosition: INVALID_POS,
+            maxPosition: INVALID_POS,
             handleRadius: -1,
-            padding: -1,
-            colour: "rgb(1, 230, 251)",
-            fillColour: "rgba(1, 230, 251, 0.2)"
+            padding: -1
         }
         this.rotationCircleActive = false
+        // invalid bounding box - not active
+        this.boundingBox = {
+            minPosition: INVALID_POS,
+            maxPosition: INVALID_POS,
+            handleHalfWidth: -1
+        }
     }
 
     get width() {
@@ -289,6 +308,21 @@ export class Viewport implements IViewport {
 
     set connectivityVisible (connectivityVisible: boolean) {
         this._connectivityVisible = connectivityVisible
+        this.requestUpdate()
+    }
+
+    get boundingBoxOn() {
+        return this._boundingBoxOn
+    }
+
+    set boundingBoxOn (boundingBoxOn: boolean) {
+        this._boundingBoxOn = boundingBoxOn
+        if (boundingBoxOn) {
+            this.on.deselectAllLandmarks()
+            this.updateAndDrawBoundingBox()
+        } else if (!this.snapModeEnabled) {
+            this.requestUpdateAndRefreshCanvas()
+        }
         this.requestUpdate()
     }
 
@@ -415,6 +449,7 @@ export class Viewport implements IViewport {
 
         this.clearCanvas()
         this.drawSelectionElements()
+        this.updateAndDrawBoundingBox()
     }
 
      animate = () => {
@@ -479,6 +514,7 @@ export class Viewport implements IViewport {
     requestUpdateAndRefreshCanvas = () => {
         this.requestUpdateAndClearCanvas()
         this.drawSelectionElements()
+        this.updateAndDrawBoundingBox()
     }
 
     memoryString = () => {
@@ -518,23 +554,21 @@ export class Viewport implements IViewport {
     }
 
     updateAndDrawSelectionBox = () => {
-        var col = this.selectionBox.colour
-        var fillCol = this.selectionBox.fillColour
-        var fillEmpty = "rgba(0, 0, 0, 0)"
+        var col = SBOX_COLOUR
+        var fillCol = SBOX_FILL_COLOUR
+        var fillEmpty = FILL_EMPTY
+        var hr = HANDLE_RADIUS
         if (this.selectedLandmarks.length > 1) {
             var xs = this.selectedLandmarks.map(lm => this.scene.localToScreen(lm.point).x)
             var ys = this.selectedLandmarks.map(lm => this.scene.localToScreen(lm.point).y)
-            var padding = 7
-            var minX = Math.min(...xs) - padding
-            var maxX = Math.max(...xs) + padding
-            var minY = Math.min(...ys) - padding
-            var maxY = Math.max(...ys) + padding
+            var minX = Math.min(...xs) - PADDING
+            var maxX = Math.max(...xs) + PADDING
+            var minY = Math.min(...ys) - PADDING
+            var maxY = Math.max(...ys) + PADDING
             var minPosition = new THREE.Vector2(minX, minY)
             var maxPosition = new THREE.Vector2(maxX, maxY)
-            var col = this.selectionBox.colour
             this.canvas.drawBox(minPosition, maxPosition, col, fillCol)
             // selection box handles
-            var hr = 4
             this.canvas.drawBox(new THREE.Vector2(minX - hr, minY - hr), new THREE.Vector2(minX + hr, minY + hr), col, fillEmpty)
             this.canvas.drawBox(new THREE.Vector2(minX - hr, maxY - hr), new THREE.Vector2(minX + hr, maxY + hr), col, fillEmpty)
             this.canvas.drawBox(new THREE.Vector2(maxX - hr, minY - hr), new THREE.Vector2(maxX + hr, minY + hr), col, fillEmpty)
@@ -545,24 +579,20 @@ export class Viewport implements IViewport {
                 minPosition: minPosition,
                 maxPosition: maxPosition,
                 handleRadius: hr,
-                padding: padding,
-                colour: "rgb(1, 230, 251)",
-                fillColour: "rgba(1, 230, 251, 0.2)"
+                padding: PADDING
             }
         } else {
             this.selectionBox = {
-                minPosition: new THREE.Vector2(-1, -1),
-                maxPosition: new THREE.Vector2(-1, -1),
+                minPosition: INVALID_POS,
+                maxPosition: INVALID_POS,
                 handleRadius: -1,
-                padding: -1,
-                colour: "rgb(1, 230, 251)",
-                fillColour: "rgba(1, 230, 251, 0.2)"
+                padding: -1
             }
         }
     }
 
     drawRotationCircle = () => {
-        var col = this.selectionBox.colour
+        var col = SBOX_COLOUR
         var min = this.selectionBox.minPosition
         var max = this.selectionBox.maxPosition
         var centre = new THREE.Vector2((min.x + max.x) / 2, (min.y + max.y) / 2)
@@ -576,6 +606,39 @@ export class Viewport implements IViewport {
 
     deactivateRotationCircle = () => {
         this.rotationCircleActive = false
+    }
+
+    updateAndDrawBoundingBox = () => {
+        var fillEmpty = FILL_EMPTY
+        var hr = HANDLE_RADIUS
+        var col = BBOX_COLOUR
+        if (this.landmarks.length === 4 && this.landmarks[0].point !== null && this.landmarks[1].point !== null
+        && this.landmarks[2].point !== null && this.landmarks[3].point !== null && this._boundingBoxOn) {
+            var xs = this.landmarks.map(lm => this.scene.localToScreen(lm.point).x)
+            var ys = this.landmarks.map(lm => this.scene.localToScreen(lm.point).y)
+            var minX = Math.min(...xs)
+            var maxX = Math.max(...xs)
+            var minY = Math.min(...ys)
+            var maxY = Math.max(...ys)
+            var minPosition = new THREE.Vector2(minX, minY)
+            var maxPosition = new THREE.Vector2(maxX, maxY)
+            this.canvas.drawBox(minPosition, maxPosition, col, fillEmpty)
+            this.canvas.drawBox(new THREE.Vector2(minX - hr, minY - hr), new THREE.Vector2(minX + hr, minY + hr), col, fillEmpty)
+            this.canvas.drawBox(new THREE.Vector2(minX - hr, maxY - hr), new THREE.Vector2(minX + hr, maxY + hr), col, fillEmpty)
+            this.canvas.drawBox(new THREE.Vector2(maxX - hr, minY - hr), new THREE.Vector2(maxX + hr, minY + hr), col, fillEmpty)
+            this.canvas.drawBox(new THREE.Vector2(maxX - hr, maxY - hr), new THREE.Vector2(maxX + hr, maxY + hr), col, fillEmpty)
+            this.boundingBox = {
+                minPosition: minPosition,
+                maxPosition: maxPosition,
+                handleHalfWidth: hr
+            }
+        } else {
+            this.boundingBox = {
+                minPosition: new THREE.Vector2(-1, -1),
+                maxPosition: new THREE.Vector2(-1, -1),
+                handleHalfWidth: -1
+            }
+        }
     }
 
 }

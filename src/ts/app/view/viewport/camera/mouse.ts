@@ -4,7 +4,6 @@ import { listenOnce } from '../lib/event'
 
 const MOUSE_WHEEL_SENSITIVITY = 0.5
 const ROTATION_SENSITIVITY = 3.5
-const DAMPING_FACTOR = 0.2
 
 enum STATE {
     NONE,

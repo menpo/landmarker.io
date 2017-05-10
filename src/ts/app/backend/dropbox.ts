@@ -488,22 +488,29 @@ export class Dropbox implements Backend {
         return geometry
     }
 
-    fetchLandmarkGroup(id: string, group: string) {
+    fetchLandmarkGroups(id: string) {
 
-        const path = `${this._assetsPath}/landmarks/${id}_${group}.ljson`
+        const path = `${this._assetsPath}/landmarks/${id}.ljson`
         const dim = this.mode === 'mesh' ? 3 : 2
         return new Promise((resolve) => {
             this.download(path).then((data) => {
                 resolve(JSON.parse(data))
             }, () => {
-                resolve(this._templates[group].emptyLJSON(dim))
+                const emptyLJSON = {
+                    groups: {},
+                    version: 3
+                }
+                for (let group in this._templates) {
+                    emptyLJSON.groups[group] = this._templates[group].emptyLJSONGroup(dim)
+                }
+                resolve(emptyLJSON)
             })
         })
     }
 
-    saveLandmarkGroup(id: string, group: string, json: Object) {
+    saveLandmarkGroups(id: string, json: Object) {
         const headers = this.headers(),
-            path = `${this._assetsPath}/landmarks/${id}_${group}.ljson`
+            path = `${this._assetsPath}/landmarks/${id}.ljson`
 
         return putJSON(
             `${CONTENTS_URL}/files_put/auto${path}`, {data: json, headers})

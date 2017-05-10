@@ -3,9 +3,10 @@ import * as Backbone from 'backbone'
 import Tracker from '../lib/tracker'
 import * as AssetSource from './assetsource'
 import * as Asset from './asset'
-import { LandmarkGroup, LandmarkGroupTracker, landmarkGroupTrackerFactory } from './landmark'
+import { LandmarkGroup, LandmarkGroups, LandmarkGroupTracker, Landmark } from './landmark'
 import Modal from '../view/modal'
 import { Backend } from '../backend'
+import { notify } from '../view/notification'
 
 export type AppOptions = {
     mode: 'image' | 'mesh'
@@ -21,6 +22,47 @@ type LandmarkGroupTrackers = {
     }
 }
 
+function sortByPosition(lms: Landmark[]) {
+    const compareByX = function(lm1: Landmark, lm2: Landmark) {
+        if (lm1.point.x < lm2.point.x) {
+            return -1
+        } else if (lm1.point.x > lm2.point.x) {
+            return 1
+        }
+        return 0
+    }
+    const lmsClone = lms.slice(0)
+    lmsClone.sort(compareByX)
+    var temp
+    if (lmsClone[0].point.y > lmsClone[1].point.y) {
+        temp = lmsClone[1]
+        lmsClone[1] = lmsClone[0]
+        lmsClone[0] = temp
+    }
+    if (lmsClone[2].point.y > lmsClone[3].point.y) {
+        temp = lmsClone[3]
+        lmsClone[3] = lmsClone[2]
+        lmsClone[2] = temp
+    }
+    return lmsClone
+}
+
+function makesRectangleShape(lms: Landmark[]) {
+    // Sort points by their position
+    const sortedLms = sortByPosition(lms)
+    // Allow for a little error in the rectangle
+    const errorMarginX = (sortedLms[3].point.x - sortedLms[0].point.x) * 0.01
+    const errorMarginY = (sortedLms[3].point.y - sortedLms[0].point.y) * 0.01
+    return !(sortedLms[1].point.y < sortedLms[3].point.y - errorMarginY
+    || sortedLms[1].point.y > sortedLms[3].point.y + errorMarginY
+    || sortedLms[1].point.x < sortedLms[0].point.x - errorMarginX
+    || sortedLms[1].point.x > sortedLms[0].point.x + errorMarginX
+    || sortedLms[2].point.y < sortedLms[0].point.y - errorMarginY
+    || sortedLms[2].point.y > sortedLms[0].point.y + errorMarginY
+    || sortedLms[2].point.x < sortedLms[3].point.x - errorMarginX
+    || sortedLms[2].point.x > sortedLms[3].point.x + errorMarginX)
+}
+
 export class App extends Backbone.Model {
 
     // We store a tracker per landmark group that we use in the app.
@@ -32,9 +74,13 @@ export class App extends Backbone.Model {
     constructor(opts: AppOptions) {
         super({
             mode: 'mesh',
+            boundingBoxOn: false,
             connectivityOn: true,
             editingOn: true,
             autoSaveOn: false,
+            linksToggleEnabled: true,
+            snapToggleEnabled: true,
+            lmSizeSliderEnabled: true,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false
@@ -44,10 +90,19 @@ export class App extends Backbone.Model {
 
         // New collection? Need to find the assets on them again
         this.listenTo(this, 'change:activeCollection', this.reloadAssetSource)
-        this.listenTo(this, 'change:activeTemplate', this.reloadLandmarks)
+        this.listenTo(this, 'change:activeTemplate', () => {
+            if (this.isBoundingBoxOn) {
+                this.toggleBoundingBox()
+            }
+            this.reloadLandmarks()
+        })
 
         this._initTemplates()
         this._initCollections()
+    }
+
+    get isBoundingBoxOn(): boolean {
+        return this.get('boundingBoxOn')
     }
 
     get isConnectivityOn(): boolean {
@@ -56,6 +111,14 @@ export class App extends Backbone.Model {
 
     get landmarks(): LandmarkGroup {
         return this.get('landmarks')
+    }
+
+    get landmarkGroups(): LandmarkGroups {
+        return this.get('landmarkGroups')
+    }
+
+    set isBoundingBoxOn(isBoundingBoxOn: boolean) {
+        this.set('boundingBoxOn', isBoundingBoxOn)
     }
 
     set isConnectivityOn(isConnectivityOn: boolean) {
@@ -68,6 +131,30 @@ export class App extends Backbone.Model {
 
     set isAutoSaveOn(isAutoSaveOn: boolean) {
         this.set('autoSaveOn', isAutoSaveOn)
+    }
+
+    get linksToggleEnabled(): boolean {
+        return this.get('linksToggleEnabled')
+    }
+
+    set linksToggleEnabled(linksToggleEnabled: boolean) {
+        this.set('linksToggleEnabled', linksToggleEnabled)
+    }
+
+    get snapToggleEnabled(): boolean {
+        return this.get('snapToggleEnabled')
+    }
+
+    set snapToggleEnabled(snapToggleEnabled: boolean) {
+        this.set('snapToggleEnabled', snapToggleEnabled)
+    }
+
+    get lmSizeSliderEnabled(): boolean {
+        return this.get('lmSizeSliderEnabled')
+    }
+
+    set lmSizeSliderEnabled(lmSizeSliderEnabled: boolean) {
+        this.set('lmSizeSliderEnabled', lmSizeSliderEnabled)
     }
 
     get isEditingOn() {
@@ -86,19 +173,73 @@ export class App extends Backbone.Model {
         this.set('helpOverlayIsDisplayed', isHelpOverlayOn)
     }
 
+    toggleBoundingBox(): void {
+        if (this.isBoundingBoxOn) {
+            // Unlock these parameters before restoring them
+            this.linksToggleEnabled = true
+            this.snapToggleEnabled = true
+            this.lmSizeSliderEnabled = true
+            this.isConnectivityOn = this.get('_standbyIsConnectivityOn')
+            this.isEditingOn = this.get('_standbyIsEditingOn')
+            this.landmarkSize = this.get('_standbyLandmarkSize')
+            this.isBoundingBoxOn = false
+        } else {
+            if (!this.imageMode) {
+                // Should not be able to switch on bounding box annotation in mesh mode!
+                return
+            }
+            // Do some checks
+            const lms = this.landmarks.landmarks
+            if (this.landmarks.labels.length !== 1 || lms.length !== 4) {
+                notify({msg: `The current template does not match the format required for bounding box annotation.
+                    The template must consist of one label and four landmarks.`, type: 'warning'})
+                return
+            }
+            if (!((lms[0].isEmpty() && lms[1].isEmpty() && lms[2].isEmpty() && lms[3].isEmpty())
+            || !(lms[0].isEmpty() || lms[1].isEmpty() || lms[2].isEmpty() || lms[3].isEmpty()))) {
+                notify({msg: 'In order to switch on bounding box annotation, either 0 or 4 landmrks must be filled in.',
+                type: 'warning'})
+                return
+            }
+            if (!lms[0].isEmpty()) {
+                if (!makesRectangleShape(lms)) {
+                    notify({msg: 'These landmarks do not form a rectangle shape - bounding box annotation cannot be used.',
+                    type: 'warning'})
+                    return
+                }
+            }
+            // Store these parameters, set them as needed and then lock them
+            this.set('_standbyIsConnectivityOn', this.isConnectivityOn)
+            this.set('_standbyIsEditingOn', this.isEditingOn)
+            this.set('_standbyLandmarkSize', this.landmarkSize)
+            this.isConnectivityOn = false
+            this.isEditingOn = false
+            // Scaling to zero causes problems with three.js
+            this.landmarkSize = 0.00001
+            this.linksToggleEnabled = false
+            this.snapToggleEnabled = false
+            this.lmSizeSliderEnabled = false
+            this.isBoundingBoxOn = true
+        }
+    }
+
     toggleAutoSave(): void {
         this.isAutoSaveOn = !this.isAutoSaveOn
     }
 
-    toggleConnectivity() {
-        this.isConnectivityOn = !this.isConnectivityOn
+    toggleConnectivity(): void {
+        if (this.linksToggleEnabled) {
+            this.isConnectivityOn = !this.isConnectivityOn
+        }
     }
 
-    toggleEditing() {
-        this.isEditingOn = !this.isEditingOn
-        if (!this.isEditingOn && this.landmarks) {
-            this.landmarks.deselectAll()
-            this.landmarks.resetNextAvailable()
+    toggleEditing(): void {
+        if (this.snapToggleEnabled) {
+            this.isEditingOn = !this.isEditingOn
+            if (!this.isEditingOn && this.landmarks) {
+                this.landmarks.deselectAll()
+                this.landmarks.resetNextAvailable()
+            }
         }
     }
 
@@ -174,12 +315,14 @@ export class App extends Backbone.Model {
         }
     }
 
-    get landmarkSize() {
+    get landmarkSize(): number {
         return this.get('landmarkSize')
     }
 
     set landmarkSize (landmarkSize: number) {
-        this.set('landmarkSize', landmarkSize)
+        if (this.lmSizeSliderEnabled) {
+            this.set('landmarkSize', landmarkSize)
+        }
     }
 
     budgeLandmarks(vector:  [number, number]) {
@@ -303,25 +446,23 @@ export class App extends Backbone.Model {
         })
     }
 
-    landmarkGroupTrackerForAssetAndTemplate(assetId: string, template: string): LandmarkGroupTracker {
+    landmarkGroupTrackersForAsset(assetId: string): {[template: string]: LandmarkGroupTracker} {
         const trackers = this.landmarkGroupTrackers
         if (!trackers[assetId]) {
             trackers[assetId] = {}
         }
 
-        if (!trackers[assetId][template]) {
-            trackers[assetId][template] = landmarkGroupTrackerFactory()
-        }
-
-        return trackers[assetId][template]
+        return trackers[assetId]
      }
 
     reloadLandmarks() {
         if (this.landmarks && this.asset) {
             this.autoSaveWrapper(() => {
+                this.set('landmarkGroups', null)
                 this.set('landmarks', null)
-                this.loadLandmarksPromise().then((lms) => {
-                    this.set('landmarks', lms)
+                this.loadLandmarksPromise().then((lmGroups) => {
+                    this.set('landmarkGroups', lmGroups)
+                    this.set('landmarks', lmGroups.groups[this.activeTemplate])
                 })
             })
         }
@@ -363,16 +504,14 @@ export class App extends Backbone.Model {
      }
 
     loadLandmarksPromise() {
-        return this.backend.fetchLandmarkGroup(
-            this.asset.id,
-            this.activeTemplate
+        return this.backend.fetchLandmarkGroups(
+            this.asset.id
         ).then(json => {
-            return LandmarkGroup.parse(
+            return new LandmarkGroups(
                 json,
                 this.asset.id,
-                this.activeTemplate,
                 this.backend,
-                this.landmarkGroupTrackerForAssetAndTemplate(this.asset.id, this.activeTemplate)
+                this.landmarkGroupTrackersForAsset(this.asset.id)
             )
         }, () => {
             console.log('Error in fetching landmark JSON file')
@@ -386,13 +525,14 @@ export class App extends Backbone.Model {
         // if both come true, then set the landmarks
         return Promise.all([this.loadLandmarksPromise(),
                             loadAssetPromise]).then((args) => {
-            const landmarks = args[0]
+            const landmarkGroups = args[0]
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display')
             // now we know that this is resolved we set the landmarks on the
             // app. This way we know the landmarks will always be set with a
             // valid asset.
-            this.set('landmarks', landmarks)
+            this.set('landmarkGroups', landmarkGroups)
+            this.set('landmarks', landmarkGroups.groups[this.activeTemplate])
         })
      }
 
@@ -403,6 +543,7 @@ export class App extends Backbone.Model {
         // applicable) and asset data are present
         if (newAssetPromise) {
             this.set('landmarks', null)
+            this.set('landmarkGroups', null)
             return this._promiseLandmarksWithAsset(newAssetPromise)
         }
      }
@@ -431,15 +572,15 @@ export class App extends Backbone.Model {
 
     reloadLandmarksFromPrevious() {
         const lms = this.landmarks
+        const template = this.activeTemplate
         if (lms) {
             const as = this.assetSource
             if (this.assetSource.hasPredecessor) {
-                this.backend.fetchLandmarkGroup(
-                    as.assets()[as.assetIndex - 1].id,
-                    this.activeTemplate
+                this.backend.fetchLandmarkGroups(
+                    as.assets()[as.assetIndex - 1].id
                 ).then((json) => {
                     lms.tracker.recordState(lms.toJSON())
-                    lms.restore(json)
+                    lms.restore(json.groups[template])
                     lms.tracker.recordState(lms.toJSON(), false, true)
                 }, () => {
                     console.log('Error in fetching landmark JSON file')

@@ -64,7 +64,8 @@ export class ReactBridge {
                 id: lm.index,
                 isEmpty: lm.isEmpty(),
                 isNextAvailable: lm.isNextAvailable(),
-                isSelected: lm.isSelected()
+                isSelected: lm.isSelected(),
+                isOccluded: lm.isOccluded()
             }))
         }))
 
@@ -119,11 +120,17 @@ export class ReactBridge {
 
     renderToolbar() {
         const props: ToolbarProps = {
+            isBoundingBoxOn: this.app.isBoundingBoxOn,
             isConnectivityOn: this.app.isConnectivityOn,
             isAutosaveOn: this.app.isAutoSaveOn,
             isSnapOn: this.app.isEditingOn,
             isTextureOn: this.app.asset ? this.app.asset.isTextureOn : false,
+            boundingBoxToggleEnabled: this.app.imageMode,
             textureToggleEnabled: this.app.meshMode,
+            linksToggleEnabled: this.app.linksToggleEnabled,
+            snapToggleEnabled: this.app.snapToggleEnabled,
+            landmarkSizeSliderEnabled: this.app.lmSizeSliderEnabled,
+            setBoundingBox: (on) => this.app.toggleBoundingBox(),
             setAutosave: (on) => this.app.toggleAutoSave(),
             setConnectivity: (on) => this.app.toggleConnectivity(),
             setSnap: (on) => this.app.toggleEditing(),
