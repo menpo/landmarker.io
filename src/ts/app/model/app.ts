@@ -196,10 +196,12 @@ export class App extends Backbone.Model {
                 type: 'warning'})
                 return
             }
-            if (!lms[0].isEmpty() && !makesRectangleShape(lms)) {
-                notify({msg: 'These landmarks do not form a rectangle shape - bounding box annotation cannot be used.',
-                type: 'warning'})
-                return
+            if (!lms[0].isEmpty()) {
+                if (!makesRectangleShape(lms)) {
+                    notify({msg: 'These landmarks do not form a rectangle shape - bounding box annotation cannot be used.',
+                    type: 'warning'})
+                    return
+                }
             }
             // Store these parameters, set them as needed and then lock them
             this.set('_standbyIsConnectivityOn', this.isConnectivityOn)

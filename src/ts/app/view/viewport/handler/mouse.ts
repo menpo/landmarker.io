@@ -229,12 +229,21 @@ export class MouseHandler {
         this.viewport.cameraIsLocked = true
 
         // record the starting positions of selected landmarks
-        this.dragStartPositions = this.viewport.selectedLandmarks
+        this.dragStartPositions = this.viewport.landmarks
             .map(lm => [lm.index, lm.point.clone()])
 
         // start listening for dragging bounding box handle
         document.addEventListener('mousemove', this.boundingBoxHandleOnDrag)
         listenOnce(document, 'mouseup', this.boundingBoxHandleOnMouseUp)
+    }
+
+    boundingBoxCreationStarted = () => {
+        console.log('right click pressed in bounding box mode!')
+        // before anything else, disable the camera
+        this.viewport.cameraIsLocked = true
+
+        document.addEventListener('mousemove', this.boundingBoxCreationOnDrag)
+        listenOnce(document, 'mouseup', this.boundingBoxCreationOnMouseUp)
     }
 
     mouseDownOnResizeHandle = (resizedBox, handleRadius) => {
@@ -373,7 +382,11 @@ export class MouseHandler {
                 this.viewport.on.deselectAllLandmarks()
                 this.currentTargetLm = null
                 if (this.viewport.boundingBoxOn) {
-                    this.nothingPressed()
+                    if (this.viewport.landmarks[0].point === null) {
+                        this.boundingBoxCreationStarted()
+                    } else {
+                        this.nothingPressed()
+                    }
                 } else {
                     this.meshPressed()
                 }
@@ -511,6 +524,16 @@ export class MouseHandler {
         this.viewport.requestUpdate()
     }
 
+    boundingBoxCreationOnDrag = (event: MouseEvent) => {
+        console.log("bounding box creation:drag")
+        // note - we use client as we don't want to jump back to zero
+        // if user drags into sidebar!
+        var newPosition = new THREE.Vector2(event.clientX, event.clientY)
+        // clear the canvas and draw a bounding box rect.
+        this.viewport.clearCanvas()
+        this.viewport.canvas.drawBox(this.onMouseDownPosition, newPosition, "rgb(153, 0, 239)", "rgba(0, 0, 0, 0)")
+    }
+
     moveLandmarksWithoutHistory = (lm: Landmark, newLmX: number, newLmY: number) => {
         // use the standard machinery to find intersections
         // note that we intersect the mesh to use the octree
@@ -631,14 +654,14 @@ export class MouseHandler {
         this.viewport.cameraIsLocked = false
         console.log("resizeHandlePress:up")
         document.removeEventListener('mousemove', this.resizeHandleOnDrag)
-        this.mouseUpUpdate()
+        this.mouseUpUpdate(false)
     }
 
     selectionBoxOnMouseUp = () => {
         this.viewport.cameraIsLocked = false
         console.log("selectionBoxPress:up")
         document.removeEventListener('mousemove', this.landmarkOrSelectionBoxOnDrag)
-        this.mouseUpUpdate()
+        this.mouseUpUpdate(false)
     }
 
     rotationHandleOnMouseUp = () => {
@@ -646,19 +669,61 @@ export class MouseHandler {
         console.log("rotationHandlePress:up")
         document.removeEventListener('mousemove', this.rotationHandleOnDrag)
         this.viewport.deactivateRotationCircle()
-        this.mouseUpUpdate()
+        this.mouseUpUpdate(false)
     }
 
     boundingBoxHandleOnMouseUp = () => {
         this.viewport.cameraIsLocked = false
         console.log("boundingBoxHandlePress:up")
         document.removeEventListener('mousemove', this.boundingBoxHandleOnDrag)
-        this.mouseUpUpdate()
+        this.mouseUpUpdate(true)
     }
 
-    mouseUpUpdate = () => {
+    boundingBoxCreationOnMouseUp = (event: MouseEvent) => {
+        this.viewport.cameraIsLocked = false
+        console.log("boundingBoxCreation:up")
+        document.removeEventListener('mousemove', this.boundingBoxCreationOnDrag)
+        var x1 = this.onMouseDownPosition.x
+        var y1 = this.onMouseDownPosition.y
+        var x2 = event.clientX
+        var y2 = event.clientY
+        let minX: number, maxX: number, minY: number, maxY: number
+        if (x1 < x2) {
+            [minX, maxX] = [x1, x2]
+        } else {
+            [minX, maxX] = [x2, x1]
+        }
+        if (y1 < y2) {
+            [minY, maxY] = [y1, y2]
+        } else {
+            [minY, maxY] = [y2, y1]
+        }
+        this.moveLandmarksWithoutHistory(this.viewport.landmarks[0], minX, minY)
+        this.moveLandmarksWithoutHistory(this.viewport.landmarks[1], maxX, minY)
+        this.moveLandmarksWithoutHistory(this.viewport.landmarks[2], minX, maxY)
+        this.moveLandmarksWithoutHistory(this.viewport.landmarks[3], maxX, maxY)
+        this.dragStartPositions = [null, null, null, null]
+        this.viewport.landmarks.forEach((lm, i) => {
+            this.dragStartPositions[i] = [lm.index, null]
+            this.dragStartPositions[i].push(lm.point.clone())
+        })
+        this.viewport.on.addLandmarkHistory(this.dragStartPositions)
+
+        this.dragged = false
+        this.dragStartPositions = []
+        this.viewport.requestUpdateAndRefreshCanvas()
+        this.isPressed = false
+    }
+
+    mouseUpUpdate = (boundingBox: boolean) => {
         if (this.dragged) {
             this.viewport.selectedLandmarks.forEach((lm, i) => {
+                this.dragStartPositions[i].push(lm.point.clone())
+            })
+            this.viewport.on.addLandmarkHistory(this.dragStartPositions)
+        }
+        if (boundingBox) {
+            this.viewport.landmarks.forEach((lm, i) => {
                 this.dragStartPositions[i].push(lm.point.clone())
             })
             this.viewport.on.addLandmarkHistory(this.dragStartPositions)

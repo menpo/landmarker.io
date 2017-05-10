@@ -612,7 +612,8 @@ export class Viewport implements IViewport {
         var fillEmpty = FILL_EMPTY
         var hr = HANDLE_RADIUS
         var col = BBOX_COLOUR
-        if (this._boundingBoxOn) {
+        if (this.landmarks.length === 4 && this.landmarks[0].point !== null && this.landmarks[1].point !== null
+        && this.landmarks[2].point !== null && this.landmarks[3].point !== null && this._boundingBoxOn) {
             var xs = this.landmarks.map(lm => this.scene.localToScreen(lm.point).x)
             var ys = this.landmarks.map(lm => this.scene.localToScreen(lm.point).y)
             var minX = Math.min(...xs)
