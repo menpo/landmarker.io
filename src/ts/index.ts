@@ -78,12 +78,10 @@ function resolveBackend(u: url.Url) {
 
     const backendType = cfg.get('BACKEND_TYPE')
 
-    if (!backendType) {
-        return Intro.open()
-    }
-
     if (backendType == Server.Type) {
         return _loadServer(u)
+    } else {
+        return Intro.open()
     }
 }
 
