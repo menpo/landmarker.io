@@ -1,10 +1,8 @@
 import * as $ from 'jquery'
 
 import Modal from './modal'
-import { Dropbox, Server } from '../backend'
 import { baseUrl, restart } from '../lib/utils'
 
-import * as support from '../lib/support'
 import { version } from '../../../../package.json'
 
 
@@ -13,9 +11,6 @@ const contents = `\
     <h1>Landmarker.io</h1>\
     <h3><a href="https://github.com/menpo/landmarker.io/releases" title="release notes">v${version}</a></h3>\
     <div class='IntroItems'>\
-        <div class='IntroItem IntroItem--Dropbox'>\
-            <div>Connect to Dropbox</div>\
-        </div>\
         <div class='IntroItem IntroItem--Server'>\
             <span class="octicon octicon-globe"></span>\
             <div>Connect to a landmarker server</div>\
@@ -31,24 +26,12 @@ const contents = `\
 </div>\
 `
 
-const lsWarning = `\
-<p class='IntroWarning'>\
-    Your browser doesn't support LocalStorage, so Dropbox login has been\
-    disabled.\
-</p>`
-
-const httpsWarning = `\
-<p class='IntroWarning'>\
-    You are currently on an non-https connection. For security reasons Dropbox integration has been disabled.
-</p>`
-
 const Intro = Modal.extend({
 
     closable: false,
     modifiers: ['Small'],
 
     events: {
-        'click .IntroItem--Dropbox': 'startDropbox',
         'click .IntroItem--Server': 'startServer',
         'click .IntroItem--Demo': 'startDemo'
     },
@@ -58,32 +41,7 @@ const Intro = Modal.extend({
     },
 
     content: function () {
-        const $contents = $(contents)
-
-        if (!support.localstorage) {
-            $contents.find('.IntroItem--Dropbox').remove()
-            $contents.find('.IntroItems').append($(lsWarning))
-        }
-
-        if (
-            !support.https &&
-            window.location.origin !== "http://localhost:4000"
-        ) {
-            $contents.find('.IntroItem--Dropbox').remove()
-            $contents.find('.IntroItems').append($(httpsWarning))
-        }
-
-        return $contents
-    },
-
-    startDropbox: function () {
-        this._cfg.clear()
-        const [dropUrl, state] = Dropbox.authorize()
-        this._cfg.set({
-            'OAUTH_STATE': state,
-            'BACKEND_TYPE': Dropbox.Type
-        }, true)
-        window.location.replace(dropUrl)
+        return $(contents)
     },
 
     startDemo: function () {

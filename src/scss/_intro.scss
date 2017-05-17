@@ -86,28 +86,6 @@
 
 }
 
-.IntroItem--Dropbox {
-    border-color: $colorDropboxBlue;
-    background-color: $colorDropboxBlue;
-
-    &::before {
-        content: '';
-        background-size: cover;
-        border-color: $colorDropboxLightBlue;
-        background-image: url(../../img/dropbox-white.svg);
-    }
-
-    &:hover {
-        background-color: white;
-        color: $colorDropboxBlue;
-
-        &::before {
-          border-color: $colorDropboxBlue;
-          background-image: url(../../img/dropbox-blue.svg);
-        }
-    }
-}
-
 .IntroItem--Demo {
   border-color: $colorGreen;
   background-color: $colorGreen;
