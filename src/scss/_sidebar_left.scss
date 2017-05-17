@@ -90,21 +90,6 @@
     }
 }
 
-.AssetInfo > .BackendName--Dropbox {
-
-    > span.content,
-    &::before {
-        background-color: $colorDropboxBlue;
-    }
-
-    &::before {
-        content: '';
-        background-size: cover;
-        background-image: url(img/dropbox-white.svg);
-        width: 28px;
-    }
-}
-
 .AssetInfo > .BackendName--Server {
     > span:first-of-type {
         width: 28px;
