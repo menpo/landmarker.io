@@ -153,7 +153,7 @@ export class ReactBridge {
 
     renderHelp() {
         const props: HelpProps = {
-            isVisable: this.app.isHelpOverlayOn,
+            isVisible: this.app.isHelpOverlayOn,
             onClick: () => this.app.toggleHelpOverlay()
         }
         const help = Help(props)
