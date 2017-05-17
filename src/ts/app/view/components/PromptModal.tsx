@@ -18,10 +18,8 @@ export interface PromptModalProps {
     closable?: boolean
     // Modal props
     isOpen: boolean
-    //dispose: () => void
     close: () => void
     key: number
-    //disposeOnClose: boolean
     title?: string
 }
 

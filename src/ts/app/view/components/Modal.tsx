@@ -1,13 +1,5 @@
 import * as React from 'react'
 
-/**
- * Generate a pseudo-random key
- * @return {Number}
- */
-function key() {
-    return (new Date()).getTime() + Math.floor(Math.random()) * 1000
-}
-
 const defaultClassName = 'ModalWindow'
 
 function modalClassName(modalIsOpen: boolean, modifiers: string[]): string {
@@ -32,12 +24,10 @@ function modifyChild(child: any) {
 export interface ModalProps {
     children?: any
     isOpen: boolean
-    //dispose: () => void
     close: () => void
     modifiers: string[]
     key: number
     closable: boolean
-    //disposeOnClose: boolean
     title?: string
 }
 

@@ -15,10 +15,8 @@ export interface ConfirmModalProps {
     closable?: boolean
     // Modal props
     isOpen: boolean
-    //dispose: () => void
     close: () => void
     key: number
-    //disposeOnClose: boolean
     title?: string
 }
 

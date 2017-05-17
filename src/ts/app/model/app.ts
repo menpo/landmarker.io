@@ -1,6 +1,5 @@
 import * as $ from 'jquery'
 import * as Backbone from 'backbone'
-import Tracker from '../lib/tracker'
 import * as AssetSource from './assetsource'
 import * as Asset from './asset'
 import { LandmarkGroup, LandmarkGroupTracker, landmarkGroupTrackerFactory } from './landmark'
