@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Modal, ModalProps } from './Modal'
 
-function submit(event: any, submit: (value: any) => void, close: () => void, value?: string): void {
+function submit(event: any, submit: (value: string) => void, close: () => void, value: string): void {
     event.preventDefault()
     let v = value
     if (v) {
@@ -13,9 +13,8 @@ function submit(event: any, submit: (value: any) => void, close: () => void, val
 
 export interface PromptModalProps extends ModalProps {
     message: string
-    submit: (value: any) => void
-    cancel: () => void
-    inputValue?: string
+    submit: (value: string) => void
+    inputValue: string
     setInputValue: (value?: string) => void
 }
 

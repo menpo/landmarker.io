@@ -7,7 +7,9 @@ import { UndoRedo, UndoRedoProps } from './components/UndoRedo'
 import { SaveDownloadHelp, SaveDownloadHelpProps } from './components/SaveDownloadHelp'
 import { ConfirmModal, ConfirmModalProps } from './components/ConfirmModal'
 import { PromptModal, PromptModalProps } from './components/PromptModal'
-import { App, ModalType, ConfirmModalState, PromptModalState } from '../model/app'
+import { IntroModal, IntroModalProps } from './components/IntroModal'
+import { ListPickerModal, ListPickerModalProps } from './components/ListPickerModal'
+import { App, ModalType, ConfirmModalState, PromptModalState, ListPickerModalState } from '../model/app'
 
 export class ReactBridge {
 
@@ -64,6 +66,14 @@ export class ReactBridge {
             }
             case ModalType.PROMPT: {
                 this.renderPromptModal()
+                break
+            }
+            case ModalType.INTRO: {
+                this.renderIntroModal()
+                break
+            }
+            case ModalType.LIST_PICKER: {
+                this.renderListPickerModal()
                 break
             }
         }
@@ -186,7 +196,7 @@ export class ReactBridge {
             reject: modalState.reject,
             closable: modalState.closable,
             modifiers: ['Small'],
-            close: this.app.closeModal
+            close: this.app.closeModal.bind(this.app)
         }
         const confirmModal = ConfirmModal(modalProps)
         const el = document.getElementById('modalsWrapper')
@@ -198,15 +208,49 @@ export class ReactBridge {
         let modalProps: PromptModalProps = {
             message: modalState.message,
             submit: modalState.submit,
-            cancel: modalState.cancel,
             closable: modalState.closable,
             inputValue: modalState.inputValue,
-            setInputValue: this.app.setPromptModalValue,
+            setInputValue: this.app.setPromptModalValue.bind(this.app),
             modifiers: ['Small'],
-            close: this.app.closeModal
+            // TODO: check this!
+            close: () => this.app.closeModal(modalState.cancel)
         }
         const promptModal = PromptModal(modalProps)
         const el = document.getElementById('modalsWrapper')
         ReactDom.render(promptModal, el)
+    }
+
+    renderIntroModal() {
+        let modalProps: IntroModalProps = {
+            startServer: this.app.startServer.bind(this.app),
+            startDemo: this.app.startDemo.bind(this.app),
+            closable: false,
+            modifiers: ['Small'],
+            close: this.app.closeModal.bind(this.app)
+        }
+        const introModal = IntroModal(modalProps)
+        const el = document.getElementById('modalsWrapper')
+        ReactDom.render(introModal, el)
+    }
+
+    renderListPickerModal() {
+        let modalState: ListPickerModalState = <ListPickerModalState>this.app.activeModalState
+        let modalProps: ListPickerModalProps = {
+            filteredList: modalState.filteredList,
+            submit: modalState.submit,
+            useFilter: modalState.useFilter,
+            batchSize: modalState.batchSize,
+            batchesVisible: modalState.batchesVisible,
+            searchValue: modalState.searchValue,
+            incrementBatchesVisible: this.app.incrementVisibleListPickerBatches.bind(this.app),
+            filter: this.app.filterListPicker.bind(this.app),
+            closable: modalState.closable,
+            modifiers: [],
+            close: this.app.closeModal.bind(this.app),
+            title: modalState.title
+        }
+        const listPickerModal = ListPickerModal(modalProps)
+        const el = document.getElementById('modalsWrapper')
+        ReactDom.render(listPickerModal, el)
     }
 }

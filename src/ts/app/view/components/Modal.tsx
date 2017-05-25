@@ -29,7 +29,7 @@ export interface ModalProps {
 export function Modal(props: ModalProps) {
     return (
         <div className={modalClassName(props.modifiers)}>
-            { props.closable ? <div className={`${defaultClassName}__Close`} onClick={props.close}>&times</div> : null }
+            { props.closable ? <div className={`${defaultClassName}__Close`} onClick={() => props.close()}>&times;</div> : null }
             { props.title ? <div className={`${defaultClassName}__Title`}>{props.title}</div> : null }
             {React.Children.map(props.children, modifyChild)}
         </div>

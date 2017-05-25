@@ -81,15 +81,8 @@ export const AssetNameView = Backbone.View.extend({
             return
         }
 
-        const picker = new ListPicker({
-            list: assetsList,
-            title: 'Select a new asset to load',
-            closable: true,
-            disposeOnClose: true,
-            useFilter: true,
-            submit: this.model.goToAssetIndex.bind(this.model)
-        })
-        picker.open()
+        this.model.openListPickerModal(assetsList, this.model.goToAssetIndex.bind(this.model), true,
+        'Select a new asset to load', true)
     }
 })
 

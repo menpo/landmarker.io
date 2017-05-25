@@ -1,7 +1,9 @@
+import * as _ from 'underscore'
 import * as $ from 'jquery'
 import * as Backbone from 'backbone'
 import * as AssetSource from './assetsource'
 import * as Asset from './asset'
+import { restart } from '../lib/utils'
 import { LandmarkGroup, LandmarkGroupTracker, landmarkGroupTrackerFactory } from './landmark'
 import Modal from '../view/modal'
 import { Backend } from '../backend'
@@ -22,7 +24,9 @@ type LandmarkGroupTrackers = {
 
 export enum ModalType {
     CONFIRM,
-    PROMPT
+    PROMPT,
+    INTRO,
+    LIST_PICKER
 }
 
 export interface ConfirmModalState {
@@ -34,13 +38,25 @@ export interface ConfirmModalState {
 
 export interface PromptModalState {
     message: string
-    submit: (value: any) => void
+    submit: (value: string) => void
     cancel: () => void
     closable: boolean
-    inputValue?: string
+    inputValue: string
 }
 
-type ModalState = ConfirmModalState | PromptModalState
+export interface ListPickerModalState {
+    list: any[][]
+    filteredList: any[][]
+    submit: (value: number) => void
+    useFilter: boolean
+    batchSize: number
+    batchesVisible: number
+    searchValue: string
+    closable: boolean
+    title?: string
+}
+
+type ModalState = ConfirmModalState | PromptModalState | ListPickerModalState
 
 export class App extends Backbone.Model {
 
@@ -499,15 +515,19 @@ export class App extends Backbone.Model {
         this.landmarkSize = Math.max(0.25 * factor, 0.05)
     }
 
+    setModalOpen(): void {
+        const wrapper: HTMLElement = <HTMLElement>document.getElementById('modalsWrapper')
+        wrapper.classList.add('ModalsWrapper--Open')
+    }
+
     openConfirmModal(message: string, accept?: () => void, reject?: () => void, closable?: boolean): void {
         this.activeModalState = {
             message,
             accept: accept ? accept : () => {},
             reject: reject ? reject : () => {},
-            closable: closable ? closable : true
+            closable: closable === undefined ? true : closable
         }
-        const wrapper: HTMLElement = <HTMLElement>document.getElementById('modalsWrapper')
-        wrapper.classList.add('ModalsWrapper--Open')
+        this.setModalOpen()
         this.activeModalType = ModalType.CONFIRM
     }
 
@@ -516,22 +536,83 @@ export class App extends Backbone.Model {
             message,
             submit,
             cancel: cancel ? cancel : () => {},
-            closable: closable ? closable : true,
-            inputValue: undefined
+            closable: closable === undefined ? true : closable,
+            inputValue: ''
         }
-        const wrapper: HTMLElement = <HTMLElement>document.getElementById('modalsWrapper')
-        wrapper.classList.add('ModalsWrapper--Open')
+        this.setModalOpen()
         this.activeModalType = ModalType.PROMPT
     }
 
-    setPromptModalValue(inputValue?: string): void {
-        (<PromptModalState>this.activeModalState).inputValue = inputValue
-        // re-render
-        this.trigger('change:activeModalType')
-
+    openIntroModal(): void {
+        this.setModalOpen()
+        this.activeModalType = ModalType.INTRO
     }
 
-    closeModal(): void {
+    startServer(): void {
+        this.closeModal()
+        this.openPromptModal('Where is your server located?', (value: string) => {
+            restart(value)
+        }, () => {
+            this.openIntroModal()
+        })
+    }
+
+    startDemo(): void {
+        this.closeModal()
+        restart('demo')
+    }
+
+    setPromptModalValue(inputValue?: string): void {
+        (<PromptModalState>this.activeModalState).inputValue = inputValue ? inputValue : ''
+        // re-render
+        this.trigger('change:activeModalType')
+    }
+
+    openListPickerModal(list: any[][], submit: (value: number) => void, useFilter: boolean, title?: string,
+    closable?: boolean, batchSize?: number): void {
+        this.activeModalState = {
+            list,
+            filteredList: list,
+            submit,
+            useFilter,
+            batchSize: batchSize === undefined ? 50 : batchSize,
+            batchesVisible: 1,
+            searchValue: '',
+            closable: closable === undefined ? true : closable,
+            title
+        }
+        this.setModalOpen()
+        this.activeModalType = ModalType.LIST_PICKER
+    }
+
+    incrementVisibleListPickerBatches(): void {
+        (<ListPickerModalState>this.activeModalState).batchesVisible += 1
+        // re-render
+        this.trigger('change:activeModalType')
+    }
+
+    filterListPicker(value: string): void {
+        let modalState: ListPickerModalState = <ListPickerModalState>this.activeModalState
+        modalState.searchValue = value
+        _.throttle(() => {
+            if (!value || value === "") {
+                modalState.filteredList = modalState.list
+            }
+            const v: string = value.toLowerCase()
+
+            modalState.filteredList = modalState.list.filter(([content]) => {
+                return content.toLowerCase().indexOf(v) > -1
+            })
+
+            // re-render
+            this.trigger('change:activeModalType')
+        }, 50)()
+    }
+
+    closeModal(onClose?: () => void): void {
+        if (onClose) {
+            onClose()
+        }
         const wrapper: HTMLElement = <HTMLElement>document.getElementById('modalsWrapper')
         wrapper.classList.remove('ModalsWrapper--Open')
         this.activeModalType = undefined
