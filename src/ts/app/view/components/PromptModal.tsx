@@ -1,7 +1,7 @@
 import * as React from 'react'
-import { Modal } from './Modal'
+import { Modal, ModalProps } from './Modal'
 
-function submit(event: any, value: string | undefined, submit: (value: any) => void, close: () => void): void {
+function submit(event: any, submit: (value: any) => void, close: () => void, value?: string): void {
     event.preventDefault()
     let v = value
     if (v) {
@@ -11,29 +11,20 @@ function submit(event: any, value: string | undefined, submit: (value: any) => v
     close()
 }
 
-export interface PromptModalProps {
+export interface PromptModalProps extends ModalProps {
     message: string
     submit: (value: any) => void
-    cancel?: () => void
-    closable?: boolean
-    // Modal props
-    isOpen: boolean
-    close: () => void
-    key: number
-    title?: string
-}
-
-interface PromptModalState {
+    cancel: () => void
     inputValue?: string
+    setInputValue: (value?: string) => void
 }
 
-export function PromptModal(props: PromptModalProps, state: PromptModalState) {
+export function PromptModal(props: PromptModalProps) {
     return (
-        <Modal isOpen={props.isOpen} close={props.close} modifiers={['Small']} key={props.key}
-        closable={props.closable === undefined ? true : props.closable} title={props.title}>
-            <form className='Prompt' onSubmit={(evt) => submit(evt, state.inputValue, props.submit, props.close)}>
+        <Modal close={props.close} modifiers={props.modifiers} closable={props.closable} title={props.title}>
+            <form className='Prompt' onSubmit={(evt) => submit(evt, props.submit, props.close, props.inputValue)}>
                 <p>{props.message}</p>
-                <input type='text' value={state.inputValue}/>
+                <input type='text' onChange={(evt) => props.setInputValue(evt.target.value)}/>
             </form>
         </Modal>
     )

@@ -1,4 +1,3 @@
-import * as React from 'react'
 import * as ReactDom from 'react-dom'
 import { Sidebar, SidebarProps } from './components/Sidebar'
 import { Toolbar, ToolbarProps } from './components/Toolbar'
@@ -6,7 +5,9 @@ import { Pager, PagerProps } from './components/Pager'
 import { Help, HelpProps } from './components/Help'
 import { UndoRedo, UndoRedoProps } from './components/UndoRedo'
 import { SaveDownloadHelp, SaveDownloadHelpProps } from './components/SaveDownloadHelp'
-import { App } from '../model/app'
+import { ConfirmModal, ConfirmModalProps } from './components/ConfirmModal'
+import { PromptModal, PromptModalProps } from './components/PromptModal'
+import { App, ModalType, ConfirmModalState, PromptModalState } from '../model/app'
 
 export class ReactBridge {
 
@@ -17,10 +18,12 @@ export class ReactBridge {
         app.on('change', () => this.onAppStateChange())
         app.on('change:landmarks', () => this.onLandmarksChange())
         app.on('change:asset', () => this.onAssetChange())
+        app.on('change:activeModalType', () => this.onActiveModalChange())
 
         this.onAppStateChange()
         this.onAssetChange()
         this.onLandmarksChange()
+        this.onActiveModalChange()
     }
 
     onAppStateChange() {
@@ -51,6 +54,19 @@ export class ReactBridge {
         this.renderLandmarkTable()
         this.renderUndoRedo()
         this.renderSaveDownloadHelp()
+    }
+
+    onActiveModalChange() {
+        switch(this.app.activeModalType) {
+            case ModalType.CONFIRM: {
+                this.renderConfirmModal()
+                break
+            }
+            case ModalType.PROMPT: {
+                this.renderPromptModal()
+                break
+            }
+        }
     }
 
     renderLandmarkTable() {
@@ -160,5 +176,37 @@ export class ReactBridge {
         const el = document.getElementById('helpOverlay')
         console.log("rendering help")
         ReactDom.render(help, el)
+    }
+
+    renderConfirmModal() {
+        let modalState: ConfirmModalState = <ConfirmModalState>this.app.activeModalState
+        let modalProps: ConfirmModalProps = {
+            message: modalState.message,
+            accept: modalState.accept,
+            reject: modalState.reject,
+            closable: modalState.closable,
+            modifiers: ['Small'],
+            close: this.app.closeModal
+        }
+        const confirmModal = ConfirmModal(modalProps)
+        const el = document.getElementById('modalsWrapper')
+        ReactDom.render(confirmModal, el)
+    }
+
+    renderPromptModal() {
+        let modalState: PromptModalState = <PromptModalState>this.app.activeModalState
+        let modalProps: PromptModalProps = {
+            message: modalState.message,
+            submit: modalState.submit,
+            cancel: modalState.cancel,
+            closable: modalState.closable,
+            inputValue: modalState.inputValue,
+            setInputValue: this.app.setPromptModalValue,
+            modifiers: ['Small'],
+            close: this.app.closeModal
+        }
+        const promptModal = PromptModal(modalProps)
+        const el = document.getElementById('modalsWrapper')
+        ReactDom.render(promptModal, el)
     }
 }

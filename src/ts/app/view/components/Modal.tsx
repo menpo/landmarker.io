@@ -2,11 +2,8 @@ import * as React from 'react'
 
 const defaultClassName = 'ModalWindow'
 
-function modalClassName(modalIsOpen: boolean, modifiers: string[]): string {
-    let className = defaultClassName
-    if (modalIsOpen) {
-        className += ` ${defaultClassName}--Open`
-    }
+function modalClassName(modifiers: string[]): string {
+    let className = defaultClassName + ` ${defaultClassName}--Open`
     for (let i = 0; i < modifiers.length; i++) {
         className += ` ${defaultClassName}--` + modifiers[i]
     }
@@ -23,22 +20,18 @@ function modifyChild(child: any) {
 
 export interface ModalProps {
     children?: any
-    isOpen: boolean
     close: () => void
     modifiers: string[]
-    key: number
     closable: boolean
     title?: string
 }
 
 export function Modal(props: ModalProps) {
     return (
-        props.isOpen ?
-        <div className={modalClassName(props.isOpen, props.modifiers)} id={"modalWindow:" + props.key}>
+        <div className={modalClassName(props.modifiers)}>
             { props.closable ? <div className={`${defaultClassName}__Close`} onClick={props.close}>&times</div> : null }
             { props.title ? <div className={`${defaultClassName}__Title`}>{props.title}</div> : null }
             {React.Children.map(props.children, modifyChild)}
         </div>
-        : <div></div>
     )
 }

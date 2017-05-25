@@ -1,29 +1,20 @@
 import * as React from 'react'
-import { Modal } from './Modal'
+import { Modal, ModalProps } from './Modal'
 
-function acceptOrReject(acceptReject: (() => void) | undefined, close: () => void): void {
-    if (acceptReject) {
-        acceptReject()
-    }
+function acceptOrReject(acceptReject: () => void, close: () => void): void {
+    acceptReject()
     close()
 }
 
-export interface ConfirmModalProps {
+export interface ConfirmModalProps extends ModalProps {
     message: string
-    accept?: () => void
-    reject?: () => void
-    closable?: boolean
-    // Modal props
-    isOpen: boolean
-    close: () => void
-    key: number
-    title?: string
+    accept: () => void
+    reject: () => void
 }
 
 export function ConfirmModal(props: ConfirmModalProps) {
     return (
-        <Modal isOpen={props.isOpen} close={props.close} modifiers={['Small']} key={props.key}
-        closable={props.closable === undefined ? true : props.closable} title={props.title}>
+        <Modal close={props.close} modifiers={props.modifiers} closable={props.closable} title={props.title}>
             <div className="ConfirmDialog">
                 <p>{props.message}</p>
                 <div className="ConfirmActions">

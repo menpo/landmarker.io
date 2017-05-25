@@ -20,6 +20,28 @@ type LandmarkGroupTrackers = {
     }
 }
 
+export enum ModalType {
+    CONFIRM,
+    PROMPT
+}
+
+export interface ConfirmModalState {
+    message: string
+    accept: () => void
+    reject: () => void
+    closable: boolean
+}
+
+export interface PromptModalState {
+    message: string
+    submit: (value: any) => void
+    cancel: () => void
+    closable: boolean
+    inputValue?: string
+}
+
+type ModalState = ConfirmModalState | PromptModalState
+
 export class App extends Backbone.Model {
 
     // We store a tracker per landmark group that we use in the app.
@@ -36,7 +58,9 @@ export class App extends Backbone.Model {
             autoSaveOn: false,
             activeTemplate: undefined,
             activeCollection: undefined,
-            helpOverlayIsDisplayed: false
+            helpOverlayIsDisplayed: false,
+            activeModalType: undefined,
+            activeModalState: undefined
         })
         this.set(opts)
         this.landmarkSize = 0.2
@@ -83,6 +107,22 @@ export class App extends Backbone.Model {
 
     set isHelpOverlayOn(isHelpOverlayOn: boolean) {
         this.set('helpOverlayIsDisplayed', isHelpOverlayOn)
+    }
+
+    get activeModalType(): ModalType | undefined {
+        return this.get('activeModalType')
+    }
+
+    set activeModalType(activeModalType: ModalType | undefined) {
+        this.set('activeModalType', activeModalType)
+    }
+
+    get activeModalState(): ModalState | undefined {
+        return this.get('activeModalState')
+    }
+
+    set activeModalState(activeModalState: ModalState | undefined) {
+        this.set('activeModalState', activeModalState)
     }
 
     toggleAutoSave(): void {
@@ -457,6 +497,45 @@ export class App extends Backbone.Model {
         const size = this.landmarkSize
         const factor = Math.floor(size / 0.25) - 1
         this.landmarkSize = Math.max(0.25 * factor, 0.05)
+    }
+
+    openConfirmModal(message: string, accept?: () => void, reject?: () => void, closable?: boolean): void {
+        this.activeModalState = {
+            message,
+            accept: accept ? accept : () => {},
+            reject: reject ? reject : () => {},
+            closable: closable ? closable : true
+        }
+        const wrapper: HTMLElement = <HTMLElement>document.getElementById('modalsWrapper')
+        wrapper.classList.add('ModalsWrapper--Open')
+        this.activeModalType = ModalType.CONFIRM
+    }
+
+    openPromptModal(message: string, submit: (value: any) => void, cancel?: () => void, closable?: boolean): void {
+        this.activeModalState = {
+            message,
+            submit,
+            cancel: cancel ? cancel : () => {},
+            closable: closable ? closable : true,
+            inputValue: undefined
+        }
+        const wrapper: HTMLElement = <HTMLElement>document.getElementById('modalsWrapper')
+        wrapper.classList.add('ModalsWrapper--Open')
+        this.activeModalType = ModalType.PROMPT
+    }
+
+    setPromptModalValue(inputValue?: string): void {
+        (<PromptModalState>this.activeModalState).inputValue = inputValue
+        // re-render
+        this.trigger('change:activeModalType')
+
+    }
+
+    closeModal(): void {
+        const wrapper: HTMLElement = <HTMLElement>document.getElementById('modalsWrapper')
+        wrapper.classList.remove('ModalsWrapper--Open')
+        this.activeModalType = undefined
+        this.activeModalState = undefined
     }
 
 }
