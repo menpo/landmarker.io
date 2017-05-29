@@ -241,6 +241,7 @@ export class ReactBridge {
             useFilter: modalState.useFilter,
             batchSize: modalState.batchSize,
             batchesVisible: modalState.batchesVisible,
+            // TODO is this needed?
             searchValue: modalState.searchValue,
             incrementBatchesVisible: this.app.incrementVisibleListPickerBatches.bind(this.app),
             filter: this.app.filterListPicker.bind(this.app),

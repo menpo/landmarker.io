@@ -5,8 +5,8 @@ function click(index: number, key: string, props: ListPickerModalProps): void {
     if (index === -1) {
         props.incrementBatchesVisible() // load an extra batch
     } else{
-        props.submit(parseInt(key))
         props.close()
+        props.submit(parseInt(key))
     }
 }
 

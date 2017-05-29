@@ -5,7 +5,6 @@ import * as AssetSource from './assetsource'
 import * as Asset from './asset'
 import { restart } from '../lib/utils'
 import { LandmarkGroup, LandmarkGroupTracker, landmarkGroupTrackerFactory } from './landmark'
-import Modal from '../view/modal'
 import { Backend } from '../backend'
 
 export type AppOptions = {
@@ -56,7 +55,7 @@ export interface ListPickerModalState {
     title?: string
 }
 
-type ModalState = ConfirmModalState | PromptModalState | ListPickerModalState
+export type ModalState = ConfirmModalState | PromptModalState | ListPickerModalState
 
 export class App extends Backbone.Model {
 
@@ -76,7 +75,8 @@ export class App extends Backbone.Model {
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
             activeModalType: undefined,
-            activeModalState: undefined
+            activeModalState: undefined,
+            closableModal: false
         })
         this.set(opts)
         this.landmarkSize = 0.2
@@ -139,6 +139,14 @@ export class App extends Backbone.Model {
 
     set activeModalState(activeModalState: ModalState | undefined) {
         this.set('activeModalState', activeModalState)
+    }
+
+    get closableModal(): boolean {
+        return this.get('closableModal')
+    }
+
+    set closableModal(closableModal: boolean) {
+        this.set('closableModal', closableModal)
     }
 
     toggleAutoSave(): void {
@@ -386,7 +394,8 @@ export class App extends Backbone.Model {
         const lms = this.landmarks
         if (lms && !lms.tracker.isUpToDate) {
             if (!this.isAutoSaveOn) {
-                Modal.confirm('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn)
+                // TODO check
+                this.openConfirmModal('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn)
             } else {
                 lms.save().then(fn)
             }
@@ -527,6 +536,7 @@ export class App extends Backbone.Model {
             reject: reject ? reject : () => {},
             closable: closable === undefined ? true : closable
         }
+        this.closableModal = closable === undefined ? true : closable
         this.setModalOpen()
         this.activeModalType = ModalType.CONFIRM
     }
@@ -539,11 +549,13 @@ export class App extends Backbone.Model {
             closable: closable === undefined ? true : closable,
             inputValue: ''
         }
+        this.closableModal = closable === undefined ? true : closable
         this.setModalOpen()
         this.activeModalType = ModalType.PROMPT
     }
 
     openIntroModal(): void {
+        this.closableModal = false
         this.setModalOpen()
         this.activeModalType = ModalType.INTRO
     }
@@ -581,6 +593,7 @@ export class App extends Backbone.Model {
             closable: closable === undefined ? true : closable,
             title
         }
+        this.closableModal = closable === undefined ? true : closable
         this.setModalOpen()
         this.activeModalType = ModalType.LIST_PICKER
     }
@@ -610,13 +623,13 @@ export class App extends Backbone.Model {
     }
 
     closeModal(onClose?: () => void): void {
-        if (onClose) {
-            onClose()
-        }
         const wrapper: HTMLElement = <HTMLElement>document.getElementById('modalsWrapper')
         wrapper.classList.remove('ModalsWrapper--Open')
         this.activeModalType = undefined
         this.activeModalState = undefined
+        if (onClose) {
+            onClose()
+        }
     }
 
 }

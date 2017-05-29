@@ -3,12 +3,12 @@ import { Modal, ModalProps } from './Modal'
 
 function submit(event: any, submit: (value: string) => void, close: () => void, value: string): void {
     event.preventDefault()
+    close()
     let v = value
     if (v) {
         v = v.toLowerCase()
     }
     submit(v)
-    close()
 }
 
 export interface PromptModalProps extends ModalProps {

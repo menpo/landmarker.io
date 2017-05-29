@@ -2,8 +2,8 @@ import * as React from 'react'
 import { Modal, ModalProps } from './Modal'
 
 function acceptOrReject(acceptReject: () => void, close: () => void): void {
-    acceptReject()
     close()
+    acceptReject()
 }
 
 export interface ConfirmModalProps extends ModalProps {

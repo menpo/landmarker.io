@@ -24,7 +24,7 @@ export function IntroModal(props: IntroModalProps) {
                     </div>
                 </div>
                 <a href="https://github.com/menpo/landmarker.io" className='IntroFooter'>
-                    <span className="octicon octicon-mark-github"></span>
+                    <span className="octicon octicon-mark-github"></span>&nbsp;
                     More info on Github
                 </a>
             </div>

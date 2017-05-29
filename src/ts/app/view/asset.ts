@@ -3,12 +3,8 @@ import * as Backbone from 'backbone'
 import * as $ from 'jquery'
 
 import * as Notification from './notification'
-import Intro from './intro'
 import { pad, randomString, truncate } from '../lib/utils'
 import { Server } from '../backend'
-
-import Modal from './modal'
-import ListPicker from './list_picker'
 
 export const BackendNameView = Backbone.View.extend({
 
@@ -44,8 +40,8 @@ export const BackendNameView = Backbone.View.extend({
 
     handleClick: function () {
         if (this.model.has('backend')) {
-            Modal.confirm(
-                'Log out of the current data source and restart the landmarker ?', Intro.open)
+            this.model.openConfirmModal('Log out of the current data source and restart the landmarker?',
+                this.model.openIntroModal.bind(this.model))
         }
     }
 })
