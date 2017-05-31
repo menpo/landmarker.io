@@ -76,6 +76,10 @@ export class ReactBridge {
                 this.renderListPickerModal()
                 break
             }
+            case undefined: {
+                this.disposeModal()
+                break
+            }
         }
     }
 
@@ -253,5 +257,10 @@ export class ReactBridge {
         const listPickerModal = ListPickerModal(modalProps)
         const el = document.getElementById('modalsWrapper')
         ReactDom.render(listPickerModal, el)
+    }
+
+    disposeModal() {
+        const el = document.getElementById('modalsWrapper')
+        ReactDom.unmountComponentAtNode(<Element>el)
     }
 }
