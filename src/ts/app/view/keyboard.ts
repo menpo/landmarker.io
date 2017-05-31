@@ -116,7 +116,7 @@ export class KeyboardShortcutsHandler {
             return
         }
 
-        if (this.app.isHelpOverlayOn && key !== "?" || this.app.activeModalType !== undefined) {
+        if (this.app.isHelpOverlayOn && key !== "?" || this.app.activeModal) {
             return
         }
 
@@ -140,7 +140,7 @@ export class KeyboardShortcutsHandler {
                 return
             }
 
-            if (this.app.activeModalType !== undefined) {
+            if (this.app.activeModal) {
                 if (this.app.closableModal) {
                     this.app.closeModal()
                 }

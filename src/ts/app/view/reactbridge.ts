@@ -216,8 +216,7 @@ export class ReactBridge {
             inputValue: modalState.inputValue,
             setInputValue: this.app.setPromptModalValue.bind(this.app),
             modifiers: ['Small'],
-            // TODO: check this!
-            close: () => this.app.closeModal(modalState.cancel)
+            close: this.app.closeModal.bind(this.app)
         }
         const promptModal = PromptModal(modalProps)
         const el = document.getElementById('modalsWrapper')
@@ -245,7 +244,6 @@ export class ReactBridge {
             useFilter: modalState.useFilter,
             batchSize: modalState.batchSize,
             batchesVisible: modalState.batchesVisible,
-            // TODO is this needed?
             searchValue: modalState.searchValue,
             incrementBatchesVisible: this.app.incrementVisibleListPickerBatches.bind(this.app),
             filter: this.app.filterListPicker.bind(this.app),
