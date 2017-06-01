@@ -1,10 +1,10 @@
+import * as _ from 'underscore'
 import * as $ from 'jquery'
 import * as Backbone from 'backbone'
-import Tracker from '../lib/tracker'
 import * as AssetSource from './assetsource'
 import * as Asset from './asset'
+import { restart } from '../lib/utils'
 import { LandmarkGroup, LandmarkGroupTracker, landmarkGroupTrackerFactory } from './landmark'
-import Modal from '../view/modal'
 import { Backend } from '../backend'
 
 export type AppOptions = {
@@ -20,6 +20,41 @@ type LandmarkGroupTrackers = {
         [template: string]: LandmarkGroupTracker
     }
 }
+
+export enum ModalType {
+    CONFIRM,
+    PROMPT,
+    INTRO,
+    LIST_PICKER
+}
+
+export interface ConfirmModalState {
+    message: string
+    accept: () => void
+    reject: () => void
+    closable: boolean
+}
+
+export interface PromptModalState {
+    message: string
+    submit: (value: string) => void
+    closable: boolean
+    inputValue: string
+}
+
+export interface ListPickerModalState {
+    list: any[][]
+    filteredList: any[][]
+    submit: (value: number) => void
+    useFilter: boolean
+    batchSize: number
+    batchesVisible: number
+    searchValue: string
+    closable: boolean
+    title?: string
+}
+
+export type ModalState = ConfirmModalState | PromptModalState | ListPickerModalState
 
 export class App extends Backbone.Model {
 
@@ -37,7 +72,12 @@ export class App extends Backbone.Model {
             autoSaveOn: false,
             activeTemplate: undefined,
             activeCollection: undefined,
-            helpOverlayIsDisplayed: false
+            helpOverlayIsDisplayed: false,
+            activeModalType: undefined,
+            activeModalState: undefined,
+            activeModal: false,
+            closableModal: false,
+            onModalClose: undefined
         })
         this.set(opts)
         this.landmarkSize = 0.2
@@ -84,6 +124,46 @@ export class App extends Backbone.Model {
 
     set isHelpOverlayOn(isHelpOverlayOn: boolean) {
         this.set('helpOverlayIsDisplayed', isHelpOverlayOn)
+    }
+
+    get activeModalType(): ModalType | undefined {
+        return this.get('activeModalType')
+    }
+
+    set activeModalType(activeModalType: ModalType | undefined) {
+        this.set('activeModalType', activeModalType)
+    }
+
+    get activeModalState(): ModalState | undefined {
+        return this.get('activeModalState')
+    }
+
+    set activeModalState(activeModalState: ModalState | undefined) {
+        this.set('activeModalState', activeModalState)
+    }
+
+    get activeModal(): boolean {
+        return this.get('activeModal')
+    }
+
+    set activeModal(activeModal: boolean) {
+        this.set('activeModal', activeModal)
+    }
+
+    get closableModal(): boolean {
+        return this.get('closableModal')
+    }
+
+    set closableModal(closableModal: boolean) {
+        this.set('closableModal', closableModal)
+    }
+
+    get onModalClose(): (() => void) | undefined {
+        return this.get('onModalClose')
+    }
+
+    set onModalClose(onModalClose: (() => void) | undefined) {
+        this.set('onModalClose', onModalClose)
     }
 
     toggleAutoSave(): void {
@@ -331,7 +411,7 @@ export class App extends Backbone.Model {
         const lms = this.landmarks
         if (lms && !lms.tracker.isUpToDate) {
             if (!this.isAutoSaveOn) {
-                Modal.confirm('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn)
+                this.openConfirmModal('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn)
             } else {
                 lms.save().then(fn)
             }
@@ -458,6 +538,119 @@ export class App extends Backbone.Model {
         const size = this.landmarkSize
         const factor = Math.floor(size / 0.25) - 1
         this.landmarkSize = Math.max(0.25 * factor, 0.05)
+    }
+
+    setModalOpen(): void {
+        const wrapper: HTMLElement = <HTMLElement>document.getElementById('modalsWrapper')
+        wrapper.classList.add('ModalsWrapper--Open')
+        this.activeModal = true
+    }
+
+    openConfirmModal(message: string, accept?: () => void, reject?: () => void, closable?: boolean): void {
+        this.activeModalState = {
+            message,
+            accept: accept ? accept : () => {},
+            reject: reject ? reject : () => {},
+            closable: closable === undefined ? true : closable
+        }
+        this.closableModal = closable === undefined ? true : closable
+        this.onModalClose = undefined
+        this.setModalOpen()
+        this.activeModalType = ModalType.CONFIRM
+    }
+
+    openPromptModal(message: string, submit: (value: any) => void, cancel?: () => void, closable?: boolean): void {
+        this.activeModalState = {
+            message,
+            submit,
+            closable: closable === undefined ? true : closable,
+            inputValue: ''
+        }
+        this.closableModal = closable === undefined ? true : closable
+        this.onModalClose = cancel
+        this.setModalOpen()
+        this.activeModalType = ModalType.PROMPT
+    }
+
+    openIntroModal(): void {
+        this.closableModal = false
+        this.onModalClose = undefined
+        this.setModalOpen()
+        this.activeModalType = ModalType.INTRO
+    }
+
+    startServer(): void {
+        this.closeModal()
+        this.openPromptModal('Where is your server located?', (value: string) => {
+            restart(value)
+        }, () => {
+            this.openIntroModal()
+        })
+    }
+
+    startDemo(): void {
+        this.closeModal()
+        restart('demo')
+    }
+
+    setPromptModalValue(inputValue?: string): void {
+        (<PromptModalState>this.activeModalState).inputValue = inputValue ? inputValue : ''
+        // re-render
+        this.trigger('change:activeModalType')
+    }
+
+    openListPickerModal(list: any[][], submit: (value: number) => void, useFilter: boolean, title?: string,
+    closable?: boolean, batchSize?: number): void {
+        this.activeModalState = {
+            list,
+            filteredList: list,
+            submit,
+            useFilter,
+            batchSize: batchSize === undefined ? 50 : batchSize,
+            batchesVisible: 1,
+            searchValue: '',
+            closable: closable === undefined ? true : closable,
+            title
+        }
+        this.closableModal = closable === undefined ? true : closable
+        this.onModalClose = undefined
+        this.setModalOpen()
+        this.activeModalType = ModalType.LIST_PICKER
+    }
+
+    incrementVisibleListPickerBatches(): void {
+        (<ListPickerModalState>this.activeModalState).batchesVisible += 1
+        // re-render
+        this.trigger('change:activeModalType')
+    }
+
+    filterListPicker(value: string): void {
+        let modalState: ListPickerModalState = <ListPickerModalState>this.activeModalState
+        modalState.searchValue = value
+        _.throttle(() => {
+            if (!value || value === "") {
+                modalState.filteredList = modalState.list
+            }
+            const v: string = value.toLowerCase()
+
+            modalState.filteredList = modalState.list.filter(([content]) => {
+                return content.toLowerCase().indexOf(v) > -1
+            })
+
+            // re-render
+            this.trigger('change:activeModalType')
+        }, 50)()
+    }
+
+    closeModal(): void {
+        const wrapper: HTMLElement = <HTMLElement>document.getElementById('modalsWrapper')
+        wrapper.classList.remove('ModalsWrapper--Open')
+        this.activeModal = false
+        this.activeModalType = undefined
+        this.activeModalState = undefined
+        if (this.onModalClose) {
+            this.onModalClose()
+        }
     }
 
 }

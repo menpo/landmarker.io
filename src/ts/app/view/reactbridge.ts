@@ -1,4 +1,3 @@
-import * as React from 'react'
 import * as ReactDom from 'react-dom'
 import { Sidebar, SidebarProps } from './components/Sidebar'
 import { Toolbar, ToolbarProps } from './components/Toolbar'
@@ -6,7 +5,11 @@ import { Pager, PagerProps } from './components/Pager'
 import { Help, HelpProps } from './components/Help'
 import { UndoRedo, UndoRedoProps } from './components/UndoRedo'
 import { SaveDownloadHelp, SaveDownloadHelpProps } from './components/SaveDownloadHelp'
-import { App } from '../model/app'
+import { ConfirmModal, ConfirmModalProps } from './components/ConfirmModal'
+import { PromptModal, PromptModalProps } from './components/PromptModal'
+import { IntroModal, IntroModalProps } from './components/IntroModal'
+import { ListPickerModal, ListPickerModalProps } from './components/ListPickerModal'
+import { App, ModalType, ConfirmModalState, PromptModalState, ListPickerModalState } from '../model/app'
 
 export class ReactBridge {
 
@@ -17,10 +20,12 @@ export class ReactBridge {
         app.on('change', () => this.onAppStateChange())
         app.on('change:landmarks', () => this.onLandmarksChange())
         app.on('change:asset', () => this.onAssetChange())
+        app.on('change:activeModalType', () => this.onActiveModalChange())
 
         this.onAppStateChange()
         this.onAssetChange()
         this.onLandmarksChange()
+        this.onActiveModalChange()
     }
 
     onAppStateChange() {
@@ -51,6 +56,31 @@ export class ReactBridge {
         this.renderLandmarkTable()
         this.renderUndoRedo()
         this.renderSaveDownloadHelp()
+    }
+
+    onActiveModalChange() {
+        switch(this.app.activeModalType) {
+            case ModalType.CONFIRM: {
+                this.renderConfirmModal()
+                break
+            }
+            case ModalType.PROMPT: {
+                this.renderPromptModal()
+                break
+            }
+            case ModalType.INTRO: {
+                this.renderIntroModal()
+                break
+            }
+            case ModalType.LIST_PICKER: {
+                this.renderListPickerModal()
+                break
+            }
+            case undefined: {
+                this.disposeModal()
+                break
+            }
+        }
     }
 
     renderLandmarkTable() {
@@ -153,12 +183,82 @@ export class ReactBridge {
 
     renderHelp() {
         const props: HelpProps = {
-            isVisable: this.app.isHelpOverlayOn,
+            isVisible: this.app.isHelpOverlayOn,
             onClick: () => this.app.toggleHelpOverlay()
         }
         const help = Help(props)
         const el = document.getElementById('helpOverlay')
         console.log("rendering help")
         ReactDom.render(help, el)
+    }
+
+    renderConfirmModal() {
+        let modalState: ConfirmModalState = <ConfirmModalState>this.app.activeModalState
+        let modalProps: ConfirmModalProps = {
+            message: modalState.message,
+            accept: modalState.accept,
+            reject: modalState.reject,
+            closable: modalState.closable,
+            modifiers: ['Small'],
+            close: this.app.closeModal.bind(this.app)
+        }
+        const confirmModal = ConfirmModal(modalProps)
+        const el = document.getElementById('modalsWrapper')
+        ReactDom.render(confirmModal, el)
+    }
+
+    renderPromptModal() {
+        let modalState: PromptModalState = <PromptModalState>this.app.activeModalState
+        let modalProps: PromptModalProps = {
+            message: modalState.message,
+            submit: modalState.submit,
+            closable: modalState.closable,
+            inputValue: modalState.inputValue,
+            setInputValue: this.app.setPromptModalValue.bind(this.app),
+            modifiers: ['Small'],
+            close: this.app.closeModal.bind(this.app)
+        }
+        const promptModal = PromptModal(modalProps)
+        const el = document.getElementById('modalsWrapper')
+        ReactDom.render(promptModal, el)
+    }
+
+    renderIntroModal() {
+        let modalProps: IntroModalProps = {
+            startServer: this.app.startServer.bind(this.app),
+            startDemo: this.app.startDemo.bind(this.app),
+            closable: false,
+            modifiers: ['Small'],
+            close: this.app.closeModal.bind(this.app)
+        }
+        const introModal = IntroModal(modalProps)
+        const el = document.getElementById('modalsWrapper')
+        ReactDom.render(introModal, el)
+    }
+
+    renderListPickerModal() {
+        let modalState: ListPickerModalState = <ListPickerModalState>this.app.activeModalState
+        let modalProps: ListPickerModalProps = {
+            filteredList: modalState.filteredList,
+            submit: modalState.submit,
+            useFilter: modalState.useFilter,
+            batchSize: modalState.batchSize,
+            batchesVisible: modalState.batchesVisible,
+            searchValue: modalState.searchValue,
+            incrementBatchesVisible: this.app.incrementVisibleListPickerBatches.bind(this.app),
+            filter: this.app.filterListPicker.bind(this.app),
+            closable: modalState.closable,
+            modifiers: [],
+            close: this.app.closeModal.bind(this.app),
+            title: modalState.title
+        }
+        const listPickerModal = ListPickerModal(modalProps)
+        const el = document.getElementById('modalsWrapper')
+        ReactDom.render(listPickerModal, el)
+    }
+
+    disposeModal() {
+        const el = document.getElementById('modalsWrapper')
+        ReactDom.unmountComponentAtNode(<Element>el)
     }
 }
