@@ -1,6 +1,3 @@
-import * as THREE from 'three'
-import * as $ from 'jquery'
-import { Landmark } from '../base'
 import { Viewport } from '../index'
 import { touchListByType } from '../lib/touch'
 import { findClosestLandmarks } from './base'
