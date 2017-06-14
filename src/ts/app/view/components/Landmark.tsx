@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from 'react'
 import * as _ from 'lodash'
 
 const BASE_STYLE: React.CSSProperties = {

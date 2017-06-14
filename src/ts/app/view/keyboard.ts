@@ -1,6 +1,5 @@
 import * as $ from 'jquery'
 
-import Modal from './modal'
 import { App } from '../model/app'
 import { IViewport } from '../view/viewport'
 import { LandmarkGroup } from '../model/landmark'
@@ -117,7 +116,7 @@ export class KeyboardShortcutsHandler {
             return
         }
 
-        if (this.app.isHelpOverlayOn && key !== "?" || Modal.active()) {
+        if (this.app.isHelpOverlayOn && key !== "?" || this.app.activeModal) {
             return
         }
 
@@ -141,10 +140,9 @@ export class KeyboardShortcutsHandler {
                 return
             }
 
-            const modal = Modal.active()
-            if (modal) {
-                if (modal.closable) {
-                    modal.close()
+            if (this.app.activeModal) {
+                if (this.app.closableModal) {
+                    this.app.closeModal()
                 }
                 event.stopPropagation()
                 return

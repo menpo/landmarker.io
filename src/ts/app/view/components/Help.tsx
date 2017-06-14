@@ -58,12 +58,12 @@ const insetStyle: React.CSSProperties = {
 }
 
 export interface HelpProps {
-    isVisable: boolean
+    isVisible: boolean
     onClick: () => void
 }
 
 export function Help(props: HelpProps) {
-    return ( props.isVisable ?
+    return ( props.isVisible ?
     <div style={overlayStyle} onClick={props.onClick}>
         <table className="HelpContentTable" style={insetStyle}>
             <tbody>

@@ -155,57 +155,6 @@ Modal.active = function () {
     return _modals[_activeModal]
 }
 
-// Simple 2 options confirmation window
-// Takes an accept callback and a reject callback which are called without
-// arguments and can be undefined (nothing will happen)
-const ConfirmDialog = Modal.extend({
-    modifiers: ['Small'],
-
-    events: {
-        'click .ConfirmAction--Yes': 'accept',
-        'click .ConfirmAction--No': 'reject'
-    },
-
-    init: function ({text, accept, reject}) {
-        this.text = text
-        this._accept = accept || function () {}
-        this._reject = reject || function () {}
-    },
-
-    content: function () {
-        return $(`\
-            <div class='ConfirmDialog'>\
-                <p>${this.text}</p>\
-                <div class='ConfirmActions'>\
-                    <div class='ConfirmAction--Yes'>Yes</div>\
-                    <div class='ConfirmAction--No'>No</div>\
-                </div>\
-            </div>`)
-    },
-
-    accept: function () {
-        this._accept()
-        this.close()
-    },
-
-    reject: function () {
-        this._reject()
-        this.close()
-    }
-
-})
-
-// Shortcut for confirm modal
-Modal.confirm = function (text, accept, reject, closable=true) {
-    (new ConfirmDialog({
-        text,
-        accept,
-        reject,
-        disposeOnClose: true,
-        closable
-    })).open()
-}
-
 // Custom prompt to replace the traditionnal window.prompt
 // Takes a submit argument as callback which will be called with the entered
 // string.
