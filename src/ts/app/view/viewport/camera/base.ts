@@ -271,7 +271,6 @@ export class Camera implements ICamera {
     }
 
     rotate = (delta: THREE.Vector3, singleDir=false) => {
-        console.log(delta)
         if (this.rotationPermitted) {
             [this.pCam, this.oCam, this.oCamZoom].map(
                 c => this.rotateOneCamera(delta, c, singleDir))

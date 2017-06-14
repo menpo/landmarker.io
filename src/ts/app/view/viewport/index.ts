@@ -578,4 +578,13 @@ export class Viewport implements IViewport {
         this.rotationCircleActive = false
     }
 
+    positionInParent = (event: MouseEvent) => {
+        // note - we use client as we don't want to jump back to zero
+        // if user drags into sidebar!
+        return new THREE.Vector2(
+            event.clientX - this.parent.offsetLeft,
+            event.clientY - this.parent.offsetTop
+        )
+    }
+
 }

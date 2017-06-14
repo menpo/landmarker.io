@@ -163,7 +163,7 @@ export class MouseHandler {
         this.viewport.cameraIsLocked = true
 
         // record the starting positions of selected landmarks
-        this.positionLmDrag.copy(new THREE.Vector2(event.clientX, event.clientY))
+        this.positionLmDrag.copy(this.viewport.positionInParent(event))
         this.dragStartPositions = this.viewport.selectedLandmarks
             .map(lm => [lm.index, lm.point.clone()])
 
@@ -255,7 +255,7 @@ export class MouseHandler {
         this.isPressed = true
 
         this.downEvent = event
-        this.onMouseDownPosition.set(event.clientX, event.clientY)
+        this.onMouseDownPosition.copy(this.viewport.positionInParent(event))
 
         // All interactions require intersections to distinguish
         this.intersectsWithLms = this.viewport.scene.getIntersectsFromEvent(
@@ -332,8 +332,7 @@ export class MouseHandler {
         console.log("drag")
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
-        var newPositionLmDrag = new THREE.Vector2(
-            event.clientX, event.clientY)
+        var newPositionLmDrag = this.viewport.positionInParent(event)
         var prevPositionLmDrag = this.positionLmDrag.clone()
         // change in this step in screen space
 
@@ -356,9 +355,7 @@ export class MouseHandler {
 
     shiftOnDrag = (event: MouseEvent) => {
         console.log("shift:drag")
-        // note - we use client as we don't want to jump back to zero
-        // if user drags into sidebar!
-        var newPosition = new THREE.Vector2(event.clientX, event.clientY)
+        var newPosition = this.viewport.positionInParent(event)
         // clear the canvas and draw a selection rect.
         this.viewport.clearCanvas()
         this.viewport.canvas.drawBox(this.onMouseDownPosition, newPosition, "rgb(1, 230, 251)", "rgba(0, 0, 0, 0)")
@@ -371,16 +368,17 @@ export class MouseHandler {
         const oldMax = this.viewport.selectionBox.maxPosition.clone().sub(new THREE.Vector2(p, p))
         const newMin = oldMin.clone()
         const newMax = oldMax.clone()
+        const vpPos = this.viewport.positionInParent(event)
         if (this.handlePressed === Handle.TL) {
-            newMin.set(event.clientX + p, event.clientY + p)
+            newMin.set(vpPos.x + p, vpPos.y + p)
         } else if (this.handlePressed === Handle.BR) {
-            newMax.set(event.clientX - p, event.clientY - p)
+            newMax.set(vpPos.x - p, vpPos.y - p)
         } else if (this.handlePressed === Handle.TR) {
-            newMin.y = event.clientY + p
-            newMax.x = event.clientX - p
+            newMin.y = vpPos.y + p
+            newMax.x = vpPos.x - p
         } else {
-            newMin.x = event.clientX + p
-            newMax.y = event.clientY - p
+            newMin.x = vpPos.x + p
+            newMax.y = vpPos.y - p
         }
         this.viewport.selectedLandmarks.forEach(lm => {
             // convert to screen coordinates
@@ -401,8 +399,9 @@ export class MouseHandler {
         console.log("rotation handle:drag")
         const min = this.viewport.selectionBox.minPosition
         const max = this.viewport.selectionBox.maxPosition
-        const deltaX = event.clientX - ((min.x + max.x) / 2)
-        const deltaY = ((min.y + max.y) / 2) - event.clientY // since the 'up' Y-direction is negative
+        const vpPos = this.viewport.positionInParent(event)
+        const deltaX = vpPos.x - ((min.x + max.x) / 2)
+        const deltaY = ((min.y + max.y) / 2) - vpPos.y  // since the 'up' Y-direction is negative
         const hyp = Math.sqrt((deltaX * deltaX) + (deltaY * deltaY))
         const sinTheta = deltaX / hyp
         const cosTheta = deltaY / hyp
@@ -444,10 +443,11 @@ export class MouseHandler {
         this.viewport.cameraIsLocked = false
         console.log("shift:up")
         document.removeEventListener('mousemove', this.shiftOnDrag)
-        var x1 = this.onMouseDownPosition.x
-        var y1 = this.onMouseDownPosition.y
-        var x2 = event.clientX
-        var y2 = event.clientY
+        const x1 = this.onMouseDownPosition.x
+        const y1 = this.onMouseDownPosition.y
+        const vpPos = this.viewport.positionInParent(event)
+        const x2 = vpPos.x
+        const y2 = vpPos.y
         let minX: number, maxX: number, minY: number, maxY: number
         if (x1 < x2) {
             [minX, maxX] = [x1, x2]
@@ -461,7 +461,7 @@ export class MouseHandler {
         }
         // First, let's just find all the landmarks in screen space that
         // are within our selection.
-        var lms = this.viewport.scene.lmViewsInSelectionBox(minX, minY, maxX, maxY)
+        const lms = this.viewport.scene.lmViewsInSelectionBox(minX, minY, maxX, maxY)
 
         // Of these, filter out the ones which are visible (not
         // obscured) and select the rest
@@ -473,7 +473,7 @@ export class MouseHandler {
 
     meshOnMouseUp = (event: MouseEvent) => {
         console.log("meshPress:up")
-        this.onMouseUpPosition.set(event.clientX, event.clientY)
+        this.onMouseUpPosition.copy(this.viewport.positionInParent(event))
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
             //  a click on the mesh
             // Convert the point back into the mesh space
@@ -496,7 +496,7 @@ export class MouseHandler {
 
     nothingOnMouseUp = (event: MouseEvent) => {
         console.log("nothingPress:up")
-        this.onMouseUpPosition.set(event.clientX, event.clientY)
+        this.onMouseUpPosition.copy(this.viewport.positionInParent(event))
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) < 2) {
             // a click on nothing - deselect all
             this.viewport.on.deselectAllLandmarks()
@@ -511,7 +511,7 @@ export class MouseHandler {
         this.viewport.cameraIsLocked = false
         console.log("landmarkPress:up")
         document.removeEventListener('mousemove', this.landmarkOrSelectionBoxOnDrag)
-        this.onMouseUpPosition.set(event.clientX, event.clientY)
+        this.onMouseUpPosition.copy(this.viewport.positionInParent(event))
 
         if (this.onMouseDownPosition.distanceTo(this.onMouseUpPosition) === 0) {
             // landmark was pressed
@@ -629,8 +629,7 @@ export class MouseHandler {
 
         // Remember, we know there are >= 1 landmarks, so we always have a newTarget.
         // Draw it and the next closest on the UI....
-        this.viewport.drawTargetingLines(new THREE.Vector2(event.clientX, event.clientY),
-            newTarget, nextClosest)
+        this.viewport.drawTargetingLines(this.viewport.positionInParent(event), newTarget, nextClosest)
 
         // and if we have a change of new target, update the selection
         if (!this.currentTargetLm !== null || newTarget.index !== this.currentTargetLm.index) {

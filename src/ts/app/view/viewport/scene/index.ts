@@ -303,7 +303,9 @@ export class Scene implements IScene {
         return this.getUnsortedIntersects(x, y, object).sort((a, b) => a.distance - b.distance)
     }
 
-    getIntersectsFromEvent = (e: MouseEvent | Touch, object: Intersectable) => this.getIntersects(e.pageX, e.clientY, object)
+    getIntersectsFromEvent = (e: MouseEvent | Touch, object: Intersectable) => {
+        return this.getIntersects(e.pageX, e.clientY, object)
+    }
 
     worldToScreen = (v: THREE.Vector3) => {
         const halfW = this.width / 2
