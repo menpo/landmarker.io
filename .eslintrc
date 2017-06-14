@@ -11,7 +11,6 @@
     "no-mixed-requires": [1],
     "no-underscore-dangle": [0],
     "no-use-before-define": [1, "nofunc"],
-    "key-spacing": [1],
     "consistent-return": [2],
     "no-new": [0],
     "comma-dangle": [2, "never"],
