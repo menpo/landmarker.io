@@ -36,7 +36,7 @@ function Icon (item) {
     if (typeof item === 'string') {
         ext = extname(item);
     } else {
-        ext = item.is_dir ? 'folder' : extname(item.path);
+        ext = (item[".tag"] == "folder") ? 'folder' : extname(item.path_lower);
     }
 
     const icon = _icons[ext] || 'file-binary';
@@ -95,7 +95,7 @@ export default Modal.extend({
         this.state = {
             selected: undefined,
             selectedIsFolder: false,
-            root: presets.root || '/',
+            root: presets.root || '',
             currentList: [],
             history: []
         };
@@ -163,20 +163,20 @@ export default Modal.extend({
         }
 
         const $wrapper = $(`<div class='DropboxSelectList'></div>`),
-              $list = $('<ul></ul>');
+            $list = $('<ul></ul>');
 
         this.state.currentList.forEach((item) => {
-            const path = item.path;
+            const path = item.path_lower;
 
             const $item = $(
-                `<li id='${this.pathId(path)}' class='DropboxSelectListItem' data-folder='${item.is_dir}' data-path='${path}'>\
+                `<li id='${this.pathId(path)}' class='DropboxSelectListItem' data-folder='${item[".tag"] == "folder"}' data-path='${path}'>\
                     ${basename(path)}\
                 </li>`);
 
             const clickable = (
-                item.is_dir ||
+                (item[".tag"] == "folder") ||
                 ( !this.selectFoldersOnly &&
-                  ( !this.extensions.length ||
+                    ( !this.extensions.length ||
                     this.extensions.indexOf(extname(path)) > -1 )
                 )
             );
@@ -199,14 +199,14 @@ export default Modal.extend({
         this.$body.find('.DropboxSelectList').replaceWith(this.makeList());
 
         this.$body.find('.DropboxSelectExplore .Path')
-                  .text(this.state.root);
+            .text(this.state.root);
 
         if (this.state.history.length > 0) {
             this.$body.find('.DropboxSelectExplore .Back')
-                      .removeClass('Unavailable');
+                .removeClass('Unavailable');
         } else {
             this.$body.find('.DropboxSelectExplore .Back')
-                      .addClass('Unavailable');
+                .addClass('Unavailable');
         }
 
         this.updateSelected();
@@ -217,14 +217,14 @@ export default Modal.extend({
     updateSelected: function () {
 
         this.$body.find('.DropboxSelectListItem.Selected')
-                  .removeClass('Selected');
+            .removeClass('Selected');
 
         const $submitText = this.$body.find('.DropboxSelectSubmit > span');
         $submitText.text(this.state.selected || 'Nothing selected');
 
         if (this.state.selected) {
             this.$body.find(`#${this.pathId(this.state.selected)}`)
-                      .addClass('Selected');
+                .addClass('Selected');
             $submitText.removeClass('Empty');
         } else {
             $submitText.addClass('Empty');
@@ -324,7 +324,7 @@ export default Modal.extend({
     },
 
     goHome: function () {
-        this.state.root = '/';
+        this.state.root = '';
         this.state.history = [];
         this.fetch().then(this.update);
     },

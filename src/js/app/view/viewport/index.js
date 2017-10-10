@@ -182,7 +182,7 @@ export default Backbone.View.extend({
         this.sLights.add(new THREE.AmbientLight(0x404040));
 
         this.renderer = new THREE.WebGLRenderer(
-            { antialias: false, alpha: false });
+            { antialias: true, alpha: true });
         this.renderer.setPixelRatio(window.devicePixelRatio || 1);
         this.renderer.setClearColor(CLEAR_COLOUR, 1);
         this.renderer.autoClear = false;
@@ -338,8 +338,8 @@ export default Backbone.View.extend({
 
     memoryString: function () {
         return 'geo:' + this.renderer.info.memory.geometries +
-               ' tex:' + this.renderer.info.memory.textures +
-               ' prog:' + this.renderer.info.memory.programs;
+            ' tex:' + this.renderer.info.memory.textures +
+            ' prog:' + this.renderer.info.memory.programs;
     },
 
     // this is called whenever there is a state change on the THREE scene
@@ -421,7 +421,7 @@ export default Backbone.View.extend({
     resetCamera: function () {
         // reposition the cameras and focus back to the starting point.
         const v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION :
-                                        IMAGE_MODE_STARTING_POSITION;
+            IMAGE_MODE_STARTING_POSITION;
         this.cameraController.reset(
             v, this.scene.position, this.model.meshMode());
         this.update();
@@ -527,12 +527,12 @@ export default Backbone.View.extend({
                 }));
         });
         landmarks.connectivity.map(function (ab) {
-           that.connectivityViews.push(new LandmarkConnectionTHREEView(
-               {
-                   model: [landmarks.landmarks[ab[0]],
-                           landmarks.landmarks[ab[1]]],
-                   viewport: that
-               }));
+            that.connectivityViews.push(new LandmarkConnectionTHREEView(
+                {
+                    model: [landmarks.landmarks[ab[0]],
+                        landmarks.landmarks[ab[1]]],
+                    viewport: that
+                }));
         });
 
     }),
@@ -620,7 +620,7 @@ export default Backbone.View.extend({
             return [];
         }
         var vector = new THREE.Vector3((x / this.width()) * 2 - 1,
-                                        -(y / this.height()) * 2 + 1, 0.5);
+            -(y / this.height()) * 2 + 1, 0.5);
 
         if (this.sCamera === this.sPCam) {
             // perspective selection
@@ -647,7 +647,7 @@ export default Backbone.View.extend({
     },
 
     getIntersectsFromEvent: function (event, object) {
-      return this.getIntersects(event.clientX, event.clientY, object);
+        return this.getIntersects(event.clientX, event.clientY, object);
     },
 
     worldToScreen: function (vector) {
@@ -666,7 +666,7 @@ export default Backbone.View.extend({
 
     worldToLocal: function (vector, inPlace=false) {
         return inPlace ? this.sMeshAndLms.worldToLocal(vector) :
-                         this.sMeshAndLms.worldToLocal(vector.clone());
+            this.sMeshAndLms.worldToLocal(vector.clone());
     },
 
     lmToScreen: function (lmSymbol) {
