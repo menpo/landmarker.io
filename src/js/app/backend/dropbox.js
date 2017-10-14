@@ -511,9 +511,8 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
 
     let dataPost = {
         "path": path,
-        "mode": "add",
-        "autorename": true,
-        "mute": false
+        "mode": "overwrite",
+        "autorename": false
     };
 
     return postUploadJSON(
