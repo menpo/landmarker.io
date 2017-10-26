@@ -251,7 +251,7 @@ Dropbox.prototype.setAssets = function (path, mode) {
 };
 
 Dropbox.prototype._setMeshAssets = function (items) {
-    const paths = items.map((item) => item.path_lower);
+    const paths = items.map((item) => item.path_display);
 
     // Find only OBJ and STL files
     this._assets = paths.filter((p) => ['obj', 'stl'].indexOf(extname(p)) > -1);
@@ -274,7 +274,7 @@ Dropbox.prototype._setMeshAssets = function (items) {
 };
 
 Dropbox.prototype._setImageAssets = function (items) {
-    this._assets = items.map((item) => item.path_lower);
+    this._assets = items.map((item) => item.path_display);
 };
 
 /**
@@ -326,7 +326,7 @@ Dropbox.prototype.list = function (path='', {
 
         return data.entries.filter(item => {
 
-            if (!showHidden && basename(item.path_lower).charAt(0) === '.') {
+            if (!showHidden && basename(item.path_display).charAt(0) === '.') {
                 return false;
             }
 
@@ -341,7 +341,7 @@ Dropbox.prototype.list = function (path='', {
             if (
                 !(item[".tag"] == "folder") &&
                 extensions.length > 0 &&
-                extensions.indexOf(extname(item.path_lower)) === -1
+                extensions.indexOf(extname(item.path_display)) === -1
             ) {
                 return false;
             }
