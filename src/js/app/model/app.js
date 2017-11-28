@@ -12,10 +12,13 @@ import Modal from '../view/modal';
 
 export default Backbone.Model.extend({
 
+
     defaults: function () {
         return {
             landmarkSize: 0.5,
             mode: 'mesh',
+            gender: undefined,
+            setTypeOfPhoto: undefined,
             connectivityOn: true,
             editingOn: true,
             autoSaveOn: false,
@@ -32,6 +35,18 @@ export default Backbone.Model.extend({
 
     isAutoSaveOn: function () {
         return this.get('autoSaveOn');
+    },
+    getGender: function () {
+        return this.get('gender');
+    },
+    setGender: function (gender) {
+        return this.set('gender', gender);
+    },
+    setTypeOfPhoto: function (typeOfPhoto) {
+        return this.set('typeOfPhoto', typeOfPhoto);
+    },
+    getTypeOfPhoto: function () {
+        return this.get('typeOfPhoto');
     },
 
     toggleAutoSave: function () {
@@ -311,6 +326,8 @@ export default Backbone.Model.extend({
             this.asset().id,
             this.activeTemplate()
         ).then((json) => {
+            this.setGender(json.gender);
+            this.setTypeOfPhoto(json.typeOfPhoto);
             return LandmarkGroup.parse(
                 json,
                 this.asset().id,

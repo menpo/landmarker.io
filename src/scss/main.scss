@@ -24,16 +24,33 @@ body {
 }
 
 .Viewport {
-  cursor: crosshair;
+    cursor: crosshair;
 
-  &.LoadingCursor {
-      cursor: wait;
-  }
+    &.LoadingCursor {
+        cursor: wait;
+    }
 }
-
+.GenderClass {
+    background-color: rgba(163,185,219,1);
+}
 p.Error {
     color: $colorDarkRed;
     font-weight: bold;
+}
+
+/* ======================== */
+/* FORM VALIDATOR CSS STYLE */
+/* ======================== */
+.error-msg {
+    display: none;
+}
+.error-msg-show {
+    color: red;
+    display: block;
+}
+
+.error {
+    border-color: red;
 }
 
 @import 'button';

@@ -8,8 +8,9 @@
  * API v1 to API v2 migration
  */
 'use strict';
+// const API_KEY = 'lar7e1dae96efyx',
 
-const API_KEY = 'lar7e1dae96efyx',
+const API_KEY = 'd8ipadlxeezrpkz',
     API_URL = 'https://api.dropboxapi.com/2',
     CONTENTS_URL = 'https://content.dropboxapi.com/2';
 
@@ -29,7 +30,7 @@ import { randomString,
 import download from '../lib/download';
 
 import { notify } from '../view/notification';
-import { postJSON, postMetaJSON, postDownloadJSON, postUploadJSON, getArrayBuffer } from '../lib/requests';
+import { postJSON, postMetaJSON, postDownloadJSON, postJSONData, postUploadJSON, getArrayBuffer } from '../lib/requests';
 import ImagePromise from '../lib/imagepromise';
 import Template from '../template';
 import Picker from '../view/dropbox_picker.js';
@@ -505,20 +506,54 @@ Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
         });
     });
 };
-Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
-    const headers = this.headers(),
-        path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
+Dropbox.prototype.saveLandmarkGroup = function (id, type, json, gender, typeOfPhoto) {
+    const headers = this.headers();
+
+    let path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
+
+    let data = {
+        "path": `${this._assetsPath}/landmarks/renamed`,
+        "query": `${id}`,
+        "start": 0,
+        "max_results": 100,
+        "mode": "filename"
+    };
+
+    let split = id.split(".");
 
     let dataPost = {
         "path": path,
         "mode": "overwrite",
         "autorename": false
     };
+    let dataPostRenamed = {
+        "path": `${this._assetsPath}/landmarks/renamed/${split[0]}${gender}${typeOfPhoto}.${split[1]}`,
+        "mode": "overwrite",
+        "autorename": false
+    };
 
-    return postUploadJSON(
-        `${CONTENTS_URL}/files/upload`, {
+    return postUploadJSON(`${CONTENTS_URL}/files/upload`, {
+        headers: headers,
+        dropboxAPI: dataPost,
+        data: json
+    }).then(() => {
+        postJSONData(`${API_URL}/files/search`, {
             headers: headers,
-            dropboxAPI: dataPost,
-            data: json
+            data: data
+        }).then((rs) => {
+            let result = JSON.parse(rs);
+            if (result["matches"].length > 0) {
+                postJSONData(`${API_URL}/files/delete`, {
+                    headers: headers,
+                    data: {"path": result["matches"]["0"]["metadata"]["path_lower"]}
+                })
+            }
+        }).then(() => {
+            postUploadJSON(`${CONTENTS_URL}/files/upload`, {
+                headers: headers,
+                dropboxAPI: dataPostRenamed,
+                data: json
+            })
         });
+    });
 };

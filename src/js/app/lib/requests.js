@@ -149,4 +149,12 @@ export function postUploadJSON (url, {headers={}, dropboxAPI, data={}}) {
         data: JSON.stringify(data)
     });
 }
+export function postJSONData (url, {headers={}, data={}}) {
+    return XMLHttpRequestPromise(url, {
+        headers,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data)
+    });
+}
 

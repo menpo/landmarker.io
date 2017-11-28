@@ -237,13 +237,19 @@ LandmarkGroup.prototype.toJSON = function () {
             connectivity: this.connectivity
         },
         labels: this.labels.map(label => label.toJSON()),
+        gender: null,
+        typeOfPhoto: null,
         version: 2
     };
 };
 
-LandmarkGroup.prototype.save = function () {
+
+LandmarkGroup.prototype.save = function (gender, typeOfPhoto) {
+    let json = this.toJSON();
+    json.gender = gender;
+    json.typeOfPhoto = typeOfPhoto;
     return this.server
-        .saveLandmarkGroup(this.id, this.type, this.toJSON())
+        .saveLandmarkGroup(this.id, this.type, json, gender, typeOfPhoto)
         .then(() => {
             this.tracker.recordState(this.toJSON(), true);
             notify({type: 'success', msg: 'Save Completed'});
@@ -251,6 +257,7 @@ LandmarkGroup.prototype.save = function () {
             notify({type: 'error', msg: 'Save Failed'});
         });
 };
+
 
 LandmarkGroup.prototype.undo = function () {
     this.tracker.undo((ops) => {
