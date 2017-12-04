@@ -17,20 +17,22 @@ const API_KEY = 'lar7e1dae96efyx',
 const IMAGE_EXTENSIONS = ['jpeg', 'jpg', 'png'];
 const MESH_EXTENSIONS = ['obj', 'stl', 'mtl'].concat(IMAGE_EXTENSIONS);
 
-import { format } from 'url';
+import {format} from 'url';
 import Promise from 'promise-polyfill';
 
 import OBJLoader from '../lib/obj_loader';
 import STLLoader from '../lib/stl_loader';
-import { randomString,
+import {
+    randomString,
     basename,
     extname,
     stripExtension,
-    baseUrl } from '../lib/utils';
+    baseUrl
+} from '../lib/utils';
 import download from '../lib/download';
 
-import { notify } from '../view/notification';
-import { postJSON, postMetaJSON, postDownloadJSON, postJSONData, postUploadJSON, getArrayBuffer } from '../lib/requests';
+import {notify} from '../view/notification';
+import {postJSON, postMetaJSON, postDownloadJSON, postJSONData, postUploadJSON, getArrayBuffer} from '../lib/requests';
 import ImagePromise from '../lib/imagepromise';
 import Template from '../template';
 import Picker from '../view/dropbox_picker.js';
@@ -77,10 +79,12 @@ Dropbox.authorize = function () {
         protocol: 'https',
         host: 'www.dropbox.com',
         pathname: '/oauth2/authorize',
-        query: { 'response_type': 'token',
+        query: {
+            'response_type': 'token',
             'redirect_uri': baseUrl(),
             'state': oAuthState,
-            'client_id': API_KEY }
+            'client_id': API_KEY
+        }
     });
 
     return [u, oAuthState];
@@ -121,7 +125,7 @@ Dropbox.prototype.setMode = function (mode) {
  * @param  {bool}     closable=false should this modal be closable
  * @return {Modal}                   reference to the picker modal
  */
-Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
+Dropbox.prototype.pickTemplate = function (success, error, closable = false) {
     const picker = new Picker({
         dropbox: this,
         selectFilesOnly: true,
@@ -193,7 +197,7 @@ Dropbox.prototype.downloadTemplate = function (name) {
 // Assets management
 // ---------------------------
 
-Dropbox.prototype.pickAssets = function (success, error, closable=false) {
+Dropbox.prototype.pickAssets = function (success, error, closable = false) {
     const picker = new Picker({
         dropbox: this,
         selectFoldersOnly: true,
@@ -283,21 +287,21 @@ Dropbox.prototype._setImageAssets = function (items) {
  * strings
  *
  * options are: - foldersOnly (boolean)
- * 				- filesOnly (boolean)
- * 				- showHidden (boolean)
- * 				- extensions (string[])
- * 				- noCache (boolean)
+ *                - filesOnly (boolean)
+ *                - showHidden (boolean)
+ *                - extensions (string[])
+ *                - noCache (boolean)
  *
  * The requests are cached and busted with `noCache=true`, the filtering takes
  * place locally. `foldersOnly` and `filesOnly` will conflict -> nothing
  * returned.
  */
-Dropbox.prototype.list = function (path='', {
-    foldersOnly=false,
-    filesOnly=false,
-    showHidden=false,
-    extensions=[],
-    noCache=false
+Dropbox.prototype.list = function (path = '', {
+    foldersOnly = false,
+    filesOnly = false,
+    showHidden = false,
+    extensions = [],
+    noCache = false
 }={}) {
     let q;
 
@@ -354,7 +358,7 @@ Dropbox.prototype.list = function (path='', {
 
 // Download the content of a file, default response type is text
 // as it is the default from the Dropbox API
-Dropbox.prototype.download = function (path, responseType='text') {
+Dropbox.prototype.download = function (path, responseType = 'text') {
 
     let dataPost = {
         "path": path
@@ -475,7 +479,12 @@ Dropbox.prototype.fetchGeometry = function (assetId) {
             dl.xhr = () => q.xhr();
             return q;
         });
-        dl.xhr = function () { return {abort: function () {}}; };
+        dl.xhr = function () {
+            return {
+                abort: function () {
+                }
+            };
+        };
     } else {
         throw new Error('Invalid mesh extension', ext, path);
     }
@@ -508,39 +517,27 @@ Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
 };
 Dropbox.prototype.saveLandmarkGroup = function (id, type, json, gender, typeOfPhoto) {
     const headers = this.headers();
-
     let path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
-
     let data = {
-        "path": `${this._assetsPath}/landmarks/renamed`,
+        "path": `${this._assetsPath}/renamed`,
         "query": `${id}`,
         "start": 0,
         "max_results": 100,
         "mode": "filename"
     };
-
     let split = id.split(".");
-
-    let dataPost = {
-        "path": path,
-        "mode": "overwrite",
-        "autorename": false
-    };
+    let dataPost = {"path": path, "mode": "overwrite", "autorename": false};
     let dataPostRenamed = {
-        "path": `${this._assetsPath}/landmarks/renamed/${split[0]}${gender}${typeOfPhoto}.${split[1]}`,
+        "path": `${this._assetsPath}/renamed/${split[0]}${gender}${typeOfPhoto}.${split[1]}`,
         "mode": "overwrite",
         "autorename": false
     };
-
     return postUploadJSON(`${CONTENTS_URL}/files/upload`, {
         headers: headers,
         dropboxAPI: dataPost,
         data: json
     }).then(() => {
-        postJSONData(`${API_URL}/files/search`, {
-            headers: headers,
-            data: data
-        }).then((rs) => {
+        postJSONData(`${API_URL}/files/search`, {headers: headers, data: data}).then((rs) => {
             let result = JSON.parse(rs);
             if (result["matches"].length > 0) {
                 postJSONData(`${API_URL}/files/delete`, {
@@ -549,11 +546,7 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json, gender, typeOfPh
                 })
             }
         }).then(() => {
-            postUploadJSON(`${CONTENTS_URL}/files/upload`, {
-                headers: headers,
-                dropboxAPI: dataPostRenamed,
-                data: json
-            })
+            postUploadJSON(`${CONTENTS_URL}/files/upload`, {headers: headers, dropboxAPI: dataPostRenamed, data: json})
         });
     });
 };

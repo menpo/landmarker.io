@@ -110,7 +110,7 @@ export default Backbone.Model.extend({
     },
 
     tracker: function () {
-            return this.get('tracker');
+        return this.get('tracker');
     },
 
     hasAssetSource: function () {
@@ -158,7 +158,7 @@ export default Backbone.Model.extend({
         this._initCollections();
     },
 
-    _initTemplates: function (override=false) {
+    _initTemplates: function (override = false) {
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.
         this.server().fetchTemplates().then((templates) => {
@@ -175,11 +175,11 @@ export default Backbone.Model.extend({
             this.set('activeTemplate', selected);
         }, () => {
             throw new Error('Failed to talk server for templates (is ' +
-                            'landmarkerio running from your command line?).');
+                'landmarkerio running from your command line?).');
         });
     },
 
-    _initCollections: function (override=false) {
+    _initCollections: function (override = false) {
         this.server().fetchCollections().then((collections) => {
             this.set('collections', collections);
             let selected = collections[0];
@@ -192,7 +192,7 @@ export default Backbone.Model.extend({
             this.set('activeCollection', selected);
         }, () => {
             throw new Error('Failed to talk server for collections (is ' +
-                            'landmarkerio running from your command line?).');
+                'landmarkerio running from your command line?).');
         });
     },
 
@@ -258,7 +258,7 @@ export default Backbone.Model.extend({
             return this.goToAssetIndex(i);
         }, () => {
             throw new Error('Failed to fetch assets (is landmarkerio' +
-                            'running from your command line?).');
+                'running from your command line?).');
         });
     },
 
@@ -292,7 +292,9 @@ export default Backbone.Model.extend({
             if (!this.isAutoSaveOn()) {
                 Modal.confirm('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn);
             } else {
-                lms.save().then(fn);
+                let gender = this.getGender();
+                let typeOfPhoto = this.getTypeOfPhoto();
+                lms.save(gender, typeOfPhoto).then(fn);
             }
         } else {
             fn();
@@ -346,7 +348,7 @@ export default Backbone.Model.extend({
 
         // if both come true, then set the landmarks
         return Promise.all([this.loadLandmarksPromise(),
-                            loadAssetPromise]).then((args) => {
+            loadAssetPromise]).then((args) => {
             const landmarks = args[0];
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display');
