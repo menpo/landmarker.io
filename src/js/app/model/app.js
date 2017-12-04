@@ -401,6 +401,8 @@ export default Backbone.Model.extend({
                     as.assets()[as.assetIndex() - 1].id,
                     this.activeTemplate()
                 ).then((json) => {
+                    this.setGender(json.gender);
+                    this.setTypeOfPhoto(json.typeOfPhoto);
                     lms.tracker.recordState(lms.toJSON());
                     lms.restore(json);
                     lms.tracker.recordState(lms.toJSON(), false, true);

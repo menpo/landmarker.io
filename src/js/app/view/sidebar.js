@@ -355,10 +355,13 @@ export const GenderToggle = Backbone.View.extend({
     },
 
     initialize: function ({app}) {
+        this.listenTo(this.model, "change", this.render);
+
         this.app = app;
         _.bindAll(this, 'render', 'clickedMale', 'clickedFemale');
         this.render();
     },
+
 
     render: function () {
         let gender = this.model.getGender();
@@ -388,6 +391,7 @@ export const TypeOfPhotoToggle = Backbone.View.extend({
 
     },
     initialize: function ({app}) {
+        this.listenTo(this.model, "change", this.render);
         this.app = app;
         _.bindAll(this, 'render', 'clickedUsual', 'clickedSelfie');
         this.render();
