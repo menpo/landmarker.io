@@ -522,7 +522,7 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json, gender, typeOfPh
         "path": `${this._assetsPath}/renamed`,
         "query": `${id}`,
         "start": 0,
-        "max_results": 100,
+        "max_results": 500,
         "mode": "filename"
     };
     let split = id.split(".");
@@ -537,16 +537,18 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json, gender, typeOfPh
         dropboxAPI: dataPost,
         data: json
     }).then(() => {
-        postJSONData(`${API_URL}/files/search`, {headers: headers, data: data}).then((rs) => {
-            let result = JSON.parse(rs);
-            if (result["matches"].length > 0) {
-                postJSONData(`${API_URL}/files/delete`, {
-                    headers: headers,
-                    data: {"path": result["matches"]["0"]["metadata"]["path_lower"]}
-                })
-            }
-        }).then(() => {
-            postUploadJSON(`${CONTENTS_URL}/files/upload`, {headers: headers, dropboxAPI: dataPostRenamed, data: json})
-        });
+        return postJSONData(`${API_URL}/files/search`, {headers: headers, data: data})
+    }).then((rs) => {
+        let result = JSON.parse(rs);
+        if (result["matches"].length > 0) {
+            return postJSONData(`${API_URL}/files/delete`, {
+                headers: headers,
+                data: {"path": result["matches"]["0"]["metadata"]["path_lower"]}
+            })
+        } else {
+            return
+        }
+    }).then(() => {
+        postUploadJSON(`${CONTENTS_URL}/files/upload`, {headers: headers, dropboxAPI: dataPostRenamed, data: json})
     });
 };

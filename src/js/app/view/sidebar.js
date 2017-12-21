@@ -369,6 +369,9 @@ export const GenderToggle = Backbone.View.extend({
             $("#male").prop("checked", true)
         } else if (gender == ".f") {
             $("#female").prop("checked", true)
+        } else {
+            $("#male").prop("checked", false)
+            $("#female").prop("checked", false)
         }
     },
 
@@ -405,9 +408,12 @@ export const TypeOfPhotoToggle = Backbone.View.extend({
             $("#selfie").prop("checked", true)
         } else if (typeOfPhoto == "") {
             $("#usual").prop("checked", true)
+        }  else {
+            $("#selfie").prop("checked", false)
+            $("#usual").prop("checked", false)
         }
 
-        if ((typeOfPhoto && gender) == undefined ) {
+        if ((typeOfPhoto || gender) == undefined ) {
             $("#assetPager").find("#next").prop("disabled", true);
         } else {
             $("#assetPager").find("#next").prop("disabled", false);
