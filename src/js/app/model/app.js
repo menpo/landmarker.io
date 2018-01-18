@@ -287,13 +287,15 @@ export default Backbone.Model.extend({
     },
 
     autoSaveWrapper: function (fn) {
+        const gender = this.getGender();
+        const typeOfPhoto = this.getTypeOfPhoto();
         const lms = this.landmarks();
-        if (lms && !lms.tracker.isUpToDate()) {
+        if (lms && gender && (typeOfPhoto || typeOfPhoto == '') && !lms.tracker.isUpToDate()) {
             if (!this.isAutoSaveOn()) {
                 Modal.confirm('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn);
             } else {
-                let gender = this.getGender();
-                let typeOfPhoto = this.getTypeOfPhoto();
+                console.log("saveeeeeeeeee")
+
                 lms.save(gender, typeOfPhoto).then(fn);
             }
         } else {

@@ -49,6 +49,7 @@ const Dropbox = Base.extend('DROPBOX', function (token, cfg) {
     this._mediaCache = {};
     this._imgCache = {};
     this._listCache = {};
+    this._imgId = '';
 
     this._templates = Template.loadDefaultTemplates();
     this._templatesPaths = {};
@@ -397,6 +398,7 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
             data: dataPost
         }).then(({link, metadata}) => {
         this._mediaCache[path] = {link, expires: new Date(metadata.server_modified)};
+        this._imgId = metadata.id;
         return link;
     });
     this._mediaCache[path] = q;
@@ -525,12 +527,12 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json, gender, typeOfPh
         "max_results": 500,
         "mode": "filename"
     };
+
     let split = id.split(".");
     let dataPost = {"path": path, "mode": "overwrite", "autorename": false};
-    let dataPostRenamed = {
+    let dataSearch = {
         "path": `${this._assetsPath}/renamed/${split[0]}${gender}${typeOfPhoto}.${split[1]}`,
-        "mode": "overwrite",
-        "autorename": false
+        "url": ''
     };
     return postUploadJSON(`${CONTENTS_URL}/files/upload`, {
         headers: headers,
@@ -549,6 +551,13 @@ Dropbox.prototype.saveLandmarkGroup = function (id, type, json, gender, typeOfPh
             return
         }
     }).then(() => {
-        postUploadJSON(`${CONTENTS_URL}/files/upload`, {headers: headers, dropboxAPI: dataPostRenamed, data: json})
-    });
+        return postJSONData(`${API_URL}/sharing/get_file_metadata`, {headers: headers, data: {"file": this._imgId, "actions": []}})
+    }).then((rs) => {
+        let result = JSON.parse(rs);
+
+        dataSearch.url = result.preview_url
+
+        return postJSONData(`${API_URL}/files/save_url`, {headers: headers, data: dataSearch})
+
+    })
 };
