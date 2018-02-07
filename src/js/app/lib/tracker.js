@@ -157,7 +157,10 @@ Tracker.prototype.undo = function (process, restore) {
          op = _.last(this._operations);
 
     let CASE = 0;
-
+    console.log('op')
+    console.log(op)
+    console.log('state')
+    console.log(state)
     if (op) {
         if (!state) {
             CASE = 1;

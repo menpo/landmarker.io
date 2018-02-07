@@ -10,7 +10,9 @@ export default Backbone.Model.extend({
             point: null,
             selected: false,
             nextAvailable: false,
-            index: null
+            index: null,
+            invisible: false,
+            bad: false
         };
     },
 

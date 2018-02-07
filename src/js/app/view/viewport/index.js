@@ -302,7 +302,6 @@ export default Backbone.View.extend({
         up = meshPayload.up;
         front = meshPayload.front;
         this.mesh = mesh;
-
         if(mesh.geometry instanceof THREE.BufferGeometry) {
             // octree only makes sense if we are dealing with a true mesh
             // (not images). Such meshes are always BufferGeometry instances.

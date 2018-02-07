@@ -10,7 +10,7 @@
 'use strict';
 // const API_KEY = 'lar7e1dae96efyx',
 
-const API_KEY = 'lar7e1dae96efyx',
+const API_KEY = '85ta0yjrv1qoko4',
     API_URL = 'https://api.dropboxapi.com/2',
     CONTENTS_URL = 'https://content.dropboxapi.com/2';
 

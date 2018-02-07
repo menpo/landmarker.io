@@ -11,19 +11,20 @@ const LM_SPHERE_PARTS = 10;
 const LM_SPHERE_SELECTED_COLOR = 0xff75ff;
 const LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
 const LM_CONNECTION_LINE_COLOR = LM_SPHERE_UNSELECTED_COLOR;
+const LM_CONNECTION_LINE_COLOR_NOT_VISIBLE = 0x3ACC3A;
 
 // create a single geometry + material that will be shared by all landmarks
-const lmGeometry = new THREE.SphereGeometry(
+var lmGeometry = new THREE.SphereGeometry(
     LM_SCALE,
     LM_SPHERE_PARTS,
     LM_SPHERE_PARTS);
 
-const lmMaterialForSelected = {
+var lmMaterialForSelected = {
     true: new THREE.MeshBasicMaterial({color: LM_SPHERE_SELECTED_COLOR}),
     false: new THREE.MeshBasicMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
 };
 
-const lineMaterial = new THREE.LineBasicMaterial({
+var lineMaterial = new THREE.LineBasicMaterial({
     color: LM_CONNECTION_LINE_COLOR,
     linewidth: 1
 });
@@ -69,6 +70,11 @@ export const LandmarkTHREEView = Backbone.View.extend({
 
     createSphere: function (v, radius, selected) {
         //console.log('creating sphere of radius ' + radius);
+        if(this.model.attributes.invisible){
+            lmMaterialForSelected.false = new THREE.MeshBasicMaterial({color: LM_CONNECTION_LINE_COLOR_NOT_VISIBLE})
+        } else {
+            lmMaterialForSelected.false = new THREE.MeshBasicMaterial({color: LM_CONNECTION_LINE_COLOR})
+        }
         var landmark = new THREE.Mesh(lmGeometry, lmMaterialForSelected[selected]);
         landmark.name = 'Landmark ' + landmark.id;
         landmark.position.copy(v);
@@ -84,6 +90,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
     dispose: function () {
         if (this.symbol) {
             this.viewport.sLms.remove(this.symbol);
+            console.log(this.viewport)
             this.symbol = null;
         }
     },
@@ -126,8 +133,9 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
             // there is no symbol yet
             if (!this.model[0].isEmpty() && !this.model[1].isEmpty()) {
                 // and there should be! Make it and update it
+
                 this.symbol = this.createLine(this.model[0].get('point'),
-                        this.model[1].get('point'));
+                this.model[1].get('point'));
                 this.updateSymbol();
                 // and add it to the scene
                 this.viewport.sLmsConnectivity.add(this.symbol);
@@ -138,10 +146,24 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
     },
 
     createLine: function (start, end) {
+
+
         var geometry = new THREE.Geometry();
         geometry.dynamic = true;
         geometry.vertices.push(start.clone());
         geometry.vertices.push(end.clone());
+
+        if(this.model[1].attributes.invisible){
+            lineMaterial = new THREE.LineBasicMaterial({
+                color: LM_CONNECTION_LINE_COLOR_NOT_VISIBLE,
+                linewidth: 1
+            });
+        } else {
+            lineMaterial = new THREE.LineBasicMaterial({
+                color: LM_CONNECTION_LINE_COLOR,
+                linewidth: 1
+            });
+        }
         return new THREE.Line(geometry, lineMaterial);
     },
 

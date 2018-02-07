@@ -6,7 +6,7 @@ import { maskedArray } from '../lib/utils';
 import { notify } from '../view/notification';
 import Tracker from '../lib/tracker';
 import { atomicOperation } from './atomic';
-
+import _ from 'underscore';
 import Landmark from './landmark';
 
 // Define behavior shared between Lists and Groups
@@ -199,18 +199,18 @@ LandmarkGroup.prototype.deleteSelected = atomicOperation(function () {
     this.tracker.record(ops);
 });
 
-LandmarkGroup.prototype.insertNew = atomicOperation(function (v) {
+LandmarkGroup.prototype.insertNew = atomicOperation(function (v, invisible, bad) {
     const lm = this.nextAvailable();
     if (lm === null) {
         return null;    // nothing left to insert!
     }
     // we are definitely inserting.
     this.deselectAll();
-    this.setLmAt(lm, v);
+    this.setLmAt(lm, v, invisible, bad);
     this.resetNextAvailable(lm);
 });
 
-LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
+LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v, invisible, bad) {
 
     if (!v) {
         return;
@@ -222,14 +222,22 @@ LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
          v.clone() ]
     ]);
 
+    if(!invisible && !bad){
+        var invisible = false;
+        var bad = false;
+    }
+
     lm.set({
         point: v.clone(),
         selected: true,
         isEmpty: false,
-        nextAvailable: false
+        nextAvailable: false,
+        invisible: invisible,
+        bad: bad
     });
-});
 
+});
+//track
 LandmarkGroup.prototype.toJSON = function () {
     return {
         landmarks: {
@@ -258,6 +266,20 @@ LandmarkGroup.prototype.save = function (gender, typeOfPhoto) {
         });
 };
 
+LandmarkGroup.prototype.markAsBad = function (lm) {
+    console.log('В лендмарке MarkAsBad')
+    var lndmrk = _.clone(lm);
+    lm.selectAndDeselectRest();
+    this.deleteSelected();
+    console.log(lndmrk)
+    this.insertNew(lndmrk.point(), lndmrk.attributes.invisible, !lndmrk.attributes.bad)
+}
+
+LandmarkGroup.prototype.markAsInvisible = function (lm) {
+    console.log('В лендмарке MarkAsInvisible')
+    this.insertNew(lm.point(), !lm.attributes.invisible, lm.attributes.bad)
+
+}
 
 LandmarkGroup.prototype.undo = function () {
     this.tracker.undo((ops) => {

@@ -151,6 +151,8 @@ export default function Handler () {
         $(document).one('mouseup.viewportShift', shiftOnMouseUp);
     };
 
+
+
     // Catch all clicks and delegate to other handlers once user's intent
     // has been figured out
     var onMouseDown = (event) => {
@@ -315,14 +317,14 @@ export default function Handler () {
             p = intersectsWithMesh[0].point.clone();
             // Convert the point back into the mesh space
             this.worldToLocal(p, true);
-
             if (
                 this.model.isEditingOn() &&
                 currentTargetLm &&
                 currentTargetLm.group() === this.model.landmarks() &&
                 !currentTargetLm.isEmpty()
             ) {
-                this.model.landmarks().setLmAt(currentTargetLm, p);
+                    this.model.landmarks().setLmAt(currentTargetLm, p);
+
             } else if (downEvent.button === 2) {
                 this.model.landmarks().insertNew(p);
             }
