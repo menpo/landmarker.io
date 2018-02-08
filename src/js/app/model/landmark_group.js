@@ -86,7 +86,7 @@ LandmarkLabel.prototype.toJSON = function () {
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
 export default function LandmarkGroup (
-    points, connectivity, labels, id, type, server, tracker
+    points, connectivity, bad, invisible, labels, id, type, server, tracker
 ) {
     this.id = id;
     this.type = type;
@@ -96,10 +96,13 @@ export default function LandmarkGroup (
     // 1. Build landmarks from points
     this.landmarks = points.map((p, index) => {
         const [point, nDims] = _pointToVector(p);
-        const lmInitObj = {group: this, index, nDims, point};
+        var badSlug;
+        var invisibleSlug;
+        bad ? badSlug = bad[index] : badSlug = false;
+        invisible ? invisibleSlug = invisible[index] : invisibleSlug = false;
+        const lmInitObj = {group: this, index, nDims, bad: badSlug, invisible: invisibleSlug};
         return new Landmark(lmInitObj);
     });
-
     // 2. Validate and assign connectivity (if there is any, it's not mandatory)
     this.connectivity = _validateConnectivity(this.landmarks.length,
                                               connectivity);
@@ -377,6 +380,8 @@ LandmarkGroup.parse = function (json, id, type, server, tracker) {
     return new LandmarkGroup(
         json.landmarks.points,
         json.landmarks.connectivity,
+        json.landmarks.bad,
+        json.landmarks.invisible,
         json.labels,
         id,
         type,
