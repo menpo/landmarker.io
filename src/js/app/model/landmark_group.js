@@ -96,7 +96,11 @@ export default function LandmarkGroup (
     // 1. Build landmarks from points
     this.landmarks = points.map((p, index) => {
         const [point, nDims] = _pointToVector(p);
-        const lmInitObj = {group: this, index, nDims, bad: bad[index], invisible: invisible[index]};
+        var badSlug;
+        var invisibleSlug;
+        bad ? badSlug = bad[index] : badSlug = false;
+        invisible ? invisibleSlug = invisible[index] : invisibleSlug = false;
+        const lmInitObj = {group: this, index, nDims, bad: badSlug, invisible: invisibleSlug};
         return new Landmark(lmInitObj);
     });
     // 2. Validate and assign connectivity (if there is any, it's not mandatory)
