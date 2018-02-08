@@ -278,6 +278,14 @@ export default Backbone.View.extend({
         this.$container.on('resetCamera', () => {
             this.resetCamera();
         });
+
+        //redraw listener
+        var changeDotFlagListener = _.extend({}, Backbone.Events);
+        changeDotFlagListener.listenTo(Backbone, 'redrawDots', ()=>{
+            console.log('Запуск перерисовки')
+            this.changeLandmarks()
+        });
+
     },
 
     width: function () {
@@ -496,6 +504,8 @@ export default Backbone.View.extend({
         }
     },
 
+
+
     changeLandmarks: atomic.atomicOperation(function () {
         console.log('Viewport: landmarks have changed');
         var that = this;
@@ -533,6 +543,8 @@ export default Backbone.View.extend({
                     viewport: that
                 }));
         });
+        // console.log(landmarks)
+        // console.log()
 
     }),
 
