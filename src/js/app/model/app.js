@@ -332,8 +332,6 @@ export default Backbone.Model.extend({
         ).then((json) => {
             this.setGender(json.gender);
             this.setTypeOfPhoto(json.typeOfPhoto);
-            console.log('JSON LOAD LANDMARKS PROMISE')
-            console.log(json)
             return LandmarkGroup.parse(
                 json,
                 this.asset().id,
@@ -368,7 +366,6 @@ export default Backbone.Model.extend({
         // resolve when all the key data for annotating is loaded, the
         // promiseLandmark wraps it and only resolves when both landmarks (if
         // applicable) and asset data are present
-
         if (newAssetPromise) {
             this.set('landmarks', null);
             return this._promiseLandmarksWithAsset(newAssetPromise);
@@ -376,7 +373,6 @@ export default Backbone.Model.extend({
     },
 
     nextAsset: function () {
-        console.log('nextAsset')
         if (this.assetSource().hasSuccessor()) {
             this.autoSaveWrapper(() => {
                 this._switchToAsset(this.assetSource().next());
@@ -385,7 +381,6 @@ export default Backbone.Model.extend({
     },
 
     previousAsset: function () {
-        console.log('previousAsset')
         if (this.assetSource().hasPredecessor()) {
             this.autoSaveWrapper(() => {
                 this._switchToAsset(this.assetSource().previous());
@@ -394,13 +389,9 @@ export default Backbone.Model.extend({
     },
 
     goToAssetIndex: function (newIndex) {
-        console.log('gotoAsset')
         this.autoSaveWrapper(() => {
             this._switchToAsset(this.assetSource().setIndex(newIndex));
         });
-        console.log('GO TO ASSET INDEX')
-        console.log(this)
-
     },
 
     reloadLandmarksFromPrevious: function () {

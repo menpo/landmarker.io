@@ -254,7 +254,7 @@ function initLandmarker(server, mode, u) {
         }
         prevAsset = app.asset();
     });
-    console.log
+
     // update the URL of the page as the state changes
     new URLState({model: app});
 
@@ -275,7 +275,6 @@ function handleNewVersion () {
 
     $topBar.addClass('Display');
 }
-
 
 document.addEventListener('DOMContentLoaded', function () {
 

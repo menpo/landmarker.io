@@ -9,10 +9,9 @@ const LM_SCALE = 0.01;
 
 const LM_SPHERE_PARTS = 10;
 const LM_SPHERE_SELECTED_COLOR = 0xff75ff;
-const LM_SPHERE_UNSELECTED_COLOR = 0x3ACC3A;
+const LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
 const LM_CONNECTION_LINE_COLOR = LM_SPHERE_UNSELECTED_COLOR;
-const LM_CONNECTION_LINE_COLOR_INVISIBLE = 0xffff00;
-const LM_CONNECTION_LINE_COLOR_BAD = 0xFF0000;
+const LM_CONNECTION_LINE_COLOR_NOT_VISIBLE = 0x3ACC3A;
 
 // create a single geometry + material that will be shared by all landmarks
 var lmGeometry = new THREE.SphereGeometry(
@@ -40,7 +39,6 @@ export const LandmarkTHREEView = Backbone.View.extend({
         this.listenTo(this.app, "change:landmarkSize", this.changeLandmarkSize);
         this.symbol = null; // a THREE object that represents this landmark.
         // null if the landmark isEmpty
-        console.log('upad')
         this.render();
     },
 
@@ -72,10 +70,8 @@ export const LandmarkTHREEView = Backbone.View.extend({
 
     createSphere: function (v, radius, selected) {
         //console.log('creating sphere of radius ' + radius);
-        if(this.model.attributes.bad){
-            lmMaterialForSelected.false = new THREE.MeshBasicMaterial({color: LM_CONNECTION_LINE_COLOR_BAD})
-        } else if(this.model.attributes.invisible) {
-            lmMaterialForSelected.false = new THREE.MeshBasicMaterial({color: LM_CONNECTION_LINE_COLOR_INVISIBLE})
+        if(this.model.attributes.invisible){
+            lmMaterialForSelected.false = new THREE.MeshBasicMaterial({color: LM_CONNECTION_LINE_COLOR_NOT_VISIBLE})
         } else {
             lmMaterialForSelected.false = new THREE.MeshBasicMaterial({color: LM_CONNECTION_LINE_COLOR})
         }
@@ -94,7 +90,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
     dispose: function () {
         if (this.symbol) {
             this.viewport.sLms.remove(this.symbol);
-            // console.log(this.viewport)
+            console.log(this.viewport)
             this.symbol = null;
         }
     },
@@ -157,15 +153,11 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
         geometry.vertices.push(start.clone());
         geometry.vertices.push(end.clone());
 
-        if(this.model[1].attributes.bad && this.model[0].attributes.bad){
+        if(this.model[1].attributes.invisible){
             lineMaterial = new THREE.LineBasicMaterial({
-                color: LM_CONNECTION_LINE_COLOR_BAD,
+                color: LM_CONNECTION_LINE_COLOR_NOT_VISIBLE,
                 linewidth: 1
             });
-        } else if(this.model[1].attributes.invisible && this.model[0].attributes.invisible) {
-            lineMaterial = new THREE.LineBasicMaterial({
-                color: LM_CONNECTION_LINE_COLOR_INVISIBLE,
-                linewidth: 1});
         } else {
             lineMaterial = new THREE.LineBasicMaterial({
                 color: LM_CONNECTION_LINE_COLOR,

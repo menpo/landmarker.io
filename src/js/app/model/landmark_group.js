@@ -86,7 +86,7 @@ LandmarkLabel.prototype.toJSON = function () {
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
 export default function LandmarkGroup (
-    points, connectivity, bad, invisible, labels, id, type, server, tracker
+    points, connectivity, labels, id, type, server, tracker
 ) {
     this.id = id;
     this.type = type;
@@ -96,13 +96,18 @@ export default function LandmarkGroup (
     // 1. Build landmarks from points
     this.landmarks = points.map((p, index) => {
         const [point, nDims] = _pointToVector(p);
+<<<<<<< HEAD
         var badSlug;
         var invisibleSlug;
         bad ? badSlug = bad[index] : badSlug = false;
         invisible ? invisibleSlug = invisible[index] : invisibleSlug = false;
         const lmInitObj = {group: this, index, nDims, bad: badSlug, invisible: invisibleSlug};
+=======
+        const lmInitObj = {group: this, index, nDims, point};
+>>>>>>> parent of cff01fb... flags
         return new Landmark(lmInitObj);
     });
+
     // 2. Validate and assign connectivity (if there is any, it's not mandatory)
     this.connectivity = _validateConnectivity(this.landmarks.length,
                                               connectivity);
@@ -207,12 +212,6 @@ LandmarkGroup.prototype.insertNew = atomicOperation(function (v, invisible, bad)
     if (lm === null) {
         return null;    // nothing left to insert!
     }
-
-    if(!invisible && !bad){
-        var invisible = false;
-        var bad = false;
-    }
-
     // we are definitely inserting.
     this.deselectAll();
     this.setLmAt(lm, v, invisible, bad);
@@ -251,9 +250,7 @@ LandmarkGroup.prototype.toJSON = function () {
     return {
         landmarks: {
             points: this.landmarks.map(lm => lm.toJSON()),
-            connectivity: this.connectivity,
-            invisible: this.landmarks.map(lm => lm.attributes.invisible),
-            bad: this.landmarks.map(lm => lm.attributes.bad)
+            connectivity: this.connectivity
         },
         labels: this.labels.map(label => label.toJSON()),
         gender: null,
@@ -277,62 +274,18 @@ LandmarkGroup.prototype.save = function (gender, typeOfPhoto) {
         });
 };
 
-LandmarkGroup.prototype.markAsBad = function () { // z - mark as bad
-        var selected = this.selected()[0];
-
-        // if(this.landmarks[this.landmarks.indexOf(_.find(this.landmarks.reverse(), function(landmark){
-        //     return landmark.cid == selected.cid;
-        // })) - 1]){
-        //     this.landmarks[this.landmarks.indexOf(_.find(this.landmarks.reverse(), function(landmark){
-        //         return landmark.cid == selected.cid;
-        //     })) - 1].set({
-        //         bad: !selected.attributes.bad,
-        //         point: selected.point()
-        //     })
-        // }
-
-        if( _.find(this.landmarks.reverse(), function(landmark){
-            return landmark.cid == selected.cid;
-        })) {
-            _.find(this.landmarks.reverse(), function(landmark){
-                return landmark.cid == selected.cid;
-            }).set({
-                bad: !selected.attributes.bad,
-                point: selected.point()
-            })
-        }
-
-
-        console.log('Нажато и обработано Z')
-        Backbone.on('redrawDots', function() {} );
-        Backbone.trigger('redrawDots');
-
+LandmarkGroup.prototype.markAsBad = function (lm) {
+    console.log('В лендмарке MarkAsBad')
+    var lndmrk = _.clone(lm);
+    lm.selectAndDeselectRest();
+    this.deleteSelected();
+    console.log(lndmrk)
+    this.insertNew(lndmrk.point(), lndmrk.attributes.invisible, !lndmrk.attributes.bad)
 }
 
-LandmarkGroup.prototype.markAsInvisible = function () { // a - mark as invisible
-        var selected = this.selected()[0];
-
-    //     if(this.landmarks[this.landmarks.indexOf(_.find(this.landmarks.reverse(), function(landmark){
-    //         return landmark.cid == selected.cid;
-    //     })) - 1]){
-    //     this.landmarks[this.landmarks.indexOf(_.find(this.landmarks.reverse(), function(landmark){
-    //         return landmark.cid == selected.cid;
-    //     })) - 1].set({
-    //         invisible: !selected.attributes.invisible,
-    //         point: selected.point()
-    //     })
-    // }
-
-        _.find(this.landmarks.reverse(), function(landmark){
-            return landmark.cid == selected.cid;
-        }).set({
-            invisible: !selected.attributes.invisible,
-            point: selected.point()
-        })
-
-        console.log('Нажато и обработано A')
-        Backbone.on('redrawDots', function() {} );
-        Backbone.trigger('redrawDots');
+LandmarkGroup.prototype.markAsInvisible = function (lm) {
+    console.log('В лендмарке MarkAsInvisible')
+    this.insertNew(lm.point(), !lm.attributes.invisible, lm.attributes.bad)
 
 }
 
@@ -379,8 +332,6 @@ LandmarkGroup.parse = function (json, id, type, server, tracker) {
     return new LandmarkGroup(
         json.landmarks.points,
         json.landmarks.connectivity,
-        json.landmarks.bad,
-        json.landmarks.invisible,
         json.labels,
         id,
         type,

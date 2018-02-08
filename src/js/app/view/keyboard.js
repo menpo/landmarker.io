@@ -89,13 +89,21 @@ const SHORTCUTS = {
 
     "z": [function (lms) { // z = mark as bad
         if (lms) {
-            lms.markAsBad();
+            var lm = _.find(lms.landmarks.reverse(), function(landmark){
+                return landmark.point() != null;
+            })
+            lms.markAsBad(lm);
+
         }
     }, false, true],
 
     "a": [function (lms) { // a = mark as invisible
         if (lms) {
-            lms.markAsInvisible();
+            var lm = _.find(lms.landmarks.reverse(), function(landmark){
+                return landmark.point() != null;
+            })
+
+            lms.markAsInvisible(lm);
         }
     }, false, true],
 

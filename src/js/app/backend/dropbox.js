@@ -511,8 +511,6 @@ Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
     const dim = this.mode === 'mesh' ? 3 : 2;
     return new Promise((resolve) => {
         this.download(path).then((data) => {
-            console.log('FETCH LANDMARK GROUP')
-            console.log(JSON.parse(data))
             resolve(JSON.parse(data));
         }, () => {
             resolve(this._templates[type].emptyLJSON(dim));
