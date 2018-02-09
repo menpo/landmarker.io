@@ -92,15 +92,16 @@ export default function LandmarkGroup (
     this.type = type;
     this.server = server;
     this.tracker = tracker || new Tracker();
-
     // 1. Build landmarks from points
     this.landmarks = points.map((p, index) => {
+        //p - x,y coord of point
         const [point, nDims] = _pointToVector(p);
         var badSlug;
         var invisibleSlug;
         bad ? badSlug = bad[index] : badSlug = false;
         invisible ? invisibleSlug = invisible[index] : invisibleSlug = false;
-        const lmInitObj = {group: this, index, nDims, bad: badSlug, invisible: invisibleSlug};
+        const lmInitObj = {group: this, point, index, nDims, bad: badSlug, invisible: invisibleSlug};
+        // const lmInitObj = {group: this, point, index, nDims};
         return new Landmark(lmInitObj);
     });
     // 2. Validate and assign connectivity (if there is any, it's not mandatory)
@@ -150,7 +151,7 @@ LandmarkGroup.prototype.restore = atomicOperation(function ({
 LandmarkGroup.prototype.nextAvailable = function () {
     for (let i = 0; i < this.landmarks.length; i++) {
         if (this.landmarks[i].isNextAvailable()) {
-            return this.landmarks[i];
+            return this.la;
         }
     }
     return null;
@@ -217,10 +218,14 @@ LandmarkGroup.prototype.insertNew = atomicOperation(function (v, invisible, bad)
     this.deselectAll();
     this.setLmAt(lm, v, invisible, bad);
     this.resetNextAvailable(lm);
+    console.log('insert new')
 });
 
 LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v, invisible, bad) {
-
+    console.log(lm)
+    console.log(v)
+    console.log(invisible)
+    console.log(bad)
     if (!v) {
         return;
     }
@@ -248,7 +253,6 @@ LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v, invisible, ba
 });
 //track
 LandmarkGroup.prototype.toJSON = function () {
-    console.log(this.landmarks)
     return {
         landmarks: {
             points: this.landmarks.map(lm => lm.toJSON()),
@@ -281,60 +285,54 @@ LandmarkGroup.prototype.save = function (gender, typeOfPhoto) {
 LandmarkGroup.prototype.markAsBad = function () { // z - mark as bad
         var selected = this.selected()[0];
 
-        // if(this.landmarks[this.landmarks.indexOf(_.find(this.landmarks.reverse(), function(landmark){
-        //     return landmark.cid == selected.cid;
-        // })) - 1]){
-        //     this.landmarks[this.landmarks.indexOf(_.find(this.landmarks.reverse(), function(landmark){
-        //         return landmark.cid == selected.cid;
-        //     })) - 1].set({
-        //         bad: !selected.attributes.bad,
-        //         point: selected.point()
-        //     })
-        // }
+        if(selected){
+            var lm =  _.find(this.landmarks.reverse(), function(landmark){
+                return landmark.attributes.index == selected.attributes.index;
+            });
 
-        if( _.find(this.landmarks.reverse(), function(landmark){
-            return landmark.cid == selected.cid;
-        })) {
-            _.find(this.landmarks.reverse(), function(landmark){
-                return landmark.cid == selected.cid;
-            }).set({
-                bad: !selected.attributes.bad,
-                point: selected.point()
-            })
+            if(lm && selected) {
+                lm.set({
+                    bad: !selected.attributes.bad,
+                    point: selected.point()
+                })
+                var lmNext = _.find(this.landmarks.reverse(), function(landmark){
+                    return landmark.attributes.index == selected.attributes.index + 1;
+                })
+                var lmPrev = _.find(this.landmarks.reverse(), function(landmark){
+                    return landmark.attributes.index == selected.attributes.index - 1;
+                })
+            }
+
+            console.log('Нажато и обработано Z')
+            Backbone.on('redrawDots', function() {} );
+            Backbone.trigger('redrawDots', lm, lmNext, lmPrev);
         }
-
-
-        console.log('Нажато и обработано Z')
-        Backbone.on('redrawDots', function() {} );
-        Backbone.trigger('redrawDots');
-
 }
 
 LandmarkGroup.prototype.markAsInvisible = function () { // a - mark as invisible
         var selected = this.selected()[0];
 
-    //     if(this.landmarks[this.landmarks.indexOf(_.find(this.landmarks.reverse(), function(landmark){
-    //         return landmark.cid == selected.cid;
-    //     })) - 1]){
-    //     this.landmarks[this.landmarks.indexOf(_.find(this.landmarks.reverse(), function(landmark){
-    //         return landmark.cid == selected.cid;
-    //     })) - 1].set({
-    //         invisible: !selected.attributes.invisible,
-    //         point: selected.point()
-    //     })
-    // }
+        if(selected){
+            var lm =  _.find(this.landmarks.reverse(), function(landmark){
+                return landmark.attributes.index == selected.attributes.index;
+            });
+            if(lm && selected) {
+                lm.set({
+                    invisible: !selected.attributes.invisible,
+                    point: selected.point()
+                })
+                var lmNext = _.find(this.landmarks.reverse(), function(landmark){
+                    return landmark.attributes.index == selected.attributes.index + 1;
+                })
+                var lmPrev = _.find(this.landmarks.reverse(), function(landmark){
+                    return landmark.attributes.index == selected.attributes.index - 1;
+                })
+            }
 
-        _.find(this.landmarks.reverse(), function(landmark){
-            return landmark.cid == selected.cid;
-        }).set({
-            invisible: !selected.attributes.invisible,
-            point: selected.point()
-        })
-
-        console.log('Нажато и обработано A')
-        Backbone.on('redrawDots', function() {} );
-        Backbone.trigger('redrawDots');
-
+            console.log('Нажато и обработано A')
+            Backbone.on('redrawDots', function() {} );
+            Backbone.trigger('redrawDots', lm, lmNext, lmPrev);
+        }
 }
 
 LandmarkGroup.prototype.undo = function () {

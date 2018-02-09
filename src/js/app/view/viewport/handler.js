@@ -112,13 +112,19 @@ export default function Handler () {
             }
         }
         console.log('Viewport: finding the selected points');
-        lmPressedWasSelected = lmPressed.isSelected();
+        if(lmPressed){
+            lmPressedWasSelected = lmPressed.isSelected();
+        } else {
+            return;
+        }
 
         if (!lmPressedWasSelected && !ctrl) {
             // this lm wasn't pressed before and we aren't holding
             // mutliselection down - deselect rest and select this
             console.log("normal click on a unselected lm - deselecting rest and selecting me");
+            if(lmPressed){
             lmPressed.selectAndDeselectRest();
+            }
         } else if (ctrl && !lmPressedWasSelected) {
             lmPressed.select();
         }

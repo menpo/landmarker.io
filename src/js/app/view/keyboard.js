@@ -85,7 +85,7 @@ const SHORTCUTS = {
         app.decrementLandmarkSize();
     }, true, false],
 
-    // Last LM flag keys
+    // LM flag keys
 
     "z": [function (lms) { // z = mark as bad
         if (lms) {

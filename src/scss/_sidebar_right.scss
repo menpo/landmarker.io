@@ -245,6 +245,7 @@ is itself a row flexbox */
     position: relative;
 }
 
+
 .LmGroup-Label,
 .LmGroup-Flex {
     width: 100%;
@@ -260,7 +261,17 @@ is itself a row flexbox */
     color: white;
     align-items: center;
     justify-content: center;
+    // display: flex;
+    display:none;
+}
+
+.LM-Value-Label{
+    color: white;
     display: flex;
+    justify-content: center;
+    align-items: center;
+    height: inherit;
+    font-size: 12px;
 }
 
 .LmGroup-Label--Active {

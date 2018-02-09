@@ -28,7 +28,7 @@ export const LandmarkView = Backbone.View.extend({
     render: function () {
         const html = $("<div></div>");
         html.addClass("Lm", this.model.isEmpty());
-
+        html.html('<div class="LM-Value-Label">' + this.model.attributes.index.toString() + '</div>');
         html.toggleClass("Lm-Empty", this.model.isEmpty());
         html.toggleClass("Lm-Value", !this.model.isEmpty());
         html.toggleClass("Lm-Selected", this.model.isSelected());

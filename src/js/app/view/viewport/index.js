@@ -281,9 +281,9 @@ export default Backbone.View.extend({
 
         //redraw listener
         var changeDotFlagListener = _.extend({}, Backbone.Events);
-        changeDotFlagListener.listenTo(Backbone, 'redrawDots', ()=>{
+        changeDotFlagListener.listenTo(Backbone, 'redrawDots', (lm, lmNext, lmPrev)=>{
             console.log('Запуск перерисовки')
-            this.changeLandmarks()
+            this.redrawThreeLandmarks(lm, lmNext, lmPrev)
         });
 
     },
@@ -505,6 +505,66 @@ export default Backbone.View.extend({
     },
 
 
+
+    redrawThreeLandmarks: atomic.atomicOperation(function (landmark, lmNext, lmPrev) {
+
+        var that = this;
+
+        var landmarks = this.model.get('landmarks');
+        if (landmarks === null) {
+            return;
+        }
+
+        that.landmarkViews[landmark.attributes.index] = new LandmarkTHREEView(
+            {
+                model: landmark,
+                viewport: that
+            }
+        );
+        // if(lmNext){
+        //     that.landmarkViews[lmNext.attributes.index] = new LandmarkConnectionTHREEView(
+        //         {
+        //             model: lmNext,
+        //             viewport: that
+        //         }
+        //     )
+        // }
+        // if(lmPrev){
+        //     that.landmarkViews[lmPrev.attributes.index] = new LandmarkConnectionTHREEView(
+        //         {
+        //             model: lmPrev,
+        //             viewport: that
+        //         }
+        //     )
+        // }
+        var line1 = _.find(that.connectivityViews, (cnv, index)=>{
+                return cnv.model[0] == landmark;
+            });
+        var line2 = _.find(that.connectivityViews, (cnv)=>{
+                return cnv.model[1] == landmark;
+            });
+
+        if(line1){
+            that.connectivityViews[that.connectivityViews.indexOf(line1)] = new LandmarkConnectionTHREEView(
+                {
+                    model: [landmark,
+                        lmNext],
+                    viewport: that
+                }
+            );
+        }
+        if(line2){
+            that.connectivityViews[that.connectivityViews.indexOf(line2)] = new LandmarkConnectionTHREEView(
+                {
+                    model: [lmPrev,
+                        landmark],
+                    viewport: that
+                }
+            );
+        }
+
+
+    }),
 
     changeLandmarks: atomic.atomicOperation(function () {
         console.log('Viewport: landmarks have changed');
