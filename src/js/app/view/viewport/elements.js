@@ -125,7 +125,7 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
     render: function () {
         if (this.symbol !== null) {
             // this landmark already has an allocated representation..
-            if(this.model[0] || this.model[1]){
+            // if(this.model[0] || this.model[1]){
                 if (this.model[0].isEmpty() || this.model[1].isEmpty()) {
                     // but it's been deleted.
                     this.dispose();
@@ -134,10 +134,10 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
                     // the connection may need updating. See what needs to be done
                     this.updateSymbol();
                 }
-            }
+            // }
         } else {
             // there is no symbol yet
-            if(this.model[0] || this.model[1]){
+            // if(this.model[0] || this.model[1]){
             if (!this.model[0].isEmpty() && !this.model[1].isEmpty()) {
                 // and there should be! Make it and update it
 
@@ -147,7 +147,7 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
                 // and add it to the scene
                 this.viewport.sLmsConnectivity.add(this.symbol);
             }
-        }
+        // }
         }
         // tell our viewport to update
         this.viewport.update();

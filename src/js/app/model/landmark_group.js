@@ -151,7 +151,7 @@ LandmarkGroup.prototype.restore = atomicOperation(function ({
 LandmarkGroup.prototype.nextAvailable = function () {
     for (let i = 0; i < this.landmarks.length; i++) {
         if (this.landmarks[i].isNextAvailable()) {
-            return this.la;
+            return this.landmarks[i];
         }
     }
     return null;
@@ -205,6 +205,7 @@ LandmarkGroup.prototype.deleteSelected = atomicOperation(function () {
 
 LandmarkGroup.prototype.insertNew = atomicOperation(function (v, invisible, bad) {
     const lm = this.nextAvailable();
+    console.log(lm)
     if (lm === null) {
         return null;    // nothing left to insert!
     }
@@ -222,14 +223,10 @@ LandmarkGroup.prototype.insertNew = atomicOperation(function (v, invisible, bad)
 });
 
 LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v, invisible, bad) {
-    console.log(lm)
-    console.log(v)
-    console.log(invisible)
-    console.log(bad)
     if (!v) {
         return;
     }
-
+    console.log(lm)
     this.tracker.record([
         [ lm.get('index'),
          lm.point() ? lm.point().clone() : undefined,
@@ -245,7 +242,6 @@ LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v, invisible, ba
         point: v.clone(),
         selected: true,
         isEmpty: false,
-        nextAvailable: false,
         invisible: invisible,
         bad: bad
     });
