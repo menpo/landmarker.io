@@ -291,17 +291,11 @@ LandmarkGroup.prototype.markAsBad = function () { // z - mark as bad
                     bad: !selected.attributes.bad,
                     point: selected.point()
                 })
-                var lmNext = _.find(this.landmarks.reverse(), function(landmark){
-                    return landmark.attributes.index == selected.attributes.index + 1;
-                })
-                var lmPrev = _.find(this.landmarks.reverse(), function(landmark){
-                    return landmark.attributes.index == selected.attributes.index - 1;
-                })
             }
 
             console.log('Нажато и обработано Z')
             Backbone.on('redrawDots', function() {} );
-            Backbone.trigger('redrawDots', lm, lmNext, lmPrev);
+            Backbone.trigger('redrawDots', lm);
         }
 }
 
@@ -317,17 +311,11 @@ LandmarkGroup.prototype.markAsInvisible = function () { // a - mark as invisible
                     invisible: !selected.attributes.invisible,
                     point: selected.point()
                 })
-                var lmNext = _.find(this.landmarks.reverse(), function(landmark){
-                    return landmark.attributes.index == selected.attributes.index + 1;
-                })
-                var lmPrev = _.find(this.landmarks.reverse(), function(landmark){
-                    return landmark.attributes.index == selected.attributes.index - 1;
-                })
             }
 
             console.log('Нажато и обработано A')
             Backbone.on('redrawDots', function() {} );
-            Backbone.trigger('redrawDots', lm, lmNext, lmPrev);
+            Backbone.trigger('redrawDots', lm);
         }
 }
 
@@ -371,6 +359,7 @@ LandmarkGroup.prototype.completeGroups = function () {
 };
 
 LandmarkGroup.parse = function (json, id, type, server, tracker) {
+    console.log(json.landmarks.connectivity)
     return new LandmarkGroup(
         json.landmarks.points,
         json.landmarks.connectivity,

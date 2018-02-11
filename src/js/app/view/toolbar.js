@@ -3,6 +3,7 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
 import atomic from '../model/atomic';
+import $ from 'jquery';
 
 export const LandmarkSizeSlider = Backbone.View.extend({
 
@@ -140,6 +141,7 @@ export const AutoSaveToggle = Backbone.View.extend({
         _.bindAll(this, 'render', 'toggle');
         this.listenTo(this.model, 'change:autoSaveOn', this.render);
         this.render();
+        console.log(this.$el.find('#autosaveToggle'))
     },
 
     render: function () {
@@ -150,6 +152,53 @@ export const AutoSaveToggle = Backbone.View.extend({
     toggle: function () {
         this.model.toggleAutoSave();
     }
+});
+
+export const LandMarkChangedStatus = Backbone.View.extend({
+
+    el: '#LandMarkChangedStatus',
+
+    events: {
+        'change status': "toggle"
+    },
+
+    initialize: function () {
+        _.bindAll(this, 'render', 'changeLandMarkStatus');
+        //init data
+        this.index;
+        this.invisible;
+        this.bad;
+
+        //listener
+        var changeTolbarDotStatus = _.extend({}, Backbone.Events);
+        changeTolbarDotStatus.listenTo(Backbone, 'changeStatusInToolbar', (lm)=>{
+            this.index = lm.attributes.index;
+            this.invisible = lm.attributes.invisible;
+            this.bad = lm.attributes.bad;
+            this.render();
+       });
+        this.render();
+    },
+
+    render: function () {
+        if(this.index){
+            var invisible = this.invisible ? 'Yes' : 'No';
+            var bad =  this.bad ? 'Yes' : 'No';
+            $('#LandMarkChangedStatus').css("display", "flex");
+            $('#LM-Index').html(this.index.toString());
+            $('#LM-Invisible').html(invisible);
+            $('#LM-Bad').html(bad);
+        } else {
+            $('#LandMarkChangedStatus').css("display", "none");
+        }
+    },
+
+    changeLandMarkStatus: function(lm){
+        this.index = lm.attributes.index;
+        this.invisible = lm.attributes.invisible;
+        this.bad = lm.attributes.bad;
+    }
+
 });
 
 export default Backbone.View.extend({
@@ -167,6 +216,7 @@ export default Backbone.View.extend({
             this.$el.find('#textureRow').css("display", "none");
         }
         this.autosaveToggle = new AutoSaveToggle({model: this.model});
+        this.landMarkChangedStatus = new LandMarkChangedStatus({model: this.model});
     }
 
 });

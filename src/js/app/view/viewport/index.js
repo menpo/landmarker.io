@@ -281,9 +281,9 @@ export default Backbone.View.extend({
 
         //redraw listener
         var changeDotFlagListener = _.extend({}, Backbone.Events);
-        changeDotFlagListener.listenTo(Backbone, 'redrawDots', (lm, lmNext, lmPrev)=>{
+        changeDotFlagListener.listenTo(Backbone, 'redrawDots', (lm)=>{
             console.log('Запуск перерисовки')
-            this.redrawThreeLandmarks(lm, lmNext, lmPrev)
+            this.redrawFlaggedLandmarks(lm)
         });
 
     },
@@ -506,7 +506,9 @@ export default Backbone.View.extend({
 
 
 
-    redrawThreeLandmarks: atomic.atomicOperation(function (landmark, lmNext, lmPrev) {
+    redrawFlaggedLandmarks: atomic.atomicOperation(function (landmark) {
+
+        //redraw 1 dot and 2(or 1) connectivities depends on flag
 
         var that = this;
 
@@ -515,28 +517,15 @@ export default Backbone.View.extend({
             return;
         }
 
+        //setting new dot
         that.landmarkViews[landmark.attributes.index] = new LandmarkTHREEView(
             {
                 model: landmark,
                 viewport: that
             }
         );
-        // if(lmNext){
-        //     that.landmarkViews[lmNext.attributes.index] = new LandmarkConnectionTHREEView(
-        //         {
-        //             model: lmNext,
-        //             viewport: that
-        //         }
-        //     )
-        // }
-        // if(lmPrev){
-        //     that.landmarkViews[lmPrev.attributes.index] = new LandmarkConnectionTHREEView(
-        //         {
-        //             model: lmPrev,
-        //             viewport: that
-        //         }
-        //     )
-        // }
+
+        //detecting connectivity of lines
         var line1 = _.find(that.connectivityViews, (cnv, index)=>{
                 return cnv.model[0] == landmark;
             });
@@ -544,11 +533,14 @@ export default Backbone.View.extend({
                 return cnv.model[1] == landmark;
             });
 
+            console.log(line1)
+
+        //setting new connectivity
         if(line1){
             that.connectivityViews[that.connectivityViews.indexOf(line1)] = new LandmarkConnectionTHREEView(
                 {
                     model: [landmark,
-                        lmNext],
+                            line1.model[1]],
                     viewport: that
                 }
             );
@@ -556,12 +548,15 @@ export default Backbone.View.extend({
         if(line2){
             that.connectivityViews[that.connectivityViews.indexOf(line2)] = new LandmarkConnectionTHREEView(
                 {
-                    model: [lmPrev,
+                    model: [line2.model[0],
                         landmark],
                     viewport: that
                 }
             );
         }
+
+        Backbone.on('changeStatusInToolbar', function() {} );
+        Backbone.trigger('changeStatusInToolbar', landmark);
 
 
     }),

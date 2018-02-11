@@ -33,7 +33,6 @@ export const LandmarkView = Backbone.View.extend({
         html.toggleClass("Lm-Value", !this.model.isEmpty());
         html.toggleClass("Lm-Selected", this.model.isSelected());
         html.toggleClass("Lm-NextAvailable", this.model.isNextAvailable());
-
         // in case our element is already live replace the content
         this.$el.replaceWith(html);
         // now set the element back so we have a handle. If this is the
