@@ -40,7 +40,6 @@ export const LandmarkTHREEView = Backbone.View.extend({
         this.listenTo(this.app, "change:landmarkSize", this.changeLandmarkSize);
         this.symbol = null; // a THREE object that represents this landmark.
         // null if the landmark isEmpty
-        console.log('upad')
         this.render();
     },
 

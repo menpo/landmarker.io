@@ -205,7 +205,6 @@ LandmarkGroup.prototype.deleteSelected = atomicOperation(function () {
 
 LandmarkGroup.prototype.insertNew = atomicOperation(function (v, invisible, bad) {
     const lm = this.nextAvailable();
-    console.log(lm)
     if (lm === null) {
         return null;    // nothing left to insert!
     }
@@ -219,14 +218,12 @@ LandmarkGroup.prototype.insertNew = atomicOperation(function (v, invisible, bad)
     this.deselectAll();
     this.setLmAt(lm, v, invisible, bad);
     this.resetNextAvailable(lm);
-    console.log('insert new')
 });
 
 LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v, invisible, bad) {
     if (!v) {
         return;
     }
-    console.log(lm)
     this.tracker.record([
         [ lm.get('index'),
          lm.point() ? lm.point().clone() : undefined,
@@ -280,7 +277,7 @@ LandmarkGroup.prototype.save = function (gender, typeOfPhoto) {
 
 LandmarkGroup.prototype.markAsBad = function () { // z - mark as bad
         var selected = this.selected()[0];
-        console.log(selected)
+
         if(selected){
             var lm =  _.find(this.landmarks.reverse(), function(landmark){
                 return landmark.attributes.index == selected.attributes.index;
@@ -293,7 +290,6 @@ LandmarkGroup.prototype.markAsBad = function () { // z - mark as bad
                 })
             }
 
-            console.log('Нажато и обработано Z')
             Backbone.on('redrawDots', function() {} );
             Backbone.trigger('redrawDots', lm);
         }
@@ -313,7 +309,6 @@ LandmarkGroup.prototype.markAsInvisible = function () { // a - mark as invisible
                 })
             }
 
-            console.log('Нажато и обработано A')
             Backbone.on('redrawDots', function() {} );
             Backbone.trigger('redrawDots', lm);
         }
