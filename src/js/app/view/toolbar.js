@@ -141,7 +141,6 @@ export const AutoSaveToggle = Backbone.View.extend({
         _.bindAll(this, 'render', 'toggle');
         this.listenTo(this.model, 'change:autoSaveOn', this.render);
         this.render();
-        console.log(this.$el.find('#autosaveToggle'))
     },
 
     render: function () {

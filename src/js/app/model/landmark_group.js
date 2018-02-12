@@ -280,7 +280,7 @@ LandmarkGroup.prototype.save = function (gender, typeOfPhoto) {
 
 LandmarkGroup.prototype.markAsBad = function () { // z - mark as bad
         var selected = this.selected()[0];
-
+        console.log(selected)
         if(selected){
             var lm =  _.find(this.landmarks.reverse(), function(landmark){
                 return landmark.attributes.index == selected.attributes.index;
@@ -359,7 +359,6 @@ LandmarkGroup.prototype.completeGroups = function () {
 };
 
 LandmarkGroup.parse = function (json, id, type, server, tracker) {
-    console.log(json.landmarks.connectivity)
     return new LandmarkGroup(
         json.landmarks.points,
         json.landmarks.connectivity,

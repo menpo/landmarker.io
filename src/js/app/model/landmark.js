@@ -57,6 +57,8 @@ export default Backbone.Model.extend({
     deselect: function () {
         if(this.isSelected()) {
             this.set('selected', false);
+            Backbone.on('preventDeselectChanging', function() {} );
+            Backbone.trigger('preventDeselectChanging', this);
         }
     },
 

@@ -282,9 +282,12 @@ export default Backbone.View.extend({
         //redraw listener
         var changeDotFlagListener = _.extend({}, Backbone.Events);
         changeDotFlagListener.listenTo(Backbone, 'redrawDots', (lm)=>{
-            console.log('Запуск перерисовки')
             this.redrawFlaggedLandmarks(lm)
         });
+        changeDotFlagListener.listenTo(Backbone, 'preventDeselectChanging', (lm)=>{
+            this.preventDeselectChanging(lm)
+        });
+
 
     },
 
@@ -372,11 +375,13 @@ export default Backbone.View.extend({
         if (this.showConnectivity) {
             this.renderer.clearDepth(); // clear depth buffer
             // and render the connectivity
+
             this.renderer.render(this.sceneHelpers, this.sCamera);
         }
 
         // 2. Render the PIP image if in orthographic mode
         if (this.sCamera === this.sOCam) {
+
             var b = this.pipBounds();
             this.renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
             this.renderer.setViewport(b.x, b.y, b.width, b.height);
@@ -454,7 +459,6 @@ export default Backbone.View.extend({
         this.editingOn = this.model.isEditingOn();
         this.clearCanvas();
         this._handler.setGroupSelected(false);
-
         // Manually bind to avoid useless function call (even with no effect)
         if (this.editingOn) {
             this.$el.on('mousemove', this._handler.onMouseMove);
@@ -505,6 +509,23 @@ export default Backbone.View.extend({
     },
 
 
+    preventDeselectChanging: atomic.atomicOperation(function (landmark){
+        var that = this;
+
+        var landmarks = this.model.get('landmarks');
+        if (landmarks === null) {
+            return;
+        }
+
+        //setting new dot
+        that.landmarkViews[landmark.attributes.index] = new LandmarkTHREEView(
+            {
+                model: landmark,
+                viewport: that
+            }
+        );
+
+    }),
 
     redrawFlaggedLandmarks: atomic.atomicOperation(function (landmark) {
 
@@ -532,8 +553,6 @@ export default Backbone.View.extend({
         var line2 = _.find(that.connectivityViews, (cnv)=>{
                 return cnv.model[1] == landmark;
             });
-
-            console.log(line1)
 
         //setting new connectivity
         if(line1){

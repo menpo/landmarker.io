@@ -105,6 +105,7 @@ export default function Handler () {
         this.cameraController.disable();
         // the clicked on landmark
         var landmarkSymbol = intersectsWithLms[0].object;
+        console.log(this.landmarkViews)
         // hunt through the landmarkViews for the right symbol
         for (var i = 0; i < this.landmarkViews.length; i++) {
             if (this.landmarkViews[i].symbol === landmarkSymbol) {
@@ -112,19 +113,19 @@ export default function Handler () {
             }
         }
         console.log('Viewport: finding the selected points');
-        if(lmPressed){
+        // if(lmPressed){
             lmPressedWasSelected = lmPressed.isSelected();
-        } else {
-            return;
-        }
+        // } else {
+        //     return;
+        // }
 
         if (!lmPressedWasSelected && !ctrl) {
             // this lm wasn't pressed before and we aren't holding
             // mutliselection down - deselect rest and select this
             console.log("normal click on a unselected lm - deselecting rest and selecting me");
-            if(lmPressed){
-            lmPressed.selectAndDeselectRest();
-            }
+            // if(lmPressed){
+                lmPressed.selectAndDeselectRest();
+                // }
         } else if (ctrl && !lmPressedWasSelected) {
             lmPressed.select();
         }
@@ -379,7 +380,7 @@ export default function Handler () {
             this.model.landmarks().tracker.record(dragStartPositions);
         }
 
-        this.clearCanvas();
+        // this.clearCanvas();
         dragged = false;
         dragStartPositions = [];
         isPressed = false;
