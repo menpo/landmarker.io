@@ -229,7 +229,11 @@ export default Backbone.View.extend({
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
-        this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
+        this.listenTo(this.model, "change:landmarks", () => {
+            this.changeLandmarks()
+            // window.location.reload();
+            // this.changeMesh();
+        });
 
         this.showConnectivity = true;
         this.listenTo(
@@ -280,14 +284,13 @@ export default Backbone.View.extend({
         });
 
         //redraw listener
-        var changeDotFlagListener = _.extend({}, Backbone.Events);
-        changeDotFlagListener.listenTo(Backbone, 'redrawDots', (lm)=>{
+        this.changeDotFlagListener = _.extend({}, Backbone.Events);
+        this.changeDotFlagListener.listenTo(Backbone, 'redrawDots', (lm)=>{
             this.redrawFlaggedLandmarks(lm)
         });
-        changeDotFlagListener.listenTo(Backbone, 'preventDeselectChanging', (lm)=>{
+        this.changeDotFlagListener.listenTo(Backbone, 'preventDeselectChanging', (lm)=>{
             this.preventDeselectChanging(lm)
         });
-
 
     },
 
@@ -534,67 +537,80 @@ export default Backbone.View.extend({
         var that = this;
 
         var landmarks = this.model.get('landmarks');
+        var viewportChange = that.landmarkViews[landmark.attributes.index].viewport
         if (landmarks === null) {
             return;
         }
 
         //setting new dot
-        that.landmarkViews[landmark.attributes.index] = new LandmarkTHREEView(
+        that.landmarkViews.splice(landmark.attributes.index, 1,  new LandmarkTHREEView(
             {
                 model: landmark,
-                viewport: that
+                viewport: viewportChange
             }
-        );
-
+        ));
         //detecting connectivity of lines
-        var line1 = _.find(that.connectivityViews, (cnv, index)=>{
+        if(that.connectivityViews){
+        var line1 = _.find(that.connectivityViews, (cnv)=>{
+            if(cnv){
                 return cnv.model[0] == landmark;
+            }
             });
         var line2 = _.find(that.connectivityViews, (cnv)=>{
+            if(cnv){
                 return cnv.model[1] == landmark;
+            }
             });
-
+        }
         //setting new connectivity
         if(line1){
-            that.connectivityViews[that.connectivityViews.indexOf(line1)] = new LandmarkConnectionTHREEView(
+            that.connectivityViews.splice(that.connectivityViews.indexOf(line1), 1, new LandmarkConnectionTHREEView(
                 {
                     model: [landmark,
                             line1.model[1]],
-                    viewport: that
+                    viewport: viewportChange
                 }
-            );
+            ))
+
         }
         if(line2){
-            that.connectivityViews[that.connectivityViews.indexOf(line2)] = new LandmarkConnectionTHREEView(
+            that.connectivityViews.splice(that.connectivityViews.indexOf(line2), 1, new LandmarkConnectionTHREEView(
                 {
                     model: [line2.model[0],
                         landmark],
-                    viewport: that
+                    viewport: viewportChange
                 }
-            );
+            ))
         }
 
         Backbone.on('changeStatusInToolbar', function() {} );
         Backbone.trigger('changeStatusInToolbar', landmark);
-
-
     }),
 
     changeLandmarks: atomic.atomicOperation(function () {
+        // this.changeDotFlagListener.stopListening();
         console.log('Viewport: landmarks have changed');
         var that = this;
+        //hardcode to clean shit up
+        this.sLms.children = []
+        this.sLmsConnectivity.children = []
 
         // 1. Dispose of all landmark and connectivity views
         _.map(this.landmarkViews, function (lmView) {
-            lmView.dispose();
+            if(lmView){
+                lmView.dispose();
+            }
         });
         _.map(this.connectivityViews, function (connView) {
-            connView.dispose();
+            if(connView){
+                connView.dispose();
+            }
         });
 
         // 2. Build a fresh set of views - clear any existing views
         this.landmarkViews = [];
         this.connectivityViews = [];
+
 
         var landmarks = this.model.get('landmarks');
         if (landmarks === null) {
@@ -617,8 +633,6 @@ export default Backbone.View.extend({
                     viewport: that
                 }));
         });
-        // console.log(landmarks)
-        // console.log()
 
     }),
 

@@ -94,7 +94,10 @@ export const LandmarkTHREEView = Backbone.View.extend({
         if (this.symbol) {
             this.viewport.sLms.remove(this.symbol);
             // console.log(this.viewport)
+            console.log('good')
             this.symbol = null;
+        } else {
+            console.log('shit')
         }
     },
 

@@ -105,19 +105,21 @@ export default function Handler () {
         this.cameraController.disable();
         // the clicked on landmark
         var landmarkSymbol = intersectsWithLms[0].object;
-        console.log(this.landmarkViews)
         // hunt through the landmarkViews for the right symbol
-        for (var i = 0; i < this.landmarkViews.length; i++) {
-            if (this.landmarkViews[i].symbol === landmarkSymbol) {
-                lmPressed = this.landmarkViews[i].model;
+        //ONLY FOR 2D! for 3d add '&& .z == .z'
+        if(this.landmarkViews.length > 0){
+
+        var lmview = _.find(this.landmarkViews, (lmv)=>{
+            if(lmv.model.attributes.point){
+                return lmv.model.attributes.point.x == landmarkSymbol.position.x && lmv.model.attributes.point.y == landmarkSymbol.position.y;
             }
+        });
+        if(lmview){
+            lmPressed = lmview.model;
         }
-        console.log('Viewport: finding the selected points');
-        // if(lmPressed){
+
+        if(lmPressed){
             lmPressedWasSelected = lmPressed.isSelected();
-        // } else {
-        //     return;
-        // }
 
         if (!lmPressedWasSelected && !ctrl) {
             // this lm wasn't pressed before and we aren't holding
@@ -129,6 +131,14 @@ export default function Handler () {
         } else if (ctrl && !lmPressedWasSelected) {
             lmPressed.select();
         }
+            } else {
+                return;
+            }
+        } else {
+            console.log('LM Views array is empty')
+            return;
+        }
+
 
         // record the position of where the drag started.
         positionLmDrag.copy(this.localToScreen(lmPressed.point()));
