@@ -1,11 +1,13 @@
 'use strict';
 
-import face from './face';
-import ibug68 from './ibug68';
-import simple10 from './simple10';
-import simple42 from './simple42';
+import contour59 from './contour59';
+import contour37 from './contour37';
+import custom59 from './custom59';
+import custom37 from './custom37';
 
-export default { face,
-                 ibug68,
-                 simple10,
-                 simple42 };
+export default {
+                contour59,
+                contour37,
+                custom59,
+                custom37
+                };
