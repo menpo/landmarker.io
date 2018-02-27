@@ -595,7 +595,6 @@ export default Backbone.View.extend({
     changePresetSetDots: function (obj) {
         this.changePresetListener.stopListening();
         this.model.landmarks().setPreset(obj);
-        // this.model.attributes.landmarks.landmarks[0].select();
     },
     redrawFlaggedLandmarks: atomic.atomicOperation(function (landmark) {
 
