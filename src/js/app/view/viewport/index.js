@@ -344,8 +344,7 @@ export default Backbone.View.extend({
                 points:  $('#points-select').val()
             };
 
-
-            that.model.goToAssetIndex($('#orientation-select').val())
+            that.model.goToAssetIndex(that.model.assetIndex())
 
             that.changePresetListener.listenTo(Backbone, 'changePreset', ()=>{
                 that.changePresetSetDots(obj)
@@ -596,7 +595,7 @@ export default Backbone.View.extend({
     changePresetSetDots: function (obj) {
         this.changePresetListener.stopListening();
         this.model.landmarks().setPreset(obj);
-
+        // this.model.attributes.landmarks.landmarks[0].select();
     },
     redrawFlaggedLandmarks: atomic.atomicOperation(function (landmark) {
 
@@ -711,6 +710,7 @@ export default Backbone.View.extend({
 
         Backbone.on('changePreset', function() {} );
         Backbone.trigger('changePreset');
+
     }),
 
     // 2D Canvas helper functions

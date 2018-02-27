@@ -339,7 +339,7 @@ LandmarkGroup.prototype.setPreset = function (obj) {
    Backbone.trigger('redrawPreset');
    Backbone.on('redrawCols', function() {} );
    Backbone.trigger('redrawCols', {label: this.label, lmg: this.landmarks});
-   this.landmarks[0].select()
+   this.landmarks[0].setNextAvailable()
 
 };
 
