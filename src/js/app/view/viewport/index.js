@@ -317,8 +317,10 @@ export default Backbone.View.extend({
                 $('#points-select').html('<option value="59" selected="selected">59</option>')
             }
         });
-        document.getElementById("points-select").addEventListener("change", function(){
-        });
+
+        // document.getElementById("points-select").addEventListener("change", function(){
+        //     //in case of new items will added
+        // });
 
 
 
@@ -600,7 +602,7 @@ export default Backbone.View.extend({
 
         //redraw 1 dot and 2(or 1) connectivities depends on flag
 
-        var that = this;;
+        var that = this;
 
         var landmarks = this.model.get('landmarks');
         var viewportChange = that.landmarkViews[landmark.attributes.index].viewport
