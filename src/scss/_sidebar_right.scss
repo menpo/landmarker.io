@@ -320,3 +320,52 @@ is itself a row flexbox */
 .Lm-NextAvailable {
     background: $colorOrange;
 }
+.RightSidebar-ChoosePreset{
+    padding: 10px 5px;
+    padding-bottom: 0;
+    background: rgba(10,78,178, 0.5);
+    // border-radius: 11%;
+    color:white;
+    text-align: left;
+}
+.ChoosePreset-wrapper{
+    display: none;
+    margin-bottom: 10px;
+}
+#orientation-select,#contour-select, #points-select{
+    width: 60%;
+    float: right;
+}
+.Button-ChangePreset{
+    background: $colorDarkerBlue;
+    &:hover {
+        background: $colorDarkBlue;
+    }
+
+    min-height: 30px;
+    line-height: 30px;
+    color: white;
+    text-transform: uppercase;
+    font-size: medium;
+    margin-bottom: 10px;
+}
+.Button-Apply{
+    display: none;
+    &:hover {
+        background: $colorDarkGreen;
+    }
+
+    &.Active::before {
+        content: '•';
+        color: $colorRed;
+        font-size: 2.75em;
+        vertical-align: top;
+        position: absolute;
+        left: 12px;
+    }
+    color: white;
+    text-transform: uppercase;
+    font-size: medium;
+    background: #4bb666;
+    margin-top: 10px;
+}

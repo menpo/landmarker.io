@@ -23,6 +23,7 @@ export const LandmarkView = Backbone.View.extend({
         _.bindAll(this, 'select', 'selectGroup', 'handleClick', 'selectAll');
         this._clickedTimeout = null;
         this.labelIndex = labelIndex;
+
     },
 
     render: function () {
@@ -98,6 +99,7 @@ export const LandmarkListView = Backbone.View.extend({
         this.lmViews = [];
         this.labelIndex = labelIndex;
         this.render();
+
     },
 
     render: function() {
@@ -183,6 +185,14 @@ export const LandmarkGroupListView = Backbone.View.extend({
         _.bindAll(this, 'render', 'renderOne');
         this.groups = [];
         this.render();
+
+
+        this.changeTabsListener = _.extend({}, Backbone.Events);
+        this.changeTabsListener.listenTo(Backbone, 'redrawCols', (lms)=>{
+            this.collection[0] = lms.label;
+            this.render();
+        });
+
     },
 
     render: function() {

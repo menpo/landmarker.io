@@ -67,6 +67,7 @@ export default Backbone.Model.extend({
     },
 
     setNextAvailable: function () {
+        // console.log(this.group())
         this.group().clearAllNextAvailable();
         this.set('nextAvailable', true);
     },

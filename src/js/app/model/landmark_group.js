@@ -116,7 +116,7 @@ export default function LandmarkGroup (
     // make sure we start with a sensible insertion configuration.
     this.resetNextAvailable();
     this.tracker.recordState(this.toJSON(), true);
-    window.lmg = this;
+    // window.lmg = this;
 }
 
 LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
@@ -275,6 +275,74 @@ LandmarkGroup.prototype.save = function (gender, typeOfPhoto) {
         });
 };
 
+
+//compact points to needed size
+LandmarkGroup.prototype.compactArray = function(array, size){
+    if(array.length == size){
+        return array;
+    }
+
+    if(array.length < size){
+        while (array.length != size){
+            //actually dont know why group w set automatically ¯\_(ツ)_/¯
+            array.push(new Landmark({index: array.length, group: this}));
+        }
+    } else if (array.length > size){
+        array = array.slice(0, size)
+    }
+    return array;
+}
+
+//setting all points to null
+LandmarkGroup.prototype.nullPoints = function (array) {
+    for(let i = 0;i < array.length; i++){
+        array[i].attributes.point = null;
+    }
+    return array;
+}
+
+
+LandmarkGroup.prototype.setPreset = function (obj) {
+    this.landmarks = this.compactArray(this.nullPoints(this.landmarks), parseInt(obj.points));
+    if(obj.orientation == 0){
+        //FRONTAL
+        if(obj.contour == 'cycle') {
+            if(obj.points == '49'){
+                var mask = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48];
+                this.label = new LandmarkLabel(obj.contour, this.landmarks, mask);
+                this.connectivity = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29],[29,30],[30,31],[31,32],[32,33],[33,34],[34,35],[35,36],[36,37],[37,38],[38,39],[39,40],[40,41],[41,42],[42,43],[43,44],[44,45],[45,46],[46,47],[47,48],[48,0]];
+            }
+        } else if(obj.contour == 'circuit'){
+            if(obj.points == '59'){
+                var mask = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58];
+                this.label = new LandmarkLabel(obj.contour, this.landmarks, mask);
+                this.connectivity =[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29],[29,30],[30,31],[31,32],[33,32],[32,34],[34,35],[35,36],[36,37],[37,38],[38,39],[39,40],[40,41],[41,42],[42,43],[43,44],[44,46],[45,46],[46,47],[47,48],[48,49],[49,50],[50,51],[51,52],[52,53],[53,54],[54,55],[55,56],[56,57],[57,58],[58,0]];
+            }
+        }
+    } else {
+        //SIDE
+        if(obj.contour == 'cycle') {
+            if(obj.points == '36'){
+                var mask = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35];
+                this.label = new LandmarkLabel(obj.contour, this.landmarks, mask);
+                this.connectivity = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29],[29,30],[30,31],[31,32],[32,33],[33,34],[34,35],[35,0]];
+            } else if(obj.points == '37'){
+                var mask = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36];
+                this.label = new LandmarkLabel(obj.contour, this.landmarks, mask);
+                this.connectivity = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29],[29,30],[30,31],[31,32],[32,23],[23,33],[33,34],[34,35],[35,36],[36,0]];
+            }
+        } else if(obj.contour == 'circuit'){
+            //maby later
+        }
+    }
+   Backbone.on('redrawPreset', function() {} );
+   Backbone.trigger('redrawPreset');
+   Backbone.on('redrawCols', function() {} );
+   Backbone.trigger('redrawCols', {label: this.label, lmg: this.landmarks});
+   this.landmarks[0].select()
+
+};
+
 LandmarkGroup.prototype.markAsBad = function () { // z - mark as bad
         var selected = this.selected()[0];
 
@@ -286,6 +354,7 @@ LandmarkGroup.prototype.markAsBad = function () { // z - mark as bad
             if(lm && selected) {
                 lm.set({
                     bad: !selected.attributes.bad,
+                    invisible: false,
                     point: selected.point()
                 })
             }
@@ -304,6 +373,7 @@ LandmarkGroup.prototype.markAsInvisible = function () { // a - mark as invisible
             });
             if(lm && selected) {
                 lm.set({
+                    bad: false,
                     invisible: !selected.attributes.invisible,
                     point: selected.point()
                 })

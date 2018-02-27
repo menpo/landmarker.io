@@ -195,6 +195,7 @@
             </div>
             <!-- SIDEBAR  -->
             <div class="App-Flex-RightCol RightSidebar">
+
                 <div class="RightSidebar-Controls" id="lmActionsPanel">
                     <div class="RightSidebar-Controls-Item">
                         <button class="Button-Save" title="Save remotely"
@@ -249,7 +250,31 @@
                         <span id="errorRadio" class="error-msg">Required field is empty</span>
                     </div>
                 </div>
-
+                <div class="RightSidebar-ChoosePreset">
+                        <div class="ShowPreset-button">
+                                <button class="Button-ChangePreset" id="changepreset-button">Change preset</button>
+                        </div>
+                        <div class="ChoosePreset-wrapper">
+                        <div class="ChoosePreset-orientation">orientation
+                        <select id="orientation-select">
+                            <option disabled selected value>select an option</option>
+                            <option value="0">Frontal</option>
+                            <option value="1">Side</option>
+                        </select>
+                        </div>
+                        <div class="ChoosePreset-contour">contour
+                            <select id="contour-select">
+                            </select>
+                        </div>
+                        <div class="ChoosePreset-points">points
+                                <select id="points-select">
+                                </select>
+                        </div>
+                        <div class="ChoosPreset-button">
+                            <button class="Button-Apply" id="choosepreset-button">Apply</button>
+                        </div>
+                        </div>
+                    </div>
                 <div class="RightSidebar-Header">
                     <div class="RightSidebar-UndoRedo" id="undoRedo">
                         <div class="Undo Disabled"><span class="octicon octicon-mail-reply"></span></div>
@@ -260,6 +285,7 @@
                         <div class='TemplateName'>-</div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>

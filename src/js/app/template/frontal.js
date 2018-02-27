@@ -1,6 +1,6 @@
 export default {
     'groups': [{
-        'label': 'contour59',
+        'label': 'frontal',
         'points': 59,
         'connectivity':
         ['0 1',

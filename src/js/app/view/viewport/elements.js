@@ -13,6 +13,7 @@ const LM_SPHERE_UNSELECTED_COLOR = 0x3ACC3A;
 const LM_CONNECTION_LINE_COLOR = LM_SPHERE_UNSELECTED_COLOR;
 const LM_CONNECTION_LINE_COLOR_INVISIBLE = 0xffff00;
 const LM_CONNECTION_LINE_COLOR_BAD = 0xFF0000;
+const LM_CONNECTION_LINE_COLOR_MIXED = 0xFFA500;
 
 // create a single geometry + material that will be shared by all landmarks
 var lmGeometry = new THREE.SphereGeometry(
@@ -93,11 +94,7 @@ export const LandmarkTHREEView = Backbone.View.extend({
     dispose: function () {
         if (this.symbol) {
             this.viewport.sLms.remove(this.symbol);
-            // console.log(this.viewport)
-            console.log('good')
             this.symbol = null;
-        } else {
-            console.log('shit')
         }
     },
 
@@ -163,21 +160,29 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
         geometry.vertices.push(start.clone());
         geometry.vertices.push(end.clone());
 
-        if(this.model[1].attributes.bad && this.model[0].attributes.bad){
-            lineMaterial = new THREE.LineBasicMaterial({
-                color: LM_CONNECTION_LINE_COLOR_BAD,
-                linewidth: 1
-            });
-        } else if(this.model[1].attributes.invisible && this.model[0].attributes.invisible) {
-            lineMaterial = new THREE.LineBasicMaterial({
-                color: LM_CONNECTION_LINE_COLOR_INVISIBLE,
-                linewidth: 1});
-        } else {
+        // UNCOMMENT IN CASE OF CONNECTIVITY SHOULD BE ANOTHER COLOR + IN ..viewport/index.js
+
+
+        // if(this.model[1].attributes.bad && this.model[0].attributes.bad){
+        //     lineMaterial = new THREE.LineBasicMaterial({
+        //         color: LM_CONNECTION_LINE_COLOR_BAD,
+        //         linewidth: 1
+        //     });
+        // } else if(this.model[1].attributes.invisible && this.model[0].attributes.invisible) {
+        //     lineMaterial = new THREE.LineBasicMaterial({
+        //         color: LM_CONNECTION_LINE_COLOR_INVISIBLE,
+        //         linewidth: 1});
+        // // } else if((this.model[1].attributes.invisible && this.model[0].attributes.bad) || (this.model[0].attributes.invisible && this.model[1].attributes.bad)) {
+        // //     lineMaterial = new THREE.LineBasicMaterial({
+        // //         color: LM_CONNECTION_LINE_COLOR_MIXED,
+        // //         linewidth: 1
+        // //     });
+        // } else {
             lineMaterial = new THREE.LineBasicMaterial({
                 color: LM_CONNECTION_LINE_COLOR,
                 linewidth: 1
             });
-        }
+        // }
         return new THREE.Line(geometry, lineMaterial);
     },
 
