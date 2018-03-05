@@ -39,7 +39,7 @@ function _validateConnectivity (nLandmarks, connectivity) {
         return [];
     }
 
-    if(connectivity.length != nLandmarks){
+    if(connectivity.length > nLandmarks + 1){
         alert('!!! Previous asset is not same as current !!! It may copy not in proper way !!!')
         return;
     }
