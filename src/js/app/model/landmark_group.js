@@ -39,15 +39,20 @@ function _validateConnectivity (nLandmarks, connectivity) {
         return [];
     }
 
+    if(connectivity.length != nLandmarks){
+        alert('!!! Previous asset is not same as current !!! It may copy not in proper way !!!')
+        return;
+    }
     for (let i = 0; i < connectivity.length; i++) {
         [a, b] = connectivity[i];
+
         if (a < 0 || a >= nLandmarks || b < 0 || b >= nLandmarks) {
             // we have bad connectivity!
             throw new Error(
                 "Illegal connectivity encountered - [" + a + ", " + b +
                 "] not permitted in group of " + nLandmarks + " landmarks");
+            // alert('You can copy previous only in similar preset!')
         }
-
     }
 
     return connectivity;
@@ -132,7 +137,7 @@ LandmarkGroup.prototype.restore = atomicOperation(function ({
     this.landmarks.forEach(lm => lm.clear());
     points.forEach((p, i) => {
         const [v] = _pointToVector(p);
-        if (v) {
+        if (v && this.landmarks[i]) {
             this.landmarks[i].setPoint(v);
         }
     });
@@ -316,7 +321,7 @@ LandmarkGroup.prototype.setPreset = function (obj) {
             if(obj.points == '59'){
                 var mask = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58];
                 this.label = new LandmarkLabel(obj.contour, this.landmarks, mask);
-                this.connectivity =[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29],[29,30],[30,31],[31,32],[33,32],[32,34],[34,35],[35,36],[36,37],[37,38],[38,39],[39,40],[40,41],[41,42],[42,43],[43,44],[44,46],[45,46],[46,47],[47,48],[48,49],[49,50],[50,51],[51,52],[52,53],[53,54],[54,55],[55,56],[56,57],[57,58],[58,0]];
+                this.connectivity = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29],[29,30],[30,31],[31,32],[33,32],[32,34],[34,35],[35,36],[36,37],[37,38],[38,39],[39,40],[40,41],[41,42],[42,43],[43,44],[44,46],[45,46],[46,47],[47,48],[48,49],[49,50],[50,51],[51,52],[52,53],[53,54],[54,55],[55,56],[56,57],[57,58],[58,0]];
             }
         }
     } else {
@@ -361,6 +366,13 @@ LandmarkGroup.prototype.markAsBad = function () { // z - mark as bad
 
             Backbone.on('redrawDots', function() {} );
             Backbone.trigger('redrawDots', lm);
+
+            var lastDot = _.find(this.landmarks.reverse(), function(landmark){
+                return landmark.attributes.point == null;
+            })
+            if(lastDot){
+            this.landmarks[lastDot.attributes.index].setNextAvailable()
+            }
         }
 }
 
@@ -381,6 +393,13 @@ LandmarkGroup.prototype.markAsInvisible = function () { // a - mark as invisible
 
             Backbone.on('redrawDots', function() {} );
             Backbone.trigger('redrawDots', lm);
+
+            var lastDot = _.find(this.landmarks.reverse(), function(landmark){
+                return landmark.attributes.point == null;
+            })
+            if(lastDot){
+            this.landmarks[lastDot.attributes.index].setNextAvailable()
+            }
         }
 }
 
