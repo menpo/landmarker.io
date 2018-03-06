@@ -184,7 +184,7 @@ export const LandMarkChangedStatus = Backbone.View.extend({
             var invisible = this.invisible ? 'Yes' : 'No';
             var bad =  this.bad ? 'Yes' : 'No';
             $('#LandMarkChangedStatus').css("display", "flex");
-            $('#LM-Index').html(this.index.toString());
+            $('#LM-Index').html((parseInt(this.index) + 1).toString());
             $('#LM-Invisible').html(invisible);
             $('#LM-Bad').html(bad);
         } else {
