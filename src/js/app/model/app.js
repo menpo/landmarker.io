@@ -408,7 +408,7 @@ export default Backbone.Model.extend({
                     this.setGender(json.gender);
                     this.setTypeOfPhoto(json.typeOfPhoto);
                     lms.tracker.recordState(lms.toJSON());
-                    lms.restore(json);
+                    lms.restore(json, true);
                     lms.tracker.recordState(lms.toJSON(), false, true);
                 }, () => {
                     console.log('Error in fetching landmark JSON file');

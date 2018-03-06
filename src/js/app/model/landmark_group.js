@@ -39,10 +39,6 @@ function _validateConnectivity (nLandmarks, connectivity) {
         return [];
     }
 
-    if(connectivity.length > nLandmarks + 1){
-        alert('!!! Previous asset is not same as current !!! It may copy not in proper way !!!')
-        return;
-    }
     for (let i = 0; i < connectivity.length; i++) {
         [a, b] = connectivity[i];
 
@@ -131,9 +127,11 @@ LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
 LandmarkGroup.prototype.restore = atomicOperation(function ({
     landmarks,
     labels
-}) {
+}, previous = false) {
+
     const {points, connectivity} = landmarks;
 
+    this.landmarks = this.compactArray(this.landmarks, points.length);
     this.landmarks.forEach(lm => lm.clear());
     points.forEach((p, i) => {
         const [v] = _pointToVector(p);
@@ -142,13 +140,19 @@ LandmarkGroup.prototype.restore = atomicOperation(function ({
         }
     });
 
-    this.connectivity = _validateConnectivity(this.landmarks.length,
-                                              connectivity);
+    previous ? this.connectivity = connectivity.slice(0) : this.connectivity = _validateConnectivity(this.landmarks.length,connectivity);
 
     delete this.labels;
     this.labels = labels.map((label) => {
         return new LandmarkLabel(label.label, this.landmarks, label.mask);
     });
+
+    if(previous){
+        Backbone.on('redrawPreset', function() {} );
+        Backbone.trigger('redrawPreset');
+        Backbone.on('redrawCols', function() {} );
+        Backbone.trigger('redrawCols', {label: this.labels[0], lmg: this.landmarks});
+    }
 
     this.resetNextAvailable();
 });
