@@ -2,6 +2,10 @@ var path = require('path');
 
 module.exports = {
     entry: "./src/js/index.js",
+    devServer: {
+        inline:true,
+        port: 4000
+    },
     output: {
         path: path.join(path.dirname(__dirname), 'build'),
         filename: "bundle.js"

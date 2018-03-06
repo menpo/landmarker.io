@@ -144,6 +144,22 @@
     justify-content: space-between;
     align-items: center;
 }
+.LandMark-Changed{
+    color:black;
+    background:white;
+    padding: 5px;
+    text-align: left;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.LandMark-Changed-Item{
+    width:100%;
+}
+
+.LM-Changed-Value{
+    float:right;
+}
 
 .Toolbar-Row-Item {
     flex: 1;

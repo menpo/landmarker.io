@@ -217,6 +217,7 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         oCam.updateProjectionMatrix();
         // call the mouse hover callback manually, he will trigger a change
         // for us. Little nasty, but we mock the event...
+
         onMouseMoveHover({
             pageX: mouseHoverPosition.x,
             pageY: mouseHoverPosition.y

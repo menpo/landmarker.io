@@ -5,33 +5,34 @@
  * related issues are fixed, dropbox-js doesn't work with browserify, given the
  * small subset of api endpoint we use, we roll our own http interface for now.
  *
- * Be aware that a new version of the API is in the works as well:
- * https://www.dropbox.com/developers-preview/documentation/http#documentation
- * and we might want to upgrade once it is production ready.
+ * API v1 to API v2 migration
  */
 'use strict';
+// const API_KEY = 'lar7e1dae96efyx',
 
-const API_KEY = 'jwda9p0msmkfora',
-      API_URL = 'https://api.dropbox.com/1',
-      CONTENTS_URL = 'https://api-content.dropbox.com/1';
+const API_KEY = '85ta0yjrv1qoko4',
+    API_URL = 'https://api.dropboxapi.com/2',
+    CONTENTS_URL = 'https://content.dropboxapi.com/2';
 
 const IMAGE_EXTENSIONS = ['jpeg', 'jpg', 'png'];
 const MESH_EXTENSIONS = ['obj', 'stl', 'mtl'].concat(IMAGE_EXTENSIONS);
 
-import { format } from 'url';
+import {format} from 'url';
 import Promise from 'promise-polyfill';
 
 import OBJLoader from '../lib/obj_loader';
 import STLLoader from '../lib/stl_loader';
-import { randomString,
-      basename,
-      extname,
-      stripExtension,
-      baseUrl } from '../lib/utils';
+import {
+    randomString,
+    basename,
+    extname,
+    stripExtension,
+    baseUrl
+} from '../lib/utils';
 import download from '../lib/download';
 
-import { notify } from '../view/notification';
-import { getJSON, get, putJSON, getArrayBuffer } from '../lib/requests';
+import {notify} from '../view/notification';
+import {postJSON, postMetaJSON, postDownloadJSON, postJSONData, postUploadJSON, getArrayBuffer} from '../lib/requests';
 import ImagePromise from '../lib/imagepromise';
 import Template from '../template';
 import Picker from '../view/dropbox_picker.js';
@@ -48,6 +49,7 @@ const Dropbox = Base.extend('DROPBOX', function (token, cfg) {
     this._mediaCache = {};
     this._imgCache = {};
     this._listCache = {};
+    this._imgId = '';
 
     this._templates = Template.loadDefaultTemplates();
     this._templatesPaths = {};
@@ -77,11 +79,13 @@ Dropbox.authorize = function () {
     const u = format({
         protocol: 'https',
         host: 'www.dropbox.com',
-        pathname: '/1/oauth2/authorize',
-        query: { 'response_type': 'token',
-                 'redirect_uri': baseUrl(),
-                 'state': oAuthState,
-                 'client_id': API_KEY }
+        pathname: '/oauth2/authorize',
+        query: {
+            'response_type': 'token',
+            'redirect_uri': baseUrl(),
+            'state': oAuthState,
+            'client_id': API_KEY
+        }
     });
 
     return [u, oAuthState];
@@ -100,7 +104,7 @@ Dropbox.prototype.headers = function () {
 };
 
 Dropbox.prototype.accountInfo = function () {
-    return getJSON(`${API_URL}/account/info`, {headers: this.headers()});
+    return postJSON(`${API_URL}/users/get_current_account`, {headers: this.headers()});
 };
 
 Dropbox.prototype.setMode = function (mode) {
@@ -122,7 +126,7 @@ Dropbox.prototype.setMode = function (mode) {
  * @param  {bool}     closable=false should this modal be closable
  * @return {Modal}                   reference to the picker modal
  */
-Dropbox.prototype.pickTemplate = function (success, error, closable=false) {
+Dropbox.prototype.pickTemplate = function (success, error, closable = false) {
     const picker = new Picker({
         dropbox: this,
         selectFilesOnly: true,
@@ -161,18 +165,18 @@ Dropbox.prototype.addTemplate = function (path) {
     }
 
     return this.download(path).then((data) => {
-         const tmpl = Template.Parsers[ext](data);
-         const name = basename(path, true).split('_').pop();
+        const tmpl = Template.Parsers[ext](data);
+        const name = basename(path, true).split('_').pop();
 
-         // Avoid duplicates
-         let uniqueName = name, i = 1;
-         while (uniqueName in this._templates) {
-             uniqueName = `${name}-${i}`;
-             i++;
-         }
+        // Avoid duplicates
+        let uniqueName = name, i = 1;
+        while (uniqueName in this._templates) {
+            uniqueName = `${name}-${i}`;
+            i++;
+        }
 
-         this._templates[uniqueName] = tmpl;
-         this._templatesPaths[uniqueName] = path;
+        this._templates[uniqueName] = tmpl;
+        this._templatesPaths[uniqueName] = path;
 
         this._cfg.set({
             'BACKEND_DROPBOX_TEMPLATES_PATHS': this._templatesPaths
@@ -194,7 +198,7 @@ Dropbox.prototype.downloadTemplate = function (name) {
 // Assets management
 // ---------------------------
 
-Dropbox.prototype.pickAssets = function (success, error, closable=false) {
+Dropbox.prototype.pickAssets = function (success, error, closable = false) {
     const picker = new Picker({
         dropbox: this,
         selectFoldersOnly: true,
@@ -253,7 +257,7 @@ Dropbox.prototype.setAssets = function (path, mode) {
 };
 
 Dropbox.prototype._setMeshAssets = function (items) {
-    const paths = items.map((item) => item.path);
+    const paths = items.map((item) => item.path_display);
 
     // Find only OBJ and STL files
     this._assets = paths.filter((p) => ['obj', 'stl'].indexOf(extname(p)) > -1);
@@ -276,7 +280,7 @@ Dropbox.prototype._setMeshAssets = function (items) {
 };
 
 Dropbox.prototype._setImageAssets = function (items) {
-    this._assets = items.map((item) => item.path);
+    this._assets = items.map((item) => item.path_display);
 };
 
 /**
@@ -284,21 +288,21 @@ Dropbox.prototype._setImageAssets = function (items) {
  * strings
  *
  * options are: - foldersOnly (boolean)
- * 				- filesOnly (boolean)
- * 				- showHidden (boolean)
- * 				- extensions (string[])
- * 				- noCache (boolean)
+ *                - filesOnly (boolean)
+ *                - showHidden (boolean)
+ *                - extensions (string[])
+ *                - noCache (boolean)
  *
  * The requests are cached and busted with `noCache=true`, the filtering takes
  * place locally. `foldersOnly` and `filesOnly` will conflict -> nothing
  * returned.
  */
-Dropbox.prototype.list = function (path='/', {
-    foldersOnly=false,
-    filesOnly=false,
-    showHidden=false,
-    extensions=[],
-    noCache=false
+Dropbox.prototype.list = function (path = '', {
+    foldersOnly = false,
+    filesOnly = false,
+    showHidden = false,
+    extensions = [],
+    noCache = false
 }={}) {
     let q;
 
@@ -306,11 +310,18 @@ Dropbox.prototype.list = function (path='/', {
     if (this._listCache[path] && !noCache) {
         q = Promise.resolve(this._listCache[path]);
     } else {
-        q = getJSON(
-            `${API_URL}/metadata/auto${path}`, {
-            headers: this.headers(),
-            data: {list: true}
-        }).then((data) => {
+        let dataPost = {
+            "path": path,
+            "include_media_info": false,
+            "include_deleted": false,
+            "include_has_explicit_shared_members": false
+        };
+        q = postMetaJSON(
+            `${API_URL}/files/list_folder`, {
+                headers: this.headers(),
+                data: dataPost
+            }).then((data) => {
+
             this._listCache[path] = data;
             return data;
         });
@@ -319,28 +330,24 @@ Dropbox.prototype.list = function (path='/', {
     // Filter
     return q.then((data) => {
 
-        if (!data.is_dir) { // Can only list directories
-            throw new Error(`${path} is not a directory`);
-        }
+        return data.entries.filter(item => {
 
-        return data.contents.filter(function (item) {
-
-            if (!showHidden && basename(item.path).charAt(0) === '.') {
+            if (!showHidden && basename(item.path_display).charAt(0) === '.') {
                 return false;
             }
 
-            if (foldersOnly && !item.is_dir) {
+            if (foldersOnly && !(item[".tag"] == "folder")) {
                 return false;
             }
 
-            if (filesOnly && item.is_dir) {
+            if (filesOnly && (item[".tag"] == "folder")) {
                 return false;
             }
 
             if (
-                !item.is_dir &&
+                !(item[".tag"] == "folder") &&
                 extensions.length > 0 &&
-                extensions.indexOf(extname(item.path)) === -1
+                extensions.indexOf(extname(item.path_display)) === -1
             ) {
                 return false;
             }
@@ -352,12 +359,17 @@ Dropbox.prototype.list = function (path='/', {
 
 // Download the content of a file, default response type is text
 // as it is the default from the Dropbox API
-Dropbox.prototype.download = function (path, responseType='text') {
-    return get(
-        `${CONTENTS_URL}/files/auto${path}`, {
-        headers: this.headers(),
-        responseType
-    });
+Dropbox.prototype.download = function (path, responseType = 'text') {
+
+    let dataPost = {
+        "path": path
+    };
+
+    return postDownloadJSON(
+        `${CONTENTS_URL}/files/download`, {
+            headers: this.headers(),
+            dropboxAPI: dataPost
+        });
 };
 
 Dropbox.prototype.mediaURL = function (path, noCache) {
@@ -377,14 +389,18 @@ Dropbox.prototype.mediaURL = function (path, noCache) {
         }
     }
 
-    const q = getJSON(
-        `${API_URL}/media/auto${path}`, {
-        headers: this.headers()
-    }).then(({url, expires}) => {
-        this._mediaCache[path] = {url, expires: new Date(expires)};
-        return url;
+    let dataPost = {
+        "path": path
+    };
+    const q = postMetaJSON(
+        `${API_URL}/files/get_temporary_link`, {
+            headers: this.headers(),
+            data: dataPost
+        }).then(({link, metadata}) => {
+        this._mediaCache[path] = {link, expires: new Date(metadata.server_modified)};
+        this._imgId = metadata.id;
+        return link;
     });
-
     this._mediaCache[path] = q;
     return q;
 };
@@ -452,10 +468,9 @@ Dropbox.prototype.fetchTexture = function (assetId) {
 Dropbox.prototype.fetchGeometry = function (assetId) {
 
     const path = `${this._assetsPath}/${assetId}`,
-          ext = extname(assetId);
+        ext = extname(assetId);
 
     let loader, dl;
-
     if (ext === 'obj') {
         loader = OBJLoader;
         dl = this.download(path);
@@ -466,7 +481,12 @@ Dropbox.prototype.fetchGeometry = function (assetId) {
             dl.xhr = () => q.xhr();
             return q;
         });
-        dl.xhr = function () { return {abort: function () {}}; };
+        dl.xhr = function () {
+            return {
+                abort: function () {
+                }
+            };
+        };
     } else {
         throw new Error('Invalid mesh extension', ext, path);
     }
@@ -497,11 +517,47 @@ Dropbox.prototype.fetchLandmarkGroup = function (id, type) {
         });
     });
 };
+Dropbox.prototype.saveLandmarkGroup = function (id, type, json, gender, typeOfPhoto) {
+    const headers = this.headers();
+    let path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
+    let data = {
+        "path": `${this._assetsPath}/renamed`,
+        "query": `${id}`,
+        "start": 0,
+        "max_results": 500,
+        "mode": "filename"
+    };
 
-Dropbox.prototype.saveLandmarkGroup = function (id, type, json) {
-    const headers = this.headers(),
-          path = `${this._assetsPath}/landmarks/${id}_${type}.ljson`;
+    let split = id.split(".");
+    let dataPost = {"path": path, "mode": "overwrite", "autorename": false};
+    let dataSearch = {
+        "path": `${this._assetsPath}/renamed/${split[0]}${gender}${typeOfPhoto}.${split[1]}`,
+        "url": ''
+    };
+    return postUploadJSON(`${CONTENTS_URL}/files/upload`, {
+        headers: headers,
+        dropboxAPI: dataPost,
+        data: json
+    }).then(() => {
+        return postJSONData(`${API_URL}/files/search`, {headers: headers, data: data})
+    }).then((rs) => {
+        let result = JSON.parse(rs);
+        if (result["matches"].length > 0) {
+            return postJSONData(`${API_URL}/files/delete`, {
+                headers: headers,
+                data: {"path": result["matches"]["0"]["metadata"]["path_lower"]}
+            })
+        } else {
+            return
+        }
+    }).then(() => {
+        return postJSONData(`${API_URL}/sharing/get_file_metadata`, {headers: headers, data: {"file": this._imgId, "actions": []}})
+    }).then((rs) => {
+        let result = JSON.parse(rs);
 
-    return putJSON(
-        `${CONTENTS_URL}/files_put/auto${path}`, {data: json, headers});
+        dataSearch.url = result.preview_url
+
+        return postJSONData(`${API_URL}/files/save_url`, {headers: headers, data: dataSearch})
+
+    })
 };

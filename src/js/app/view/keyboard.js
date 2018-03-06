@@ -1,6 +1,7 @@
 'use strict';
 
 import $ from 'jquery';
+import _ from 'underscore';
 
 import Modal from './modal';
 
@@ -28,10 +29,10 @@ const SHORTCUTS = {
         }
     }, false, false],
 
-    "a": [function (lms, app) { // a = select [a]ll
-        app.landmarks().selectAll();
-        $('#viewportContainer').trigger("groupSelected");
-    }, false, true],
+    // "a": [function (lms, app) { // a = select [a]ll
+    //     app.landmarks().selectAll();
+    //     $('#viewportContainer').trigger("groupSelected");
+    // }, false, true],
 
     "g": [function () { // g = complete [g]roup selection
         $('#viewportContainer').trigger("completeGroupSelection");
@@ -59,17 +60,17 @@ const SHORTCUTS = {
         app.toggleEditing();
     }, false, false],
 
-    "z": [function (lms) { // z = undo
-        if (lms && lms.tracker.canUndo()) {
-            lms.undo();
-        }
-    }, false, true],
-
     "y": [function (lms) { // y = redo
         if (lms && lms.tracker.canRedo()) {
             lms.redo();
         }
     }, false, true],
+
+    // "z": [function (lms) { // z = undo
+    //     if (lms && lms.tracker.canUndo()) {
+    //         lms.undo();
+    //     }
+    // }, false, true],
 
     // Keys where shift key may be needed on certain keyboard layouts
     "?": [function (lms, app) {
@@ -82,7 +83,22 @@ const SHORTCUTS = {
 
     "-": [function (lms, app) {
         app.decrementLandmarkSize();
-    }, true, false]
+    }, true, false],
+
+    // LM flag keys
+
+    "z": [function (lms) { // z = mark as bad
+        if (lms) {
+            lms.markAsBad();
+        }
+    }, false, true],
+
+    "a": [function (lms) { // a = mark as invisible
+        if (lms) {
+            lms.markAsInvisible();
+        }
+    }, false, true],
+
 };
 
 export default function KeyboardShortcutsHandler (app, viewport) {
@@ -100,7 +116,6 @@ export default function KeyboardShortcutsHandler (app, viewport) {
         }
 
         const lms = app.landmarks();
-
         const [fn, acceptShift, needLms] = SHORTCUTS[key] || [];
         if (
             fn &&

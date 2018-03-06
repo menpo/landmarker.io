@@ -23,17 +23,18 @@ export const LandmarkView = Backbone.View.extend({
         _.bindAll(this, 'select', 'selectGroup', 'handleClick', 'selectAll');
         this._clickedTimeout = null;
         this.labelIndex = labelIndex;
+
     },
 
     render: function () {
         const html = $("<div></div>");
         html.addClass("Lm", this.model.isEmpty());
-
+        var indx = parseInt(this.model.attributes.index) + 1;
+        html.html('<div class="LM-Value-Label">' + indx.toString() + '</div>');
         html.toggleClass("Lm-Empty", this.model.isEmpty());
         html.toggleClass("Lm-Value", !this.model.isEmpty());
         html.toggleClass("Lm-Selected", this.model.isSelected());
         html.toggleClass("Lm-NextAvailable", this.model.isNextAvailable());
-
         // in case our element is already live replace the content
         this.$el.replaceWith(html);
         // now set the element back so we have a handle. If this is the
@@ -98,6 +99,7 @@ export const LandmarkListView = Backbone.View.extend({
         this.lmViews = [];
         this.labelIndex = labelIndex;
         this.render();
+
     },
 
     render: function() {
@@ -183,6 +185,14 @@ export const LandmarkGroupListView = Backbone.View.extend({
         _.bindAll(this, 'render', 'renderOne');
         this.groups = [];
         this.render();
+
+
+        this.changeTabsListener = _.extend({}, Backbone.Events);
+        this.changeTabsListener.listenTo(Backbone, 'redrawCols', (lms)=>{
+            this.collection[0] = lms.label;
+            this.render();
+        });
+
     },
 
     render: function() {
@@ -232,17 +242,28 @@ export const ActionsView = Backbone.View.extend({
 
     render: function () {
         this.$el.find('#save')
-                .toggleClass('Active', !this.model.tracker.isUpToDate());
+            .toggleClass('Active', !this.model.tracker.isUpToDate());
     },
 
     save: function (evt) {
-        evt.stopPropagation();
-        this.$el.find('#save').addClass('Button--Disabled');
-        this.model.save().then(() => {
-            this.$el.find('#save').removeClass('Button--Disabled');
-        }, () => {
-            this.$el.find('#save').removeClass('Button--Disabled');
-        });
+
+
+        let gender = this.app.getGender();
+        let typeOfPhoto = this.app.getTypeOfPhoto();
+        if (gender && (typeOfPhoto || typeOfPhoto == "")) {
+            evt.stopPropagation();
+            $("#assetPager").find("#next").prop("disabled", false);
+
+            $("#genderPanel").find("#errorRadio").removeClass('error-msg-show')
+            this.$el.find('#save').addClass('Button--Disabled');
+            this.model.save(gender, typeOfPhoto).then(() => {
+                this.$el.find('#save').removeClass('Button--Disabled');
+            }, () => {
+                this.$el.find('#save').removeClass('Button--Disabled');
+            });
+        } else {
+            $("#genderPanel").find("#errorRadio").addClass('error-msg-show')
+        }
     },
 
     help: function (e) {
@@ -325,13 +346,98 @@ export const LmLoadView = Backbone.View.extend({
         const show = this.app.assetSource().hasPredecessor();
         this.$el.toggleClass('Hide', !show);
         this.$el.find('button').toggleClass('Button-Danger',
-                                            !this.model.isEmpty());
+            !this.model.isEmpty());
     },
 
     loadPrevious: function () {
         this.app.reloadLandmarksFromPrevious();
         this.render();
     }
+});
+export const GenderToggle = Backbone.View.extend({
+
+    el: '#genderRows',
+
+    events: {
+        'click #male': "clickedMale",
+        'click #female': "clickedFemale"
+
+    },
+
+    initialize: function ({app}) {
+        this.listenTo(this.model, "change", this.render);
+
+        this.app = app;
+        _.bindAll(this, 'render', 'clickedMale', 'clickedFemale');
+        this.render();
+    },
+
+
+    render: function () {
+        let gender = this.model.getGender();
+        if (gender == ".m") {
+            $("#male").prop("checked", true)
+        } else if (gender == ".f") {
+            $("#female").prop("checked", true)
+        } else {
+            $("#male").prop("checked", false)
+            $("#female").prop("checked", false)
+        }
+    },
+
+    clickedMale: function () {
+        this.model.setGender(".m");
+    },
+    clickedFemale: function () {
+        this.model.setGender(".f");
+    }
+
+});
+
+export const TypeOfPhotoToggle = Backbone.View.extend({
+
+    el: '#typeOfPhotoRows',
+
+    events: {
+        'click #usual': "clickedUsual",
+        'click #selfie': "clickedSelfie"
+
+    },
+    initialize: function ({app}) {
+        this.listenTo(this.model, "change", this.render);
+        this.app = app;
+        _.bindAll(this, 'render', 'clickedUsual', 'clickedSelfie');
+        this.render();
+    },
+
+    render: function () {
+        let typeOfPhoto = this.model.getTypeOfPhoto();
+        let gender = this.model.getGender();
+
+        if (typeOfPhoto == ".s") {
+            $("#selfie").prop("checked", true)
+        } else if (typeOfPhoto == "") {
+            $("#usual").prop("checked", true)
+        }  else {
+            $("#selfie").prop("checked", false)
+            $("#usual").prop("checked", false)
+        }
+
+        if ((typeOfPhoto || gender) == undefined ) {
+            $("#assetPager").find("#next").prop("disabled", true);
+        } else {
+            $("#assetPager").find("#next").prop("disabled", false);
+        }
+    },
+
+    clickedUsual: function () {
+        this.model.setTypeOfPhoto("");
+
+    },
+    clickedSelfie: function () {
+        this.model.setTypeOfPhoto(".s");
+    }
+
 });
 
 export default Backbone.View.extend({
@@ -374,6 +480,9 @@ export default Backbone.View.extend({
         this.lmLoadView = new LmLoadView({model: lms, app: this.model});
         this.undoRedoView = new UndoRedoView({model: lms});
         this.lmView = new LandmarkGroupListView({collection: lms.labels});
+        this.genderToggle = new GenderToggle({model: this.model});
+        this.typeOfPhotoToggle = new TypeOfPhotoToggle({model: this.model});
         $('#landmarksPanel').html(this.lmView.render().$el);
     }
 });
+

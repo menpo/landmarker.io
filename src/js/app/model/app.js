@@ -12,10 +12,13 @@ import Modal from '../view/modal';
 
 export default Backbone.Model.extend({
 
+
     defaults: function () {
         return {
             landmarkSize: 0.5,
             mode: 'mesh',
+            gender: undefined,
+            setTypeOfPhoto: undefined,
             connectivityOn: true,
             editingOn: true,
             autoSaveOn: false,
@@ -32,6 +35,18 @@ export default Backbone.Model.extend({
 
     isAutoSaveOn: function () {
         return this.get('autoSaveOn');
+    },
+    getGender: function () {
+        return this.get('gender');
+    },
+    setGender: function (gender) {
+        return this.set('gender', gender);
+    },
+    setTypeOfPhoto: function (typeOfPhoto) {
+        return this.set('typeOfPhoto', typeOfPhoto);
+    },
+    getTypeOfPhoto: function () {
+        return this.get('typeOfPhoto');
     },
 
     toggleAutoSave: function () {
@@ -95,7 +110,7 @@ export default Backbone.Model.extend({
     },
 
     tracker: function () {
-            return this.get('tracker');
+        return this.get('tracker');
     },
 
     hasAssetSource: function () {
@@ -143,7 +158,7 @@ export default Backbone.Model.extend({
         this._initCollections();
     },
 
-    _initTemplates: function (override=false) {
+    _initTemplates: function (override = false) {
         // firstly, we need to find out what template we will use.
         // construct a template labels model to go grab the available labels.
         this.server().fetchTemplates().then((templates) => {
@@ -160,11 +175,11 @@ export default Backbone.Model.extend({
             this.set('activeTemplate', selected);
         }, () => {
             throw new Error('Failed to talk server for templates (is ' +
-                            'landmarkerio running from your command line?).');
+                'landmarkerio running from your command line?).');
         });
     },
 
-    _initCollections: function (override=false) {
+    _initCollections: function (override = false) {
         this.server().fetchCollections().then((collections) => {
             this.set('collections', collections);
             let selected = collections[0];
@@ -177,7 +192,7 @@ export default Backbone.Model.extend({
             this.set('activeCollection', selected);
         }, () => {
             throw new Error('Failed to talk server for collections (is ' +
-                            'landmarkerio running from your command line?).');
+                'landmarkerio running from your command line?).');
         });
     },
 
@@ -243,7 +258,7 @@ export default Backbone.Model.extend({
             return this.goToAssetIndex(i);
         }, () => {
             throw new Error('Failed to fetch assets (is landmarkerio' +
-                            'running from your command line?).');
+                'running from your command line?).');
         });
     },
 
@@ -272,12 +287,16 @@ export default Backbone.Model.extend({
     },
 
     autoSaveWrapper: function (fn) {
+        const gender = this.getGender();
+        const typeOfPhoto = this.getTypeOfPhoto();
         const lms = this.landmarks();
-        if (lms && !lms.tracker.isUpToDate()) {
+        if (lms && gender && (typeOfPhoto || typeOfPhoto == '') && !lms.tracker.isUpToDate()) {
             if (!this.isAutoSaveOn()) {
                 Modal.confirm('You have unsaved changes, are you sure you want to proceed? (Your changes will be lost). Turn autosave on to save your changes by default.', fn);
             } else {
-                lms.save().then(fn);
+                console.log("saveeeeeeeeee")
+
+                lms.save(gender, typeOfPhoto).then(fn);
             }
         } else {
             fn();
@@ -311,6 +330,8 @@ export default Backbone.Model.extend({
             this.asset().id,
             this.activeTemplate()
         ).then((json) => {
+            this.setGender(json.gender);
+            this.setTypeOfPhoto(json.typeOfPhoto);
             return LandmarkGroup.parse(
                 json,
                 this.asset().id,
@@ -329,7 +350,7 @@ export default Backbone.Model.extend({
 
         // if both come true, then set the landmarks
         return Promise.all([this.loadLandmarksPromise(),
-                            loadAssetPromise]).then((args) => {
+            loadAssetPromise]).then((args) => {
             const landmarks = args[0];
             console.log('landmarks are loaded and the asset is at a suitable ' +
                 'state to display');
@@ -345,6 +366,7 @@ export default Backbone.Model.extend({
         // resolve when all the key data for annotating is loaded, the
         // promiseLandmark wraps it and only resolves when both landmarks (if
         // applicable) and asset data are present
+
         if (newAssetPromise) {
             this.set('landmarks', null);
             return this._promiseLandmarksWithAsset(newAssetPromise);
@@ -371,6 +393,7 @@ export default Backbone.Model.extend({
         this.autoSaveWrapper(() => {
             this._switchToAsset(this.assetSource().setIndex(newIndex));
         });
+
     },
 
     reloadLandmarksFromPrevious: function () {
@@ -382,8 +405,10 @@ export default Backbone.Model.extend({
                     as.assets()[as.assetIndex() - 1].id,
                     this.activeTemplate()
                 ).then((json) => {
+                    this.setGender(json.gender);
+                    this.setTypeOfPhoto(json.typeOfPhoto);
                     lms.tracker.recordState(lms.toJSON());
-                    lms.restore(json);
+                    lms.restore(json, true);
                     lms.tracker.recordState(lms.toJSON(), false, true);
                 }, () => {
                     console.log('Error in fetching landmark JSON file');

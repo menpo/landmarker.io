@@ -29,6 +29,14 @@ export const AssetPagerView = Backbone.View.extend({
     render: function () {
         this.$el.find('#next').toggleClass('Button--Disabled',
             !this.model.assetSource().hasSuccessor());
+        let genderPanel = $("#genderPanel");
+        console.log("---genderPanel--")
+        genderPanel.find("#male").prop("checked", false);
+        genderPanel.find("#female").prop("checked", false);
+
+        genderPanel.find("#selfie").prop("checked", false);
+        genderPanel.find("#usual").prop("checked", false);
+
         this.$el.find('#previous').toggleClass('Button--Disabled',
             !this.model.assetSource().hasPredecessor());
         return this;

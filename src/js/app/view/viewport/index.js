@@ -182,7 +182,7 @@ export default Backbone.View.extend({
         this.sLights.add(new THREE.AmbientLight(0x404040));
 
         this.renderer = new THREE.WebGLRenderer(
-            { antialias: false, alpha: false });
+            { antialias: true, alpha: true });
         this.renderer.setPixelRatio(window.devicePixelRatio || 1);
         this.renderer.setClearColor(CLEAR_COLOUR, 1);
         this.renderer.autoClear = false;
@@ -229,7 +229,11 @@ export default Backbone.View.extend({
         // ----- BIND HANDLERS ----- //
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
-        this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
+        this.listenTo(this.model, "change:landmarks", () => {
+            this.changeLandmarks()
+            // window.location.reload();
+            // this.changeMesh();
+        });
 
         this.showConnectivity = true;
         this.listenTo(
@@ -278,6 +282,79 @@ export default Backbone.View.extend({
         this.$container.on('resetCamera', () => {
             this.resetCamera();
         });
+
+        //redraw listener
+        this.changeDotFlagListener = _.extend({}, Backbone.Events);
+        this.changeDotFlagListener.listenTo(Backbone, 'redrawDots', (lm)=>{
+            this.redrawFlaggedLandmarks(lm)
+        });
+        this.changeDotFlagListener.listenTo(Backbone, 'preventDeselectChanging', (lm)=>{
+            this.preventDeselectChanging(lm)
+        });
+        this.changeDotFlagListener.listenTo(Backbone, 'redrawPreset', ()=>{
+            this.changeLandmarks();
+        });
+
+
+        //Change preset form
+
+        document.getElementById("orientation-select").addEventListener("change", function(){
+            $('#choosepreset-button').slideDown();
+            if($('#orientation-select').val() == '1'){
+                $('#contour-select').html('<option value="cycle" selected="selected">Cycle</option>')
+                $('#points-select').html('<option value="36" selected="selected">36</option><option value="37">37</option>')
+            } else if($('#orientation-select').val() == '0') {
+                $('#contour-select').html('<option value="cycle" selected="selected">Cycle</option><option value="circuit">Circuit</option>')
+                $('#points-select').html('<option value="49" selected="selected">49</option>')
+            }
+        });
+        document.getElementById("contour-select").addEventListener("change", function(){
+            if($('#orientation-select').val() == '1' && $('#contour-select').val() == 'cycle'){
+                $('#points-select').html('<option value="36" selected="selected">36</option><option value="37">37</option>')
+            } else if($('#orientation-select').val() == '0' && $('#contour-select').val() == 'cycle') {
+                $('#points-select').html('<option value="49" selected="selected">49</option>')
+            } else if($('#orientation-select').val() == '0' && $('#contour-select').val() == 'circuit'){
+                $('#points-select').html('<option value="59" selected="selected">59</option>')
+            }
+        });
+
+        // document.getElementById("points-select").addEventListener("change", function(){
+        //     //in case of new items will added
+        // });
+
+
+
+        var that = this;
+        this.changePresetListener = _.extend({}, Backbone.Events);
+
+        $("#changepreset-button").click(function(){
+            if( $('.ChoosePreset-wrapper').css('display') == 'none'){
+                $('.ChoosePreset-wrapper').slideDown();
+                $("#changepreset-button").html('CLOSE [x]');
+            } else {
+                $('.ChoosePreset-wrapper').slideUp();
+                $("#changepreset-button").html('CHANGE PRESET');
+
+            }
+        })
+        $("#choosepreset-button").click(function(){
+            var obj = {
+                orientation: $('#orientation-select').val(),
+                contour:  $('#contour-select').val(),
+                points:  $('#points-select').val()
+            };
+
+            that.model.goToAssetIndex(that.model.assetIndex())
+
+            that.changePresetListener.listenTo(Backbone, 'changePreset', ()=>{
+                that.changePresetSetDots(obj)
+            });
+
+            $('.ChoosePreset-wrapper').slideUp();
+            $("#changepreset-button").html('CHANGE PRESET');
+
+        });
+
     },
 
     width: function () {
@@ -302,7 +379,6 @@ export default Backbone.View.extend({
         up = meshPayload.up;
         front = meshPayload.front;
         this.mesh = mesh;
-
         if(mesh.geometry instanceof THREE.BufferGeometry) {
             // octree only makes sense if we are dealing with a true mesh
             // (not images). Such meshes are always BufferGeometry instances.
@@ -338,8 +414,8 @@ export default Backbone.View.extend({
 
     memoryString: function () {
         return 'geo:' + this.renderer.info.memory.geometries +
-               ' tex:' + this.renderer.info.memory.textures +
-               ' prog:' + this.renderer.info.memory.programs;
+            ' tex:' + this.renderer.info.memory.textures +
+            ' prog:' + this.renderer.info.memory.programs;
     },
 
     // this is called whenever there is a state change on the THREE scene
@@ -365,11 +441,13 @@ export default Backbone.View.extend({
         if (this.showConnectivity) {
             this.renderer.clearDepth(); // clear depth buffer
             // and render the connectivity
+
             this.renderer.render(this.sceneHelpers, this.sCamera);
         }
 
         // 2. Render the PIP image if in orthographic mode
         if (this.sCamera === this.sOCam) {
+
             var b = this.pipBounds();
             this.renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
             this.renderer.setViewport(b.x, b.y, b.width, b.height);
@@ -421,7 +499,7 @@ export default Backbone.View.extend({
     resetCamera: function () {
         // reposition the cameras and focus back to the starting point.
         const v = this.model.meshMode() ? MESH_MODE_STARTING_POSITION :
-                                        IMAGE_MODE_STARTING_POSITION;
+            IMAGE_MODE_STARTING_POSITION;
         this.cameraController.reset(
             v, this.scene.position, this.model.meshMode());
         this.update();
@@ -447,7 +525,6 @@ export default Backbone.View.extend({
         this.editingOn = this.model.isEditingOn();
         this.clearCanvas();
         this._handler.setGroupSelected(false);
-
         // Manually bind to avoid useless function call (even with no effect)
         if (this.editingOn) {
             this.$el.on('mousemove', this._handler.onMouseMove);
@@ -497,21 +574,113 @@ export default Backbone.View.extend({
         }
     },
 
-    changeLandmarks: atomic.atomicOperation(function () {
-        console.log('Viewport: landmarks have changed');
+
+    preventDeselectChanging: atomic.atomicOperation(function (landmark){
+        var that = this;;
+        var landmarks = this.model.get('landmarks');
+        if (landmarks === null) {
+            return;
+        }
+
+        //setting new dot
+        that.landmarkViews[landmark.attributes.index] = new LandmarkTHREEView(
+            {
+                model: landmark,
+                viewport: that
+            }
+        );
+
+    }),
+
+    changePresetSetDots: function (obj) {
+        this.changePresetListener.stopListening();
+        this.model.landmarks().setPreset(obj);
+    },
+    redrawFlaggedLandmarks: atomic.atomicOperation(function (landmark) {
+
+        //redraw 1 dot and 2(or 1) connectivities depends on flag
+
         var that = this;
+
+        var landmarks = this.model.get('landmarks');
+        var viewportChange = that.landmarkViews[landmark.attributes.index].viewport
+        if (landmarks === null) {
+            return;
+        }
+
+        //setting new dot
+        that.landmarkViews.splice(landmark.attributes.index, 1,  new LandmarkTHREEView(
+            {
+                model: landmark,
+                viewport: viewportChange
+            }
+        ));
+
+        // UNCOMMENT IN CASE OF CONNECTIVITY SHOULD BE ANOTHER COLOR + IN ../elements.js
+
+        // //detecting connectivity of lines
+        // if(that.connectivityViews){
+        // var line1 = _.find(that.connectivityViews, (cnv)=>{
+        //     if(cnv){
+        //         return cnv.model[0] == landmark;
+        //     }
+        //     });
+        // var line2 = _.find(that.connectivityViews, (cnv)=>{
+        //     if(cnv){
+        //         return cnv.model[1] == landmark;
+        //     }
+        //     });
+        // }
+        // //setting new connectivity
+        // if(line1){
+        //     that.connectivityViews.splice(that.connectivityViews.indexOf(line1), 1, new LandmarkConnectionTHREEView(
+        //         {
+        //             model: [landmark,
+        //                     line1.model[1]],
+        //             viewport: viewportChange
+        //         }
+        //     ))
+
+        // }
+        // if(line2){
+        //     that.connectivityViews.splice(that.connectivityViews.indexOf(line2), 1, new LandmarkConnectionTHREEView(
+        //         {
+        //             model: [line2.model[0],
+        //                 landmark],
+        //             viewport: viewportChange
+        //         }
+        //     ))
+        // }
+
+        Backbone.on('changeStatusInToolbar', function() {} );
+        Backbone.trigger('changeStatusInToolbar', landmark);
+        this.changePresetListener.stopListening();
+    }),
+
+    changeLandmarks: atomic.atomicOperation(function () {
+        // this.changeDotFlagListener.stopListening();
+        console.log('Viewport: landmarks have changed');
+        var that = this;;
+        //hardcode to clean shit up
+        this.sLms.children = []
+        this.sLmsConnectivity.children = []
 
         // 1. Dispose of all landmark and connectivity views
         _.map(this.landmarkViews, function (lmView) {
-            lmView.dispose();
+            if(lmView){
+                lmView.dispose();
+            }
         });
         _.map(this.connectivityViews, function (connView) {
-            connView.dispose();
+            if(connView){
+                connView.dispose();
+            }
         });
 
         // 2. Build a fresh set of views - clear any existing views
         this.landmarkViews = [];
         this.connectivityViews = [];
+
 
         var landmarks = this.model.get('landmarks');
         if (landmarks === null) {
@@ -519,6 +688,7 @@ export default Backbone.View.extend({
             // TODO when can this happen?!
             return;
         }
+        if(landmarks.landmarks){
         landmarks.landmarks.map(function (lm) {
             that.landmarkViews.push(new LandmarkTHREEView(
                 {
@@ -526,14 +696,19 @@ export default Backbone.View.extend({
                     viewport: that
                 }));
         });
+
         landmarks.connectivity.map(function (ab) {
-           that.connectivityViews.push(new LandmarkConnectionTHREEView(
-               {
-                   model: [landmarks.landmarks[ab[0]],
-                           landmarks.landmarks[ab[1]]],
-                   viewport: that
-               }));
+            that.connectivityViews.push(new LandmarkConnectionTHREEView(
+                {
+                    model: [landmarks.landmarks[ab[0]],
+                        landmarks.landmarks[ab[1]]],
+                    viewport: that
+                }));
         });
+    }
+
+        Backbone.on('changePreset', function() {} );
+        Backbone.trigger('changePreset');
 
     }),
 
@@ -620,7 +795,7 @@ export default Backbone.View.extend({
             return [];
         }
         var vector = new THREE.Vector3((x / this.width()) * 2 - 1,
-                                        -(y / this.height()) * 2 + 1, 0.5);
+            -(y / this.height()) * 2 + 1, 0.5);
 
         if (this.sCamera === this.sPCam) {
             // perspective selection
@@ -647,7 +822,7 @@ export default Backbone.View.extend({
     },
 
     getIntersectsFromEvent: function (event, object) {
-      return this.getIntersects(event.clientX, event.clientY, object);
+        return this.getIntersects(event.clientX, event.clientY, object);
     },
 
     worldToScreen: function (vector) {
@@ -666,7 +841,7 @@ export default Backbone.View.extend({
 
     worldToLocal: function (vector, inPlace=false) {
         return inPlace ? this.sMeshAndLms.worldToLocal(vector) :
-                         this.sMeshAndLms.worldToLocal(vector.clone());
+            this.sMeshAndLms.worldToLocal(vector.clone());
     },
 
     lmToScreen: function (lmSymbol) {
@@ -678,7 +853,7 @@ export default Backbone.View.extend({
     lmViewsInSelectionBox: function (x1, y1, x2, y2) {
         var c;
         var lmsInBox = [];
-        var that = this;
+        var that = this;;
         _.each(this.landmarkViews, function (lmView) {
             if (lmView.symbol) {
                 c = that.lmToScreen(lmView.symbol);

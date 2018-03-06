@@ -20,6 +20,7 @@ export default function XMLHttpRequestPromise(
         contentType,
         headers={},
         data,
+        DropboxAPIArg,
         auth=false
     }
 ){
@@ -40,7 +41,9 @@ export default function XMLHttpRequestPromise(
         if (contentType) {
             xhr.setRequestHeader('Content-Type', contentType);
         }
-
+        if (DropboxAPIArg) {
+            xhr.setRequestHeader('Dropbox-API-Arg', `${DropboxAPIArg}`);
+        }
         xhr.onload = function() {
             // This is called even on 404 etc
             // so check the status
@@ -111,3 +114,47 @@ export function putJSON (url, {headers={}, data={}, auth=false}={}) {
         contentType: 'application/json;charset=UTF-8'
     });
 }
+
+export function postJSON (url, {headers={}}) {
+    return XMLHttpRequestPromise(url, {
+        headers,
+        method: 'POST',
+    });
+}
+
+export function postMetaJSON (url, {headers={}, data={}}) {
+    return XMLHttpRequestPromise(url, {
+        headers,
+        method: 'POST',
+        data: JSON.stringify(data),
+        responseType: 'json',
+        contentType: 'application/json'
+    });
+}
+export function postDownloadJSON (url, {headers={}, dropboxAPI}) {
+    return XMLHttpRequestPromise(url, {
+        headers,
+        DropboxAPIArg: JSON.stringify(dropboxAPI),
+        method: 'POST',
+        responseType: 'text'
+    });
+}
+
+export function postUploadJSON (url, {headers={}, dropboxAPI, data={}}) {
+    return XMLHttpRequestPromise(url, {
+        headers,
+        DropboxAPIArg: JSON.stringify(dropboxAPI),
+        method: 'POST',
+        contentType: 'application/octet-stream',
+        data: JSON.stringify(data)
+    });
+}
+export function postJSONData (url, {headers={}, data={}}) {
+    return XMLHttpRequestPromise(url, {
+        headers,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data)
+    });
+}
+
