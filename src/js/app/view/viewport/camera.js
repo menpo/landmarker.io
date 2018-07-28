@@ -24,7 +24,7 @@
 'use strict';
 
 import _ from 'underscore';
-import THREE from 'three';
+import * as THREE from 'three';
 import $ from 'jquery';
 import Backbone from 'backbone';
 

@@ -3,7 +3,7 @@
 import _ from 'underscore';
 import Backbone from 'backbone';
 import $ from 'jquery';
-import THREE from 'three';
+import * as THREE from 'three';
 
 import atomic from '../../model/atomic';
 import * as octree from '../../model/octree';
@@ -358,7 +358,7 @@ export default Backbone.View.extend({
         h = this.height();
         this.renderer.setViewport(0, 0, w, h);
         this.renderer.setScissor(0, 0, w, h);
-        this.renderer.enableScissorTest(true);
+        this.renderer.setScissorTest(true);
         this.renderer.clear();
         this.renderer.render(this.scene, this.sCamera);
 
@@ -374,7 +374,7 @@ export default Backbone.View.extend({
             this.renderer.setClearColor(CLEAR_COLOUR_PIP, 1);
             this.renderer.setViewport(b.x, b.y, b.width, b.height);
             this.renderer.setScissor(b.x, b.y, b.width, b.height);
-            this.renderer.enableScissorTest(true);
+            this.renderer.setScissorTest(true);
             this.renderer.clear();
             // render the PIP image
             this.renderer.render(this.scene, this.sOCamZoom);

@@ -4,7 +4,7 @@
 require('../scss/main.scss');
 
 import $ from 'jquery';
-import THREE from 'three';
+import * as THREE from 'three';
 import url from 'url';
 import Promise from 'promise-polyfill';
 

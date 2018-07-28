@@ -8,7 +8,7 @@
 
 'use strict';
 
-import THREE from 'three';
+import * as THREE from 'three';
 
 export default function parse (data) {
     console.time('STLLoader');
