@@ -1,10 +1,9 @@
 sudo: false
 language: node_js
 node_js:
-- '4.1'
+- '8.11.3'
 install:
   - npm install
-  - gem install s3_website
 script:
 - npm run lint:errors
 - npm run build
