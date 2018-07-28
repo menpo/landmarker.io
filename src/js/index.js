@@ -263,26 +263,7 @@ function initLandmarker(server, mode, u) {
     (new KeyboardShortcutsHandler(app, viewport)).enable();
 }
 
-function handleNewVersion () {
-
-    const $topBar = $('#newVersionPrompt');
-    $topBar.text(
-        'New version has been downloaded in the background, click to reload.');
-
-    $topBar.click(function () {
-        window.location.reload(true);
-    });
-
-    $topBar.addClass('Display');
-}
-
 document.addEventListener('DOMContentLoaded', function () {
-
-    // Check for new version (vs current appcache retrieved version)
-    window.applicationCache.addEventListener('updateready', handleNewVersion);
-    if(window.applicationCache.status === window.applicationCache.UPDATEREADY) {
-        handleNewVersion();
-    }
 
     // Test for IE
     if (support.ie) {
