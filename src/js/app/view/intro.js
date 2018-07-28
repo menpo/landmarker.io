@@ -30,17 +30,6 @@ const contents = `\
 </div>\
 `;
 
-const lsWarning = `\
-<p class='IntroWarning'>\
-    Your browser doesn't support LocalStorage, so Dropbox login has been\
-    disabled.\
-</p>`;
-
-const httpsWarning = `\
-<p class='IntroWarning'>\
-    You are currently on an non-https connection. For security reasons Dropbox integration has been disabled.
-</p>`;
-
 const Intro = Modal.extend({
 
     closable: false,
@@ -57,20 +46,6 @@ const Intro = Modal.extend({
 
     content: function () {
         const $contents = $(contents);
-
-        if (!support.localstorage) {
-            $contents.find('.IntroItem--Dropbox').remove();
-            $contents.find('.IntroItems').append($(lsWarning));
-        }
-
-        if (
-            !support.https &&
-            window.location.origin !== "http://localhost:4000"
-        ) {
-            $contents.find('.IntroItem--Dropbox').remove();
-            $contents.find('.IntroItems').append($(httpsWarning));
-        }
-
         return $contents;
     },
 
