@@ -118,9 +118,6 @@ git add -A .
 git commit --allow-empty -m "[deploy.sh | $ACTOR] $BRANCH ($(date))" || exit 1;
 git push || exit 1;
 
-# S3 Deploy
-if [[ -z $(git checkout "$BRANCH" -- s3_website.yml) ]]; then s3_website push || exit 1; else echo "Couldn't find s3_website file, skipping"; fi
-
 # Clean up
 rm -rf "$TMP_DIR"
 
