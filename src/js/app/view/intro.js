@@ -15,9 +15,6 @@ const contents = `\
     <h1>Landmarker.io</h1>\
     <h3><a href="https://github.com/menpo/landmarker.io/releases" title="release notes">v${version}</a></h3>\
     <div class='IntroItems'>\
-        <div class='IntroItem IntroItem--Dropbox'>\
-            <div>Connect to Dropbox</div>\
-        </div>\
         <div class='IntroItem IntroItem--Server'>\
             <span class="octicon octicon-globe"></span>\
             <div>Connect to a landmarker server</div>\
@@ -50,7 +47,6 @@ const Intro = Modal.extend({
     modifiers: ['Small'],
 
     events: {
-        'click .IntroItem--Dropbox': 'startDropbox',
         'click .IntroItem--Server': 'startServer',
         'click .IntroItem--Demo': 'startDemo'
     },
@@ -76,16 +72,6 @@ const Intro = Modal.extend({
         }
 
         return $contents;
-    },
-
-    startDropbox: function () {
-        this._cfg.clear();
-        const [dropUrl, state] = Backend.Dropbox.authorize();
-        this._cfg.set({
-            'OAUTH_STATE': state,
-            'BACKEND_TYPE': Backend.Dropbox.Type
-        }, true);
-        window.location.replace(dropUrl);
     },
 
     startDemo: function () {
