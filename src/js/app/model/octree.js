@@ -1,7 +1,7 @@
 
 'use strict';
 
-import THREE from 'three';
+import * as THREE from 'three';
 
 // once a node gets this full it subdivides.
 const MAX_NODE_ITEMS = 75;
@@ -15,7 +15,7 @@ export function octreeForBufferGeometry(geometry) {
     var octree = new OctreeNode(geometry.boundingBox.min,
                                 geometry.boundingBox.max);
     var pointsAttribute = geometry.getAttribute('position');
-    var nTris = pointsAttribute.length / 9;
+    var nTris = pointsAttribute.count / 3;
     var p = pointsAttribute.array;
     var box;
     var tmp = new THREE.Vector3();
@@ -57,7 +57,8 @@ function intersectTrianglesAtIndices (ray, raycaster, mesh, indices) {
     var intersects = [];
     var material = mesh.material;
     var attributes = mesh.geometry.attributes;
-    var a, b, c, j, intersectionPoint;
+    var a, b, c, j, didIntersect;
+    var intersectionPoint = new THREE.Vector3();
     var precision = raycaster.precision;
     var p = attributes.position.array;
 
@@ -72,12 +73,12 @@ function intersectTrianglesAtIndices (ray, raycaster, mesh, indices) {
         vC.set(p[j + 6], p[j + 7], p[j + 8]);
 
         if (material.side === THREE.BackSide) {
-            intersectionPoint = ray.intersectTriangle(vC, vB, vA, true);
+            didIntersect = ray.intersectTriangle(vC, vB, vA, true, intersectionPoint) !== null;
         } else {
-            intersectionPoint = ray.intersectTriangle(vA, vB, vC, material.side !== THREE.DoubleSide);
+            didIntersect = ray.intersectTriangle(vA, vB, vC, material.side !== THREE.DoubleSide, intersectionPoint) !== null;
         }
 
-        if (intersectionPoint === null) {
+        if (!didIntersect) {
             continue;
         }
 
@@ -178,7 +179,7 @@ OctreeNode.prototype.isInteriorNode = function () {
 OctreeNode.prototype.add = function(item) {
     if (this.isInteriorNode()) {
         for (var i = 0; i < 8; i++) {
-            if (this.children[i].isIntersectionBox(item.box)) {
+            if (this.children[i].intersectsBox(item.box)) {
                 this.children[i].add(item);
             }
         }
@@ -197,7 +198,7 @@ OctreeNode.prototype.add = function(item) {
 // retrieve a list of items from this node and all subnodes that can intersect.
 OctreeNode.prototype.itemsWhichCouldIntersect = function(ray) {
     var items = [];
-    if (ray.isIntersectionBox(this)) {
+    if (ray.intersectsBox(this)) {
         if (this.isInteriorNode()) {
             for (var i = 0; i < this.children.length; i++) {
                 items = items.concat(this.children[i].itemsWhichCouldIntersect(ray));
@@ -214,11 +215,12 @@ OctreeNode.prototype.subdivide = function () {
 
     var newMin, newMax, toAdd;
     var a = this.min;
-    var c = this.center();
+    var c = new THREE.Vector3();
+    this.getCenter(c);
 
     // all subnodes will have this vector from min to max
     var displacement = new THREE.Vector3();
-    displacement.subVectors(this.center(), this.min);
+    displacement.subVectors(c, this.min);
 
     // declare the min value of each new box
     var mins = [

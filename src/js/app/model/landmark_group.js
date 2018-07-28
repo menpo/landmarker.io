@@ -1,6 +1,6 @@
 'use strict';
 
-import THREE from 'three';
+import * as THREE from 'three';
 
 import { maskedArray } from '../lib/utils';
 import { notify } from '../view/notification';

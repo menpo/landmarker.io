@@ -1,7 +1,7 @@
 'use strict';
 
 import _ from 'underscore';
-import THREE from 'three';
+import * as THREE from 'three';
 import Backbone from 'backbone';
 
 // the default scale for 1.0
