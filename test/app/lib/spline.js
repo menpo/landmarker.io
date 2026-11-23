@@ -1,9 +1,10 @@
-import { readFileSync } from 'node:fs';
+import {
+    curveSegments, readFileSync } from 'node:fs';
 import { assert } from 'chai';
 import { describe, it } from 'vitest';
 
 import {
-    curvesFromEdges, makeCurve, pointAt, resampleCurve, resampleCurves
+    curveSegments, curvesFromEdges, makeCurve, pointAt, resampleCurve, resampleCurves
 } from '../../../src/js/app/lib/spline';
 
 // values that menpo's CatmullRom computed (test/fixtures/spline_golden.json)
@@ -100,3 +101,45 @@ describe('spline: resampleCurves on a graph', function () {
         assert.deepEqual(moved.slice(0, 4), gaps.slice(0, 4));
     });
 });
+
+describe('curveSegments', function () {
+    const OPEN = [[0, 0], [10, 5], [20, 0], [30, 8]];
+    const near = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-9;
+    const chained = (pairs) => pairs.every((pair, i) => i === 0 || near(pair[0], pairs[i - 1][1]));
+
+    it('is the spline through the points when they are all placed', function () {
+        const pairs = curveSegments(OPEN, false, 8);
+        assert.equal(pairs.length, 3 * 8);
+        assert.isTrue(chained(pairs));
+        // it passes through every control point, and starts and ends on the ends
+        OPEN.forEach(p => assert.isTrue(
+            pairs.some(([a, b]) => near(a, p) || near(b, p))));
+        assert.isTrue(near(pairs[0][0], OPEN[0]));
+        assert.isTrue(near(pairs[pairs.length - 1][1], OPEN[3]));
+        // and it is the curve that resampling uses: its samples are on makeCurve's
+        const {dense} = makeCurve(OPEN, false, 0.5, 8);
+        assert.isTrue(pairs.every(([a]) => dense.some(q => near(a, q))));
+    });
+
+    it('closes a loop', function () {
+        const loop = [[0, 0], [10, 0], [10, 10], [0, 10]];
+        const pairs = curveSegments(loop, true, 6);
+        assert.equal(pairs.length, 4 * 6);
+        assert.isTrue(near(pairs[0][0], loop[0]));
+        assert.isTrue(near(pairs[pairs.length - 1][1], loop[0]));
+    });
+
+    it('is straight segments between the placed neighbours while the curve is incomplete', function () {
+        const pairs = curveSegments([[0, 0], [10, 5], null, [30, 8]], false);
+        assert.deepEqual(pairs, [[[0, 0], [10, 5]]]);
+        const loop = curveSegments([[0, 0], [10, 0], [10, 10], null], true);
+        assert.deepEqual(loop, [[[0, 0], [10, 0]], [[10, 0], [10, 10]]]);
+        const closing = curveSegments([[0, 0], null, [10, 10], [0, 10]], true);
+        assert.deepEqual(closing, [[[10, 10], [0, 10]], [[0, 10], [0, 0]]]);
+    });
+
+    it('draws nothing for nothing placed', function () {
+        assert.deepEqual(curveSegments([null, null, null], false), []);
+    });
+});
+
