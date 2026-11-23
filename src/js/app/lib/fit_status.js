@@ -4,9 +4,10 @@
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-// Returns {lines, busy, jobLine, error, fit, box, predict, train}, where each action is
+// Returns {lines, busy, jobLine, error, fit, box, predict, learn, train}, where each action is
 // {enabled, reason} (the reason is a tooltip: what is missing)
-export function fitPanelState (status, {hasLandmarks=true}={}) {
+// `saved`: the landmarks on the screen are the ones in the file (nothing unsaved)
+export function fitPanelState (status, {hasLandmarks=true, saved=true}={}) {
     const job = status.job || null;
     const busy = !!job && job.state === 'running';
     const learns = status.can_increment || status.can_build;
@@ -51,6 +52,12 @@ export function fitPanelState (status, {hasLandmarks=true}={}) {
         predict: action(ready && !!status.can_initialize && status.unlabelled > 0,
                         status.unlabelled > 0 ? 'Not ready or cannot start from nothing' :
                                                 'Every image has landmarks'),
+        // the model learns only from what is saved, never from the screen
+        learn: action(ready && !!status.can_increment && saved,
+                      !status.can_increment ? 'This model cannot learn one image at a time' :
+                      !ready ? 'Not ready' : 'Save this image first (ctrl+s)'),
+        canSwitchLearnOnSave: !!status.can_increment,
+        learnOnSave: !!status.learn_on_save,
         train: action(learns && status.annotated > 0,
                       learns ? 'There are no annotations to learn from' :
                                'This model cannot be trained'),

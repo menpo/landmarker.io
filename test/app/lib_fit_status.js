@@ -79,4 +79,23 @@ describe('fitPanelState', function () {
         assert.isTrue(failed.jobFailed);
         assert.equal(failed.error, 'ValueError: x');
     });
+
+    it('learns one image only when it is saved and the model can add images', function () {
+        assert.isTrue(fitPanelState(status()).learn.enabled);
+        const unsaved = fitPanelState(status(), {saved: false});
+        assert.isFalse(unsaved.learn.enabled);
+        assert.equal(unsaved.learn.reason, 'Save this image first (ctrl+s)');
+        assert.isTrue(unsaved.fit.enabled);  // fitting does not need it saved
+        const fixed = fitPanelState(status({can_increment: false}));
+        assert.isFalse(fixed.learn.enabled);
+        assert.equal(fixed.learn.reason, 'This model cannot learn one image at a time');
+        assert.isFalse(fixed.canSwitchLearnOnSave);
+        assert.isFalse(fitPanelState(status({ready: false})).learn.enabled);
+    });
+
+    it('shows the learn-on-save switch as the server has it', function () {
+        assert.isTrue(fitPanelState(status()).learnOnSave);
+        assert.isFalse(fitPanelState(status({learn_on_save: false})).learnOnSave);
+        assert.isTrue(fitPanelState(status()).canSwitchLearnOnSave);
+    });
 });

@@ -143,4 +143,14 @@ describe('App fit box', function () {
         assert.equal(message, 'Draw a box first');
         assert.deepEqual(calls, []);
     });
+
+    it('gives up the box when the image changes', function () {
+        const {app, attrs} = fakeBoxApp(() => Promise.resolve([[1, 1], [2, 2]]));
+        app.assetSource = () => ({asset: () => ({id: 'b.png'})});
+        return App.prototype.beginFitBox.call(app).then(() => {
+            App.prototype.assetChanged.call(app);
+            assert.isFalse(attrs.fitBoxMode);
+            assert.isNull(attrs.fitBox);
+        });
+    });
 });
