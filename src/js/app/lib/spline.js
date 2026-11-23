@@ -265,3 +265,33 @@ export function resampleCurves (points, edges, anchors = [], spacing = {},
     });
     return result;
 }
+
+/**
+ * The segments to draw for one curve (a chain or a loop of landmarks): the spline
+ * through the points when they are all placed, so that what is drawn is the curve that
+ * "space evenly" slides the points along; otherwise straight segments between the
+ * neighbours that are placed.
+ *
+ * @param {Array<number[]|null>} points in order along the curve, null if not placed
+ * @param {boolean} closed
+ * @param {number} resolution samples per span of the spline
+ * @return {Array<[number[], number[]]>} pairs of points
+ */
+export function curveSegments (points, closed, resolution = 12) {
+    const n = points.length;
+    const pairs = [];
+    if (n >= 3 && points.every(p => p)) {
+        const {dense} = sampleCurve(points, closed, 0.5, resolution);
+        for (let i = 0; i + 1 < dense.length; i++) {
+            pairs.push([dense[i], dense[i + 1]]);
+        }
+        return pairs;
+    }
+    for (let i = 0; i + 1 < n + (closed && n > 2 ? 1 : 0); i++) {
+        const a = points[i], b = points[(i + 1) % n];
+        if (a && b) {
+            pairs.push([a, b]);
+        }
+    }
+    return pairs;
+}

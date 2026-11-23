@@ -10,7 +10,8 @@ import * as octree from '../../model/octree';
 
 import CameraController from './camera';
 import Handler from './handler';
-import { LandmarkConnectionTHREEView, LandmarkTHREEView } from './elements';
+import { LandmarkConnectionTHREEView, LandmarkCurveTHREEView, LandmarkTHREEView } from './elements';
+import { curvesFromEdges } from '../../lib/spline';
 
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE;
@@ -526,13 +527,27 @@ export default Backbone.View.extend({
                     viewport: that
                 }));
         });
-        landmarks.connectivity.map(function (ab) {
-           that.connectivityViews.push(new LandmarkConnectionTHREEView(
-               {
-                   model: [landmarks.landmarks[ab[0]],
-                           landmarks.landmarks[ab[1]]],
-                   viewport: that
-               }));
+        // the chains and loops are drawn as splines, any other connection as a line
+        var curves = curvesFromEdges(landmarks.connectivity, landmarks.landmarks.length);
+        var inCurve = new Set();
+        curves.forEach(function (curve) {
+            curve.indices.forEach(function (i) { inCurve.add(i); });
+            that.connectivityViews.push(new LandmarkCurveTHREEView({
+                models: curve.indices.map(i => landmarks.landmarks[i]),
+                closed: curve.closed,
+                viewport: that
+            }));
+        });
+        landmarks.connectivity.forEach(function (ab) {
+            if (inCurve.has(ab[0]) || inCurve.has(ab[1])) {
+                return;
+            }
+            that.connectivityViews.push(new LandmarkConnectionTHREEView(
+                {
+                    model: [landmarks.landmarks[ab[0]],
+                            landmarks.landmarks[ab[1]]],
+                    viewport: that
+                }));
         });
 
     }),

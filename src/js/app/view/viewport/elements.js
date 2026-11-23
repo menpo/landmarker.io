@@ -4,6 +4,8 @@ import _ from 'underscore';
 import * as THREE from 'three';
 import Backbone from 'backbone';
 
+import { curveSegments } from '../../lib/spline';
+
 // the default scale for 1.0
 const LM_SCALE = 0.01;
 
@@ -157,5 +159,43 @@ export const LandmarkConnectionTHREEView = Backbone.View.extend({
         this.symbol.geometry.vertices[0].copy(this.model[0].point());
         this.symbol.geometry.vertices[1].copy(this.model[1].point());
         this.symbol.geometry.verticesNeedUpdate = true;
+    }
+});
+
+// A chain or loop of landmarks drawn as the spline through them, not as straight lines:
+// "space evenly" slides the points along this curve. `models` are the landmarks in order.
+export const LandmarkCurveTHREEView = Backbone.View.extend({
+
+    initialize: function (options) {
+        this.models = options.models;
+        this.closed = options.closed;
+        this.viewport = options.viewport;
+        this.symbol = null;
+        this.models.forEach(
+            lm => this.listenTo(lm, 'change:point change:isEmpty', this.render));
+        this.render();
+    },
+
+    render: function () {
+        const points = this.models.map(
+            lm => lm.isEmpty() ? null : [lm.point().x, lm.point().y, lm.point().z]);
+        const pairs = curveSegments(points, this.closed);
+        this.dispose();
+        if (pairs.length) {
+            const geometry = new THREE.Geometry();
+            pairs.forEach(([a, b]) => geometry.vertices.push(
+                new THREE.Vector3(...a), new THREE.Vector3(...b)));
+            this.symbol = new THREE.LineSegments(geometry, lineMaterial);
+            this.viewport.sLmsConnectivity.add(this.symbol);
+        }
+        this.viewport.update();
+    },
+
+    dispose: function () {
+        if (this.symbol) {
+            this.viewport.sLmsConnectivity.remove(this.symbol);
+            this.symbol.geometry.dispose();
+            this.symbol = null;
+        }
     }
 });
