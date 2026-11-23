@@ -2,7 +2,7 @@
 
 import Backbone from 'backbone';
 import * as THREE from 'three';
-const placeholderUrl = require("../../../../img/placeholder.jpg");
+import placeholderUrl from "../../../../img/placeholder.jpg";
 
 const FRONT = {
     image: new THREE.Vector3(0, 0, 1),

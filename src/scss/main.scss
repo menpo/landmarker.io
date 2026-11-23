@@ -31,9 +31,13 @@ body {
   }
 }
 
-p.Error {
+%errorText {
     color: $colorDarkRed;
     font-weight: bold;
+}
+
+p.Error {
+    @extend %errorText;
 }
 
 @import 'button';

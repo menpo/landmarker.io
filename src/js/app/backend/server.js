@@ -7,6 +7,9 @@ import ImagePromise from '../lib/imagepromise';
 
 import Base from './base';
 
+const isLoopback = (url) =>
+    /^https?:\/\/(localhost|127\.\d+\.\d+\.\d+|\[::1\])(:\d+)?(\/|$)/i.test(url);
+
 const Server = Base.extend('LANDMARKER SERVER', function (url) {
 
     this.url = url;
@@ -23,7 +26,10 @@ const Server = Base.extend('LANDMARKER SERVER', function (url) {
 
     this.httpAuth = url.indexOf('https://') === 0;
 
-    if (!this.demoMode && support.https && url.indexOf('https://') !== 0) {
+    // An https page may not talk to a plain http server (mixed content), except
+    // to one on the same machine: browsers treat localhost as secure.
+    if (!this.demoMode && support.https && this.url.indexOf('https://') !== 0 &&
+        !isLoopback(this.url)) {
         throw new Error('Mixed Content');
     }
 
