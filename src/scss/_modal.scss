@@ -176,3 +176,42 @@
         background: $colorDarkRed;
     }
 }
+
+// The Fit panel (view/fit.js)
+.Fit {
+    &__Status {
+        list-style: none;
+        margin: 0 0 .5em 0;
+        padding: 0;
+    }
+
+    &__Job {
+        margin-bottom: .5em;
+        font-style: italic;
+    }
+
+    &__Job--Failed,
+    &__Error {
+        color: $colorRed;
+    }
+
+    &__Current {
+        display: block;
+        margin: .75em 0;
+    }
+
+    &__Actions {
+        display: flex;
+        gap: .5em;
+        margin-bottom: .5em;
+
+        button {
+            flex: 1;
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+    }
+}

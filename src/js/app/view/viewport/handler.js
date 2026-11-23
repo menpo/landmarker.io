@@ -138,6 +138,38 @@ export default function Handler () {
         $(document).one('mouseup.viewportNothing', nothingOnMouseUp);
     };
 
+    var boxPressed = () => {
+        this.cameraController.disable();
+        $(document).on('mousemove.boxDrag', boxOnDrag);
+        $(document).one('mouseup.viewportBox', boxOnMouseUp);
+    };
+
+    var boxOnDrag = (event) => {
+        this.clearCanvas();
+        this.drawSelectionBox(
+            onMouseDownPosition, {x: event.clientX, y: event.clientY});
+    };
+
+    // the box is in local coordinates: [[min, min], [max, max]], the order of the points
+    var boxOnMouseUp = (event) => {
+        $(document).off('mousemove.boxDrag', boxOnDrag);
+        this.cameraController.enable();
+        isPressed = false;
+        this.clearCanvas();
+        // clientX/Y are the page's: the canvas is at the top left of the page
+        var a = this.screenToLocal(onMouseDownPosition.x, onMouseDownPosition.y);
+        var b = this.screenToLocal(event.clientX, event.clientY);
+        // a click is not a box
+        if (a && b && Math.abs(a.x - b.x) > 0 && Math.abs(a.y - b.y) > 0 &&
+            Math.hypot(event.clientX - onMouseDownPosition.x,
+                       event.clientY - onMouseDownPosition.y) > 4) {
+            this.model.set('fitBox', [[Math.min(a.x, b.x), Math.min(a.y, b.y)],
+                                      [Math.max(a.x, b.x), Math.max(a.y, b.y)]]);
+        } else {
+            this.update();
+        }
+    };
+
     var shiftPressed = () => {
         console.log('shift pressed!');
         // before anything else, disable the camera
@@ -165,6 +197,12 @@ export default function Handler () {
 
         downEvent = event;
         onMouseDownPosition.set(event.clientX, event.clientY);
+
+        // drawing the box to fit from: the drag is the box, nothing else happens
+        if (this.model.get('fitBoxMode') && event.button === 0) {
+            boxPressed();
+            return;
+        }
 
         // All interactions require intersections to distinguish
         intersectsWithLms = this.getIntersectsFromEvent(

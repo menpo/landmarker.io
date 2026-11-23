@@ -4,6 +4,7 @@ import $ from 'jquery';
 
 import Modal from './modal';
 import { closeLoopsSelectedOrAll, resampleSelectedOrAll } from './sidebar';
+import { notify } from './notification';
 
 const SHORTCUTS = {
     // Structure is [fn, acceptShift?, needLms?]
@@ -121,6 +122,21 @@ export default function KeyboardShortcutsHandler (app, viewport) {
 
     this._keydown = function (evt) {
         let lms;
+
+        // drawing the box to fit from: Enter fits, Esc gives up
+        if (app.get('fitBoxMode') && !Modal.active()) {
+            if (evt.which === 13) {
+                app.fitInBox().then((moved) => notify({
+                    type: 'success', msg: `Refined ${moved} landmarks (undo with z)`
+                }), (message) => notify({type: 'error', msg: message}));
+                evt.stopPropagation();
+                return null;
+            } else if (evt.which === 27) {
+                app.endFitBox();
+                evt.stopPropagation();
+                return null;
+            }
+        }
 
         if (evt.which === 27) {
             if (app.isHelpOverlayOn()) {

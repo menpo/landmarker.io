@@ -237,6 +237,7 @@ export default Backbone.View.extend({
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
+        this.listenTo(this.model, 'change:fitBox change:fitBoxMode', this.redrawFitBox);
 
         this.showConnectivity = true;
         this.listenTo(
@@ -392,6 +393,37 @@ export default Backbone.View.extend({
             }
             this.renderer.setClearColor(CLEAR_COLOUR, 1);
         }
+
+        this.drawFitBox();
+    },
+
+    // The box to fit from (model.fitBox, in the local coordinates of the points): drawn on the
+    // 2D canvas, so after every render
+    drawFitBox: function () {
+        var box = this.model.get('fitBox');
+        if (!box || !this.model.get('fitBoxMode')) {
+            return;
+        }
+        var corners = [[box[0][0], box[0][1]], [box[1][0], box[0][1]],
+                       [box[1][0], box[1][1]], [box[0][0], box[1][1]]]
+            .map((c) => this.localToScreen(new THREE.Vector3(c[0], c[1], 0)));
+        this.ctx.save();
+        this.ctx.strokeStyle = '#01e6fb';
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([8, 6]);
+        this.ctx.beginPath();
+        corners.forEach((c, i) => {
+            this.updateCanvasBoundingBox(c);
+            this.ctx[i ? 'lineTo' : 'moveTo'](c.x, c.y);
+        });
+        this.ctx.closePath();
+        this.ctx.stroke();
+        this.ctx.restore();
+    },
+
+    redrawFitBox: function () {
+        this.clearCanvas();
+        this.update();
     },
 
     toggleCamera: function () {
@@ -634,10 +666,8 @@ export default Backbone.View.extend({
     // Coordinates and intersection helpers
     // =========================================================================
 
-    getIntersects: function (x, y, object) {
-        if (object === null || object.length === 0) {
-            return [];
-        }
+    // aim this.ray through the screen position
+    _aimRay: function (x, y) {
         var vector = new THREE.Vector3((x / this.width()) * 2 - 1,
                                         -(y / this.height()) * 2 + 1, 0.5);
 
@@ -654,6 +684,25 @@ export default Backbone.View.extend({
                 .transformDirection(this.sCamera.matrixWorld);
             this.ray.set(vector, dir);
         }
+    },
+
+    // Where a screen position is on the plane of the image (z = 0 of the local coordinates,
+    // where the landmarks are), even outside the image. null if the camera is edge on.
+    screenToLocal: function (x, y) {
+        this._aimRay(x, y);
+        var origin = this.sMeshAndLms.localToWorld(new THREE.Vector3(0, 0, 0));
+        var normal = new THREE.Vector3(0, 0, 1).transformDirection(
+            this.sMeshAndLms.matrixWorld);
+        var plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin);
+        var hit = this.ray.ray.intersectPlane(plane, new THREE.Vector3());
+        return hit ? this.worldToLocal(hit) : null;
+    },
+
+    getIntersects: function (x, y, object) {
+        if (object === null || object.length === 0) {
+            return [];
+        }
+        this._aimRay(x, y);
 
         if (object === this.mesh && this.octree) {
             // we can use the octree to intersect the mesh efficiently.

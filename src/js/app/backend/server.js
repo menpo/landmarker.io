@@ -89,12 +89,29 @@ Server.prototype.fetchFitStatus = function () {
     return this.fetchJSON('fit');
 };
 
-// The landmarks that are on the asset (a landmark group's JSON), refined by the server's model
-Server.prototype.fitLandmarkGroup = function (id, type, json) {
+// The landmarks that are on the asset (a landmark group's JSON), refined by the server's model.
+// With a box ([[min, min], [max, max]] in the order of the points) the fit starts from the
+// model's initial shape in it, whatever the landmarks are.
+Server.prototype.fitLandmarkGroup = function (id, type, json, box) {
     return postJSON(this.map(`fit/${id}/${type}`), {
-        data: json,
+        data: box ? Object.assign({}, json, {box}) : json,
         auth: this.httpAuth
     });
+};
+
+// The box that the model would start from, to draw and let the annotator change
+Server.prototype.fetchFitBox = function (id) {
+    return getJSON(this.map(`fit/box/${id}`), {auth: this.httpAuth});
+};
+
+// Learn from all the annotations again, as a background job (see fetchFitStatus)
+Server.prototype.fitTrain = function () {
+    return postJSON(this.map('fit/train'), {auth: this.httpAuth});
+};
+
+// Fit every image without landmarks, as a background job (see fetchFitStatus)
+Server.prototype.fitPredict = function (type) {
+    return postJSON(this.map(`fit/predict/${type}`), {auth: this.httpAuth});
 };
 
 Server.prototype.saveLandmarkGroup = function (id, type, json) {

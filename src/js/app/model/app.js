@@ -22,6 +22,8 @@ export default Backbone.Model.extend({
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
+            fitBoxMode: false,
+            fitBox: null,
             tracker: {}
         };
     },
@@ -403,13 +405,22 @@ export default Backbone.Model.extend({
 
     // Refine the landmarks that are on the asset with the server's model (undoable). Resolves
     // with the number of points that moved; rejects with a message to show.
-    autoFitLandmarks: function () {
+    //   box: [[min, min], [max, max]] (the order of the points) to start from the model's
+    //        initial shape in it
+    //   fromCurrent: false to ignore the landmarks that are placed and start from the model's
+    //        own initial shape (default true: complete landmarks are what the fit starts from)
+    autoFitLandmarks: function ({box, fromCurrent=true}={}) {
         const lms = this.landmarks();
         if (!lms) {
             return Promise.reject('No landmarks to refine');
         }
+        const sent = lms.toJSON();
+        if (!fromCurrent && !box) {
+            // an incomplete annotation is not a start: the server uses the model's own
+            sent.landmarks.points = sent.landmarks.points.map(p => p.map(() => null));
+        }
         return this.server().fitLandmarkGroup(
-            this.asset().id, this.activeTemplate(), lms.toJSON()
+            this.asset().id, this.activeTemplate(), sent, box
         ).then((json) => {
             const before = lms.toJSON().landmarks.points;
             lms.tracker.recordState(lms.toJSON());
@@ -424,6 +435,37 @@ export default Backbone.Model.extend({
             } catch (e) { /* keep the status text */ }
             return Promise.reject(message);
         });
+    },
+
+    // Drawing the box to start a fit from: the viewport shows `fitBox` and lets it be redrawn
+    // while `fitBoxMode` is on. It starts as the box the model suggests, if it can.
+    beginFitBox: function () {
+        const server = this.server();
+        this.set({fitBoxMode: true, fitBox: null});
+        if (server && server.fetchFitBox && this.asset()) {
+            const asset = this.asset();
+            return server.fetchFitBox(asset.id).then((box) => {
+                // only if still wanted, for the same image
+                if (this.get('fitBoxMode') && this.asset() === asset) {
+                    this.set('fitBox', box);
+                }
+            }, () => {});  // no suggestion: the annotator draws it
+        }
+        return Promise.resolve();
+    },
+
+    endFitBox: function () {
+        this.set({fitBoxMode: false, fitBox: null});
+    },
+
+    // Fit from the box that is shown
+    fitInBox: function () {
+        const box = this.get('fitBox');
+        if (!box) {
+            return Promise.reject('Draw a box first');
+        }
+        this.endFitBox();
+        return this.autoFitLandmarks({box});
     },
 
     incrementLandmarkSize: function () {
