@@ -2,7 +2,6 @@
 
 import _ from 'underscore';
 import $ from 'jquery';
-import Promise from 'promise-polyfill';
 
 import { basename, extname } from '../lib/utils';
 import Modal from './modal';

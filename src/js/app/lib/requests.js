@@ -1,6 +1,5 @@
 'use strict';
 
-import Promise from 'promise-polyfill';
 import querystring from 'querystring';
 
 import { loading } from '../view/notification';

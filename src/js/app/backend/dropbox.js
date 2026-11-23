@@ -19,7 +19,6 @@ const IMAGE_EXTENSIONS = ['jpeg', 'jpg', 'png'];
 const MESH_EXTENSIONS = ['obj', 'stl', 'mtl'].concat(IMAGE_EXTENSIONS);
 
 import { format } from 'url';
-import Promise from 'promise-polyfill';
 
 import OBJLoader from '../lib/obj_loader';
 import STLLoader from '../lib/stl_loader';

@@ -5,7 +5,9 @@ import * as THREE from 'three';
 import { maskedArray } from '../lib/utils';
 import { notify } from '../view/notification';
 import Tracker from '../lib/tracker';
-import { atomicOperation } from './atomic';
+import atomicTracker from './atomic';
+
+const { atomicOperation } = atomicTracker;
 
 import Landmark from './landmark';
 

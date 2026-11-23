@@ -12,12 +12,11 @@
 // been processed
 //
 
-var assert = require('chai').assert;
+import { assert } from 'chai';
+import _ from 'underscore';
+import { describe, it } from 'vitest';
 
-var _ = require('underscore');
-var cwd = process.cwd();
-
-var Tracker = require(cwd + '/src/js/app/lib/tracker').default;
+import Tracker from '../../../src/js/app/lib/tracker';
 
 var trackers = {}, mocks = {};
 
@@ -218,8 +217,8 @@ describe('Tracker:Scenarios', function () {
         trackers[i] = new Tracker(limit, limit);
         mocks[i] = new MockObject();
 
-        it(`should pass scenario "${n}" (${sc.length})`, function (done) {
-            runScenario(i, sc, mocks[i], trackers[i], done);
+        it(`should pass scenario "${n}" (${sc.length})`, function () {
+            return new Promise((done) => runScenario(i, sc, mocks[i], trackers[i], done));
         });
     });
 });

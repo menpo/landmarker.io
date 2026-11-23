@@ -1,13 +1,13 @@
-'use strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { assert } from 'chai';
+import { beforeAll, describe, it } from 'vitest';
 
-var assert = require('chai').assert;
+import Template from '../../src/js/app/template';
+import LJSON2D from '../fixtures/face_2d_ljson.json';
+import LJSON3D from '../fixtures/face_3d_ljson.json';
 
-var cwd = process.cwd();
-var fs = require('fs');
-
-var Template = require(cwd + '/src/js/app/template');
-
-var faceYAMLPath = cwd + '/test/fixtures/face.yml',
+var faceYAMLPath = fileURLToPath(new URL('../fixtures/face.yml', import.meta.url)),
     faceJSON = {
         'groups': [
             {
@@ -36,14 +36,12 @@ var faceYAMLPath = cwd + '/test/fixtures/face.yml',
         ]
     };
 
-// Taken from python server
-var LJSON2D = require(cwd + '/test/fixtures/face_2d_ljson.json');
-var LJSON3D = require(cwd + '/test/fixtures/face_3d_ljson.json');
+// LJSON2D and LJSON3D are taken from the python server
 
 describe('Template$constructor', function () {
     var tmpl;
 
-    before(function () {
+    beforeAll(function () {
         tmpl = new Template(faceJSON);
     });
 
@@ -65,16 +63,10 @@ describe('Template$constructor', function () {
 describe('Template$parseYAML', function () {
     var yamlTmpl, jsonTmpl, faceYAML;
 
-    before(function (done) {
-        fs.readFile(faceYAMLPath, function (err, data) {
-            if (err) {
-                throw err;
-            }
-            faceYAML = data.toString();
-            yamlTmpl = Template.parseYAML(faceYAML);
-            jsonTmpl = new Template(faceJSON);
-            done();
-        });
+    beforeAll(function () {
+        faceYAML = readFileSync(faceYAMLPath).toString();
+        yamlTmpl = Template.parseYAML(faceYAML);
+        jsonTmpl = new Template(faceJSON);
     });
 
     it('should have the same JSON representation', function () {
@@ -85,7 +77,7 @@ describe('Template$parseYAML', function () {
 describe('Template#emptyLJSON', function () {
     var tmpl;
 
-    before(function () {
+    beforeAll(function () {
         tmpl = new Template(faceJSON);
     });
 
@@ -103,7 +95,7 @@ describe('Template#emptyLJSON', function () {
 describe('Template$parseLJSON', function () {
     var ljsonTmpl, jsonTmpl;
 
-    before(function () {
+    beforeAll(function () {
         jsonTmpl = new Template(faceJSON);
     });
 
@@ -123,7 +115,7 @@ describe('Template$parseLJSON', function () {
 describe('Template$parseJSON', function () {
     var jsonTmpl2, jsonTmpl;
 
-    before(function () {
+    beforeAll(function () {
         jsonTmpl = new Template(faceJSON);
     });
 

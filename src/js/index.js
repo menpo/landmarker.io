@@ -1,12 +1,11 @@
 'use strict';
 
 // include all our style information
-require('../scss/main.scss');
+import '../scss/main.scss';
 
 import $ from 'jquery';
 import * as THREE from 'three';
 import url from 'url';
-import Promise from 'promise-polyfill';
 
 import * as utils from './app/lib/utils';
 import * as support from './app/lib/support';
@@ -29,8 +28,8 @@ import Backend from './app/backend';
 const cfg = Config();
 
 const mixedContentWarning = `
-<p>Your are currently trying to connect to a non secured server from a secure (https) connection. This is  <a href='http://www.howtogeek.com/181911/htg-explains-what-exactly-is-a-mixed-content-warning/'>unadvisable</a> and thus we do not allow it.<br><br>
-You can visit <a href='http://insecure.landmarker.io${window.location.search}'>insecure.landmarker.io</a> to disable this warning.</p>
+<p>This page is served over https, so the browser does not let it talk to a server that is not (<a href='https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content'>mixed content</a>).<br><br>
+Serve your assets over https, or run the server on this machine and connect to it as <code>http://localhost:PORT</code>, which browsers do allow.</p>
 `;
 
 function resolveBackend (u) {

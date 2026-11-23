@@ -118,7 +118,7 @@
 }
 
 p.IntroWarning {
-    @extend p.Error;
+    @extend %errorText;
     width: 320px;
     margin: 1.5em;
 }
