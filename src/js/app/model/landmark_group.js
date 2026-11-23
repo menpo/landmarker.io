@@ -256,6 +256,17 @@ LandmarkGroup.prototype.resample = function () {
     return moved;
 };
 
+// The labels that resample works on: those with a selected landmark, or null for all of them
+// (no selection). The names to tell the annotator what "Space evenly" is about to touch.
+LandmarkGroup.prototype.resampleScope = function () {
+    const selected = this.selected().map(lm => lm.get('index'));
+    if (!selected.length) {
+        return null;
+    }
+    return this.labels.filter(label => selected.some(i => label.mask.includes(i)))
+        .map(label => label.label);
+};
+
 LandmarkGroup.prototype._resample = function () {
     const selected = this.selected().map(lm => lm.get('index'));
     const points = this.landmarks.map(lm => {

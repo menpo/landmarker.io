@@ -101,3 +101,25 @@ describe('LandmarkGroup#resample', function () {
         assert.deepEqual(json.labels[1].anchors, [5]);
     });
 });
+
+describe('LandmarkGroup#resampleScope', function () {
+    it('is every curve (null) without a selection, and the labels of the selection with one', function () {
+        const g = group();
+        assert.isNull(g.resampleScope());
+        g.landmarks[1].select();
+        assert.deepEqual(g.resampleScope(), ['chain']);
+        g.landmarks[6].select();
+        assert.deepEqual(g.resampleScope(), ['chain', 'loop']);
+        g.deselectAll();
+        assert.isNull(g.resampleScope());
+    });
+
+    it('is what resample then touches: a selection leaves the other curves alone', function () {
+        const g = group();
+        g.landmarks[1].select();  // on the chain only
+        g.resample();
+        assert.notDeepEqual(xy(g)[1], POINTS[1]);
+        [5, 6, 7, 8].forEach(i => assert.deepEqual(xy(g)[i], POINTS[i]));
+    });
+});
+
