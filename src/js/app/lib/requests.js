@@ -51,7 +51,11 @@ export default function XMLHttpRequestPromise(
             else {
                 // Otherwise reject with the status text
                 // which will hopefully be a meaningful error
-                reject(Error(xhr.statusText));
+                // (the body of a server's error says what is wrong)
+                const error = Error(xhr.statusText);
+                error.status = xhr.status;
+                error.body = xhr.response;
+                reject(error);
             }
         };
 
@@ -98,6 +102,17 @@ export function get (url, {headers={}, data={}, auth=false}={}) {
 export function getJSON (url, {headers={}, data={}, auth=false}={}) {
     return XMLHttpRequestPromise(
         _url(url, data), {responseType: 'json', headers, auth});
+}
+
+export function postJSON (url, {headers={}, data={}, auth=false}={}) {
+    return XMLHttpRequestPromise(url, {
+        headers,
+        auth,
+        responseType: 'json',
+        method: 'POST',
+        data: JSON.stringify(data),
+        contentType: 'application/json;charset=UTF-8'
+    });
 }
 
 export function putJSON (url, {headers={}, data={}, auth=false}={}) {

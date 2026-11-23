@@ -401,6 +401,31 @@ export default Backbone.Model.extend({
         }
     },
 
+    // Refine the landmarks that are on the asset with the server's model (undoable). Resolves
+    // with the number of points that moved; rejects with a message to show.
+    autoFitLandmarks: function () {
+        const lms = this.landmarks();
+        if (!lms) {
+            return Promise.reject('No landmarks to refine');
+        }
+        return this.server().fitLandmarkGroup(
+            this.asset().id, this.activeTemplate(), lms.toJSON()
+        ).then((json) => {
+            const before = lms.toJSON().landmarks.points;
+            lms.tracker.recordState(lms.toJSON());
+            lms.restore(json);
+            lms.tracker.recordState(lms.toJSON(), false, true);
+            return json.landmarks.points.filter(
+                (p, i) => !before[i] || p[0] !== before[i][0] || p[1] !== before[i][1]).length;
+        }, (error) => {
+            let message = error.message;
+            try {
+                message = (error.body && error.body.message) || message;
+            } catch (e) { /* keep the status text */ }
+            return Promise.reject(message);
+        });
+    },
+
     incrementLandmarkSize: function () {
         const size = this.get('landmarkSize');
         const factor = Math.floor(size / 0.25) + 1;

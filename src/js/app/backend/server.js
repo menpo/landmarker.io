@@ -1,6 +1,6 @@
 'use strict';
 
-import { getJSON, putJSON, getArrayBuffer } from '../lib/requests';
+import { getJSON, putJSON, postJSON, getArrayBuffer } from '../lib/requests';
 import { capitalize } from '../lib/utils';
 import support from '../lib/support';
 import ImagePromise from '../lib/imagepromise';
@@ -81,6 +81,20 @@ Server.prototype.fetchCollection = function (collectionId) {
 
 Server.prototype.fetchLandmarkGroup = function (id, type) {
     return getJSON(this.map(`landmarks/${id}/${type}`), {auth: this.httpAuth});
+};
+
+// Does the server learn from the saved landmarks and refine others (landmarkerio-server --fit)?
+// Resolves with its status, rejects if there is no such service.
+Server.prototype.fetchFitStatus = function () {
+    return this.fetchJSON('fit');
+};
+
+// The landmarks that are on the asset (a landmark group's JSON), refined by the server's model
+Server.prototype.fitLandmarkGroup = function (id, type, json) {
+    return postJSON(this.map(`fit/${id}/${type}`), {
+        data: json,
+        auth: this.httpAuth
+    });
 };
 
 Server.prototype.saveLandmarkGroup = function (id, type, json) {
