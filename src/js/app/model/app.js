@@ -18,6 +18,7 @@ export default Backbone.Model.extend({
             connectivityOn: true,
             editingOn: true,
             autoSaveOn: false,
+            autoSpaceOn: false,
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
@@ -31,6 +32,15 @@ export default Backbone.Model.extend({
 
     isAutoSaveOn: function () {
         return this.get('autoSaveOn');
+    },
+
+    // space the curves evenly whenever a landmark has been dragged
+    isAutoSpaceOn: function () {
+        return this.get('autoSpaceOn');
+    },
+
+    toggleAutoSpace: function () {
+        return this.set('autoSpaceOn', !this.isAutoSpaceOn());
     },
 
     toggleAutoSave: function () {

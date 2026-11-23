@@ -268,6 +268,15 @@ LandmarkGroup.prototype.resampleScope = function () {
 };
 
 LandmarkGroup.prototype._resample = function () {
+    const ops = this._applyResample();
+    if (ops.length) {
+        this.tracker.record(ops);
+    }
+    return ops.length;
+};
+
+// Move the landmarks as resample does, without recording it: the moves, [index, from, to]
+LandmarkGroup.prototype._applyResample = function () {
     const selected = this.selected().map(lm => lm.get('index'));
     const points = this.landmarks.map(lm => {
         const p = lm.point();
@@ -293,10 +302,31 @@ LandmarkGroup.prototype._resample = function () {
             this.landmarks[index].setPoint(now.clone());
         }
     });
-    if (ops.length) {
-        this.tracker.record(ops);
-    }
-    return ops.length;
+    return ops;
+};
+
+// The moves of one landmark after another, as one: [index, from, to] with the first `from`
+// and the last `to`
+export function mergeMoves (first, second) {
+    const merged = first.map(op => op.slice());
+    const at = new Map(merged.map((op, k) => [op[0], k]));
+    second.forEach(([index, from, to]) => {
+        if (at.has(index)) {
+            merged[at.get(index)][2] = to;
+        } else {
+            merged.push([index, from, to]);
+        }
+    });
+    return merged;
+}
+
+// The landmarks were just moved (`moves`, [index, from, to], for the tracker): space the curves
+// that they are on evenly, and return the moves of both together, so that one undo takes back
+// the drag and the spacing. The curves of the selection are spaced, which is what was moved.
+LandmarkGroup.prototype.spaceAfterMove = function (moves) {
+    let spaced = [];
+    atomicOperation(() => { spaced = this._applyResample(); }).call(this);
+    return mergeMoves(moves, spaced);
 };
 
 LandmarkGroup.prototype.toJSON = function () {
