@@ -4,6 +4,7 @@ import * as THREE from 'three';
 
 import { maskedArray } from '../lib/utils';
 import { notify } from '../view/notification';
+import { resampleCurves } from '../lib/spline';
 import Tracker from '../lib/tracker';
 import atomicTracker from './atomic';
 
@@ -71,19 +72,28 @@ function _pointToVector ([x, y, z]) {
 }
 
 // LandmarkLabel is a 'playlist' of landmarks from the LandmarkGroup.
-function LandmarkLabel (label, landmarks, mask) {
+function LandmarkLabel (label, landmarks, mask, anchors, spacing) {
     this.label = label;
     this.mask = mask;
+    this.anchors = anchors;     // optional, see lib/spline
+    this.spacing = spacing;     // optional
     this.landmarks = maskedArray(landmarks, mask);
 }
 
 LandmarkLabel.prototype = Object.create(LandmarkCollectionPrototype);
 
 LandmarkLabel.prototype.toJSON = function () {
-    return {
+    const json = {
         label: this.label,
         mask: this.mask
     };
+    if (this.anchors) {
+        json.anchors = this.anchors;
+    }
+    if (this.spacing) {
+        json.spacing = this.spacing;
+    }
+    return json;
 };
 
 // LandmarkGroup is the container for all the landmarks for a single asset.
@@ -108,7 +118,8 @@ export default function LandmarkGroup (
 
     // 3. Build labels
     this.labels = labels.map((label) => {
-        return new LandmarkLabel(label.label, this.landmarks, label.mask);
+        return new LandmarkLabel(label.label, this.landmarks, label.mask,
+                                 label.anchors, label.spacing);
     });
 
     // make sure we start with a sensible insertion configuration.
@@ -140,7 +151,8 @@ LandmarkGroup.prototype.restore = atomicOperation(function ({
 
     delete this.labels;
     this.labels = labels.map((label) => {
-        return new LandmarkLabel(label.label, this.landmarks, label.mask);
+        return new LandmarkLabel(label.label, this.landmarks, label.mask,
+                                 label.anchors, label.spacing);
     });
 
     this.resetNextAvailable();
@@ -231,6 +243,50 @@ LandmarkGroup.prototype.setLmAt = atomicOperation(function (lm, v) {
         nextAvailable: false
     });
 });
+
+// Move the landmarks along the curves that their connectivity makes (the chains
+// and loops) so that they are evenly spaced between the anchors of the template,
+// or at the fractions that it gives. Only the curves with a selected landmark if
+// there is a selection, otherwise all of them; curves with a landmark that has
+// not been placed are left. It can be undone. Returns the number of landmarks moved.
+LandmarkGroup.prototype.resample = function () {
+    let moved = 0;
+    // atomicOperation does not return what its function does
+    atomicOperation(() => { moved = this._resample(); }).call(this);
+    return moved;
+};
+
+LandmarkGroup.prototype._resample = function () {
+    const selected = this.selected().map(lm => lm.get('index'));
+    const points = this.landmarks.map(lm => {
+        const p = lm.point();
+        return p ? [p.x, p.y, p.z] : [null, null, null];
+    });
+    const anchors = [], spacing = {};
+    this.labels.forEach(label => {
+        (label.anchors || []).forEach(i => anchors.push(i));
+        Object.assign(spacing, label.spacing || {});
+    });
+
+    const moved = resampleCurves(
+        points, this.connectivity, anchors, spacing, 0.5,
+        selected.length ? selected : null);
+
+    const ops = [];
+    moved.forEach((p, index) => {
+        const was = this.landmarks[index].point();
+        if (was && p.every(v => v !== null) &&
+            Math.hypot(p[0] - was.x, p[1] - was.y, p[2] - was.z) > 1e-9) {
+            const now = new THREE.Vector3(p[0], p[1], p[2]);
+            ops.push([index, was.clone(), now]);
+            this.landmarks[index].setPoint(now.clone());
+        }
+    });
+    if (ops.length) {
+        this.tracker.record(ops);
+    }
+    return ops.length;
+};
 
 LandmarkGroup.prototype.toJSON = function () {
     return {
