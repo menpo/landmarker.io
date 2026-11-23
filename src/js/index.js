@@ -76,12 +76,12 @@ function resolveBackend (u) {
         return Intro.open();
     }
 
-    switch (backendType) {
-        case Backend.Dropbox.Type:
-            return _loadDropbox(u);
-        case Backend.Server.Type:
-            return _loadServer(u);
+    if (backendType === Backend.Server.Type) {
+        return _loadServer(u);
     }
+
+    // anything else was stored by an older version (Dropbox mode is gone): start over
+    return Intro.open();
 }
 
 var goToDemo = utils.restart.bind(undefined, 'demo');
@@ -103,95 +103,6 @@ function _loadServer (u) {
     u.query.server = cfg.get('BACKEND_SERVER_URL');
     history.replaceState(null, null, url.format(u).replace('?', '#'));
     resolveMode(server, u);
-}
-
-function _loadDropbox (u) {
-
-    let dropbox;
-    const oAuthState = cfg.get('OAUTH_STATE'),
-          token = cfg.get('BACKEND_DROPBOX_TOKEN');
-
-    if (oAuthState) { // We were waiting for redirect
-
-        const urlOk = [
-            'state', 'access_token', 'uid'
-        ].every(key => u.query.hasOwnProperty(key));
-
-        if (urlOk && u.query.state === oAuthState) {
-            cfg.delete('OAUTH_STATE', true);
-            dropbox = new Backend.Dropbox(u.query.access_token, cfg);
-
-            delete u.query.access_token;
-            delete u.query.token_type;
-            delete u.query.state;
-            delete u.query.uid;
-            u.search = null;
-            history.replaceState(null, null, url.format(u).replace('?', '#'));
-        } else {
-            notify({
-                msg: 'Incorrect Dropbox redirect URL',
-                type: 'error'
-            });
-            Intro.open();
-        }
-    } else if (token) {
-        dropbox = new Backend.Dropbox(token, cfg);
-    }
-
-    if (dropbox) {
-        dropbox.setMode(cfg.get('BACKEND_DROPBOX_MODE'));
-        return dropbox.accountInfo().then(function () {
-            _loadDropboxAssets(dropbox, u);
-        }, function () {
-            notify({
-                msg: 'Could not reach Dropbox servers',
-                type: 'error'
-            });
-            Intro.open();
-        });
-    } else {
-        Intro.open();
-    }
-}
-
-function _loadDropboxAssets (dropbox, u) {
-    const assetsPath = cfg.get('BACKEND_DROPBOX_ASSETS_PATH');
-
-    function _pick () {
-        dropbox.pickAssets(function () {
-            _loadDropboxTemplates(dropbox, u);
-        }, function (err) {
-            retry(`Couldn't find assets: ${err}`);
-        });
-    }
-
-    if (assetsPath) {
-        dropbox.setAssets(assetsPath).then(function () {
-            _loadDropboxTemplates(dropbox, u);
-        }, _pick);
-    } else {
-        _pick();
-    }
-}
-
-function _loadDropboxTemplates (dropbox, u) {
-
-    const templatesPaths = cfg.get('BACKEND_DROPBOX_TEMPLATES_PATHS');
-
-    if (templatesPaths) {
-        const templatesPromises = [];
-        Object.keys(templatesPaths).forEach(function (key) {
-            templatesPromises.push(
-                dropbox.addTemplate(templatesPaths[key])
-            );
-        });
-
-        Promise.all(templatesPromises).then(function () {
-            resolveMode(dropbox, u);
-        });
-    } else {
-        resolveMode(dropbox, u);
-    }
 }
 
 function resolveMode (server, u) {
