@@ -15,8 +15,6 @@ landmarker.io
   with the API of [landmarkerio-server](https://github.com/menpo/landmarkerio-server) (`/api/v2/...`). Open
   `https://menpo.github.io/landmarker.io/?server=http://localhost:5000`. A page served over https may only talk to an
   https server, or to one on your own machine (`localhost`, `127.0.0.1`), which browsers allow.
-* **Dropbox**: assets can also be annotated in a Dropbox folder. That needs the redirect URI of the Dropbox app
-  to match the address the page is served from; see `src/js/app/backend/dropbox.js`.
 
 Check out [the wiki](https://github.com/menpo/landmarker.io/wiki) for [usage instructions](https://github.com/menpo/landmarker.io/wiki/User-guide) and specifications. Read on if you want to contribute.
 
