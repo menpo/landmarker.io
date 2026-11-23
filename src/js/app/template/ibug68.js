@@ -12,6 +12,10 @@ export default {
         'points': 5,
         'connectivity': ['0 1', '1 2', '2 3', '3 4']
     }, {
+        'label': 'nose',
+        'points': 9,
+        'connectivity': ['0 1', '1 2', '2 3', '4 5', '5 6', '6 7', '7 8']
+    }, {
         'label': 'leye',
         'points': 6,
         'connectivity': ['0 1', '1 2', '2 3', '3 4', '4 5', '5 0']
@@ -19,10 +23,6 @@ export default {
         'label': 'reye',
         'points': 6,
         'connectivity': ['0 1', '1 2', '2 3', '3 4', '4 5', '5 0']
-    }, {
-        'label': 'nose',
-        'points': 9,
-        'connectivity': ['0 1', '1 2', '2 3', '4 5', '5 6', '6 7', '7 8']
     }, {
         'label': 'mouth',
         'points': 20,
