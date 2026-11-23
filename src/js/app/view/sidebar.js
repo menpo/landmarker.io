@@ -309,6 +309,13 @@ export const UndoRedoView = Backbone.View.extend({
     }
 });
 
+// What the button says and the toast: with a selection only the curves with a selected
+// landmark are spaced, and that has to be visible or the other curves seem not to work
+export function resampleText (scope) {
+    return scope === null ? 'Space evenly' :
+        `Space selected${scope.length ? ` (${scope.join(', ')})` : ''}`;
+}
+
 export const ResampleView = Backbone.View.extend({
     el: '#lmResamplePanel',
 
@@ -317,7 +324,17 @@ export const ResampleView = Backbone.View.extend({
     },
 
     initialize: function () {
-        _.bindAll(this, 'resample');
+        _.bindAll(this, 'resample', 'refresh');
+        // the selection decides what is spaced
+        this.model.landmarks.forEach(lm => this.listenTo(lm, 'change:selected', this.refresh));
+        this.refresh();
+    },
+
+    refresh: function () {
+        const scope = this.model.resampleScope();
+        this.$('#resample').text(resampleText(scope)).attr('title', scope === null ?
+            'Space all the landmarks evenly along their curves, between the anchors of the template [s]' :
+            'Space the curves with selected landmarks evenly; deselect (q) to space them all [s]');
     },
 
     resample: function () {
@@ -327,11 +344,13 @@ export const ResampleView = Backbone.View.extend({
 
 // shared by the button and the keyboard shortcut
 export function resampleSelectedOrAll (lms) {
+    const scope = lms.resampleScope();
     const moved = lms.resample();
+    const where = scope === null ? '' : ` of ${scope.join(', ')} only (q deselects, to space all)`;
     notify({
         type: moved ? 'success' : 'info',
-        msg: moved ? `Spaced ${moved} landmarks evenly (undo with z)` :
-                     'Nothing to space: no complete curve'
+        msg: moved ? `Spaced ${moved} landmarks${where} evenly (undo with z)` :
+                     `Nothing to move${where}: already even, or no complete curve`
     });
 }
 
