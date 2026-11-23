@@ -2,7 +2,7 @@
 import { assert } from 'chai';
 import { describe, it } from 'vitest';
 
-import LandmarkGroup from '../../../src/js/app/model/landmark_group';
+import LandmarkGroup, { mergeMoves } from '../../../src/js/app/model/landmark_group';
 import { makeCurve } from '../../../src/js/app/lib/spline';
 
 // a chain of five points along a curve, unevenly spaced, then a loop of four
@@ -120,6 +120,46 @@ describe('LandmarkGroup#resampleScope', function () {
         g.resample();
         assert.notDeepEqual(xy(g)[1], POINTS[1]);
         [5, 6, 7, 8].forEach(i => assert.deepEqual(xy(g)[i], POINTS[i]));
+    });
+});
+
+describe('auto-space: spacing after a drag', function () {
+    const drag = (g, index, dx, dy) => {
+        const lm = g.landmarks[index];
+        lm.selectAndDeselectRest();
+        const from = lm.point().clone();
+        lm.setPoint(from.clone().add({x: dx, y: dy, z: 0}));
+        return [[index, from, lm.point().clone()]];
+    };
+
+    it('merges the moves of a landmark into one: the first from and the last to', function () {
+        const merged = mergeMoves(
+            [['a', 1, 2], ['b', 3, 4]], [['b', 4, 5], ['c', 6, 7]]);
+        assert.deepEqual(merged, [['a', 1, 2], ['b', 3, 5], ['c', 6, 7]]);
+    });
+
+    it('spaces the curve that was dragged, as one undo step with the drag', function () {
+        const g = group();
+        const moves = drag(g, 1, 0, 3);
+        const dragged = xy(g)[1];
+        g.tracker.record(g.spaceAfterMove(moves));
+        const after = xy(g);
+        assert.notDeepEqual(after[1], dragged);   // the point slid along the curve it shaped
+        [0, 2, 4].forEach(i => assert.deepEqual(after[i], POINTS[i]));   // the anchors stay
+        [5, 6, 7, 8].forEach(i => assert.deepEqual(after[i], POINTS[i])); // the loop was not on it
+        g.undo();
+        assert.deepEqual(xy(g), POINTS);      // the drag and the spacing, in one step
+        g.redo();
+        assert.deepEqual(xy(g), after);
+    });
+
+    it('moves the same points the button would (the selection is the dragged landmark)', function () {
+        const a = group(), b = group();
+        const moves = drag(a, 1, 0, 3);
+        a.spaceAfterMove(moves);
+        drag(b, 1, 0, 3);
+        b.resample();
+        assert.deepEqual(xy(a), xy(b));
     });
 });
 

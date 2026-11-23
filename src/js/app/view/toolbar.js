@@ -152,6 +152,31 @@ export const AutoSaveToggle = Backbone.View.extend({
     }
 });
 
+export const AutoSpaceToggle = Backbone.View.extend({
+
+    el: '#autospaceRow',
+
+    events: {
+        'click #autospaceToggle': "toggle"
+    },
+
+    initialize: function () {
+        this.$toggle = this.$el.find('#autospaceToggle')[0];
+        _.bindAll(this, 'render', 'toggle');
+        this.listenTo(this.model, 'change:autoSpaceOn', this.render);
+        this.render();
+    },
+
+    render: function () {
+        this.$toggle.checked = this.model.isAutoSpaceOn();
+        return this;
+    },
+
+    toggle: function () {
+        this.model.toggleAutoSpace();
+    }
+});
+
 export default Backbone.View.extend({
 
     el: '#toolbar',
@@ -167,6 +192,7 @@ export default Backbone.View.extend({
             this.$el.find('#textureRow').css("display", "none");
         }
         this.autosaveToggle = new AutoSaveToggle({model: this.model});
+        this.autospaceToggle = new AutoSpaceToggle({model: this.model});
     }
 
 });

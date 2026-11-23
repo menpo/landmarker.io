@@ -368,7 +368,11 @@ export default function Handler () {
             this.model.landmarks().selected().forEach((lm, i) => {
                 dragStartPositions[i].push(lm.point().clone());
             });
-            this.model.landmarks().tracker.record(dragStartPositions);
+            // with auto-space on, the curves that were moved are spaced evenly as part of the
+            // same undo step
+            this.model.landmarks().tracker.record(this.model.isAutoSpaceOn() ?
+                this.model.landmarks().spaceAfterMove(dragStartPositions) :
+                dragStartPositions);
         }
 
         this.clearCanvas();
