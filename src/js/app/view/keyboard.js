@@ -3,6 +3,7 @@
 import $ from 'jquery';
 
 import Modal from './modal';
+import { resampleSelectedOrAll } from './sidebar';
 
 const SHORTCUTS = {
     // Structure is [fn, acceptShift?, needLms?]
@@ -58,6 +59,10 @@ const SHORTCUTS = {
     "e": [function (lms, app) { // e = toggle [e]dit mode
         app.toggleEditing();
     }, false, false],
+
+    "s": [function (lms) { // s = [s]pace the landmarks evenly along their curves
+        resampleSelectedOrAll(lms);
+    }, false, true],
 
     "z": [function (lms) { // z = undo
         if (lms && lms.tracker.canUndo()) {

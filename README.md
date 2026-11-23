@@ -23,6 +23,8 @@ landmarker.io
   A page served over https may only talk to an https server, or to one on your own machine
   (`localhost`, `127.0.0.1`), which browsers allow; Chrome may ask you to let the page reach devices on your local network.
 
+**Space evenly** (the `s` key, or the button in the right sidebar): after moving some landmarks, put the others back at even steps along the curves they make, keeping the *anchors* of the template where they are. It acts on the curves with a selected landmark, or on all of them, and can be undone. A template says what to keep in each group with `anchors: [0, 8, 16]` and, optionally, where the others go with `spacing: {1: 0.125, ...}` (the fraction of the way between the anchors around them), see the [specifications](https://menpo.github.io/landmarkerio/specifications.html). The curves are Catmull-Rom splines through the points of each chain or loop of the connectivity, the same as `menpo.shape.CatmullRom`.
+
 Check out [the wiki](https://github.com/menpo/landmarker.io/wiki) for [usage instructions](https://github.com/menpo/landmarker.io/wiki/User-guide) and specifications. Read on if you want to contribute.
 
 Found an issue, want to suggest an improvement? Head over to the [issue tracker](https://github.com/menpo/landmarker.io/issues).

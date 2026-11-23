@@ -8,6 +8,39 @@ import defaults from './defaults';
 const CYCLE_CONNECTIVITY_LABEL = 'cycle';
 const NULL_POINT = {2: [null, null], 3: [null, null, null]};
 
+// Anchors are the points of a group that stay where they are when the group is
+// resampled (see lib/spline); spacing says where the others go. Both are
+// optional, and use the indices of the group like connectivity does.
+function _validateAnchors (label, size, anchors) {
+    if (anchors === undefined || anchors === null) {
+        return undefined;
+    }
+    if (!Array.isArray(anchors) || !anchors.every(
+        i => Number.isInteger(i) && i >= 0 && i < size)) {
+        throw new Error(
+            `anchors of "${label}" must be point indices between 0 and ${size - 1}`);
+    }
+    return anchors.slice();
+}
+
+function _validateSpacing (label, size, spacing, anchors) {
+    if (spacing === undefined || spacing === null) {
+        return undefined;
+    }
+    const result = {};
+    Object.keys(spacing).forEach(key => {
+        const i = Number(key), f = Number(spacing[key]);
+        if (!(Number.isInteger(i) && i >= 0 && i < size) || !(f > 0 && f < 1) ||
+            (anchors && anchors.includes(i))) {
+            throw new Error(
+                `spacing of "${label}" must give a fraction between 0 and 1 to ` +
+                `points of the group that are not anchors; got ${key}: ${spacing[key]}`);
+        }
+        result[i] = f;
+    });
+    return result;
+}
+
 /**
  * @class Template
  * Representation of a landmarks template, can be exported to JSON and YAML
@@ -56,7 +89,10 @@ export default function Template (json) {
             }
         });
 
-        this.groups.push({label, size, connectivity});
+        const anchors = _validateAnchors(label, size, group.anchors);
+        const spacing = _validateSpacing(label, size, group.spacing, anchors);
+
+        this.groups.push({label, size, connectivity, anchors, spacing});
         this.size += size;
     });
 }
@@ -90,8 +126,17 @@ Template.parseLJSON = function (ljson) {
     }
 
     const template = [];
-    ljson.labels.forEach(function ({label, mask}) {
+    ljson.labels.forEach(function ({label, mask, anchors, spacing}) {
         const group = {label, points: mask.length, connectivity: []};
+        if (anchors) {
+            group.anchors = anchors.map(i => i - mask[0]);
+        }
+        if (spacing) {
+            group.spacing = {};
+            Object.keys(spacing).forEach(i => {
+                group.spacing[Number(i) - mask[0]] = spacing[i];
+            });
+        }
         if (ljson.landmarks.connectivity) {
             ljson.landmarks.connectivity.forEach(function ([x1, x2]) {
                 if (mask.indexOf(x1) > -1) {
@@ -137,11 +182,21 @@ Template.prototype.emptyLJSON = function (dims=2) {
     const globalConnectivity = [],
           labels = [];
 
-    this.groups.forEach(function ({label, size, connectivity}) {
+    this.groups.forEach(function ({label, size, connectivity, anchors, spacing}) {
         connectivity.forEach(function ([s, e]) {
             globalConnectivity.push([s + offset, e + offset]);
         });
-        labels.push({label, mask: _.range(offset, offset + size)});
+        const entry = {label, mask: _.range(offset, offset + size)};
+        if (anchors) {
+            entry.anchors = anchors.map(i => i + offset);
+        }
+        if (spacing) {
+            entry.spacing = {};
+            Object.keys(spacing).forEach(i => {
+                entry.spacing[Number(i) + offset] = spacing[i];
+            });
+        }
+        labels.push(entry);
         offset += size;
     });
 
@@ -166,7 +221,8 @@ Template.prototype.validate = function (json, dims=2) {
     let ok;
 
     ok = json.version === ljson.version;
-    ok = ok && _.isEqual(json.labels, ljson.labels);
+    const shape = labels => labels.map(({label, mask}) => ({label, mask}));
+    ok = ok && _.isEqual(shape(json.labels), shape(ljson.labels));
     ok = ok && json.landmarks && _.isEqual(json.landmarks.connectivity,
                                            ljson.landmarks.connectivity);
     ok = ok && ljson.landmarks.points.every(p => p.length === dims);

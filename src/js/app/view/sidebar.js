@@ -7,6 +7,7 @@ import $ from 'jquery';
 import download from '../lib/download';
 import atomic from '../model/atomic';
 import TemplatePanel from './templates';
+import { notify } from './notification';
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -308,6 +309,32 @@ export const UndoRedoView = Backbone.View.extend({
     }
 });
 
+export const ResampleView = Backbone.View.extend({
+    el: '#lmResamplePanel',
+
+    events: {
+        'click #resample': 'resample'
+    },
+
+    initialize: function () {
+        _.bindAll(this, 'resample');
+    },
+
+    resample: function () {
+        resampleSelectedOrAll(this.model);
+    }
+});
+
+// shared by the button and the keyboard shortcut
+export function resampleSelectedOrAll (lms) {
+    const moved = lms.resample();
+    notify({
+        type: moved ? 'success' : 'info',
+        msg: moved ? `Spaced ${moved} landmarks evenly (undo with z)` :
+                     'Nothing to space: no complete curve'
+    });
+}
+
 export const LmLoadView = Backbone.View.extend({
     el: '#lmLoadPanel',
 
@@ -356,6 +383,10 @@ export default Backbone.View.extend({
             this.lmLoadView.undelegateEvents();
         }
 
+        if (this.resampleView) {
+            this.resampleView.undelegateEvents();
+        }
+
         if (this.undoRedoView) {
             this.undoRedoView.undelegateEvents();
         }
@@ -372,6 +403,7 @@ export default Backbone.View.extend({
 
         this.actionsView = new ActionsView({model: lms, app: this.model});
         this.lmLoadView = new LmLoadView({model: lms, app: this.model});
+        this.resampleView = new ResampleView({model: lms});
         this.undoRedoView = new UndoRedoView({model: lms});
         this.lmView = new LandmarkGroupListView({collection: lms.labels});
         $('#landmarksPanel').html(this.lmView.render().$el);
