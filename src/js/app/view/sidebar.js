@@ -8,6 +8,7 @@ import download from '../lib/download';
 import atomic from '../model/atomic';
 import TemplatePanel from './templates';
 import { notify } from './notification';
+import FitModal from './fit';
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -360,11 +361,11 @@ export const FitView = Backbone.View.extend({
     el: '#lmFitPanel',
 
     events: {
-        'click #autoFit': 'fit'
+        'click #autoFit': 'open'
     },
 
     initialize: function ({app}) {
-        _.bindAll(this, 'fit', 'refresh');
+        _.bindAll(this, 'open', 'refresh');
         this.app = app;
         this.refresh();
     },
@@ -375,31 +376,17 @@ export const FitView = Backbone.View.extend({
         if (!server || !server.fetchFitStatus) {
             return this.$el.addClass('Hide');
         }
-        server.fetchFitStatus().then((status) => {
-            this.$el.removeClass('Hide');
-            this.$('#autoFit').attr('title', status.ready ?
-                `Refine the landmarks with the model learnt from ${status.trained_on} saved images ` :
-                `Not ready: it learns from saved images (${status.annotated} of ${status.min_images} needed) `);
-        }, () => this.$el.addClass('Hide'));
+        server.fetchFitStatus().then(
+            () => this.$el.removeClass('Hide'), () => this.$el.addClass('Hide'));
     },
 
-    fit: function () {
-        autoFit(this.app);
-        this.refresh();
+    open: function () {
+        if (!this.panel) {
+            this.panel = new FitModal({app: this.app});
+        }
+        this.panel.open();
     }
 });
-
-// shared by the button and the keyboard shortcut
-export function autoFit (app) {
-    app.autoFitLandmarks().then((moved) => {
-        notify({
-            type: 'success',
-            msg: `Refined ${moved} landmarks (undo with z)`
-        });
-    }, (message) => {
-        notify({type: 'error', msg: message});
-    });
-}
 
 // shared by the button and the keyboard shortcut
 export function closeLoopsSelectedOrAll (lms) {

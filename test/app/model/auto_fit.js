@@ -21,15 +21,15 @@ function fakeApp (response) {
         asset: () => ({id: 'a.png'}),
         activeTemplate: () => 'image',
         server: () => ({
-            fitLandmarkGroup: (id, type, sent) => {
-                calls.push({id, type, sent});
+            fitLandmarkGroup: (id, type, sent, box) => {
+                calls.push({id, type, sent, box});
                 return response();
             }
         })
     };
     return {app, lms, calls};
 }
-const fit = (app) => App.prototype.autoFitLandmarks.call(app);
+const fit = (app, options) => App.prototype.autoFitLandmarks.call(app, options);
 const xy = (g) => g.landmarks.map(lm => [lm.point().x, lm.point().y]);
 
 describe('App#autoFitLandmarks', function () {
@@ -60,5 +60,87 @@ describe('App#autoFitLandmarks', function () {
         const plain = fakeApp(() => Promise.reject(Error('Network Error')));
         await fit(plain.app).catch(m => { message = m; });
         assert.equal(message, 'Network Error');
+    });
+
+    it('sends the box to start from, if there is one', async function () {
+        const {app, calls} = fakeApp(() => Promise.resolve(json(POINTS)));
+        const box = [[0, 0], [5, 5]];
+        await fit(app, {box});
+        assert.deepEqual(calls[0].box, box);
+        assert.deepEqual(calls[0].sent.landmarks.points, POINTS);
+        await fit(app);
+        assert.isUndefined(calls[1].box);
+    });
+
+    it('can ignore the landmarks that are placed, to start from the model\'s own shape', async function () {
+        const {app, calls} = fakeApp(() => Promise.resolve(json(POINTS)));
+        await fit(app, {fromCurrent: false});
+        assert.deepEqual(calls[0].sent.landmarks.points, POINTS.map(() => [null, null]));
+        // the landmarks on the screen were not touched by sending
+        const box = [[0, 0], [5, 5]];
+        await fit(app, {fromCurrent: false, box});
+        assert.deepEqual(calls[1].sent.landmarks.points, POINTS);
+    });
+});
+
+// the drawing of the box to start a fit from
+describe('App fit box', function () {
+    const fakeBoxApp = (suggest) => {
+        const attrs = {fitBoxMode: false, fitBox: null};
+        const asset = {id: 'a.png'};
+        const calls = [];
+        const app = {
+            get: (k) => attrs[k],
+            set: (k, v) => {
+                if (typeof k === 'object') { Object.assign(attrs, k); } else { attrs[k] = v; }
+            },
+            asset: () => asset,
+            server: () => ({fetchFitBox: () => suggest()}),
+            autoFitLandmarks: (options) => { calls.push(options); return Promise.resolve(3); }
+        };
+        app.endFitBox = () => App.prototype.endFitBox.call(app);
+        return {app, attrs, calls};
+    };
+
+    it('starts from the box the model suggests', async function () {
+        const {app, attrs} = fakeBoxApp(() => Promise.resolve([[1, 1], [2, 2]]));
+        await App.prototype.beginFitBox.call(app);
+        assert.isTrue(attrs.fitBoxMode);
+        assert.deepEqual(attrs.fitBox, [[1, 1], [2, 2]]);
+    });
+
+    it('starts empty when there is no suggestion', async function () {
+        const {app, attrs} = fakeBoxApp(() => Promise.reject(Error('409')));
+        await App.prototype.beginFitBox.call(app);
+        assert.isTrue(attrs.fitBoxMode);
+        assert.isNull(attrs.fitBox);
+    });
+
+    it('drops a suggestion that arrives after the box was given up', async function () {
+        let resolve;
+        const {app, attrs} = fakeBoxApp(() => new Promise(r => { resolve = r; }));
+        const began = App.prototype.beginFitBox.call(app);
+        app.endFitBox();
+        resolve([[1, 1], [2, 2]]);
+        await began;
+        assert.isFalse(attrs.fitBoxMode);
+        assert.isNull(attrs.fitBox);
+    });
+
+    it('fits in the box that is shown and then leaves box mode', async function () {
+        const {app, attrs, calls} = fakeBoxApp(() => Promise.resolve([[1, 1], [2, 2]]));
+        await App.prototype.beginFitBox.call(app);
+        await App.prototype.fitInBox.call(app);
+        assert.deepEqual(calls, [{box: [[1, 1], [2, 2]]}]);
+        assert.isFalse(attrs.fitBoxMode);
+    });
+
+    it('does not fit without a box', async function () {
+        const {app, calls} = fakeBoxApp(() => Promise.reject(Error('409')));
+        await App.prototype.beginFitBox.call(app);
+        let message = null;
+        await App.prototype.fitInBox.call(app).catch(m => { message = m; });
+        assert.equal(message, 'Draw a box first');
+        assert.deepEqual(calls, []);
     });
 });
