@@ -1,5 +1,16 @@
 'use strict';
 
+// the fonts are bundled, so the page needs nothing from a third party (and works offline)
+import 'octicons/octicons/octicons.css';
+import '@fontsource/roboto/latin-300.css';
+import '@fontsource/roboto/latin-300-italic.css';
+import '@fontsource/roboto/latin-400.css';
+import '@fontsource/roboto/latin-400-italic.css';
+import '@fontsource/roboto/latin-500.css';
+import '@fontsource/roboto/latin-500-italic.css';
+import '@fontsource/roboto/latin-700.css';
+import '@fontsource/roboto/latin-700-italic.css';
+
 // include all our style information
 import '../scss/main.scss';
 
