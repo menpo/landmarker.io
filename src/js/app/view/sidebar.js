@@ -356,6 +356,51 @@ export function closeLoopsText (scope) {
         `Snap selected${scope.length ? ` (${scope.join(', ')})` : ''}`;
 }
 
+export const FitView = Backbone.View.extend({
+    el: '#lmFitPanel',
+
+    events: {
+        'click #autoFit': 'fit'
+    },
+
+    initialize: function ({app}) {
+        _.bindAll(this, 'fit', 'refresh');
+        this.app = app;
+        this.refresh();
+    },
+
+    // shown only if the server has the service (landmarkerio-server --fit)
+    refresh: function () {
+        const server = this.app.server();
+        if (!server || !server.fetchFitStatus) {
+            return this.$el.addClass('Hide');
+        }
+        server.fetchFitStatus().then((status) => {
+            this.$el.removeClass('Hide');
+            this.$('#autoFit').attr('title', status.ready ?
+                `Refine the landmarks with the model learnt from ${status.trained_on} saved images ` :
+                `Not ready: it learns from saved images (${status.annotated} of ${status.min_images} needed) `);
+        }, () => this.$el.addClass('Hide'));
+    },
+
+    fit: function () {
+        autoFit(this.app);
+        this.refresh();
+    }
+});
+
+// shared by the button and the keyboard shortcut
+export function autoFit (app) {
+    app.autoFitLandmarks().then((moved) => {
+        notify({
+            type: 'success',
+            msg: `Refined ${moved} landmarks (undo with z)`
+        });
+    }, (message) => {
+        notify({type: 'error', msg: message});
+    });
+}
+
 // shared by the button and the keyboard shortcut
 export function closeLoopsSelectedOrAll (lms) {
     const scope = lms.resampleScope();  // the labels of the selection, or null
@@ -413,6 +458,7 @@ export default Backbone.View.extend({
         this.listenTo(this.model, "change:landmarks", this.landmarksChange);
         this.actionsView = null;
         this.lmLoadView = null;
+        this.fitView = null;
         this.lmView = null;
         this.undoRedoView = null;
         this.templatePanel = new TemplatePanel({model: this.model});
@@ -426,6 +472,10 @@ export default Backbone.View.extend({
 
         if (this.lmLoadView) {
             this.lmLoadView.undelegateEvents();
+        }
+
+        if (this.fitView) {
+            this.fitView.undelegateEvents();
         }
 
         if (this.resampleView) {
@@ -449,6 +499,7 @@ export default Backbone.View.extend({
         this.actionsView = new ActionsView({model: lms, app: this.model});
         this.lmLoadView = new LmLoadView({model: lms, app: this.model});
         this.resampleView = new ResampleView({model: lms});
+        this.fitView = new FitView({app: this.model});
         this.undoRedoView = new UndoRedoView({model: lms});
         this.lmView = new LandmarkGroupListView({collection: lms.labels});
         $('#landmarksPanel').html(this.lmView.render().$el);
