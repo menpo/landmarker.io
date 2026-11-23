@@ -109,6 +109,18 @@ Server.prototype.fitTrain = function () {
     return postJSON(this.map('fit/train'), {auth: this.httpAuth});
 };
 
+// Add one saved image to the model (only what is saved is learnt from), as a background job
+Server.prototype.fitLearn = function (id) {
+    return postJSON(this.map(`fit/learn/${id}`), {auth: this.httpAuth});
+};
+
+// Learn from each image as it is saved, or not. Resolves with the new status
+Server.prototype.fitSetLearnOnSave = function (enabled) {
+    return postJSON(this.map('fit/learn_on_save'), {
+        data: {enabled}, auth: this.httpAuth
+    });
+};
+
 // Fit every image without landmarks, as a background job (see fetchFitStatus)
 Server.prototype.fitPredict = function (type) {
     return postJSON(this.map(`fit/predict/${type}`), {auth: this.httpAuth});

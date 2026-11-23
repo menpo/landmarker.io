@@ -309,6 +309,10 @@ export default Backbone.Model.extend({
     // Mirror the state of the asset source onto the app
     assetChanged: function () {
         console.log('App.assetChanged');
+        // a box to fit from belongs to one image
+        if (this.get('fitBoxMode')) {
+            this.endFitBox();
+        }
         this.set('asset', this.assetSource().asset());
     },
 

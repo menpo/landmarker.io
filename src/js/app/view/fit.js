@@ -24,6 +24,8 @@ export default Modal.extend({
         'click .Fit__Fit': 'fitThis',
         'click .Fit__Box': 'drawBox',
         'click .Fit__Predict': 'predict',
+        'click .Fit__Learn': 'learn',
+        'change .Fit__LearnOnSave': 'setLearnOnSave',
         'click .Fit__Train': 'train'
     },
 
@@ -49,8 +51,15 @@ export default Modal.extend({
                     <button class='Button-Info Fit__Fit'>Fit this image</button>
                     <button class='Button-Info Fit__Box'>Draw a box&hellip;</button>
                 </div>
+                <label class='Fit__Current'>
+                    <input type='checkbox' class='Fit__LearnOnSave'>
+                    Learn from each image when I save it
+                </label>
                 <div class='Fit__Actions'>
+                    <button class='Button-Info Fit__Learn'>Learn from this image</button>
                     <button class='Button-Info Fit__Predict'>Fit all unlabelled images</button>
+                </div>
+                <div class='Fit__Actions'>
                     <button class='Button-Info Fit__Train'>Learn from all annotations</button>
                 </div>
             </div>`);
@@ -80,8 +89,10 @@ export default Modal.extend({
     },
 
     render_state: function (status) {
-        const state = this.state = fitPanelState(
-            status, {hasLandmarks: !!this.app.landmarks()});
+        const lms = this.app.landmarks();
+        const state = this.state = fitPanelState(status, {
+            hasLandmarks: !!lms, saved: !!lms && lms.tracker.isUpToDate()
+        });
         const $status = this.$('.Fit__Status').empty();
         state.lines.forEach(line => $status.append($('<li>').text(line)));
         this.$('.Fit__Job').text(state.jobLine || '')
@@ -96,6 +107,9 @@ export default Modal.extend({
         };
         set('.Fit__Fit', state.fit);
         set('.Fit__Box', state.box);
+        set('.Fit__Learn', state.learn);
+        this.$('.Fit__LearnOnSave').prop('checked', state.learnOnSave)
+            .prop('disabled', !state.canSwitchLearnOnSave || state.busy);
         set('.Fit__Predict', state.predict,
             `Fit all unlabelled images (${state.unlabelled})`);
         set('.Fit__Train', state.train,
@@ -124,6 +138,21 @@ export default Modal.extend({
             type: 'info',
             msg: 'Drag to draw the box around the object. Enter fits, Esc cancels'
         });
+    },
+
+    learn: function () {
+        const id = this.app.asset().id;
+        this._run(this.app.server().fitLearn(id), () => notify({
+            type: 'info', msg: `Learning from ${id}: see the Fit panel`
+        }));
+    },
+
+    setLearnOnSave: function () {
+        const enabled = this.$('.Fit__LearnOnSave').prop('checked');
+        this._run(this.app.server().fitSetLearnOnSave(enabled), () => notify({
+            type: 'info', msg: enabled ? 'Learning from each image you save' :
+                                         'No longer learning when you save'
+        }));
     },
 
     predict: function () {
