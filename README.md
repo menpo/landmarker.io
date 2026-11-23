@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="./static/favicon-194x194.png" alt="landmarker.io"></center>
+  <img src="./public/favicon-194x194.png" alt="landmarker.io">
   <br><br>
-  <a href="https://travis-ci.org/menpo/landmarker.io"><img src="https://travis-ci.org/menpo/landmarker.io.svg?branch=master" alt="Build Status"/></a>
+  <a href="https://github.com/menpo/landmarker.io/actions/workflows/ci.yml"><img src="https://github.com/menpo/landmarker.io/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
 </p>
 
 landmarker.io
@@ -11,10 +11,17 @@ landmarker.io
 [https://menpo.github.io/landmarker.io/](https://menpo.github.io/landmarker.io/) (the old landmarker.io domain is gone).
 
 * **Demo**: open [`?server=demo`](https://menpo.github.io/landmarker.io/?server=demo) to try it on a textured 3D head, with nothing to install.
-* **Your own assets**: the page talks to a server that holds your images or meshes and keeps the landmarks,
-  with the API of [landmarkerio-server](https://github.com/menpo/landmarkerio-server) (`/api/v2/...`). Open
-  `https://menpo.github.io/landmarker.io/?server=http://localhost:5000`. A page served over https may only talk to an
-  https server, or to one on your own machine (`localhost`, `127.0.0.1`), which browsers allow.
+* **Your own images or meshes**: the page keeps no data. A **server** that you run holds your assets and saves the landmarks next to them:
+
+  ```
+  pip install landmarkerio-server
+  lmio image ./my_images          # or: lmio mesh ./my_meshes
+  ```
+
+  then open `https://menpo.github.io/landmarker.io/?server=http://localhost:5000`. The server is
+  [landmarkerio-server](https://github.com/menpo/landmarkerio-server) (any server with the same `/api/v2/...` works).
+  A page served over https may only talk to an https server, or to one on your own machine
+  (`localhost`, `127.0.0.1`), which browsers allow; Chrome may ask you to let the page reach devices on your local network.
 
 Check out [the wiki](https://github.com/menpo/landmarker.io/wiki) for [usage instructions](https://github.com/menpo/landmarker.io/wiki/User-guide) and specifications. Read on if you want to contribute.
 
