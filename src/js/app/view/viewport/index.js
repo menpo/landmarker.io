@@ -25,6 +25,11 @@ const PIP_HEIGHT = 300;
 
 const MESH_SCALE = 1.0;
 
+// The top right corner of a window `width` pixels wide
+export function pipBoundsIn (width) {
+    return {x: width - PIP_WIDTH, y: 0, width: PIP_WIDTH, height: PIP_HEIGHT};
+}
+
 export default Backbone.View.extend({
 
     el: '#canvas',
@@ -83,6 +88,7 @@ export default Backbone.View.extend({
         this.pipCanvas.width = PIP_WIDTH * this.pixelRatio;
         this.pipCanvas.height = PIP_HEIGHT * this.pixelRatio;
         this.pipCanvas.style.left = this.pipBounds().x + 'px';
+        this.pipCanvas.style.top = this.pipBounds().y + 'px';
 
         // To compensate for rentina displays we have to manually
         // scale our contexts up by the pixel ration. To conteract this (so we
@@ -409,14 +415,11 @@ export default Backbone.View.extend({
         this.update();
     },
 
+    // Where the zoomed picture-in-picture view is, in the pixels of the window counted from its
+    // top left (three.js r94's setViewport counts y from the top), and where its frame (pipCanvas)
+    // is. The top right: the right sidebar (the labels and buttons) covers the bottom right.
     pipBounds: function () {
-        var w = this.width();
-        var h = this.height();
-        var maxX = w;
-        var maxY = h;
-        var minX = maxX - PIP_WIDTH;
-        var minY = maxY - PIP_HEIGHT;
-        return {x: minX, y: minY, width: PIP_WIDTH, height: PIP_HEIGHT};
+        return pipBoundsIn(this.width());
     },
 
     resetCamera: function () {
@@ -488,6 +491,7 @@ export default Backbone.View.extend({
 
         // move the pipCanvas to the right place
         this.pipCanvas.style.left = this.pipBounds().x + 'px';
+        this.pipCanvas.style.top = this.pipBounds().y + 'px';
         this.update();
     },
 
