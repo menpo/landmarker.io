@@ -16,6 +16,7 @@ const HELP_CONTENTS = [
     ['d', 'delete selected landmarks'],
     ['q / ESC', 'clear current selection'],
     ['s', 'space the landmarks evenly along their curves, between the anchors (the curves with selected landmarks, or all)'],
+    ['f', 'snap the loops (eyes, mouth) into straight lines, the points of both sides on top of each other (the loops with selected landmarks, or all)'],
     ['z', 'undo last operation'],
     ['y', 'redo last undone operation'],
     ['ctrl + s', 'save current landmarks'],

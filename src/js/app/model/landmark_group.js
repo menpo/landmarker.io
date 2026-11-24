@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 import { maskedArray } from '../lib/utils';
 import { notify } from '../view/notification';
-import { resampleCurves } from '../lib/spline';
+import { closeLoops, resampleCurves } from '../lib/spline';
 import Tracker from '../lib/tracker';
 import atomicTracker from './atomic';
 
@@ -278,20 +278,28 @@ LandmarkGroup.prototype._resample = function () {
 // Move the landmarks as resample does, without recording it: the moves, [index, from, to]
 LandmarkGroup.prototype._applyResample = function () {
     const selected = this.selected().map(lm => lm.get('index'));
-    const points = this.landmarks.map(lm => {
-        const p = lm.point();
-        return p ? [p.x, p.y, p.z] : [null, null, null];
-    });
+    const points = this._pointList();
     const anchors = [], spacing = {};
     this.labels.forEach(label => {
         (label.anchors || []).forEach(i => anchors.push(i));
         Object.assign(spacing, label.spacing || {});
     });
 
-    const moved = resampleCurves(
+    return this._applyMoved(resampleCurves(
         points, this.connectivity, anchors, spacing, 0.5,
-        selected.length ? selected : null);
+        selected.length ? selected : null));
+};
 
+// The landmarks as [x, y, z] (null where they are not placed)
+LandmarkGroup.prototype._pointList = function () {
+    return this.landmarks.map(lm => {
+        const p = lm.point();
+        return p ? [p.x, p.y, p.z] : [null, null, null];
+    });
+};
+
+// Put the landmarks at `moved` (a list of points) without recording it: the moves, [index, from, to]
+LandmarkGroup.prototype._applyMoved = function (moved) {
     const ops = [];
     moved.forEach((p, index) => {
         const was = this.landmarks[index].point();
@@ -303,6 +311,25 @@ LandmarkGroup.prototype._applyResample = function () {
         }
     });
     return ops;
+};
+
+// Close the loops (the eyes, the mouth) into straight lines, the points of the two sides on top
+// of each other: see closeLoops in lib/spline. Only the loops with a selected landmark if there
+// is a selection, otherwise all of them. It can be undone. Returns the number of landmarks moved.
+LandmarkGroup.prototype.closeLoops = function () {
+    let moved = 0;
+    atomicOperation(() => {
+        const selected = this.selected().map(lm => lm.get('index'));
+        const anchors = [];
+        this.labels.forEach(label => (label.anchors || []).forEach(i => anchors.push(i)));
+        const ops = this._applyMoved(closeLoops(
+            this._pointList(), this.connectivity, anchors, selected.length ? selected : null));
+        if (ops.length) {
+            this.tracker.record(ops);
+        }
+        moved = ops.length;
+    }).call(this);
+    return moved;
 };
 
 // The moves of one landmark after another, as one: [index, from, to] with the first `from`
