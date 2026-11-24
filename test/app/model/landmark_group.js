@@ -163,3 +163,42 @@ describe('auto-space: spacing after a drag', function () {
     });
 });
 
+
+describe('LandmarkGroup#closeLoops', function () {
+    it('closes the loop into a line and leaves the chain, as one undo step', function () {
+        const g = group();
+        const moved = g.closeLoops();
+        const now = xy(g);
+        assert.equal(moved, 2);
+        // the loop's ends are the points furthest apart (6 and 8); the other two meet on the line
+        assert.deepEqual(now[6], POINTS[6]);
+        assert.deepEqual(now[8], POINTS[8]);
+        assert.deepEqual(now[5], now[7]);
+        assert.closeTo((now[8][0] - now[6][0]) * (now[5][1] - now[6][1]) -
+                       (now[8][1] - now[6][1]) * (now[5][0] - now[6][0]), 0, 1e-9);
+        POINTS.slice(0, 5).forEach((p, i) => assert.deepEqual(now[i], p));  // the chain
+        g.undo();
+        assert.deepEqual(xy(g), POINTS);
+        assert.isFalse(g.tracker.canUndo());
+        g.redo();
+        assert.deepEqual(xy(g), now);
+        // closed already: nothing to do, and nothing to undo
+        assert.equal(g.closeLoops(), 0);
+    });
+
+    it('closes only the loops with a selected landmark, if there is a selection', function () {
+        const g = group();
+        g.landmarks[1].selectAndDeselectRest();      // on the chain: no loop is asked for
+        assert.equal(g.closeLoops(), 0);
+        assert.deepEqual(xy(g), POINTS);
+        g.landmarks[7].selectAndDeselectRest();
+        assert.equal(g.closeLoops(), 2);
+        assert.deepEqual(g.resampleScope(), ['loop']);
+    });
+
+    it('leaves a loop with a landmark that is not placed', function () {
+        const g = group();
+        g.landmarks[7].clear();
+        assert.equal(g.closeLoops(), 0);
+    });
+});

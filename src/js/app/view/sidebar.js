@@ -320,11 +320,12 @@ export const ResampleView = Backbone.View.extend({
     el: '#lmResamplePanel',
 
     events: {
-        'click #resample': 'resample'
+        'click #resample': 'resample',
+        'click #closeLoops': 'closeLoops'
     },
 
     initialize: function () {
-        _.bindAll(this, 'resample', 'refresh');
+        _.bindAll(this, 'resample', 'closeLoops', 'refresh');
         // the selection decides what is spaced
         this.model.landmarks.forEach(lm => this.listenTo(lm, 'change:selected', this.refresh));
         this.refresh();
@@ -335,12 +336,37 @@ export const ResampleView = Backbone.View.extend({
         this.$('#resample').text(resampleText(scope)).attr('title', scope === null ?
             'Space all the landmarks evenly along their curves, between the anchors of the template [s]' :
             'Space the curves with selected landmarks evenly; deselect (q) to space them all [s]');
+        this.$('#closeLoops').text(closeLoopsText(scope)).attr('title', scope === null ?
+            'Close all the loops (eyes, mouth) into straight lines, the points of the two sides on top of each other [f]' :
+            'Close the loops with selected landmarks into straight lines; deselect (q) to close them all [f]');
     },
 
     resample: function () {
         resampleSelectedOrAll(this.model);
+    },
+
+    closeLoops: function () {
+        closeLoopsSelectedOrAll(this.model);
     }
 });
+
+// What the button for closing loops says: like Space evenly, a selection limits it to its loops
+export function closeLoopsText (scope) {
+    return scope === null ? 'Snap to line' :
+        `Snap selected${scope.length ? ` (${scope.join(', ')})` : ''}`;
+}
+
+// shared by the button and the keyboard shortcut
+export function closeLoopsSelectedOrAll (lms) {
+    const scope = lms.resampleScope();  // the labels of the selection, or null
+    const moved = lms.closeLoops();
+    const where = scope === null ? '' : ` of ${scope.join(', ')} only (q deselects, to snap all)`;
+    notify({
+        type: moved ? 'success' : 'info',
+        msg: moved ? `Snapped the loops${where} to lines: ${moved} landmarks moved (undo with z)` :
+                     `Nothing to snap${where}: no loop with all its landmarks placed, or already snapped`
+    });
+}
 
 // shared by the button and the keyboard shortcut
 export function resampleSelectedOrAll (lms) {

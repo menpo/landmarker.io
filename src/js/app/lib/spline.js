@@ -267,6 +267,74 @@ export function resampleCurves (points, edges, anchors = [], spacing = {},
 }
 
 /**
+ * Close every loop of a graph into a straight line, like a shut eye or mouth: its two ends (the
+ * two anchors that are furthest apart, or if it has fewer than two the two points that are) stay,
+ * and the points between them on the two sides go onto the straight line between the ends, the
+ * ones facing each other exactly on top of each other, at the middle of where the two were
+ * along the line. Of two sides with different numbers of points the pairs are made from the ends
+ * and the points left over go to where they project on the line. Chains, and loops with a
+ * point that is not placed (null), stay.
+ *
+ * @param {number[][]} points
+ * @param {number[][]} edges
+ * @param {number[]} anchors indices (global) of the points that are the template's anchors
+ * @param {number[]} only if given, only the loops with one of these points
+ * @return {number[][]} the new points
+ */
+export function closeLoops (points, edges, anchors = [], only = null) {
+    const anchorSet = new Set(anchors);
+    const result = points.map(p => p.slice());
+    curvesFromEdges(edges, points.length).forEach(({indices, closed}) => {
+        if (!closed || (only && !indices.some(i => only.includes(i)))) {
+            return;
+        }
+        if (indices.some(i => points[i].some(v => v === null || v === undefined))) {
+            return;
+        }
+        const n = indices.length;
+        const anchored = indices.map((g, k) => k).filter(k => anchorSet.has(indices[k]));
+        const candidates = anchored.length >= 2 ? anchored : indices.map((g, k) => k);
+        let ends = [candidates[0], candidates[1]], widest = -1;
+        candidates.forEach((i, x) => candidates.slice(x + 1).forEach((j) => {
+            const d = Math.hypot(...points[indices[i]].map((v, c) => v - points[indices[j]][c]));
+            if (d > widest) {
+                widest = d;
+                ends = [i, j];
+            }
+        }));
+        const [i, j] = ends;
+        // the two sides, both from the end i to the end j
+        const side = (from, to) => {
+            const out = [];
+            for (let k = (from + 1) % n; k !== to; k = (k + 1) % n) {
+                out.push(k);
+            }
+            return out;
+        };
+        const first = side(i, j);
+        const second = side(j, i).reverse();
+        const a = points[indices[i]], b = points[indices[j]];
+        const axis = b.map((v, c) => v - a[c]);
+        const length2 = axis.reduce((sum, v) => sum + v * v, 0);
+        if (length2 === 0) {
+            return;
+        }
+        // where along the line (0 at the end i, 1 at j) a point projects
+        const along = (k) => Math.min(1, Math.max(0, points[indices[k]].reduce(
+            (sum, v, c) => sum + (v - a[c]) * axis[c], 0) / length2));
+        const put = (k, t) => { result[indices[k]] = a.map((v, c) => v + t * axis[c]); };
+        const paired = Math.min(first.length, second.length);
+        for (let x = 0; x < paired; x++) {
+            const t = (along(first[x]) + along(second[x])) / 2;
+            put(first[x], t);
+            put(second[x], t);
+        }
+        first.slice(paired).concat(second.slice(paired)).forEach(k => put(k, along(k)));
+    });
+    return result;
+}
+
+/**
  * The segments to draw for one curve (a chain or a loop of landmarks): the spline
  * through the points when they are all placed, so that what is drawn is the curve that
  * "space evenly" slides the points along; otherwise straight segments between the
