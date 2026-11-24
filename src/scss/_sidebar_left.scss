@@ -69,6 +69,12 @@
     }
 }
 
+// the landmarks are a model's proposal that has not been saved yet
+.AssetInfo > .AssetPredicted {
+    color: $colorBlue;
+    cursor: default;
+}
+
 .AssetInfo > .BackendName {
     color: white;
 

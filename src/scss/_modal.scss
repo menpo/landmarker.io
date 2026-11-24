@@ -179,6 +179,45 @@
 
 // The Fit panel (view/fit.js)
 .Fit {
+    &__Section {
+        text-transform: uppercase;
+        font-size: small;
+        font-weight: bold;
+        color: $colorGray;
+        margin: 1em 0 .25em 0;
+    }
+
+    &__Models {
+        list-style: none;
+        margin: 0 0 .5em 0;
+        padding: 0;
+    }
+
+    &__ModelRow label {
+        display: flex;
+        align-items: center;
+        gap: .5em;
+        padding: .2em 0;
+        cursor: pointer;
+    }
+
+    &__ModelName {
+        font-weight: bold;
+    }
+
+    &__Chip {
+        font-size: small;
+        padding: 0 .6em;
+        border-radius: 1em;
+        color: white;
+        background: $colorGray;
+
+        &--ready { background: $colorGreen; }
+        &--fixed { background: $colorBlue; }
+        &--busy { background: $colorBlue; font-style: italic; }
+        &--error { background: $colorRed; }
+    }
+
     &__Status {
         list-style: none;
         margin: 0 0 .5em 0;
@@ -213,5 +252,62 @@
             opacity: .5;
             cursor: not-allowed;
         }
+    }
+}
+
+// Choosing between the fits of several models (view/fit_compare.js)
+.FitCompare {
+    position: fixed;
+    bottom: 1.5em;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    min-width: 22em;
+    padding: .75em 1em;
+    background: white(.95);
+    border-radius: 4px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, .3);
+
+    &__Title {
+        font-weight: bold;
+        margin-bottom: .5em;
+    }
+
+    &__Row {
+        display: flex;
+        align-items: center;
+        gap: .75em;
+        margin: .3em 0;
+    }
+
+    &__Swatch {
+        width: 1em;
+        height: 1em;
+        border-radius: 50%;
+    }
+
+    &__Name {
+        flex: 1;
+        font-weight: bold;
+    }
+
+    &__Moved {
+        color: $colorGray;
+        font-size: small;
+        white-space: nowrap;
+    }
+
+    &__Use {
+        min-width: 5em;
+    }
+
+    &__Failed {
+        color: $colorRed;
+        font-size: small;
+    }
+
+    &__Cancel {
+        width: 100%;
+        margin-top: .5em;
     }
 }

@@ -1,7 +1,9 @@
 import { assert } from 'chai';
 import { describe, it } from 'vitest';
 
-import { fitPanelState } from '../../src/js/app/lib/fit_status';
+import {
+    compareColour, fitPanelState, modelChip, modelsState
+} from '../../src/js/app/lib/fit_status';
 
 const status = (extra={}) => Object.assign({
     ready: true, model: 'PatchAAM', can_increment: true, can_build: true, can_initialize: true,
@@ -97,5 +99,88 @@ describe('fitPanelState', function () {
         assert.isTrue(fitPanelState(status()).learnOnSave);
         assert.isFalse(fitPanelState(status({learn_on_save: false})).learnOnSave);
         assert.isTrue(fitPanelState(status()).canSwitchLearnOnSave);
+    });
+});
+
+describe('modelChip', function () {
+    it('shows what the model is doing, or how far it is', function () {
+        assert.deepEqual(modelChip(status({job: {kind: 'train', state: 'running', done: 3, total: 9}})),
+                         {kind: 'busy', text: 'train 3/9'});
+        assert.equal(modelChip(status({error: 'boom'})).kind, 'error');
+        assert.equal(modelChip(status({job: {kind: 'predict', state: 'error'}})).kind, 'error');
+        assert.deepEqual(modelChip(status({ready: false, annotated: 3})),
+                         {kind: 'empty', text: 'needs 8 images (3)'});
+        assert.deepEqual(modelChip(status({ready: false, can_increment: false, can_build: false})),
+                         {kind: 'empty', text: 'no state'});
+        assert.deepEqual(modelChip(status()), {kind: 'ready', text: 'learnt from 12'});
+        assert.deepEqual(modelChip(status({can_increment: false, can_build: false})),
+                         {kind: 'fixed', text: 'pretrained'});
+    });
+});
+
+describe('modelsState', function () {
+    const aam = status({name: 'aam'});
+    const mp = status({name: 'mediapipe', can_increment: false, can_build: false,
+                       proposals: 46, unlabelled: 46});
+    const several = (extra={}) => Object.assign(
+        {}, aam, {default: 'aam', models: {aam, mediapipe: mp}}, extra);
+
+    it('lists the models, the default is the active one unless another is chosen', function () {
+        let s = modelsState(several());
+        assert.deepEqual(s.models.map(m => [m.name, m.isActive, m.isDefault]),
+                         [['aam', true, true], ['mediapipe', false, false]]);
+        assert.equal(s.active, 'aam');
+        s = modelsState(several(), {active: 'mediapipe'});
+        assert.equal(s.active, 'mediapipe');
+        assert.deepEqual(s.models.map(m => m.isActive), [false, true]);
+        assert.deepEqual(s.models.map(m => m.chip.kind), ['ready', 'fixed']);
+        // the panel is about the active model
+        assert.include(s.panel.lines, 'Fixed model (it does not learn)');
+        assert.isFalse(s.panel.learn.enabled);
+        // a name the server does not have falls back to the default
+        assert.equal(modelsState(several(), {active: 'gone'}).active, 'aam');
+    });
+
+    it('works with a server that has one model, as before', function () {
+        const s = modelsState(status({name: 'only'}));
+        assert.deepEqual(s.models.map(m => m.name), ['only']);
+        assert.equal(s.active, 'only');
+        assert.isFalse(s.compare.enabled);
+        const unnamed = modelsState(status());
+        assert.deepEqual(unnamed.models.map(m => m.name), ['PatchAAM']);
+    });
+
+    it('can compare when two models are ready and there are landmarks', function () {
+        let s = modelsState(several());
+        assert.isTrue(s.compare.enabled);
+        assert.deepEqual(s.compare.names, ['aam', 'mediapipe']);
+        s = modelsState(several(), {hasLandmarks: false});
+        assert.isFalse(s.compare.enabled);
+        assert.equal(s.compare.reason, 'No landmarks here');
+        const notReady = several({models: {aam, mediapipe: Object.assign({}, mp, {ready: false})}});
+        s = modelsState(notReady);
+        assert.isFalse(s.compare.enabled);
+        assert.deepEqual(s.compare.names, ['aam']);
+        assert.equal(s.compare.reason, 'Needs two models that are ready');
+    });
+
+    it('counts the proposals and what a pre-fit would still do', function () {
+        const s = modelsState(several(), {active: 'mediapipe'}).panel;
+        assert.equal(s.proposals, 46);
+        assert.equal(s.prefitCount, 0);
+        assert.include(s.lines, '46 proposals waiting to be checked and saved');
+        const more = modelsState(several({models: {aam, mediapipe: Object.assign({}, mp, {proposals: 1})}}),
+                                 {active: 'mediapipe'}).panel;
+        assert.equal(more.prefitCount, 45);
+        assert.include(more.lines, '1 proposal waiting to be checked and saved');
+    });
+});
+
+describe('compareColour', function () {
+    it('is a colour for each model and starts again after the last', function () {
+        const first = compareColour(0);
+        assert.match(first, /^#[0-9a-f]{6}$/);
+        assert.notEqual(compareColour(1), first);
+        assert.equal(compareColour(6), first);
     });
 });

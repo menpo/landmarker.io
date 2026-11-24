@@ -2,7 +2,7 @@
 import { assert } from 'chai';
 import { describe, it } from 'vitest';
 
-import LandmarkGroup, { mergeMoves } from '../../../src/js/app/model/landmark_group';
+import LandmarkGroup, { mergeMoves, predictedBy } from '../../../src/js/app/model/landmark_group';
 import { makeCurve } from '../../../src/js/app/lib/spline';
 
 // a chain of five points along a curve, unevenly spaced, then a loop of four
@@ -200,5 +200,38 @@ describe('LandmarkGroup#closeLoops', function () {
         const g = group();
         g.landmarks[7].clear();
         assert.equal(g.closeLoops(), 0);
+    });
+});
+
+describe('landmarks that a model proposed', function () {
+    const data = (extra) => Object.assign({
+        landmarks: {points: [[0, 0], [1, 1]], connectivity: []},
+        labels: [{label: 'all', mask: [0, 1]}], version: 2
+    }, extra);
+
+    it('are known from what the server says of them, saved ones are not', function () {
+        assert.equal(predictedBy(data({reviewed: false, source: 'prefit:mediapipe'})), 'mediapipe');
+        assert.isNull(predictedBy(data({reviewed: true, source: 'prefit:mediapipe'})));
+        assert.isNull(predictedBy(data({reviewed: false})));
+        assert.isNull(predictedBy(data({reviewed: false, source: 'something else'})));
+        assert.isNull(predictedBy(data()));
+        const group = LandmarkGroup.parse(
+            data({reviewed: false, source: 'prefit:aam'}), 'a', 'image', null);
+        assert.equal(group.predictedBy, 'aam');
+        assert.isNull(LandmarkGroup.parse(data(), 'a', 'image', null).predictedBy);
+    });
+
+    it('are the annotation once they are saved, as they are or edited', async function () {
+        const saved = [];
+        const server = {saveLandmarkGroup: (id, type, json) => {
+            saved.push(json); return Promise.resolve();
+        }};
+        const group = LandmarkGroup.parse(
+            data({reviewed: false, source: 'prefit:aam'}), 'a', 'image', server);
+        await group.save();
+        assert.isNull(group.predictedBy);
+        assert.equal(saved.length, 1);  // saved with no edit at all
+        assert.deepEqual(saved[0].landmarks.points, [[0, 0], [1, 1]]);
+        assert.notProperty(saved[0], 'source');
     });
 });

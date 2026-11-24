@@ -12,6 +12,7 @@ import CameraController from './camera';
 import Handler from './handler';
 import { LandmarkConnectionTHREEView, LandmarkCurveTHREEView, LandmarkTHREEView } from './elements';
 import { curvesFromEdges } from '../../lib/spline';
+import { compareColour } from '../../lib/fit_status';
 
 // clear colour for both the main view and PictureInPicture
 const CLEAR_COLOUR = 0xEEEEEE;
@@ -237,7 +238,8 @@ export default Backbone.View.extend({
         window.addEventListener('resize', this.resize, false);
         this.listenTo(this.model, 'newMeshAvailable', this.changeMesh);
         this.listenTo(this.model, "change:landmarks", this.changeLandmarks);
-        this.listenTo(this.model, 'change:fitBox change:fitBoxMode', this.redrawFitBox);
+        this.listenTo(this.model, 'change:fitBox change:fitBoxMode change:fitCompare',
+                      this.redrawFitBox);
 
         this.showConnectivity = true;
         this.listenTo(
@@ -395,6 +397,7 @@ export default Backbone.View.extend({
         }
 
         this.drawFitBox();
+        this.drawFitCompare();
     },
 
     // The box to fit from (model.fitBox, in the local coordinates of the points): drawn on the
@@ -419,6 +422,41 @@ export default Backbone.View.extend({
         this.ctx.closePath();
         this.ctx.stroke();
         this.ctx.restore();
+    },
+
+    // The fits of several models to choose from (model.fitCompare), each in its own colour: its
+    // points, and the connectivity of the landmarks as lines between them
+    drawFitCompare: function () {
+        const compare = this.model.get('fitCompare');
+        const lms = this.model.landmarks();
+        if (!compare || !lms) {
+            return;
+        }
+        compare.results.forEach((result, i) => {
+            const screen = result.json.landmarks.points.map(
+                p => p.some(v => v === null) ? null :
+                    this.localToScreen(new THREE.Vector3(p[0], p[1], 0)));
+            this.ctx.save();
+            this.ctx.strokeStyle = this.ctx.fillStyle = compareColour(i);
+            this.ctx.lineWidth = 1.5;
+            this.ctx.beginPath();
+            (lms.connectivity || []).forEach(([a, b]) => {
+                if (screen[a] && screen[b]) {
+                    this.ctx.moveTo(screen[a].x, screen[a].y);
+                    this.ctx.lineTo(screen[b].x, screen[b].y);
+                }
+            });
+            this.ctx.stroke();
+            screen.forEach((c) => {
+                if (c) {
+                    this.updateCanvasBoundingBox(c);
+                    this.ctx.beginPath();
+                    this.ctx.arc(c.x, c.y, 3, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                }
+            });
+            this.ctx.restore();
+        });
     },
 
     redrawFitBox: function () {

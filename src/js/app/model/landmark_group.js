@@ -371,6 +371,7 @@ LandmarkGroup.prototype.save = function () {
     return this.server
         .saveLandmarkGroup(this.id, this.type, this.toJSON())
         .then(() => {
+            this.predictedBy = null;  // saving accepts a proposal: these are the annotation now
             this.tracker.recordState(this.toJSON(), true);
             notify({type: 'success', msg: 'Save Completed'});
         }, () => {
@@ -417,8 +418,16 @@ LandmarkGroup.prototype.completeGroups = function () {
     });
 };
 
+// The model that proposed the landmarks in a JSON that the server made up from a pre-fit (not
+// saved yet: ``"reviewed": false`` and ``"source": "prefit:<model>"``), else null
+export function predictedBy (json) {
+    const source = typeof json.source === 'string' ? json.source : '';
+    return json.reviewed === false && source.startsWith('prefit:') ?
+        source.slice('prefit:'.length) : null;
+}
+
 LandmarkGroup.parse = function (json, id, type, server, tracker) {
-    return new LandmarkGroup(
+    const group = new LandmarkGroup(
         json.landmarks.points,
         json.landmarks.connectivity,
         json.labels,
@@ -427,4 +436,6 @@ LandmarkGroup.parse = function (json, id, type, server, tracker) {
         server,
         tracker
     );
+    group.predictedBy = predictedBy(json);
+    return group;
 };

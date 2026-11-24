@@ -9,6 +9,72 @@ import * as AssetSource from './assetsource';
 import LandmarkGroup from './landmark_group';
 import Modal from '../view/modal';
 
+// How many points of a landmark group's JSON differ from `before` (a list of points)
+function countMoved (before, json) {
+    return json.landmarks.points.filter(
+        (p, i) => !before[i] || p[0] !== before[i][0] || p[1] !== before[i][1]).length;
+}
+
+// The message of a failed request: what the server said, else the status text
+function messageOf (error) {
+    let message = error.message;
+    try {
+        message = (error.body && error.body.message) || message;
+    } catch (e) { /* keep the status text */ }
+    return message;
+}
+
+// The points of an asset's landmarks if all of them are placed, else null
+function completePoints (json) {
+    const points = json && json.landmarks && json.landmarks.points;
+    return points && points.length && points.every(p => p.every(v => v !== null)) ?
+        points : null;
+}
+
+// The landmarks of the previous image of the collection (its JSON, saved or proposed by the
+// pre-fit), or null: this is the first image, or it has none
+function previousLandmarks (app) {
+    const source = app.assetSource();
+    if (!source.hasPredecessor()) {
+        return Promise.resolve(null);
+    }
+    const previous = source.assets()[source.assetIndex() - 1];
+    return app.server().fetchLandmarkGroup(previous.id, app.activeTemplate())
+        .then(json => json, () => null);
+}
+
+// Ask the server to fit the landmarks that are on the screen; resolves with the fitted JSON,
+// rejects with a message. See App#autoFitLandmarks for the options.
+function requestFit (app, {box, fromCurrent=true, fromPrevious=false, model}={}) {
+    const lms = app.landmarks();
+    if (!lms) {
+        return Promise.reject('No landmarks to refine');
+    }
+    const name = model !== undefined ? model : app.get('fitModel');
+    const sent = lms.toJSON();
+    const start = fromPrevious && !box ? previousLandmarks(app) : Promise.resolve(null);
+    return start.then((previous) => {
+        const points = completePoints(previous);
+        if (points) {
+            sent.landmarks.points = points;
+        } else if (!fromCurrent && !box) {
+            // an incomplete annotation is not a start: the server uses the model's own
+            sent.landmarks.points = sent.landmarks.points.map(p => p.map(() => null));
+        }
+        return app.server().fitLandmarkGroup(
+            app.asset().id, app.activeTemplate(), sent, box, name || undefined);
+    }).then(json => json, error => Promise.reject(messageOf(error)));
+}
+
+// Put a fit on the landmarks (undoable); resolves with the number of points that moved
+function applyFit (lms, json) {
+    const before = lms.toJSON().landmarks.points;
+    lms.tracker.recordState(lms.toJSON());
+    lms.restore(json);
+    lms.tracker.recordState(lms.toJSON(), false, true);
+    return countMoved(before, json);
+}
+
 export default Backbone.Model.extend({
 
     defaults: function () {
@@ -24,6 +90,8 @@ export default Backbone.Model.extend({
             helpOverlayIsDisplayed: false,
             fitBoxMode: false,
             fitBox: null,
+            fitModel: null,      // the model the Fit panel uses (its name; null: the default)
+            fitCompare: null,    // the fits of several models to choose from, see compareFits
             tracker: {}
         };
     },
@@ -313,6 +381,9 @@ export default Backbone.Model.extend({
         if (this.get('fitBoxMode')) {
             this.endFitBox();
         }
+        if (this.get('fitCompare')) {
+            this.endCompare();
+        }
         this.set('asset', this.assetSource().asset());
     },
 
@@ -407,38 +478,67 @@ export default Backbone.Model.extend({
         }
     },
 
-    // Refine the landmarks that are on the asset with the server's model (undoable). Resolves
+    // Refine the landmarks that are on the asset with a model of the server (undoable). Resolves
     // with the number of points that moved; rejects with a message to show.
     //   box: [[min, min], [max, max]] (the order of the points) to start from the model's
     //        initial shape in it
     //   fromCurrent: false to ignore the landmarks that are placed and start from the model's
     //        own initial shape (default true: complete landmarks are what the fit starts from)
-    autoFitLandmarks: function ({box, fromCurrent=true}={}) {
+    //   fromPrevious: start from the landmarks of the previous image in the collection (the
+    //        frame before this one) if it has complete ones, instead of the current landmarks
+    //   model: the name of the model (default: the one chosen in the Fit panel, `fitModel`)
+    autoFitLandmarks: function (options={}) {
         const lms = this.landmarks();
         if (!lms) {
             return Promise.reject('No landmarks to refine');
         }
-        const sent = lms.toJSON();
-        if (!fromCurrent && !box) {
-            // an incomplete annotation is not a start: the server uses the model's own
-            sent.landmarks.points = sent.landmarks.points.map(p => p.map(() => null));
+        return requestFit(this, options).then(
+            json => applyFit(lms, json), message => Promise.reject(message));
+    },
+
+    // Fit the landmarks with several models at once and show each result on the image to
+    // choose from (`fitCompare`: {asset, results: [{model, json, moved}], failed: [{model,
+    // message}]}). Nothing changes until `useFit(model)`. Takes the options of autoFitLandmarks
+    // (a box is a start for every model), and `models`, the names to compare.
+    compareFits: function (options={}) {
+        const lms = this.landmarks();
+        const models = options.models || [];
+        if (!lms || models.length < 2) {
+            return Promise.reject('Comparing needs landmarks and two models');
         }
-        return this.server().fitLandmarkGroup(
-            this.asset().id, this.activeTemplate(), sent, box
-        ).then((json) => {
-            const before = lms.toJSON().landmarks.points;
-            lms.tracker.recordState(lms.toJSON());
-            lms.restore(json);
-            lms.tracker.recordState(lms.toJSON(), false, true);
-            return json.landmarks.points.filter(
-                (p, i) => !before[i] || p[0] !== before[i][0] || p[1] !== before[i][1]).length;
-        }, (error) => {
-            let message = error.message;
-            try {
-                message = (error.body && error.body.message) || message;
-            } catch (e) { /* keep the status text */ }
-            return Promise.reject(message);
+        const asset = this.asset();
+        const before = lms.toJSON().landmarks.points;
+        return Promise.all(models.map(model => requestFit(this, Object.assign(
+            {}, options, {model})).then(
+                json => ({model, json, moved: countMoved(before, json)}),
+                message => ({model, message}))
+        )).then((all) => {
+            const results = all.filter(r => r.json);
+            const failed = all.filter(r => !r.json);
+            if (!results.length) {
+                return Promise.reject(failed.map(f => `${f.model}: ${f.message}`).join('; '));
+            }
+            if (this.asset() === asset) {  // only if still on the image
+                this.set('fitCompare', {asset, results, failed});
+            }
+            return {results, failed};
         });
+    },
+
+    // Take the fit of one model from the comparison (undoable like any fit)
+    useFit: function (model) {
+        const compare = this.get('fitCompare');
+        const lms = this.landmarks();
+        const result = compare && compare.results.find(r => r.model === model);
+        if (!lms || !result) {
+            return Promise.reject('No such fit to use');
+        }
+        this.endCompare();
+        return Promise.resolve(applyFit(lms, result.json));
+    },
+
+    endCompare: function () {
+        this.set('fitCompare', null);
     },
 
     // Drawing the box to start a fit from: the viewport shows `fitBox` and lets it be redrawn
@@ -448,7 +548,7 @@ export default Backbone.Model.extend({
         this.set({fitBoxMode: true, fitBox: null});
         if (server && server.fetchFitBox && this.asset()) {
             const asset = this.asset();
-            return server.fetchFitBox(asset.id).then((box) => {
+            return server.fetchFitBox(asset.id, this.get('fitModel')).then((box) => {
                 // only if still wanted, for the same image
                 if (this.get('fitBoxMode') && this.asset() === asset) {
                     this.set('fitBox', box);
