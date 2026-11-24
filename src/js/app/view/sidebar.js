@@ -9,6 +9,7 @@ import atomic from '../model/atomic';
 import TemplatePanel from './templates';
 import { notify } from './notification';
 import FitModal from './fit';
+import FitCompareView from './fit_compare';
 
 // Renders a single Landmark. Should update when constituent landmark
 // updates and that's it.
@@ -233,8 +234,11 @@ export const ActionsView = Backbone.View.extend({
     },
 
     render: function () {
+        // a proposal of a model is not saved, whatever is on the screen: Save accepts it
+        const predicted = this.model.predictedBy || null;
         this.$el.find('#save')
-                .toggleClass('Active', !this.model.tracker.isUpToDate());
+                .toggleClass('Active', !this.model.tracker.isUpToDate() || !!predicted);
+        $('#predictedBadge').toggle(!!predicted).find('.content').text(predicted || '-');
     },
 
     save: function (evt) {
@@ -449,6 +453,7 @@ export default Backbone.View.extend({
         this.lmView = null;
         this.undoRedoView = null;
         this.templatePanel = new TemplatePanel({model: this.model});
+        this.fitCompareView = new FitCompareView({app: this.model});
     },
 
     landmarksChange: function () {
@@ -480,6 +485,7 @@ export default Backbone.View.extend({
         const lms = this.model.landmarks();
 
         if (lms === null) {
+            $('#predictedBadge').hide();
             return;
         }
 

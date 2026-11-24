@@ -123,6 +123,13 @@ export default function KeyboardShortcutsHandler (app, viewport) {
     this._keydown = function (evt) {
         let lms;
 
+        // choosing between the fits of several models: Esc keeps the landmarks as they are
+        if (app.get('fitCompare') && !Modal.active() && evt.which === 27) {
+            app.endCompare();
+            evt.stopPropagation();
+            return null;
+        }
+
         // drawing the box to fit from: Enter fits, Esc gives up
         if (app.get('fitBoxMode') && !Modal.active()) {
             if (evt.which === 13) {
