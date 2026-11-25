@@ -60,9 +60,10 @@ export default Backbone.View.extend({
         //    - vpoverlay: a Canvas overlay for 2D UI drawing
         //    - viewport: our THREE managed WebGL view
         //
-        // The viewport and vpoverlay need to be position:fixed for WebGL
-        // reasons. we listen for document resize and keep the size of these
-        // two children in sync with the viewportContainer parent.
+        // The viewport and vpoverlay are placed in the viewportContainer (position:absolute in
+        // it), which can be any part of a page, and mouse positions are counted from their top
+        // left corner (see eventPosition). We listen for document resize and keep the size of
+        // these two children in sync with the viewportContainer parent.
         this.$container = $('#viewportContainer');
         // and grab the viewport div
         this.$webglel = $('#viewport');
@@ -82,7 +83,7 @@ export default Backbone.View.extend({
         this.pipCtx = this.pipCanvas.getContext('2d');
 
         // style the PIP canvas on initialization
-        this.pipCanvas.style.position = 'fixed';
+        this.pipCanvas.style.position = 'absolute';
         this.pipCanvas.style.zIndex = 0;
         this.pipCanvas.style.width = PIP_WIDTH + 'px';
         this.pipCanvas.style.height = PIP_HEIGHT + 'px';
@@ -554,6 +555,9 @@ export default Backbone.View.extend({
         // constraints.
         this.canvas.width = w * this.pixelRatio;
         this.canvas.height = h * this.pixelRatio;
+        // and its CSS size is the container's, which is not the page's when it is one part of it
+        this.canvas.style.width = w + 'px';
+        this.canvas.style.height = h + 'px';
 
         // make sure our global transform for the general context accounts for
         // the pixelRatio
@@ -784,8 +788,17 @@ export default Backbone.View.extend({
         }
     },
 
+    // Where a mouse event is in the viewport, in pixels from its top left corner, which is where
+    // everything of the viewport (rays, drawing, the camera) counts from. The page's pixels are
+    // not those when the viewport is a part of a page.
+    eventPosition: function (event) {
+        var rect = this.el.getBoundingClientRect();
+        return {x: event.clientX - rect.left, y: event.clientY - rect.top};
+    },
+
     getIntersectsFromEvent: function (event, object) {
-      return this.getIntersects(event.clientX, event.clientY, object);
+        var position = this.eventPosition(event);
+        return this.getIntersects(position.x, position.y, object);
     },
 
     worldToScreen: function (vector) {

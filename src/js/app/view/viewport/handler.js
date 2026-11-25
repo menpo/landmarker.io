@@ -147,7 +147,7 @@ export default function Handler () {
     var boxOnDrag = (event) => {
         this.clearCanvas();
         this.drawSelectionBox(
-            onMouseDownPosition, {x: event.clientX, y: event.clientY});
+            onMouseDownPosition, this.eventPosition(event));
     };
 
     // the box is in local coordinates: [[min, min], [max, max]], the order of the points
@@ -156,13 +156,13 @@ export default function Handler () {
         this.cameraController.enable();
         isPressed = false;
         this.clearCanvas();
-        // clientX/Y are the page's: the canvas is at the top left of the page
+        var here = this.eventPosition(event);
         var a = this.screenToLocal(onMouseDownPosition.x, onMouseDownPosition.y);
-        var b = this.screenToLocal(event.clientX, event.clientY);
+        var b = this.screenToLocal(here.x, here.y);
         // a click is not a box
         if (a && b && Math.abs(a.x - b.x) > 0 && Math.abs(a.y - b.y) > 0 &&
-            Math.hypot(event.clientX - onMouseDownPosition.x,
-                       event.clientY - onMouseDownPosition.y) > 4) {
+            Math.hypot(here.x - onMouseDownPosition.x,
+                       here.y - onMouseDownPosition.y) > 4) {
             this.model.set('fitBox', [[Math.min(a.x, b.x), Math.min(a.y, b.y)],
                                       [Math.max(a.x, b.x), Math.max(a.y, b.y)]]);
         } else {
@@ -196,7 +196,7 @@ export default function Handler () {
         isPressed = true;
 
         downEvent = event;
-        onMouseDownPosition.set(event.clientX, event.clientY);
+        onMouseDownPosition.set(this.eventPosition(event).x, this.eventPosition(event).y);
 
         // drawing the box to fit from: the drag is the box, nothing else happens
         if (this.model.get('fitBoxMode') && event.button === 0) {
@@ -263,8 +263,8 @@ export default function Handler () {
         console.log("drag");
         // note that positionLmDrag is set to where we started.
         // update where we are now and where we were
-        var newPositionLmDrag = new THREE.Vector2(
-            event.clientX, event.clientY);
+        var here = this.eventPosition(event);
+        var newPositionLmDrag = new THREE.Vector2(here.x, here.y);
         var prevPositionLmDrag = positionLmDrag.clone();
         // change in this step in screen space
         deltaLmDrag.subVectors(newPositionLmDrag, prevPositionLmDrag);
@@ -297,9 +297,8 @@ export default function Handler () {
 
     shiftOnDrag = (event) => {
         console.log("shift:drag");
-        // note - we use client as we don't want to jump back to zero
-        // if user drags into sidebar!
-        var newPosition = { x: event.clientX, y: event.clientY };
+        // not clamped to the viewport, so that a drag into the sidebar does not jump back
+        var newPosition = this.eventPosition(event);
         // clear the canvas and draw a selection rect.
         this.clearCanvas();
         this.drawSelectionBox(onMouseDownPosition, newPosition);
@@ -314,8 +313,8 @@ export default function Handler () {
         $(document).off('mousemove.shiftDrag', shiftOnDrag);
         var x1 = onMouseDownPosition.x;
         var y1 = onMouseDownPosition.y;
-        var x2 = event.clientX;
-        var y2 = event.clientY;
+        var x2 = this.eventPosition(event).x;
+        var y2 = this.eventPosition(event).y;
         var minX, maxX, minY, maxY;
         if (x1 < x2) {
             [minX, maxX] = [x1, x2];
@@ -347,7 +346,7 @@ export default function Handler () {
     var meshOnMouseUp = (event) => {
         console.log("meshPress:up");
         var p;
-        onMouseUpPosition.set(event.clientX, event.clientY);
+        onMouseUpPosition.set(this.eventPosition(event).x, this.eventPosition(event).y);
         if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
             //  a click on the mesh
             p = intersectsWithMesh[0].point.clone();
@@ -373,7 +372,7 @@ export default function Handler () {
 
     nothingOnMouseUp = (event) => {
         console.log("nothingPress:up");
-        onMouseUpPosition.set(event.clientX, event.clientY);
+        onMouseUpPosition.set(this.eventPosition(event).x, this.eventPosition(event).y);
         if (onMouseDownPosition.distanceTo(onMouseUpPosition) < 2) {
             // a click on nothing - deselect all
             setGroupSelected(false);
@@ -388,7 +387,7 @@ export default function Handler () {
         this.cameraController.enable();
         console.log("landmarkPress:up");
         $(document).off('mousemove.landmarkDrag');
-        onMouseUpPosition.set(event.clientX, event.clientY);
+        onMouseUpPosition.set(this.eventPosition(event).x, this.eventPosition(event).y);
         if (onMouseDownPosition.distanceTo(onMouseUpPosition) === 0) {
             // landmark was pressed
             if (lmPressedWasSelected && ctrl) {
@@ -474,7 +473,7 @@ export default function Handler () {
                 currentTargetLm.selectAndDeselectRest();
             }
 
-            this.drawTargetingLines({x: evt.clientX, y: evt.clientY},
+            this.drawTargetingLines(this.eventPosition(evt),
                 currentTargetLm, lms);
         }
     };
@@ -506,7 +505,7 @@ export default function Handler () {
         // Set a movement of 0.5% of the screen in the suitable direction
         const [x, y] = directions,
               move = new THREE.Vector2(),
-              [dx, dy] = [.005 * window.innerWidth, .005 * window.innerHeight];
+              [dx, dy] = [.005 * this.width(), .005 * this.height()];
 
         move.set(x * dx, y * dy);
 

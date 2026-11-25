@@ -157,6 +157,13 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
     const mouseHoverPosition = new THREE.Vector2();
     const mouseMoveDelta = new THREE.Vector2();
 
+    // Where a mouse event is in the element, in pixels from its top left corner. (Not the page's
+    // pixels: the viewport may be one part of a page, or of another page.)
+    function inElement (event) {
+        const rect = domElement.getBoundingClientRect();
+        return {x: event.clientX - rect.left, y: event.clientY - rect.top};
+    }
+
     function pan (distance) {
         // first, handle the pCam...
         const oDist = distance.clone();
@@ -217,10 +224,7 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
         oCam.updateProjectionMatrix();
         // call the mouse hover callback manually, he will trigger a change
         // for us. Little nasty, but we mock the event...
-        onMouseMoveHover({
-            pageX: mouseHoverPosition.x,
-            pageY: mouseHoverPosition.y
-        });
+        hoverAt(mouseHoverPosition.x, mouseHoverPosition.y);
         controller.trigger('change');
     }
 
@@ -334,11 +338,11 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
                 break;
         }
 
+        const down = inElement(event);
         if (state === STATE.ROTATE) {
-            mouseDownPosition.copy(projectMouseOnSphere(event.pageX,
-                                                        event.pageY));
+            mouseDownPosition.copy(projectMouseOnSphere(down.x, down.y));
         } else {
-            mouseDownPosition.set(event.pageX, event.pageY);
+            mouseDownPosition.set(down.x, down.y);
         }
 
         mousePrevPosition.copy(mouseDownPosition);
@@ -353,11 +357,11 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
 
         event.preventDefault();
 
+        const here = inElement(event);
         if (state === STATE.ROTATE) {
-            mouseCurrentPosition.copy(
-                projectMouseOnSphere(event.pageX, event.pageY));
+            mouseCurrentPosition.copy(projectMouseOnSphere(here.x, here.y));
         } else {
-            mouseCurrentPosition.set(event.pageX, event.pageY);
+            mouseCurrentPosition.set(here.x, here.y);
         }
 
         mouseMoveDelta.subVectors(mouseCurrentPosition, mousePrevPosition);
@@ -405,7 +409,13 @@ export default function CameraController (pCam, oCam, oCamZoom, domElement) {
     }
 
     function onMouseMoveHover (event) {
-        mouseHoverPosition.set(event.pageX, event.pageY);
+        const here = inElement(event);
+        hoverAt(here.x, here.y);
+    }
+
+    // the mouse is at (x, y) of the element, hovering
+    function hoverAt (x, y) {
+        mouseHoverPosition.set(x, y);
         var oM = mousePositionInOrthographicView(mouseHoverPosition);
 
         // and new bounds are
