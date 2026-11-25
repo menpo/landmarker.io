@@ -19,6 +19,11 @@
     z-index: $zIndexCanvas;
 }
 
+// the layers of the viewport are placed in it, not in the page: it can be one part of a page
+.Viewport > .FullScreen {
+    position: absolute;
+}
+
 .FullScreen {
     @extend %fullSize;
     position: fixed;
