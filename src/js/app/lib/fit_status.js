@@ -34,6 +34,10 @@ export function fitPanelState (status, {hasLandmarks=true, saved=true}={}) {
     if (proposals) {
         lines.push(`${plural(proposals, 'proposal')} waiting to be checked and saved`);
     }
+    if (status.occluded) {
+        lines.push(`${plural(status.occluded, 'saved image')} left out of learning: ` +
+                   'a landmark is occluded or out of the frame');
+    }
 
     let jobLine = null;
     if (job) {

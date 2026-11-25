@@ -17,6 +17,7 @@ const HELP_CONTENTS = [
     ['q / ESC', 'clear current selection'],
     ['s', 'space the landmarks evenly along their curves, between the anchors (the curves with selected landmarks, or all)'],
     ['f', 'snap the loops (eyes, mouth) into one curve, the points of both sides on top of each other (the loops with selected landmarks, or all)'],
+    ['o', 'mark the selected landmarks as occluded, or visible again (landmarks outside the image are occluded already)'],
     ['z', 'undo last operation'],
     ['y', 'redo last undone operation'],
     ['ctrl + s', 'save current landmarks'],

@@ -68,6 +68,12 @@ const SHORTCUTS = {
         resampleSelectedOrAll(lms);
     }, false, true],
 
+    "o": [function (lms) { // o = mark the selected landmarks as [o]ccluded (or visible again)
+        if (lms) {
+            lms.toggleOccluded();
+        }
+    }, false, true],
+
     "z": [function (lms) { // z = undo
         if (lms && lms.tracker.canUndo()) {
             lms.undo();

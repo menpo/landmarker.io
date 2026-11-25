@@ -177,6 +177,31 @@ export const AutoSpaceToggle = Backbone.View.extend({
     }
 });
 
+export const KeepInsideToggle = Backbone.View.extend({
+
+    el: '#keepinsideRow',
+
+    events: {
+        'click #keepinsideToggle': "toggle"
+    },
+
+    initialize: function () {
+        this.$toggle = this.$el.find('#keepinsideToggle')[0];
+        _.bindAll(this, 'render', 'toggle');
+        this.listenTo(this.model, 'change:keepInsideOn', this.render);
+        this.render();
+    },
+
+    render: function () {
+        this.$toggle.checked = this.model.isKeepInsideOn();
+        return this;
+    },
+
+    toggle: function () {
+        this.model.toggleKeepInside();
+    }
+});
+
 export default Backbone.View.extend({
 
     el: '#toolbar',
@@ -193,6 +218,11 @@ export default Backbone.View.extend({
         }
         this.autosaveToggle = new AutoSaveToggle({model: this.model});
         this.autospaceToggle = new AutoSpaceToggle({model: this.model});
+        if (this.model.imageMode()) {
+            this.keepInsideToggle = new KeepInsideToggle({model: this.model});
+        } else {
+            this.$el.find('#keepinsideRow').css("display", "none");  // a mesh has no frame
+        }
     }
 
 });

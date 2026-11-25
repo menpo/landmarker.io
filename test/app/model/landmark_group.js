@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { assert } from 'chai';
+import * as THREE from 'three';
 import { describe, it } from 'vitest';
 
 import LandmarkGroup, { mergeMoves, predictedBy } from '../../../src/js/app/model/landmark_group';
@@ -232,5 +233,148 @@ describe('landmarks that a model proposed', function () {
         assert.equal(saved.length, 1);  // saved with no edit at all
         assert.deepEqual(saved[0].landmarks.points, [[0, 0], [1, 1]]);
         assert.notProperty(saved[0], 'source');
+    });
+});
+
+
+describe('occluded landmarks and the frame of an image', function () {
+    // an image of 30 rows by 40 columns: x runs to 30 and y to 40
+    const framed = (points = POINTS.map(p => p.slice())) => {
+        const g = group(points);
+        g.setBounds([30, 40]);
+        return g;
+    };
+    const flags = (g) => g.landmarks.map(lm => lm.isOccluded());
+    const at = (x, y) => new THREE.Vector3(x, y, 0);
+
+    it('does not mark anything occluded when everything is inside', function () {
+        assert.deepEqual(flags(framed()), POINTS.map(() => false));
+    });
+
+    it('marks the landmarks of a file that are outside the frame, when the file does not say', function () {
+        const points = POINTS.map(p => p.slice());
+        points[0] = [-3, 5];   // above the image
+        points[4] = [10, 45];  // right of it
+        const g = framed(points);
+        assert.deepEqual(flags(g).map((o, i) => o ? i : -1).filter(i => i >= 0), [0, 4]);
+    });
+
+    it('takes what the file says (metadata.visible) over where the points are', function () {
+        const points = POINTS.map(p => p.slice());
+        points[0] = [-3, 5];
+        const visible = POINTS.map(() => 1);
+        visible[2] = 0;   // occluded by hand, inside; and point 0 is outside but said visible
+        const g = LandmarkGroup.parse({
+            landmarks: {points, connectivity: CONNECTIVITY}, labels: LABELS, version: 2,
+            metadata: {visible}
+        }, 'face', 'image', null);
+        g.setBounds([30, 40]);
+        assert.deepEqual(flags(g).map((o, i) => o ? i : -1).filter(i => i >= 0), [2]);
+    });
+
+    it('saves which landmarks are occluded, 1 for visible and 0 for occluded, for an image', function () {
+        const g = framed();
+        g.landmarks[3].setOccluded(true);
+        const json = g.toJSON();
+        assert.deepEqual(json.metadata.visible, POINTS.map((p, i) => i === 3 ? 0 : 1));
+        assert.equal(json.version, 2);
+    });
+
+    it('writes no metadata for a mesh with nothing occluded, and reads it back', function () {
+        const g = group();
+        assert.notProperty(g.toJSON(), 'metadata');
+        g.landmarks[1].setOccluded(true);
+        const back = LandmarkGroup.parse(g.toJSON(), 'face', 'image', null);
+        assert.deepEqual(flags(back), POINTS.map((p, i) => i === 1));
+    });
+
+    it('marks a landmark occluded when it goes out of the frame, and visible when it comes back', function () {
+        const g = framed();
+        const lm = g.landmarks[2];
+        lm.setPoint(at(31, 5));
+        assert.isTrue(lm.isOccluded());
+        lm.setPoint(at(35, 5));
+        assert.isTrue(lm.isOccluded());
+        lm.setPoint(at(10, 5));
+        assert.isFalse(lm.isOccluded());
+    });
+
+    it('keeps a landmark that was marked occluded by hand, inside, when it moves inside', function () {
+        const g = framed();
+        const lm = g.landmarks[2];
+        lm.setOccluded(true);
+        lm.setPoint(at(12, 7));
+        assert.isTrue(lm.isOccluded());
+    });
+
+    it('marks a landmark that is placed outside the frame', function () {
+        const g = framed();
+        g.deleteSelected();   // nothing selected: no-op
+        g.landmarks[6].clear();
+        g.landmarks[6].set({point: at(-2, 3)});
+        assert.isTrue(g.landmarks[6].isOccluded());
+        g.landmarks[6].clear();
+        assert.isFalse(g.landmarks[6].isOccluded());
+    });
+
+    it('does not know a frame without a size (a mesh)', function () {
+        const g = group();
+        g.landmarks[0].setPoint(at(-100, 500));
+        assert.isFalse(g.landmarks[0].isOccluded());
+    });
+
+    it('toggles the selected landmarks as one undoable step', function () {
+        const g = framed();
+        g.landmarks[1].select();
+        g.landmarks[2].select();
+        assert.equal(g.toggleOccluded(), 2);
+        assert.deepEqual(flags(g).slice(0, 4), [false, true, true, false]);
+        // all occluded: toggles them back
+        assert.equal(g.toggleOccluded(), 2);
+        assert.deepEqual(flags(g).slice(0, 4), [false, false, false, false]);
+        g.undo();
+        assert.deepEqual(flags(g).slice(0, 4), [false, true, true, false]);
+        g.undo();
+        assert.deepEqual(flags(g).slice(0, 4), [false, false, false, false]);
+        g.redo();
+        assert.deepEqual(flags(g).slice(0, 4), [false, true, true, false]);
+        assert.deepEqual(xy(g), POINTS);  // the points did not move
+    });
+
+    it('toggles nothing without a selection, and mixes into occluded', function () {
+        const g = framed();
+        assert.equal(g.toggleOccluded(), 0);
+        g.landmarks[0].setOccluded(true);
+        g.landmarks[0].select();
+        g.landmarks[1].select();
+        assert.equal(g.toggleOccluded(), 1);   // not all were occluded: the others become so
+        assert.deepEqual(flags(g).slice(0, 2), [true, true]);
+    });
+
+    it('undoes and redoes a move out of the frame with its flag', function () {
+        const g = framed();
+        const lm = g.landmarks[2];
+        const from = lm.point().clone();
+        lm.setPoint(at(33, 3));
+        g.tracker.record([[2, from, lm.point().clone()]]);
+        assert.isTrue(lm.isOccluded());
+        g.undo();
+        assert.isFalse(lm.isOccluded());
+        g.redo();
+        assert.isTrue(lm.isOccluded());
+    });
+});
+
+describe('restoring landmarks (a fit) into an image', function () {
+    it('marks the landmarks that the fit put outside the frame, which it does not say', function () {
+        const g = group();
+        g.setBounds([30, 40]);
+        const json = {
+            landmarks: {points: POINTS.map(p => p.slice()), connectivity: CONNECTIVITY},
+            labels: LABELS, version: 2
+        };
+        json.landmarks.points[2] = [-5, 3];
+        g.restore(json);
+        assert.deepEqual(g.landmarks.map(lm => lm.isOccluded()).map((o, i) => o ? i : -1).filter(i => i >= 0), [2]);
     });
 });

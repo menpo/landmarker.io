@@ -309,3 +309,9 @@ is itself a row flexbox */
 .Lm-NextAvailable {
     background: $colorOrange;
 }
+
+// occluded: the colour of the cell (placed, selected) with stripes over it
+.Lm-Occluded {
+    background-image: repeating-linear-gradient(
+        135deg, rgba(255, 255, 255, .35) 0, rgba(255, 255, 255, .35) 3px, transparent 3px, transparent 6px);
+}

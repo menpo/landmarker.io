@@ -85,6 +85,7 @@ export default Backbone.Model.extend({
             editingOn: true,
             autoSaveOn: false,
             autoSpaceOn: false,
+            keepInsideOn: false,    // images: keep landmarks within the picture (else they can go past its edge)
             activeTemplate: undefined,
             activeCollection: undefined,
             helpOverlayIsDisplayed: false,
@@ -111,6 +112,14 @@ export default Backbone.Model.extend({
 
     toggleAutoSpace: function () {
         return this.set('autoSpaceOn', !this.isAutoSpaceOn());
+    },
+
+    isKeepInsideOn: function () {
+        return this.get('keepInsideOn');
+    },
+
+    toggleKeepInside: function () {
+        return this.set('keepInsideOn', !this.isKeepInsideOn());
     },
 
     toggleAutoSave: function () {
@@ -409,6 +418,18 @@ export default Backbone.Model.extend({
         });
     },
 
+    // The size of the picture of the image on show, [rows, columns]: where the frame ends, past
+    // which a landmark is out of it. null for a mesh, or when there is no picture.
+    imageBounds: function () {
+        const asset = this.assetSource() && this.assetSource().asset();
+        const geometry = asset && (asset.textureGeometry);
+        if (!this.imageMode() || !geometry || !geometry.boundingBox) {
+            return null;
+        }
+        const {min, max} = geometry.boundingBox;
+        return min.x === 0 && min.y === 0 ? [max.x, max.y] : null;
+    },
+
     _promiseLandmarksWithAsset: function (loadAssetPromise) {
         // returns a promise that will only resolve when the asset and
         // landmarks are both downloaded and ready.
@@ -422,6 +443,7 @@ export default Backbone.Model.extend({
             // now we know that this is resolved we set the landmarks on the
             // app. This way we know the landmarks will always be set with a
             // valid asset.
+            landmarks.setBounds(this.imageBounds());
             this.set('landmarks', landmarks);
         });
     },

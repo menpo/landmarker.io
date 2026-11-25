@@ -12,6 +12,8 @@ const LM_SCALE = 0.01;
 const LM_SPHERE_PARTS = 10;
 const LM_SPHERE_SELECTED_COLOR = 0xff75ff;
 const LM_SPHERE_UNSELECTED_COLOR = 0xffff00;
+const LM_SPHERE_OCCLUDED_COLOR = 0x6fa8ff;           // occluded: blue
+const LM_SPHERE_OCCLUDED_SELECTED_COLOR = 0xc9d9ff;
 const LM_CONNECTION_LINE_COLOR = LM_SPHERE_UNSELECTED_COLOR;
 
 // create a single geometry + material that will be shared by all landmarks
@@ -23,6 +25,12 @@ const lmGeometry = new THREE.SphereGeometry(
 const lmMaterialForSelected = {
     true: new THREE.MeshBasicMaterial({color: LM_SPHERE_SELECTED_COLOR}),
     false: new THREE.MeshBasicMaterial({color: LM_SPHERE_UNSELECTED_COLOR})
+};
+
+// occluded landmarks are drawn blue, and a little transparent
+const lmMaterialForOccluded = {
+    true: new THREE.MeshBasicMaterial({color: LM_SPHERE_OCCLUDED_SELECTED_COLOR, transparent: true, opacity: 0.75}),
+    false: new THREE.MeshBasicMaterial({color: LM_SPHERE_OCCLUDED_COLOR, transparent: true, opacity: 0.75})
 };
 
 const lineMaterial = new THREE.LineBasicMaterial({
@@ -80,7 +88,8 @@ export const LandmarkTHREEView = Backbone.View.extend({
     updateSymbol: function () {
         this.symbol.position.copy(this.model.point());
         var selected = this.model.isSelected();
-        this.symbol.material = lmMaterialForSelected[selected];
+        this.symbol.material = (this.model.isOccluded() ? lmMaterialForOccluded :
+                                lmMaterialForSelected)[selected];
     },
 
     dispose: function () {

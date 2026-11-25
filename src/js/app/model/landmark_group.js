@@ -104,6 +104,9 @@ export default function LandmarkGroup (
     this.type = type;
     this.server = server;
     this.tracker = tracker || new Tracker();
+    // the size of the image, [rows, columns]: past it a landmark is out of the frame (null: unknown,
+    // or a mesh, which has no frame)
+    this.bounds = null;
 
     // 1. Build landmarks from points
     this.landmarks = points.map((p, index) => {
@@ -134,7 +137,8 @@ LandmarkGroup.prototype = Object.create(LandmarkCollectionPrototype);
 // no hard checking ot resetting the labels
 LandmarkGroup.prototype.restore = atomicOperation(function ({
     landmarks,
-    labels
+    labels,
+    metadata
 }) {
     const {points, connectivity} = landmarks;
 
@@ -148,6 +152,7 @@ LandmarkGroup.prototype.restore = atomicOperation(function ({
 
     this.connectivity = _validateConnectivity(this.landmarks.length,
                                               connectivity);
+    this._setVisible(metadata && metadata.visible);
 
     delete this.labels;
     this.labels = labels.map((label) => {
@@ -157,6 +162,57 @@ LandmarkGroup.prototype.restore = atomicOperation(function ({
 
     this.resetNextAvailable();
 });
+
+// Is the point past the edge of the image? (nothing is outside when the size is not known)
+LandmarkGroup.prototype.isOutside = function (p) {
+    return !!this.bounds && (p.x < 0 || p.x > this.bounds[0] || p.y < 0 || p.y > this.bounds[1]);
+};
+
+// Tell the group how big its image is. The landmarks outside it are occluded, unless the file
+// said which are (`visible`, see toJSON): then it is as the file says.
+LandmarkGroup.prototype.setBounds = function (bounds) {
+    this.bounds = bounds;
+    if (bounds && !this._hasVisible) {
+        this._setVisible(null);
+    }
+    this.tracker.recordState(this.toJSON(), true);
+};
+
+// The `visible` list of a file (1 visible, 0 occluded, one per landmark), if it had one
+LandmarkGroup.prototype._setVisible = function (visible) {
+    this._hasVisible = Array.isArray(visible) && visible.length === this.landmarks.length;
+    this.landmarks.forEach((lm, i) => {
+        if (this._hasVisible) {
+            lm.set('occluded', visible[i] === 0);
+        } else {
+            // not said: the ones outside the frame (when it is known) are occluded
+            lm.set('occluded', !!lm.point() && this.isOutside(lm.point()));
+        }
+    });
+};
+
+LandmarkGroup.prototype.isAnyOccluded = function () {
+    return this.landmarks.some(lm => lm.isOccluded());
+};
+
+// Mark the selected landmarks as occluded, or if they all are, as visible. It can be undone.
+// Returns the number of landmarks changed.
+LandmarkGroup.prototype.toggleOccluded = function () {
+    const selected = this.selected();
+    if (!selected.length) {
+        return 0;
+    }
+    const occluded = !selected.every(lm => lm.isOccluded());
+    const ops = selected.filter(lm => lm.isOccluded() !== occluded).map(lm => {
+        const op = [lm.get('index'), lm.point().clone(), lm.point().clone(), lm.isOccluded(), occluded];
+        lm.setOccluded(occluded);
+        return op;
+    });
+    if (ops.length) {
+        this.tracker.record(ops);
+    }
+    return ops.length;
+};
 
 LandmarkGroup.prototype.nextAvailable = function () {
     for (let i = 0; i < this.landmarks.length; i++) {
@@ -357,7 +413,7 @@ LandmarkGroup.prototype.spaceAfterMove = function (moves) {
 };
 
 LandmarkGroup.prototype.toJSON = function () {
-    return {
+    const json = {
         landmarks: {
             points: this.landmarks.map(lm => lm.toJSON()),
             connectivity: this.connectivity
@@ -365,6 +421,13 @@ LandmarkGroup.prototype.toJSON = function () {
         labels: this.labels.map(label => label.toJSON()),
         version: 2
     };
+    // LJSON v3 (LEP-0001) calls it metadata.visible: 1 for a landmark that can be seen, 0 for one
+    // that is occluded. An image always says (so that a landmark outside it that was marked
+    // visible stays so); a mesh only if something is occluded.
+    if (this.bounds || this.isAnyOccluded()) {
+        json.metadata = {visible: this.landmarks.map(lm => lm.isOccluded() ? 0 : 1)};
+    }
+    return json;
 };
 
 LandmarkGroup.prototype.save = function () {
@@ -381,11 +444,14 @@ LandmarkGroup.prototype.save = function () {
 
 LandmarkGroup.prototype.undo = function () {
     this.tracker.undo((ops) => {
-        ops.forEach(([index, start]) => {
+        ops.forEach(([index, start, , occludedBefore]) => {
             if (!start) {
                 this.landmarks[index].clear();
             } else {
                 this.landmarks[index].setPoint(start.clone());
+            }
+            if (occludedBefore !== undefined) {
+                this.landmarks[index].setOccluded(occludedBefore);
             }
         });
         this.resetNextAvailable();
@@ -396,11 +462,14 @@ LandmarkGroup.prototype.undo = function () {
 
 LandmarkGroup.prototype.redo = function () {
     this.tracker.redo((ops) => {
-        ops.forEach(([index, , end]) => {
+        ops.forEach(([index, , end, , occludedAfter]) => {
             if (!end) {
                 this.landmarks[index].clear();
             } else {
                 this.landmarks[index].setPoint(end.clone());
+            }
+            if (occludedAfter !== undefined) {
+                this.landmarks[index].setOccluded(occludedAfter);
             }
         });
         this.resetNextAvailable();
@@ -437,5 +506,7 @@ LandmarkGroup.parse = function (json, id, type, server, tracker) {
         tracker
     );
     group.predictedBy = predictedBy(json);
+    group._setVisible(json.metadata && json.metadata.visible);
+    group.tracker.recordState(group.toJSON(), true);  // as the file says, which is saved
     return group;
 };

@@ -10,6 +10,7 @@ export default Backbone.Model.extend({
             point: null,
             selected: false,
             nextAvailable: false,
+            occluded: false,
             index: null
         };
     },
@@ -18,7 +19,38 @@ export default Backbone.Model.extend({
         _.bindAll(this, 'nDims', 'point', 'setPoint', 'isEmpty',
             'isSelected', 'select', 'selectAndDeselectRest', 'deselect',
             'isNextAvailable', 'setNextAvailable', 'clearNextAvailable',
-            'clear', 'group', 'toJSON');
+            'clear', 'group', 'toJSON', 'isOccluded', 'setOccluded');
+        // a landmark that leaves the picture is occluded (and one that comes back is not)
+        this.on('change:point', this._autoOcclude);
+    },
+
+    isOccluded: function () {
+        return !!this.get('occluded');
+    },
+
+    setOccluded: function (occluded) {
+        this.set('occluded', !!occluded);
+    },
+
+    // The point changed: past the edge of the image the landmark is occluded, as it is
+    // out of the frame. It is not occluded any more when it comes back, unless it was marked
+    // occluded by hand while inside, which a move inside the image does not change.
+    _autoOcclude: function () {
+        const group = this.group();
+        if (!group || !group.isOutside) {
+            return;
+        }
+        const now = this.point();
+        if (!now) {
+            this.set('occluded', false);
+        } else if (group.isOutside(now)) {
+            this.set('occluded', true);
+        } else {
+            const before = this.previous('point');
+            if (before && group.isOutside(before)) {
+                this.set('occluded', false);
+            }
+        }
     },
 
     nDims: function () {
@@ -74,7 +106,7 @@ export default Backbone.Model.extend({
     },
 
     clear: function() {
-        this.set({ point: null, selected: false });
+        this.set({ point: null, selected: false, occluded: false });
     },
 
     group: function () {
