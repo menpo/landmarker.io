@@ -16,8 +16,10 @@ export function fitPanelState (status, {hasLandmarks=true, saved=true}={}) {
     const lines = [];
     lines.push(`Model: ${status.model}`);
     if (ready) {
-        lines.push(learns ? `Learnt from ${plural(status.trained_on, 'image')}` :
-                            'Fixed model (it does not learn)');
+        lines.push(!learns ? 'Fixed model (it does not learn)' :
+                   status.has_initial_state ?
+                       `Pretrained, plus ${plural(status.trained_on, 'image')} of yours` :
+                       `Learnt from ${plural(status.trained_on, 'image')}`);
     } else if (learns) {
         lines.push(`Not ready: needs ${status.min_images} annotated images ` +
                    `(${status.annotated} so far)`);
@@ -88,6 +90,9 @@ export function modelChip (status) {
         return learns ? {kind: 'empty',
                          text: `needs ${status.min_images} images (${status.annotated})`} :
                         {kind: 'empty', text: 'no state'};
+    }
+    if (learns && status.has_initial_state) {
+        return {kind: 'ready', text: status.trained_on ? `pretrained + ${status.trained_on}` : 'pretrained'};
     }
     return learns ? {kind: 'ready', text: `learnt from ${status.trained_on}`} :
                     {kind: 'fixed', text: 'pretrained'};

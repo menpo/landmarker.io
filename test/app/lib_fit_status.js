@@ -22,6 +22,12 @@ describe('fitPanelState', function () {
         assert.isFalse(s.busy);
     });
 
+    it('says a model that started pretrained is pretrained, plus what it learnt from you', function () {
+        const s = fitPanelState(status({has_initial_state: true, trained_on: 6}));
+        assert.include(s.lines, 'Pretrained, plus 6 images of yours');
+        assert.notInclude(s.lines, 'Learnt from 6 images');
+    });
+
     it('says what is missing before the model is ready', function () {
         const s = fitPanelState(status({ready: false, trained_on: 0, annotated: 3}));
         assert.include(s.lines, 'Not ready: needs 8 annotated images (3 so far)');
@@ -113,6 +119,10 @@ describe('modelChip', function () {
         assert.deepEqual(modelChip(status({ready: false, can_increment: false, can_build: false})),
                          {kind: 'empty', text: 'no state'});
         assert.deepEqual(modelChip(status()), {kind: 'ready', text: 'learnt from 12'});
+        assert.deepEqual(modelChip(status({has_initial_state: true, trained_on: 6})),
+                         {kind: 'ready', text: 'pretrained + 6'});
+        assert.deepEqual(modelChip(status({has_initial_state: true, trained_on: 0})),
+                         {kind: 'ready', text: 'pretrained'});
         assert.deepEqual(modelChip(status({can_increment: false, can_build: false})),
                          {kind: 'fixed', text: 'pretrained'});
     });

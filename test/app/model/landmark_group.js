@@ -170,12 +170,11 @@ describe('LandmarkGroup#closeLoops', function () {
         const moved = g.closeLoops();
         const now = xy(g);
         assert.equal(moved, 2);
-        // the loop's ends are the points furthest apart (6 and 8); the other two meet on the line
+        // the loop's ends are the points furthest apart (6 and 8); the other two meet half way
         assert.deepEqual(now[6], POINTS[6]);
         assert.deepEqual(now[8], POINTS[8]);
         assert.deepEqual(now[5], now[7]);
-        assert.closeTo((now[8][0] - now[6][0]) * (now[5][1] - now[6][1]) -
-                       (now[8][1] - now[6][1]) * (now[5][0] - now[6][0]), 0, 1e-9);
+        assert.deepEqual(now[5], [20, 3]);   // half way between 5 and 7
         POINTS.slice(0, 5).forEach((p, i) => assert.deepEqual(now[i], p));  // the chain
         g.undo();
         assert.deepEqual(xy(g), POINTS);

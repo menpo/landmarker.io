@@ -267,12 +267,33 @@ export function resampleCurves (points, edges, anchors = [], spacing = {},
 }
 
 /**
- * Close every loop of a graph into a straight line, like a shut eye or mouth: its two ends (the
+ * The nearest point to p on the polyline through the points.
+ */
+function nearestOnPath (path, p) {
+    let best = path[0].slice(), bestD = Infinity;
+    for (let k = 0; k + 1 < path.length; k++) {
+        const u = path[k], v = path[k + 1];
+        const d = v.map((x, c) => x - u[c]);
+        const len2 = d.reduce((sum, x) => sum + x * x, 0);
+        const t = len2 === 0 ? 0 : Math.min(1, Math.max(0, p.reduce(
+            (sum, x, c) => sum + (x - u[c]) * d[c], 0) / len2));
+        const q = u.map((x, c) => x + t * d[c]);
+        const dist = Math.hypot(...q.map((x, c) => x - p[c]));
+        if (dist < bestD) {
+            bestD = dist;
+            best = q;
+        }
+    }
+    return best;
+}
+
+/**
+ * Close every loop of a graph into one curve, like a shut eye or mouth: its two ends (the
  * two anchors that are furthest apart, or if it has fewer than two the two points that are) stay,
- * and the points between them on the two sides go onto the straight line between the ends, the
- * ones facing each other exactly on top of each other, at the middle of where the two were
- * along the line. Of two sides with different numbers of points the pairs are made from the ends
- * and the points left over go to where they project on the line. Chains, and loops with a
+ * and the points between them on the two sides meet half way between where the two were, the
+ * ones facing each other exactly on top of each other, so a curved lid stays curved. Of two
+ * sides with different numbers of points the pairs are made from the ends and the points left
+ * over go to the nearest place on that curve. Chains, and loops with a
  * point that is not placed (null), stay.
  *
  * @param {number[][]} points
@@ -314,22 +335,20 @@ export function closeLoops (points, edges, anchors = [], only = null) {
         const first = side(i, j);
         const second = side(j, i).reverse();
         const a = points[indices[i]], b = points[indices[j]];
-        const axis = b.map((v, c) => v - a[c]);
-        const length2 = axis.reduce((sum, v) => sum + v * v, 0);
-        if (length2 === 0) {
-            return;
-        }
-        // where along the line (0 at the end i, 1 at j) a point projects
-        const along = (k) => Math.min(1, Math.max(0, points[indices[k]].reduce(
-            (sum, v, c) => sum + (v - a[c]) * axis[c], 0) / length2));
-        const put = (k, t) => { result[indices[k]] = a.map((v, c) => v + t * axis[c]); };
         const paired = Math.min(first.length, second.length);
+        // the pairs meet half way between the two sides, so a curved lid stays curved
+        const middle = [];
         for (let x = 0; x < paired; x++) {
-            const t = (along(first[x]) + along(second[x])) / 2;
-            put(first[x], t);
-            put(second[x], t);
+            const p = points[indices[first[x]]], q = points[indices[second[x]]];
+            middle.push(p.map((v, c) => (v + q[c]) / 2));
+            result[indices[first[x]]] = middle[x];
+            result[indices[second[x]]] = middle[x].slice();
         }
-        first.slice(paired).concat(second.slice(paired)).forEach(k => put(k, along(k)));
+        // the points left over go to the nearest place on that middle line
+        const path = [a].concat(middle, [b]);
+        first.slice(paired).concat(second.slice(paired)).forEach((k) => {
+            result[indices[k]] = nearestOnPath(path, points[indices[k]]);
+        });
     });
     return result;
 }
