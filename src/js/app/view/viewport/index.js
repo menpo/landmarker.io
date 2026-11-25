@@ -728,12 +728,40 @@ export default Backbone.View.extend({
     // where the landmarks are), even outside the image. null if the camera is edge on.
     screenToLocal: function (x, y) {
         this._aimRay(x, y);
+        var hit = this._planeHit();
+        return hit ? this.worldToLocal(hit) : null;
+    },
+
+    // Where the ray (see _aimRay) meets the plane of the image, in world coordinates
+    _planeHit: function () {
         var origin = this.sMeshAndLms.localToWorld(new THREE.Vector3(0, 0, 0));
         var normal = new THREE.Vector3(0, 0, 1).transformDirection(
             this.sMeshAndLms.matrixWorld);
         var plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin);
-        var hit = this.ray.ray.intersectPlane(plane, new THREE.Vector3());
-        return hit ? this.worldToLocal(hit) : null;
+        return this.ray.ray.intersectPlane(plane, new THREE.Vector3());
+    },
+
+    // The picture of an image is only a part of its plane, and a landmark can be anywhere on the
+    // plane: a face that is cut by the edge of the frame has landmarks past it. This is what
+    // getIntersects gives for an image, in place of the hit with the picture. With "keep inside"
+    // on the point is moved to the nearest one within the picture.
+    _planeIntersects: function () {
+        var hit = this._planeHit();
+        if (!hit) {
+            return [];
+        }
+        var box = this.mesh && this.mesh.geometry && this.mesh.geometry.boundingBox;
+        if (this.model.isKeepInsideOn() && box) {
+            var local = this.worldToLocal(hit);
+            local.x = Math.min(Math.max(local.x, box.min.x), box.max.x);
+            local.y = Math.min(Math.max(local.y, box.min.y), box.max.y);
+            hit = this.sMeshAndLms.localToWorld(local);
+        }
+        return [{
+            point: hit,
+            distance: this.ray.ray.origin.distanceTo(hit),
+            object: this.mesh
+        }];
     },
 
     getIntersects: function (x, y, object) {
@@ -741,6 +769,10 @@ export default Backbone.View.extend({
             return [];
         }
         this._aimRay(x, y);
+
+        if (object === this.mesh && this.model.imageMode()) {
+            return this._planeIntersects();
+        }
 
         if (object === this.mesh && this.octree) {
             // we can use the octree to intersect the mesh efficiently.
