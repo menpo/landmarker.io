@@ -313,7 +313,7 @@ LandmarkGroup.prototype._applyMoved = function (moved) {
     return ops;
 };
 
-// Close the loops (the eyes, the mouth) into straight lines, the points of the two sides on top
+// Close the loops (the eyes, the mouth) into one curve, the points of the two sides on top
 // of each other: see closeLoops in lib/spline. Only the loops with a selected landmark if there
 // is a selection, otherwise all of them. It can be undone. Returns the number of landmarks moved.
 LandmarkGroup.prototype.closeLoops = function () {

@@ -342,8 +342,8 @@ export const ResampleView = Backbone.View.extend({
             'Space all the landmarks evenly along their curves, between the anchors of the template [s]' :
             'Space the curves with selected landmarks evenly; deselect (q) to space them all [s]');
         this.$('#closeLoops').text(closeLoopsText(scope)).attr('title', scope === null ?
-            'Close all the loops (eyes, mouth) into straight lines, the points of the two sides on top of each other [f]' :
-            'Close the loops with selected landmarks into straight lines; deselect (q) to close them all [f]');
+            'Close all the loops (eyes, mouth) into one curve, the points of the two sides on top of each other [f]' :
+            'Close the loops with selected landmarks into one curve; deselect (q) to close them all [f]');
     },
 
     resample: function () {
@@ -397,11 +397,9 @@ export function closeLoopsSelectedOrAll (lms) {
     const scope = lms.resampleScope();  // the labels of the selection, or null
     const moved = lms.closeLoops();
     const where = scope === null ? '' : ` of ${scope.join(', ')} only (q deselects, to snap all)`;
-    notify({
-        type: moved ? 'success' : 'info',
-        msg: moved ? `Snapped the loops${where} to lines: ${moved} landmarks moved (undo with z)` :
-                     `Nothing to snap${where}: no loop with all its landmarks placed, or already snapped`
-    });
+    if (!moved) {
+        notify({type: 'info', msg: `Nothing to snap${where}: no loop with all its landmarks placed, or already snapped`});
+    }
 }
 
 // shared by the button and the keyboard shortcut
@@ -409,11 +407,9 @@ export function resampleSelectedOrAll (lms) {
     const scope = lms.resampleScope();
     const moved = lms.resample();
     const where = scope === null ? '' : ` of ${scope.join(', ')} only (q deselects, to space all)`;
-    notify({
-        type: moved ? 'success' : 'info',
-        msg: moved ? `Spaced ${moved} landmarks${where} evenly (undo with z)` :
-                     `Nothing to move${where}: already even, or no complete curve`
-    });
+    if (!moved) {
+        notify({type: 'info', msg: `Nothing to move${where}: already even, or no complete curve`});
+    }
 }
 
 export const LmLoadView = Backbone.View.extend({

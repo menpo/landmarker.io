@@ -144,26 +144,28 @@ describe('curveSegments', function () {
 });
 
 
-describe('closeLoops: a loop shut into a straight line', function () {
+describe('closeLoops: a loop shut into one curve', function () {
     // an eye: left corner, two points on the upper lid, right corner, two on the lower lid
     const EYE = [[0, 0], [3, 2], [7, 2.5], [10, 2], [7, -2], [3, -1.5]];
     const LOOP = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]];
     const cross = (a, b, p) => (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
 
-    it('keeps the corners and puts the two sides on the line between them, on top of each other', function () {
+    it('keeps the corners and puts each pair half way between its two points', function () {
         const shut = closeLoops(EYE, LOOP, [0, 3]);
         assert.deepEqual(shut[0], EYE[0]);
         assert.deepEqual(shut[3], EYE[3]);
         // facing points: the upper ones and the lower ones, from the same end
         assert.deepEqual(shut[1], shut[5]);
         assert.deepEqual(shut[2], shut[4]);
-        shut.forEach(p => assert.closeTo(cross(EYE[0], EYE[3], p), 0, 1e-9));
-        // at the middle of where the two were along the line
-        const axis = [10, 2], length2 = 104;
-        const t = (p) => (p[0] * axis[0] + p[1] * axis[1]) / length2;
-        assert.closeTo(t(shut[1]), (t(EYE[1]) + t(EYE[5])) / 2, 1e-9);
-        assert.closeTo(t(shut[2]), (t(EYE[2]) + t(EYE[4])) / 2, 1e-9);
-        assert.isBelow(t(shut[1]), t(shut[2]));   // the order along the eye is kept
+        close([shut[1]], [[3, 0.25]], 1e-9, 'first pair');
+        close([shut[2]], [[7, 0.25]], 1e-9, 'second pair');
+    });
+
+    it('keeps the curve: a bent eye does not become a straight line', function () {
+        const bent = [[0, 0], [3, 3], [7, 3], [10, 0], [7, 1], [3, 1]];
+        const shut = closeLoops(bent, LOOP, [0, 3]);
+        assert.isAbove(shut[1][1], 1);
+        assert.isAbove(shut[2][1], 1);
     });
 
     it('does not need the corners to be the first points, or anchors', function () {
@@ -189,12 +191,12 @@ describe('closeLoops: a loop shut into a straight line', function () {
     it('pairs from the corners when the sides have different numbers of points', function () {
         const points = [[0, 0], [2, 1], [5, 1], [8, 1], [10, 0], [6, -1]];
         const shut = closeLoops(points, [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]], [0, 4]);
-        // the first pair (1 and 5) meets at the middle of 0.2 and 0.6 along the line
+        // the first pair (1 and 5) meets half way between them
         assert.deepEqual(shut[1], [4, 0]);
         assert.deepEqual(shut[5], [4, 0]);
-        // the others go to where they project
-        assert.deepEqual(shut[2], [5, 0]);
-        assert.deepEqual(shut[3], [8, 0]);
+        // the others go to the nearest place on the line through the ends and that pair
+        close([shut[2]], [[5, 0]], 1e-9, 'point 2');
+        close([shut[3]], [[8, 0]], 1e-9, 'point 3');
     });
 
     it('leaves chains, loops with an unplaced point, and loops that were not asked for', function () {
@@ -218,13 +220,13 @@ describe('closeLoops: a loop shut into a straight line', function () {
         assert.deepEqual(closeLoops(same, [[0, 1], [1, 2], [2, 3], [3, 0]]), same);
     });
 
-    it('keeps points that stick out past a corner on the line, at its end', function () {
+    it('keeps points that stick out past a corner on the curve, at its end', function () {
         const points = [[0, 0], [5, 1], [10, 0], [12, -1], [5, -1], [-2, -1]];
         const shut = closeLoops(points, [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]], [0, 2]);
         assert.deepEqual(shut[3], [10, 0]);      // past the second corner: its end
         assert.deepEqual(shut[4], [5, 0]);
-        // 1 and 5 are a pair: the middle of 0.5 and (before the first corner) 0
-        assert.deepEqual(shut[1], [2.5, 0]);
-        assert.deepEqual(shut[5], [2.5, 0]);
+        // 1 and 5 are a pair: half way between them
+        assert.deepEqual(shut[1], [1.5, 0]);
+        assert.deepEqual(shut[5], [1.5, 0]);
     });
 });
