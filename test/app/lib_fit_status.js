@@ -22,10 +22,10 @@ describe('fitPanelState', function () {
         assert.isFalse(s.busy);
     });
 
-    it('says how many saved images are left out of learning for their occluded landmarks', function () {
-        assert.include(fitPanelState(status({occluded: 2})).lines,
-                       '2 saved images left out of learning: a landmark is occluded or out of the frame');
-        assert.notMatch(fitPanelState(status({occluded: 0})).lines.join('\n'), /left out/);
+    it('says how many saved images are left out of learning for a landmark outside the image', function () {
+        assert.include(fitPanelState(status({outside: 2})).lines,
+                       '2 saved images left out of learning: a landmark is outside the image');
+        assert.notMatch(fitPanelState(status({outside: 0})).lines.join('\n'), /left out/);
     });
 
     it('says a model that started pretrained is pretrained, plus what it learnt from you', function () {
